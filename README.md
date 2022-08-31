@@ -6,6 +6,11 @@ In agent-oriented programming, software systems are composed of several autonomo
 
 Jadescript comes with a dedicated [Eclipse](https://www.eclipse.org) IDE Plug-in that provides graphical support to develop and run agents.
 
+## Resources
+ * [Eclipse Plugin Download](https://github.com/aiagents/jadescript/releases/download/v1.0.20220828/Jadescript_v1.0.20220828.zip)
+ * [Compiler Download](https://github.com/aiagents/jadescript/releases/download/v1.0.20220828/jadescriptc.jar) (not needed if you use the above plug-in)
+ * [Programmer's Guide](https://github.com/aiagents/jadescript/releases/download/v1.0.20220828/JadescriptProgrammersGuide_1.0_1.0.20220828.pdf)
+
 ## Citation
 If you want to cite Jadescript, please cite the following paper:
 
@@ -71,7 +76,7 @@ cyclic behaviour WaitFromPong
         activate SendRequest after "PT1S" as duration
 ```
 
-To learn how to set up, develop, and run this example (and others), refer to the Jadescript Programmer's Guide.
+To learn how to set up, develop, and run this example (and others), refer to the [Jadescript Programmer's Guide](https://github.com/aiagents/jadescript/releases/download/v1.0.20220828/JadescriptProgrammersGuide_1.0_1.0.20220828.pdf).
 
 ## Build
 ### Clone and setup Eclipse Workspace
