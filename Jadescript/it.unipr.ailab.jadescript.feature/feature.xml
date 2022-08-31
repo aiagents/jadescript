@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="it.unipr.ailab.jadescript.feature"
+      label="Jadescript Feature "
+      version="1.0.0.qualifier">
+
+   <plugin
+         id="it.unipr.ailab.jadescript"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"/>
+
+   <plugin
+         id="it.unipr.ailab.jadescript.ide"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"/>
+
+   <plugin
+         id="it.unipr.ailab.jadescript.ui"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"/>
+
+</feature>

@@ -1,0 +1,305 @@
+module examples.abt
+
+###########################################################################
+#
+# Simple Asynchronous Backtracking (ABT) example in Jadescript
+#
+# The ABT algorithm is a distributed and decentralized algorithm that solves
+#   constraint satisfaction problems (CSP) over finite domains.
+# The example is inspired by the ABT algorithm found in Yoav Shoham's public 
+#   manuscript (v. 1.0) of his book "MULTIAGENT SYSTEMS - Algorithmic, 
+#   Game-Theoretic, and Logical Foundations" (downloadable at 
+#   http://www.masfoundations.org/). The general algorithm is described 
+#   starting at page 10.
+# In this example, each agent represents a variable, and concurrently
+#   and in parallel communicates with other agents to check if its chosen
+#   assignment is compatible with the "not-equal" binary constraints that
+#   compose the constraint network.
+# At any time instant, each agent has only a partial view of the state of 
+#   the algorithm. Such view is strictly local to the variable the agent
+#   is responsible for and the constaints involving that variable.
+#   
+#       
+# How to run:
+#   1. Start the JADE Platform.
+#   2. Run an ABTAgent with a unique name that identifies the name of the
+#       variable, and define the constraints and the domain:
+#       a. constraints: a comma-separated list of the other variable names 
+#               directly connected to this one in the constraint network;
+#       b. a separator: ",!,"
+#       c. domain: a comma-separated list of dinstinct symbols.
+#   3. Repeat step 2 for each other variable.
+#   4. Run a Starter agent, with a comma-separated list of all the variable
+#       in the CSP (note that the order chosen here is used as priority
+#       ordering by the algorithm). 
+#   5. When a solution can be found, it will be expressed by the last 
+#       assignment of each variable (see the " <- " expressions in the log).
+#
+#   Example CSP configuration:
+#       first agent:ABTAgent, name: "x1", arguments: "x2,x3,!,R,G,B"
+#           (i.e.: x1≠x2, x1≠x3, x1 in {R, G, B})
+#       second agent:ABTAgent, name "x2", arguments: "x1,x3,!,R,B"
+#       third agent:ABTAgent, name "x3", arguments: "x1,x2,!,R,G,B"
+#       fourth agent:Starter,  arguments: "x1,x2,x3" 
+#           (i.e. priority ordering)
+###########################################################################
+
+
+
+# Helper function that converts a list of string names to a list of AIDs
+# Parameters:
+#   input - a list of text, where each element is a valid agent name, 
+#               convertible to a JADE AID.
+#
+# Returns - the list of the created AIDs.
+#
+function convertToAIDs(names as list of text) as list of aid do
+    results = [] of aid
+    for n in names do
+        add n@ to results  
+    return results
+ 
+
+
+# The ontology that contains all the type of messages exchanged by 
+# agents in the ABT algorithm.
+ontology ABTOnto
+    # Used to create a consensus at startup on the priority ordering of 
+    #   the agents. 
+    action Start(priorityOrdering as list of aid)
+    
+    # Conceptualizes an assignment of a value (text) to a variable (AID).
+    concept Assignment(variable as aid, v as text)
+    concept EmptyAssignment extends Assignment with variable=""@, v=""
+    
+    # Indicates that a set of assignments violates one or more constraints.
+    predicate NoGood(assignments as list of Assignment)
+    
+    # Indicates that an assignment is valid (used only as query_if in this
+    #   algorithm).
+    predicate Ok(assignment as Assignment)
+    
+    # Action: add the specified variable/agent as constrained/neighbor.
+    action AddNeighbor(variable as aid)
+    
+    # A Termination condition occurred.
+    predicate Termination(reason as Concept)
+    
+    # Termination reason: no solution.
+    concept NoSolution
+    
+    # Termination reason: failure.
+    concept Failure(msg as text)
+    
+    # Action: terminate because the algorithm is terminated.
+    action Terminate
+    
+    
+
+# This agent imposes a priority ordering and starts up the algorithm.
+#
+# Arguments: a comma-separated list of agent names (convertible to AIDs)
+#               used as priority ordering of variable/agents.
+#
+agent Starter uses ontology ABTOnto  
+
+    property agentList as list of aid
+
+    on create with arguments as list of text do
+        # Create and populate a list of AIDs.
+        agentList = convertToAIDs(arguments)
+        log "Sending start message to " + agentList
+        # Request the agents to start and to use the specified ordering.
+        send message request Start(priorityOrdering = agentList) to agentList
+        activate AwaitTermination()
+        
+        
+cyclic behavior AwaitTermination 
+        for agent Starter
+        uses ontology ABTOnto
+
+    on message inform Termination(reason) do
+        if reason is NoSolution do
+            log "The algorithm terminated with no solution found."
+        else do
+            when reason matches Failure(msg) do
+                log WARNING "ABT Failure from agent '" +
+                    name of sender of message+"': '" + msg + "'"  
+        send message request Terminate to agentList 
+
+
+
+# This agent represents a variable in the ABT algorithm.
+#
+# Arguments: a comma-separated list of agent names (convertible to AIDs)
+#               that indicates the not-equal constraints this 
+#               agent/variable shares with other agents,
+#               followed by ",!,",
+#               followed by a comma-separated list of possible values
+#               that can be assigned to this variable.  
+#
+agent ABTAgent uses ontology ABTOnto
+    # The other variables 'not-equal' to this agent's variable.
+    property constraints as list of text
+    # Same as 'constraints', but populated at startup with the 
+    #   corresponding AIDs.
+    property neighbors as list of aid
+    # AIDs of all the other ABTAgents, following the ordering
+    #   imposed by the Starter agent.
+    property ordering as list of aid
+    # AIDs of the neighbors with lower priority.
+    property outConstraints as list of aid
+    # List of values that this agent can assign to its variable.
+    property domain as list of text
+    # AID of the starter agent (to communicate termination). 
+    property starter as aid 
+    
+    
+    on create with arguments as list of text do
+        log name + ": started!"
+        addToDomain = false
+        # Parses the constraints and the domain.
+        for c in arguments do
+            if not addToDomain and c = "!" do
+                addToDomain = true
+            else if addToDomain do
+                add c to domain
+            else do
+                add c to constraints
+        
+        activate AwaitStart
+    
+    
+    
+# Behavior engaged by ABTAgents waiting for the start of the algorithm.
+cyclic behavior AwaitStart 
+    for agent ABTAgent
+    uses ontology ABTOnto
+    
+    on activate do
+        log "AwaitStart for agent "+name of agent+" started"
+    
+    on message request Start(prio) do
+        log "Received start message."
+        neighbors = convertToAIDs(constraints)
+        foundMyself = false
+        ordering = prio 
+        if length of ordering = 0 do
+            log WARNING "ordering is empty!"
+        else do
+            log "ordering="+ordering
+        # Builds the list of lower-priority agents (outConstraints).
+        for a in ordering do
+            if a = aid of agent do
+                log "Found myself!"
+                foundMyself = true
+            else if foundMyself and neighbors contains a do
+                log "Adding "+a+" to outConstraints"
+                add a to outConstraints
+    
+        starter of agent = sender of message
+        
+        if length of outConstraints = 0 do  
+            log WARNING "outConstraints is empty!"
+        
+        if length of ordering = 0 do
+            log WARNING "ordering is empty!"
+        
+        # Switches behavior
+        activate RunningABT
+        deactivate this
+
+
+
+# Defines the actual behavior of an agent during the algorithm execution.
+cyclic behavior RunningABT
+    for agent ABTAgent
+    uses ontology ABTOnto
+    
+    property agentView as map of aid:text
+    property nogoods as list of Assignment
+    property currentValue as text
+    property started = false
+    
+    
+    # Run only at activation time of the behavior, used to make the first
+    #   assignment and to send the corrisponding "query_if Ok" to its 
+    #   lower-priority neighbors.
+    on activate do
+        log name of agent + 'Started.'
+        currentValue = domain[0]
+        log name of agent + " <- " + currentValue
+        query_if Ok(Assignment(aid of agent, currentValue)) to outConstraints       
+            
+    
+    on message query_if Ok(Assignment(v, d)) do
+        put d in agentView at v
+        do checkAgentView
+        
+        
+    on message inform NoGood(assignments) do
+        for a in assignments do
+            add a to nogoods
+    
+        for nogood in nogoods do
+            when nogood matches Assignment(v, d) do
+                if not(neighbors contains v) do
+                    put d in agentView at v
+                    send message request AddNeighbor(aid of agent) to v
+        do checkAgentView       
+            
+    
+    on message request Terminate do
+        log "agent "+name of agent+" terminated."
+        deactivate this
+        
+            
+    procedure checkAgentView do
+        if not isConsistent(agentView, currentValue) do
+            for d in domain do
+                if isConsistent(agentView, d) do
+                    currentValue = d
+                    log name of agent + " <- " + currentValue 
+                    send message query_if Ok(Assignment(aid of agent, d)) 
+                        to outConstraints
+                    return
+            
+            # If no value in the domain is consistent with the agentView:
+            do backtrack
+
+
+    procedure backtrack do
+        if length of nogoods = 0 do 
+            send message inform Termination(NoSolution) to starter
+        else do
+            lpnNoGood = getLowestPriorityNoGood()
+            if lpnNoGood is EmptyAssignment do
+                send message inform Termination(Failure("Cannot find the lowest "+
+                    "priority variable in nogoods")) to starter
+            else do
+                send message inform NoGood(nogoods) to variable of lpnNoGood
+                remove at variable of lpnNoGood from agentView
+                do checkAgentView
+                
+
+    function getLowestPriorityNoGood() as Assignment do
+        if length of nogoods = 0 do
+            return EmptyAssignment 
+    
+        
+        for i in (length of ordering - 1) to 0 do
+            v = ordering[i]
+            for n in nogoods do
+                if n matches Assignment(v, _) do
+                    return n
+        
+        return EmptyAssignment
+
+
+
+    function isConsistent(view as map of aid:text, v as text) as boolean do
+        for neighbor in neighbors do
+            if view contains key neighbor and view[neighbor] = v do
+                return false
+        return true
+        

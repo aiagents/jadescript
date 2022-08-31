@@ -1,0 +1,1 @@
+package example; class ExampleClass {}

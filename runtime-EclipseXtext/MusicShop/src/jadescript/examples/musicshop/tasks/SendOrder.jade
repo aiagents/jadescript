@@ -1,0 +1,19 @@
+module jadescript.examples.musicshop.tasks
+
+import jadescript.examples.musicshop.agents.BuyerAgent
+import jadescript.examples.musicshop.onto.MusicShopOntology
+
+
+one shot behaviour SendOrder 
+        for agent BuyerAgent 
+        uses ontology MusicShopOntology
+    
+    property seller as aid
+    property price as integer
+    on create with seller as aid do
+        seller of this = seller
+    
+    on execute do
+        log name of agent + ": sending acceptance of proposal to: " + name of seller
+        send message accept_proposal (Sell(aid of agent, item of agent), True) to seller 
+    

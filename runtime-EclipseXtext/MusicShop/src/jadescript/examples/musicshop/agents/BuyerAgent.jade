@@ -1,0 +1,30 @@
+module jadescript.examples.musicshop.agents
+
+
+import jadescript.examples.musicshop.onto.Item
+import jadescript.examples.musicshop.onto.MusicShopOntology
+import jadescript.examples.musicshop.tasks.SendRequests
+import jadescript.examples.musicshop.tasks.WaitResponses
+import jadescript.examples.musicshop.onto.CD
+
+
+agent BuyerAgent uses ontology MusicShopOntology 
+    property item as Item
+    property cd as CD
+    property sellers as list of aid 
+    
+    on create with 
+            serial_number as integer, 
+            argums as list of text 
+        do
+            log "Agent "+name+" starts."
+            
+            item = Item(serial_number)
+            
+            for a in argums do
+                add a@ to sellers
+                
+            
+            activate SendRequests
+            activate WaitResponses
+    

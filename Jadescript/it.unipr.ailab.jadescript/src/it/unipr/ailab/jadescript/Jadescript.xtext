@@ -1,0 +1,1023 @@
+/** 
+ * Jadescript - JADE scripting language
+ * 
+ * Grammar file
+ * 
+ * @author Giuseppe Petrosino   - giuseppe.petrosino@unimore.it
+ */
+grammar it.unipr.ailab.jadescript.Jadescript with org.eclipse.xtext.xbase.Xbase hidden(ML_COMMENT, SL_COMMENT, WS)
+
+generate jadescript "http://www.unipr.it/ailab/jadescript/Jadescript"
+import "http://www.eclipse.org/xtext/xbase/Xbase" as xbase
+import "http://www.eclipse.org/xtext/common/JavaVMTypes" as types
+
+
+Model:
+	(ENDLINE)*
+	(withModule?='module' name=QualifiedName (ENDLINE)*)?
+	(importSection=ImportSection (ENDLINE)*)?
+	elements+=TopElement (ENDLINE elements+=TopElement)*
+	(ENDLINE)*;
+
+ImportSection hidden(ML_COMMENT, SL_COMMENT, WS, NEWLINE):
+	importSection=XImportSection;
+
+
+TopElement:
+	Agent | Behaviour | Ontology | GlobalFunctionOrProcedure;
+
+
+/**
+ * Rules for generating common interfaces. Do not use!
+ */
+NamedElement:
+	{NamedElement}
+	name=Identifier;
+
+FeatureContainer returns NamedElement:
+	{FeatureContainer}
+	features+=Feature;
+
+Feature:
+	{Feature};
+
+FeatureWithBody returns Feature:
+	{FeatureWithBody}
+	body=CodeBlock;
+
+
+
+ParameterizedFeature returns FeatureWithBody:
+	{ParameterizedFeature}
+	parameters+=FormalParameter;
+	
+NamedFeature returns Feature:
+	{NamedFeature}
+	name=Identifier
+;
+
+ExtendingFeature returns NamedFeature:
+	{ExtendingFeature}
+	superType=JvmParameterizedTypeReference
+	(withSuperSlots?='with' namedSuperSlots=NamedArgumentList)?
+	;
+
+FeatureWithSlot returns ExtendingFeature:
+	{FeatureWithSlots}
+	slots+=SlotDeclaration;
+
+ExtendingElement returns FeatureContainer:
+	{ExtendingElement}
+	superTypes+=JvmParameterizedTypeReference;
+
+UsesOntologyElement returns ExtendingElement:
+	{UsesOntologyElement}
+	ontologies+=JvmTypeReference;
+
+ForElement returns UsesOntologyElement:
+	{ForElement}
+	agent=JvmTypeReference;
+	
+
+FormalParameter:
+	name=Identifier 'as' type=TypeExpression;
+
+	/**
+ * TOP ELEMENTS
+ */
+
+
+Agent returns UsesOntologyElement:
+	{Agent}
+	'agent' name=Identifier
+	(('extends' superTypes+=JvmParameterizedTypeReference)? &
+	('uses' 
+		(('ontology' ontologies+=JvmTypeReference) | ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*)))
+	)?)
+	INDENT
+	(ENDLINE)*
+	features+=AgentFeature (ENDLINE features+=AgentFeature)*
+	(ENDLINE)*
+	DEDENT;
+
+BEHAVIOUR_OR_BEHAVIOR:
+	'behaviour'
+	|
+	'behavior';
+
+
+Behaviour returns ForElement:
+	{Behaviour}
+	type=BehaviourType BEHAVIOUR_OR_BEHAVIOR name=Identifier
+	(('extends' superTypes+=JvmParameterizedTypeReference)? 
+	& ('for' 'agent' agent=JvmTypeReference)? 
+	& ('uses' 
+		(('ontology' ontologies+=JvmTypeReference) | ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*)))
+	)?)
+	((INDENT
+	(ENDLINE)*
+	features+=BehaviourFeature (ENDLINE features+=BehaviourFeature)*
+	(ENDLINE)*
+	DEDENT));
+
+BehaviourType:
+	'cyclic' | ('one' 'shot') | 'oneshot';
+
+
+Ontology returns FeatureContainer:
+	{Ontology}
+	'ontology' name=Identifier
+	('extends' superTypes+=JvmParameterizedTypeReference)?
+	INDENT
+	(ENDLINE)*
+	features+=OntologyFeature (ENDLINE features+=OntologyFeature)*
+	(ENDLINE)*
+	DEDENT;
+
+GlobalFunctionOrProcedure returns UsesOntologyElement:
+	{GlobalFunctionOrProcedure}
+	((function?='function' name=Identifier
+	('('
+	(parameters+=FormalParameter
+	(',' parameters+=FormalParameter)*)?
+	')')?
+	'as' type=TypeExpression 
+	('uses'
+		(('ontology' ontologies+=JvmTypeReference) | ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*)))
+	)?
+	'do'
+	body=CodeBlock)
+	|
+	(procedure?='procedure' name=Identifier
+	('with'
+	(parameters+=FormalParameter
+	(',' parameters+=FormalParameter)*)?)? 
+	('uses'
+		(('ontology' ontologies+=JvmTypeReference) | ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*)))
+	)?
+	'do'
+	body=CodeBlock));
+
+	/**
+ * FEATURES
+ */
+AgentFeature returns Feature:
+	Field 
+	| FunctionOrProcedure  
+	| OnCreateHandler 
+	| OnDestroyHandler
+	| OnExceptionHandler 
+	| OnBehaviourFailureHandler
+	| MemberBehaviour
+	;
+
+
+
+BehaviourFeature returns Feature:
+	Field 
+	| FunctionOrProcedure 
+	| OnMessageHandler
+	| OnPerceptHandler 
+	| OnCreateHandler 
+	| OnDestroyHandler
+	| OnActivateHandler
+	| OnDeactivateHandler
+	| OnExecuteHandler
+	| OnExceptionHandler
+	| MemberBehaviour
+	;
+
+
+OntologyFeature returns Feature:
+	Predicate | Concept | Proposition | OntologyAction;
+
+
+MemberBehaviour returns NamedFeature:
+	{MemberBehaviour}
+	type=BehaviourType BEHAVIOUR_OR_BEHAVIOR name=Identifier
+	(('extends' superTypes+=JvmParameterizedTypeReference)? &
+	('uses' 
+		(('ontology' ontologies+=JvmTypeReference) | ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*)))
+	)?)
+	((INDENT
+	(ENDLINE)*
+	features+=BehaviourFeature (ENDLINE features+=BehaviourFeature)*
+	(ENDLINE)*
+	DEDENT))
+;
+
+Field returns Feature:
+	{Field}
+	'property' name=Identifier (
+		(('as' type=TypeExpression) ('=' right=RValueExpression)?)
+		|('=' right=RValueExpression)
+	);
+
+FunctionOrProcedure returns ParameterizedFeature:
+	{FunctionOrProcedure} ((function?='function' name=Identifier
+	('('
+	(parameters+=FormalParameter
+	(',' parameters+=FormalParameter)*)?
+	')')?
+	'as' type=TypeExpression
+	'do'
+	body=CodeBlock)
+	|
+	(procedure?='procedure' name=Identifier
+	('with'
+	(parameters+=FormalParameter
+	(',' parameters+=FormalParameter)*)?)?
+	'do'
+	body=CodeBlock));
+
+
+OnMessageHandler returns FeatureWithBody:
+	{OnMessageHandler}(
+	'on' stale?='stale'? name='message' performative=Performative? pattern=Pattern?
+	('when' whenBody=WhenExpression)?
+	'do' (body=CodeBlock | nothing?='nothing')
+	);
+	
+	
+OnPerceptHandler returns FeatureWithBody:
+	{OnPerceptHandler}(
+	'on' stale?='stale'? name='percept' pattern=Pattern?
+	('when' whenBody=WhenExpression)?
+	'do' (body=CodeBlock | nothing?='nothing')
+	)
+;
+	
+OnCreateHandler returns FeatureWithBody:
+	{OnCreateHandler}(
+		'on' name='create'
+		('with' parameters+=FormalParameter (',' parameters+=FormalParameter)*)?
+		'do' (body=CodeBlock | nothing?='nothing')
+		
+	)
+;
+
+OnDestroyHandler returns FeatureWithBody:
+	{OnDestroyHandler} (
+		'on' name='destroy' 'do' (body=CodeBlock | nothing?='nothing')
+	)
+;
+
+OnActivateHandler returns FeatureWithBody:
+	{OnActivateHandler} (
+		'on' name='activate' 'do' (body=CodeBlock | nothing?='nothing')
+	)
+;
+
+OnDeactivateHandler returns FeatureWithBody:
+	{OnDeactivateHandler} (
+		'on' name='deactivate' 'do' (body=CodeBlock | nothing?='nothing')
+	)
+;
+
+OnExecuteHandler returns FeatureWithBody:
+	{OnExecuteHandler} (
+		'on' name='execute' 'do' (body=CodeBlock | nothing?='nothing')
+	)
+;
+
+OnExceptionHandler returns FeatureWithBody:
+	{OnExceptionHandler}(
+	'on' name='exception' pattern=Pattern?
+	('when' whenBody=WhenExpression)?
+	'do' (body=CodeBlock | nothing?='nothing')	
+	);
+
+OnBehaviourFailureHandler returns FeatureWithBody:
+	{OnBehaviourFailureHandler}(
+		'on' name='behaviour' 'failure' pattern=Pattern?
+		('when' whenBody=WhenExpression)?
+		'do' (body=CodeBlock | nothing?='nothing')
+	);
+
+Concept returns FeatureWithSlots:
+	{Concept}
+	(native?='native')? 'concept' name=Identifier
+	('('
+	slots+=SlotDeclaration (',' slots+=SlotDeclaration)*
+	')')?
+	('extends' superType=JvmParameterizedTypeReference (withSuperSlots?='with' namedSuperSlots=NamedArgumentList)?)?;
+
+
+Predicate returns FeatureWithSlots:
+	{Predicate}
+	(native?='native')? 'predicate' name=Identifier
+	('('
+	slots+=SlotDeclaration (',' slots+=SlotDeclaration)*
+	')')?
+	;
+
+Proposition returns ExtendingFeature:
+	{Proposition}
+	(native?='native')? 'proposition' name=Identifier
+	;
+
+
+OntologyAction returns FeatureWithSlots:
+	{OntologyAction}
+	(native?='native')? 'action' name=Identifier
+	('('
+	slots+=SlotDeclaration (',' slots+=SlotDeclaration)*
+	')')?
+	('extends' superType=JvmParameterizedTypeReference (withSuperSlots?='with' namedSuperSlots=NamedArgumentList)?)?;
+
+SlotDeclaration:
+	name=Identifier 'as' type=TypeExpression;
+
+
+WhenExpression:
+	{WhenExpression}
+	(
+		(expr = RValueExpression)
+		|
+		(INDENT expr = RValueExpression DEDENT)
+	)
+;	
+	
+
+Performative:
+	'accept_proposal' 
+	| 'agree' 
+	| 'cancel' 
+	| 'cfp' 
+	| 'confirm' 
+	| 'disconfirm' 
+	| 'failure' 
+	| 'inform' 
+	| 'inform_if' 
+	| 'inform_ref' 
+	| 'not_understood' 
+	| 'propagate' 
+	| 'propose' 
+	| 'proxy' 
+	| 'query_if' 
+	| 'query_ref' 
+	| 'refuse' 
+	| 'reject_proposal' 
+	| 'request' 
+	| 'request_when' 
+	| 'request_whenever' 
+	| 'subscribe'
+	| 'unknown';
+
+	/**
+ * STATEMENTS
+ */
+OptionalBlock:
+	block=CodeBlock | nothing?='nothing';
+
+CodeBlock:
+	{CodeBlock}
+	INDENT
+	(ENDLINE)*
+	statements+=Statement (ENDLINE statements+=Statement)*
+	(ENDLINE)*
+	DEDENT;
+
+Statement:
+	(=> Assignment)
+	| AtomExpr
+	| ProcedureCallStatement
+	| IfStatement
+	| WhileStatement
+	| ForStatement
+	| ActivateStatement
+	| DeactivateStatement
+	| FailStatement
+	| DestroyStatement
+	| CreateAgentStatement
+	| ThrowStatement
+	| SendMessageStatement
+	| WhenMatchesStatement
+	| ReturnStatement
+	| BreakStatement
+	| LogStatement
+	| AddStatement
+	| RemoveStatement
+	| ClearStatement
+	| PutbackStatement
+	| DebugTypeComparison;
+
+DebugTypeComparison:
+	'__d_comparetype__' type1=TypeExpression '?' type2=TypeExpression
+;
+
+
+ActivateStatement:
+	{ActivateStatement}
+	'activate' expression=RValueExpression
+	('at' startTime=RValueExpression | 'after' delay=RValueExpression)?
+	('every' period=RValueExpression)?
+;
+
+CreateAgentStatement:
+	{CreateAgentStatement}
+	'create' agentType=TypeExpression agentNickName=RValueExpression
+	('with' ((=> namedArgs=NamedArgumentList) | simpleArgs=SimpleArgumentList))? 
+;
+
+ThrowStatement:
+	{ThrowStatement}
+	'throw' reason=RValueExpression
+;
+	
+DeactivateStatement:
+	'deactivate' target=RValueExpression
+	('at' endTime=RValueExpression | 'after' delay=RValueExpression)?
+;	
+
+FailStatement:
+	'fail' target=RValueExpression 'with' reason=RValueExpression
+;
+
+DestroyStatement:
+	'destroy' target=RValueExpression
+;	
+
+
+
+SendMessageStatement:
+	({SendMessageStatement} //short
+	'send' 'message' performative=Performative content=RValueExpression
+	'to' receivers=CommaSeparatedListOfRExpressions ('with' 
+		('ontology' '=' ontology=JvmTypeReference ENDLINE?)
+	)?) 
+	|
+	({SendMessageStatement} // performative-style
+	performative=Performative content=RValueExpression
+	'to' receivers=CommaSeparatedListOfRExpressions ('with' 
+		('ontology' '=' ontology=JvmTypeReference ENDLINE?)
+	)?);
+
+
+CommaSeparatedListOfRExpressions:
+	{CommaSeparatedListOfRExpressions}
+	expressions+=RValueExpression (',' expressions+=RValueExpression)*;
+
+SimpleArgumentList:
+	expressions+=RValueExpression (',' expressions+=RValueExpression)*
+;
+
+
+NamedArgumentList:
+	parameterNames+=Identifier '=' parameterValues+=RValueExpression (',' 
+		parameterNames+=Identifier '=' parameterValues+=RValueExpression
+	)*
+;
+
+
+ProcedureCallStatement:
+	{ProcedureCallStatement}
+	'do' ((name=ID
+	(hasParameters?='with' ((=> namedArgs=NamedArgumentList) | simpleArgs=SimpleArgumentList))?)
+	| isNothing?='nothing');
+
+
+ClearStatement:
+	'clear' (-> collection=RValueExpression);
+
+PutbackStatement:
+	'putback' (-> message=RValueExpression)
+;
+
+RemoveStatement:
+	(
+		(retain?='retain' all?='all' element=RValueExpression)
+		|('remove' ((all?='all'? element=RValueExpression) | withIndex?='at' index=RValueExpression))
+	) 'from' (-> collection=RValueExpression);
+
+
+AddStatement:
+	putOrAdd=('add' | 'put') 
+	all?='all'?
+	element=RValueExpression
+	inOrTo=('in' | 'to') (-> collection=RValueExpression
+	(withIndex?='at' index=RValueExpression)?);
+
+
+LogStatement:
+	{LogStatement}
+	'log' (loglevel=LogLevel)? (-> expr=RValueExpression)?;
+
+LogLevel:
+	'SEVERE'
+	| 'WARNING'
+	| 'INFO'
+	| 'CONFIG'
+	| 'FINE'
+	| 'FINER'
+	| 'FINEST';
+
+
+ReturnStatement:
+	{ReturnStatement}
+	'return' (-> expr=RValueExpression)?;
+
+
+BreakStatement:
+	{BreakStatement}
+	keyword=('break' | 'continue');
+
+
+Assignment:
+	lexpr=LValueExpression assignOp=AssignmentOp rexpr=RValueExpression;
+
+
+IfStatement:
+	'if' condition=RValueExpression 'do'
+	thenBranch=OptionalBlock
+	((ENDLINE)? 'else' 'if' elseIfConditions+=RValueExpression 'do'
+	elseIfBranches+=OptionalBlock)*
+	(=> (ENDLINE)? withElseBranch?='else' 'do'
+	elseBranch=OptionalBlock)?;
+
+
+WhenMatchesStatement:
+	'when' unary=UnaryPrefix 'matches' patterns+=Pattern 'do' branches+=OptionalBlock
+	((ENDLINE)? 'else' 'matches' patterns+=Pattern 'do' branches+=OptionalBlock)*
+	(=> (ENDLINE)? withElseBranch?='else' 'do' elseBranch=OptionalBlock)?;
+
+
+WhileStatement:
+	'while' condition=RValueExpression 'do'
+	whileBody=OptionalBlock;
+
+
+ForStatement:
+	'for' varName=ID (mapIteration?=':' var2Name=ID)?
+	'in' collection=RValueExpression
+	(indexedLoop?='to' endIndex=RValueExpression)?
+	'do'
+	forBody=OptionalBlock;
+
+
+
+	/**
+ * EXPRESSIONS
+ */
+
+/*
+ * R-Value expressions
+ * 
+ * This rule is the start of the expression chain.
+ */
+RValueExpression:
+	TernaryConditional;
+
+	/*
+ * L-Value expressions
+ * 
+ * This rule is the start of the l-value espression chain.
+ * 
+ * Notes:
+ * - all l-values are also r-values.
+ * - not all the rules in this chain are actually l-values:
+ * 		for example, a call to a functioon is not an l-value.
+ * 		The validator performs this kind of check after parsing. 
+ */
+LValueExpression:
+	OfNotation;
+
+
+TernaryConditional: 
+	condition=LogicalOr (conditionalOp?='?' expression1=RValueExpression ':' expression2=RValueExpression)?;
+
+
+LogicalOr:
+	logicalAnd+=LogicalAnd ('or' logicalAnd+=LogicalAnd)*;
+
+
+LogicalAnd: 
+	equalityComparison+=EqualityComparison ('and' equalityComparison+=EqualityComparison)*;
+
+
+EqualityComparison: 
+	left=TypeComparison (equalityOp=EqualityOp right=TypeComparison)?;
+
+
+TypeComparison: 
+	relationalComparison=RelationalComparison
+	(isOp?='is' type=TypeExpression)?;
+
+
+RelationalComparison:  
+	left=ContainmentCheck (relationalOp=RelationalOp right=ContainmentCheck)?;
+
+
+ContainmentCheck: 
+	collection=Additive 
+	(contains?='contains' (all?='all' | any?='any' | key?='key' | value?='value')? element=Additive)?;
+
+	
+Additive: 
+	multiplicative+=Multiplicative (additiveOp+=AdditiveOp multiplicative+=Multiplicative)*;
+
+	
+Multiplicative:
+	matches+=Matches (multiplicativeOp+=MultiplicativeOp matches+=Matches)*;
+
+
+
+Matches:
+	unaryExpr=UnaryPrefix (matches?='matches' pattern=Pattern)?
+;
+
+
+Pattern:
+	 listPattern = ListPattern
+	 | mapOrSetPattern = MapOrSetPattern
+	 | structPattern = StructurePattern
+	 | tuplePattern = TuplePattern
+;
+
+TuplePattern: {TuplePattern}
+	 '('terms+=PatternTerm (',' terms+=PatternTerm)+ ')'
+	 (=> withTypeSpecifiers?='as' '(' typeSpecifiers+=TypeExpression (',' typeSpecifiers+=TypeExpression)+ ')')?
+;
+
+StructurePattern:
+	name = Identifier
+	(-> (withParentheses?='('
+	(terms+=PatternTerm (',' terms+=PatternTerm)*)?
+	')') | (withAs?='as' expectedType=TypeExpression))? 
+;
+
+
+ListPattern: {ListPattern}
+	'['
+	(terms+=PatternTerm (',' terms+=PatternTerm)*)?
+	(isPipe?='|' restPattern=PatternTerm)?
+	']'
+	(withTypeSpecifier?='of' typeParameter=TypeExpression)?
+	
+;
+
+
+MapOrSetPattern: {MapOrSetPattern}
+	'{'
+	(termsKey+=MapPatternKeyTerm(=>isMap?=':'termsValue+=PatternTerm)? (',' termsKey+=MapPatternKeyTerm (=>':'termsValue+=PatternTerm)?)*)?
+	(isPipe?='|' restPattern=PatternTerm)?
+	'}'
+	(withTypeSpecifiers?='of' keyTypeParameter=TypeExpression (=>isMapT?=':' valueTypeParameter=TypeExpression)?)?
+;
+
+MapPatternKeyTerm:
+	  number = NumberLiteral
+	| boolean = BooleanLiteral
+	| text = StringLiteralSimple
+	| identifier = Identifier  
+;
+
+PatternTerm:
+	  number = NumberLiteral
+	| boolean = BooleanLiteral
+	| text = StringLiteralSimple
+	| (underscore ?= '_' (withAs?='as' expectedType=TypeExpression)?)
+	| subPattern = Pattern
+;
+
+
+
+    
+	
+UnaryPrefix:
+	{UnaryPrefix} (
+		(firstOrLast=('first'|'last') index=OfNotation indexOfElemOperation?='in' ofNotation=OfNotation)
+		|
+		((unaryPrefixOp=UnaryPrefixOp)? ofNotation=OfNotation)
+		|
+		(debugType?='__d_type__' ofNotation=OfNotation)
+		|
+		(debugScope?='__d_scope__' ofNotation=OfNotation)
+		|
+		(debugSearchName?='__d_searchname__' (searchName=Identifier|underscore?='_'))
+		|
+		(debugSearchCall?='__d_searchcall__' (searchName=Identifier|underscore?='_'))
+		| 
+		(performativeConst=PerformativeExpression)
+	);
+
+PerformativeExpression:
+	{PerformativeExpression}
+	performativeValue=Performative
+;
+
+	
+OfNotation:
+	((properties+=Identifier | properties+='aid' | properties+='agent' | properties+='last') 'of')* typeCast=AidLiteral
+;
+
+
+AidLiteral:
+	typeCast=TypeCast (isAidExpr?='@' =>(hap=TypeCast)?)?
+;
+
+
+	
+TypeCast: 
+	atomExpr=AtomExpr ('as' typeCasts+=TypeExpression)*
+;
+
+	
+AtomExpr: //level 1
+	atom=Primary (trailers+=Trailer)*;
+
+Trailer:
+	(isACall?='('
+	((=> namedArgs=NamedArgumentList) | simpleArgs=SimpleArgumentList)?
+	')')
+	|
+	(isASubscription?='['
+	key=RValueExpression
+	']');
+
+
+
+
+	
+Primary:
+	{Primary}( //level 0
+	('(' exprs+=RValueExpression (',' exprs+=RValueExpression)* ')')
+	| literal=Literal 
+	| identifier=(Identifier | 'aid' | 'this') 
+	| agent='agent'
+	| message='message'
+	| percept='percept'
+	| exception='exception'
+	| behaviour='behaviour'
+	| invokeExpression=InvokeExpression)
+	;
+
+InvokeExpression:
+	{InvokeExpression}(
+		'invoke' name=(ID|STRINGSIMPLE)
+		((static?='in' className=STRINGSIMPLE)|('on' expr=RValueExpression)) 
+		(args?='with'  argumentValues+=RValueExpression (',' argumentValues+=RValueExpression)*)?
+	)
+;
+
+
+AssignmentOp:
+	"=";
+
+EqualityOp:
+	'=' | '!=' | '≠';
+
+AdditiveOp:
+	'+' | '-';
+
+MultiplicativeOp:
+	'*' | '/' | '%';
+
+RelationalOp:
+	'<' | '>' | '<=' | '>=' | '≤' | '≥';
+
+UnaryPrefixOp:
+	'+' | '-' | 'not';
+
+	/*
+ * TYPE EXPRESSIONS
+ */
+
+
+TypeExpression:
+	aid?='aid'
+	| performative?='performative'
+	| boolean?='boolean'
+	| real?='real' 
+	| duration?='duration'
+	| timestamp?='timestamp'
+	| integer?='integer' 
+	| text?='text'
+	| '('subExprs+=TypeExpression  (',' subExprs+=TypeExpression)* ')'
+ 	| builtinHiearchic=BuiltinHierarchicType
+	| jvmType=JvmTypeReference  
+	| (=> collectionTypeExpression=CollectionTypeExpression);
+
+
+terminal fragment BEHAVIOUR_OR_BEHAVIOR_CAPITALIZED:
+	'Behaviour' | 'Behavior'
+;
+
+terminal CYCLIC_BEHAVIOUR_BUILTINTYPE:
+	'Cyclic' BEHAVIOUR_OR_BEHAVIOR_CAPITALIZED
+;
+
+terminal ONESHOT_BEHAVIOUR_BUILTINTYPE:
+	'OneShot' BEHAVIOUR_OR_BEHAVIOR_CAPITALIZED
+;
+
+
+terminal CONCEPT_BUILTINTYPE:
+	'Concept'
+;
+
+terminal PREDICATE_BUILTINTYPE:
+	'Predicate'
+;
+
+terminal ATOMIC_PROPOSITION_BUILTINTYPE:
+	'AtomicProposition'
+;
+
+terminal PROPOSITION_BUILTINTYPE:
+	'Proposition'
+;
+
+terminal ACTION_BUILTINTYPE:
+	'Action'
+;
+
+
+BuiltinHierarchicType:
+  	ontology?='Ontology'
+	| agent?='Agent'
+	| baseBehaviour?=('Behaviour'|'Behavior') (for?='for' (argumentAgentRef=JvmTypeReference|forBase?='Agent'))?
+	| cyclicBehaviour?=CYCLIC_BEHAVIOUR_BUILTINTYPE (for?='for' (argumentAgentRef=JvmTypeReference|forBase?='Agent'))?
+	| oneshotBehaviour?=ONESHOT_BEHAVIOUR_BUILTINTYPE (for?='for' (argumentAgentRef=JvmTypeReference|forBase?='Agent'))?
+	| concept?=CONCEPT_BUILTINTYPE
+	| action?=ACTION_BUILTINTYPE
+	| predicate?=PREDICATE_BUILTINTYPE
+	| atomicProposition?=ATOMIC_PROPOSITION_BUILTINTYPE
+	| proposition?=PROPOSITION_BUILTINTYPE
+	| messageType=MessageType
+;
+
+MessageType:
+	baseType=(
+	'Message'
+	|'AcceptProposalMessage'
+	|'AgreeMessage'
+	|'CancelMessage'
+	|'CFPMessage'
+	|'ConfirmMessage'
+	|'DisconfirmMessage'
+	|'FailureMessage'
+	|'InformIfMessage'
+	|'InformMessage'
+	|'InformRefMessage'
+	|'NotUnderstoodMessage'
+	|'PropagateMessage'
+	|'ProposeMessage'
+	|'ProxyMessage'
+	|'QueryIfMessage'
+	|'QueryRefMessage'
+	|'RefuseMessage'
+	|'RejectProposalMessage'
+	|'RequestMessage'
+	|'RequestWheneverMessage'
+	|'RequestWhenMessage'
+	|'SubscribeMessage'
+	|'UnknownMessage'
+	) (withOf?='of' contentType=TypeExpression)?
+;
+
+
+	
+CollectionTypeExpression:
+	(collectionType='list' 'of' typeParameters+=TypeExpression) 
+	| (collectionType='map' 'of' typeParameters+=TypeExpression ':' typeParameters+=TypeExpression)
+	| (collectionType='set' 'of' typeParameters+=TypeExpression) 
+	;
+
+	/*
+ * LITERALS
+ */
+Literal:
+	string=StringLiteralSimple 
+	| number=NumberLiteral 
+	| bool=BooleanLiteral
+	| timestamp=TimestampLiteral
+	| (=> list=ListLiteral) 
+	| map=MapOrSetLiteral;
+
+
+ListLiteral:
+	{ListLiteral} 
+	('[' (values+=RValueExpression (',' values+=RValueExpression)*)? ']' 
+		(withTypeSpecifier?='of' typeParameter=TypeExpression)?
+	);
+
+
+MapOrSetLiteral:
+	{MapOrSetLiteral} 
+	('{' keys+=RValueExpression (=>isMap?=':' values+=RValueExpression)? (',' keys+=RValueExpression (=>':'values+=RValueExpression)?)* '}' 
+		(withTypeSpecifiers?='of' keyTypeParameter=TypeExpression (=>isMapT?=':' valueTypeParameter=TypeExpression)?)?) 
+	| (isEmpty?='{' '}' withTypeSpecifiers?='of' keyTypeParameter=TypeExpression (=>isMapT?=':'valueTypeParameter=TypeExpression)?);
+
+
+BooleanLiteral:
+	'true' | 'false';
+
+
+
+
+
+StringLiteralSimple:
+	value=STRINGSIMPLE
+;
+
+
+
+
+Identifier:
+	'content' | 'performative' | 'ontology' | ID;
+
+NumberLiteral:
+	Number;
+	
+
+
+TimestampLiteral:
+	'now' | 'today' 
+;
+
+
+
+
+ENDLINE:
+//';' | 
+	NEWLINE;
+	
+RESERVED_KEYWORDS:
+	'setup'
+	|'abstract'
+    |'new'
+    |'switch'
+    |'assert'
+    |'default'
+    |'goto'
+    |'package'
+    |'synchronized'
+    |'private' 
+    |'double'
+    |'implements'
+    |'protected'
+    |'byte'
+    |'public'
+    |'throws'
+    |'case'
+    |'enum'
+    |'instanceof'
+    |'transient'
+    |'catch'
+    |'int'
+    |'short'
+    |'try'
+    |'char'
+    |'final'
+    |'interface'
+    |'static'
+    |'void'
+    |'class'
+    |'finally'
+    |'long'
+    |'strictfp'
+    |'volatile'
+    |'const'
+    |'float'
+    |'super'
+;
+
+
+
+
+@Override
+terminal ID:
+	 ID_FRAGMENT
+;
+
+terminal fragment ID_FRAGMENT:
+	('a'..'z'|'A'..'Z') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')*
+;
+
+terminal STRINGSIMPLE:
+	'"' ('\\' . /* ('b'|'t'|'n'|'f'|'r'|'u'|'"'|"'"|'\\') */| !('\\' | '"' | '$'))* '"'? |
+	"'" ('\\' . /* ('b'|'t'|'n'|'f'|'r'|'u'|'"'|"'"|'\\') */| !('\\' | "'"))* "'"? 		
+;
+
+
+@Override
+terminal ML_COMMENT:
+	'##' !('\n' | '\r')* ('\r'? '\n')?;
+
+@Override
+terminal SL_COMMENT:
+	'#' !('#' | '\n' | '\r')* ('\r'? '\n')?;
+
+
+
+@Override
+terminal WS:
+	(' ' | '\t' | '\r' | '\n')+;
+terminal NEWLINE:
+	'synthetic:NEWLINE';
+terminal INDENT:
+	'synthetic:INDENT';
+terminal DEDENT:
+	'synthetic:DEDENT';
+	

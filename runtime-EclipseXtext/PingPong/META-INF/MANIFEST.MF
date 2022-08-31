@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Automatic-Module-Name: PingPong
+Bundle-ManifestVersion: 2
+Bundle-Name: PingPong
+Bundle-Vendor: My Company
+Bundle-Version: 1.0.0.qualifier
+Bundle-SymbolicName: PingPong; singleton:=true
+Bundle-ActivationPolicy: lazy
+Require-Bundle: it.unipr.ailab.jadescript
+Import-Package: org.apache.log4j,
+ org.apache.commons.logging
+Bundle-RequiredExecutionEnvironment: JavaSE-11

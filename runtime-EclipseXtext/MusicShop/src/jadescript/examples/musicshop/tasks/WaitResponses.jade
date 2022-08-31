@@ -1,0 +1,33 @@
+module jadescript.examples.musicshop.tasks
+
+import jadescript.examples.musicshop.tasks.SendOrder
+import jadescript.examples.musicshop.agents.BuyerAgent
+import jadescript.examples.musicshop.onto.MusicShopOntology
+
+# TODO These two functions will be removed when we have a Jadescript Standard library.
+function parseInt(t as text) as integer do
+    return (invoke parseInt in "jadescript.examples.musicshop.tasks.IntegerUtils" with t) as integer
+
+function integerMaxValue as integer do
+    return (invoke integerMaxValue in "jadescript.examples.musicshop.tasks.IntegerUtils") as integer
+
+cyclic behaviour WaitResponses for agent BuyerAgent uses ontology MusicShopOntology
+    property messageCounter = 0 #Counts how many proposal messages are received
+    property bestSeller as aid
+    
+    property bestPrice = integerMaxValue()
+
+    on message propose (Sell(_, _), ProposedPrice(price, _)) do
+        messageCounter = messageCounter + 1
+        
+        log name of agent + ": response NO." + messageCounter + " from " + name of sender of message
+        log name of agent + ": proposal received with price: " + price
+        if bestPrice > price do
+            log name of agent + ": proposal received has currently the best price."
+            bestSeller = sender of message
+            bestPrice = price
+        
+        if messageCounter = length of sellers of agent do
+            messageCounter = 0
+            activate SendOrder(bestSeller)
+    

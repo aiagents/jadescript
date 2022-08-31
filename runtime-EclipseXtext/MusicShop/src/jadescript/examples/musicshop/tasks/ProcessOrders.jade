@@ -1,0 +1,20 @@
+module jadescript.examples.musicshop.tasks
+
+import jadescript.examples.musicshop.agents.SellerAgent
+import jadescript.examples.musicshop.onto.MusicShopOntology
+
+
+cyclic behaviour ProcessOrders for agent SellerAgent uses ontology MusicShopOntology
+    on message accept_proposal (Sell(_, receivedItem), True)
+            when receivedItem matches Item(serialNumber) 
+        do 
+            log name of agent + ": Accepted proposal!"
+
+            if catalogue contains key serialNumber do
+                price = catalogue[serialNumber]
+                remove at serialNumber from catalogue
+                log name of agent + ": price is: " + price
+                send message inform Owns(sender of message, receivedItem) to sender of message
+            else do
+                log name of agent + ": item is not available. Sending failure."
+                send message failure ((content of message)[0], NotAvailable(serialNumber)) to sender of message

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project it.unipr.ailab.jadescript">
+    <!--ANT 1.7 is required                                        -->
+    <!--define folder properties-->
+	
+    <property name="dir.buildfile" value="."/>
+    <property name="dir.workspace" value="${dir.buildfile}/.."/>
+    <property name="dir.jarfile" value="${dir.workspace}/../StandaloneCompilerJar"/>
+    <target name="create_run_jar">
+        <jar destfile="${dir.jarfile}/jadescriptc.jar" filesetmanifest="mergewithoutmain">
+            <manifest>
+                <attribute name="Main-Class" value="it.unipr.ailab.jadescript.StandaloneMain"/>
+                <attribute name="Class-Path" value="."/>
+            </manifest>
+            <fileset dir="${dir.buildfile}/bin"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.xtext_2.25.0.v20210301-0843.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.emf.ecore.xmi_2.16.0.v20190528-0725.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.emf.ecore_2.25.0.v20210816-0937.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.emf.common_2.23.0.v20210618-0700.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.antlr.runtime_3.2.0.v201101311130.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/com.google.inject_3.0.0.v201605172100.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.emf.mwe.core_1.6.1.v20210218-2134.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.apache.commons.cli_1.4.0.v20200417-1444.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.emf.mwe2.runtime_2.12.1.v20210218-2134.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.emf.mwe.utils_1.6.1.v20210218-2134.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.xtext.util_2.25.0.v20210301-0843.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/com.google.guava_30.1.0.v20210127-2300.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/javax.inject_1.0.0.v20091030.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.xtext.xbase_2.25.0.v20210301-0909.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.xtext.common.types_2.25.0.v20210301-0909.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.xtend.lib_2.25.0.v20210301-0821.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.xtext.xbase.lib_2.25.0.v20210301-0821.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.xtend.lib.macro_2.25.0.v20210301-0821.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.equinox.common_3.15.0.v20210518-0604.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.objectweb.asm_9.1.0.v20210209-1849.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.xtext.xtext.generator_2.25.0.v20210301-0843.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.emf.codegen.ecore_2.27.0.v20210816-1137.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.emf.codegen_2.22.0.v20210420-0623.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.emf.mwe2.launch_2.12.1.v20210218-2134.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.emf.mwe2.language_2.12.1.v20210218-2134.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.eclipse.emf.mwe2.lib_2.12.1.v20210218-2134.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.apache.commons.logging_1.2.0.v20180409-1502.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${user.home}/.p2/pool/plugins/org.apache.log4j_1.2.15.v201012070815.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/libs/commons-codec-1.13.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/libs/jade.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/libs/jadescript.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/libs/jadescriptjavaapi.jar"/>
+        	<zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/libs/annotations-23.0.0.jar"/>
+        	<fileset dir="${dir.buildfile}/res"/>
+        </jar>
+    </target>
+</project>

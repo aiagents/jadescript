@@ -1,0 +1,34 @@
+module jadescript.examples.musicshop.agents
+
+import jadescript.examples.musicshop.tasks.ProcessOrders
+import jadescript.examples.musicshop.tasks.WaitForRequests
+import jadescript.examples.musicshop.onto.MusicShopOntology
+
+###
+ # SellerAgent for MusicShop Jadescript example.
+ # It takes two arguments
+ # - a list of serial numbers of items
+ # - a list of the prices of the corresponding serial numbers
+ # 
+ #
+ # Note: it would be much simplier to accept a map at input,
+ #      but the double list design was kept in this example
+ #      to showcase some collection manipulation
+ #
+ # @author Giuseppe Petrosino
+###
+agent SellerAgent uses ontology MusicShopOntology
+    property catalogue as map of integer:integer
+    
+    on create with 
+            serial_numbers as list of integer,
+            prices as list of integer
+        do
+            for i in 0 to length of serial_numbers - 1 do
+                serialNumber = serial_numbers[i]
+                price = prices[i]
+                put price in catalogue at serialNumber
+            
+            activate ProcessOrders
+            activate WaitForRequests
+    

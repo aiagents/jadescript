@@ -1,0 +1,22 @@
+module tests.cyclictypereference
+
+one shot behaviour B2
+    property b1 as B1
+    on create with x as B1 do
+        b1 = x
+
+    on execute do
+        b1 = B1(this)
+        activate b1
+        
+    on message do
+        log message
+
+one shot behaviour B1
+    property b2 as B2
+    on create with x as B2 do
+        b2 = x
+    
+    on execute do  
+        b2 = B2(this)
+        activate b2

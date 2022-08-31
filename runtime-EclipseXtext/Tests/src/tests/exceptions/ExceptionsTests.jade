@@ -1,0 +1,42 @@
+module tests.exceptions
+
+
+
+ontology ExcOnto
+    proposition Hello
+
+agent Starter uses ontology ExcOnto
+    on create do
+        send message inform Hello to "Exceptions"@
+
+agent Exceptions uses ontology ExcOnto
+    on create with args as list of text do
+        log "Agent 'Exceptions' created with arguments: "+args
+        a = 1
+        b = 0
+        c = a / b
+        
+    function heh() as boolean do
+        return false
+    
+    on exception InternalException(desc) do
+        log "Exception occurred: " + desc
+
+    on behaviour failure InternalException(desc) when behaviour is DoSomethingWrong do
+        log "Behaviour failure occurred for behaviour " + __d_type__ behaviour + " :" + desc
+    
+cyclic behaviour DoSomethingWrong for agent Exceptions
+    on message inform Hello do
+        send message inform Hello to "Pippo"@
+        fail this with Hello
+        
+    on stale message do
+        log message
+        putback message
+    
+
+    
+    on message do
+        log "Message received"
+        log performative of message
+        log sender of message

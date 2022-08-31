@@ -1,0 +1,52 @@
+module example
+
+ontology FamilyTree
+    concept Person(name as text)
+    predicate ParentOf(
+        parent as Person,
+        child as Person
+    )
+        
+agent CheckFamilyRelationships
+    uses ontology FamilyTree
+
+    property jack = Person("Jack")
+    property helen = Person("Helen")
+    property jess = Person("Jess")
+    property max = Person("Max")
+    property simon = Person("Simon")
+    property family = [
+        jack, helen, jess, max, simon
+    ]
+    property parentRelationships = [
+        ParentOf(jack, jess),
+        ParentOf(helen, jess),
+        ParentOf(jess, simon),
+        ParentOf(max, simon)
+    ]
+
+    # Checks if x is parent of y.
+    function isParent(
+        x as Person,
+        y as Person
+    ) as boolean do
+        for r in parentRelationships do
+            if child of r = y 
+                and parent of r = x do
+                return true
+        return false
+
+    # Checks if x is grandparent of y.
+    function isGrandParent(
+        x as Person,
+        y as Person
+    ) as boolean do
+        for p in family do
+            if isParent(x, p) and isParent(p, y) do
+                return true
+        return false
+
+    on create do
+        log isParent(max, simon) # -> true
+        log isParent(simon, jack) # -> false
+        log isGrandParent(helen, simon) # -> true

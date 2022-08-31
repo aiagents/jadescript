@@ -1,0 +1,7 @@
+module jadescript.examples.musicshop.onto
+
+ontology ShopOntology
+    concept Item(serialNumber as integer) 
+    predicate Owns(owner as aid, item as Item) 
+    action Sell(buyer as aid, item as Item)
+    predicate NotAvailable(serialNumber as integer)

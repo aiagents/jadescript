@@ -1,0 +1,53 @@
+module examples.auction
+
+agent Bidder uses ontology EnglishAuction
+    property budget as integer
+    on create with budget as integer do
+        budget of this = budget
+        log "Bidder "+name of agent+" created with budget: "+budget
+        activate ParticipateToAuction
+        
+    cyclic behaviour ParticipateToAuction
+        on activate do
+            send message inform ImAlive to aid("Auctioneer")
+            
+        on deactivate do
+            send message inform ImDying to aid("Auctioneer")
+        
+        on message cfp SubmitBid(item, currentPrice, bidMinimumIncrement, nextTimeout, currentWinner) do
+            proposingPrice = currentPrice + bidMinimumIncrement
+            # If we are not the best bidder, it's not too late, and we have enough money...
+            if currentWinner ≠ name of agent and nextTimeout > now and proposingPrice ≤ budget do
+                # Propose to buy the item at the specified price.
+                log "Bidding with "+proposingPrice
+                activate SendPropose(item, proposingPrice) after "PT3S" as duration
+            else if proposingPrice > budget do
+                log "Not enough money..."
+                
+        on message accept_proposal do
+            log "I am the best bidder!"
+            
+        on message reject_proposal do
+            log "I am NOT the best bidder..."
+            
+                
+        on message inform ItemSold(item, buyer, finalPrice) do
+            if buyer=aid of agent do
+                log "I bought "+item+" for "+finalPrice+"!"
+            else do
+                log buyer+" bought "+item+" for "+finalPrice+"."
+        
+        on message inform ItemNotSold(item) do
+            log "Not sold: "+item+"." 
+        
+        
+    one shot behaviour SendPropose
+        property item as Item
+        property proposingPrice as integer
+        
+        on create with item as Item, proposingPrice as integer do
+            item of this = item
+            proposingPrice of this = proposingPrice
+    
+        on execute do
+            send message propose (Buy(item), Priced(item, proposingPrice)) to aid("Auctioneer")

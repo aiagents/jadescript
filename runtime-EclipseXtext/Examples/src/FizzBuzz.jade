@@ -1,0 +1,32 @@
+module example
+
+agent FizzBuzz
+    on create do
+        # To activate and deactivate the same
+        #  behaviours, we need to assign them
+        #  to variables.
+        logSeconds = RepeatLog("")
+        fizz = RepeatLog("Fizz!")
+        buzz = RepeatLog("Buzz!")
+        activate logSeconds every "PT1S" as duration
+        activate fizz after "PT3.333S" as duration every "PT3S" as duration
+        activate buzz after "PT5.666S" as duration every "PT5S" as duration
+        deactivate logSeconds after "PT60S" as duration
+        deactivate fizz after "PT60S" as duration
+        deactivate buzz after "PT60S" as duration
+
+        
+cyclic behaviour RepeatLog
+    property counter = 0
+    property msg as text
+    
+    on create with msg as text do
+        msg of this = msg 
+        
+    on execute do
+        if length of msg = 0 do
+            log counter
+        else do
+            log msg
+        counter = counter + 1
+        

@@ -1,0 +1,49 @@
+module tests.context
+
+ontology SuperOntology
+    concept SuperConcept
+
+
+ontology MyOntology extends SuperOntology
+    concept MyConcept extends SuperConcept
+
+
+agent SuperAgent uses ontology MyOntology
+    property sax = 10
+    function say as integer do
+        return 10
+
+
+agent MyAgent extends SuperAgent
+    property ax = ""
+    function ay as text do
+        return "foo"
+        
+    on create do
+        activate MyBehaviour
+
+
+one shot behaviour SuperBehaviour for agent MyAgent
+    property sbx = true
+    function sby as boolean do
+        return false
+
+agent AnotherAgent extends MyAgent
+    property aax = "bar"@
+
+one shot behaviour MyBehaviour extends SuperBehaviour
+    property bx = inform
+    function by as performative do
+        return cfp
+        
+    on execute do
+        log __d_type__ SuperConcept
+        log __d_type__ MyConcept
+        log __d_type__ sax
+        log __d_type__ say
+        log __d_type__ ax
+        log __d_type__ ay
+        log __d_type__ sbx
+        log __d_type__ sby
+        log __d_type__ bx
+        log __d_type__ by

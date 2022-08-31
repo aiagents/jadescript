@@ -1,0 +1,9 @@
+module jadescript.examples.musicshop.onto
+
+     
+ontology MusicShopOntology extends ShopOntology
+    concept Track(title as text, trackDuration as integer)
+    concept CD(title as text, tracks as list of Track, serialNumber as integer) extends Item
+    concept Book(title as text, serialNumber as integer) extends Item 
+    predicate ProposedPrice(price as integer, forItem as Item)
+    

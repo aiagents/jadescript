@@ -1,0 +1,37 @@
+module example
+
+agent Multitasker
+    on create do
+        log "Agent 'Multitasker' created."
+        activate Behaviour1
+        activate Behaviour2
+        activate Behaviour3
+        
+cyclic behaviour Behaviour1
+    property counter = 0
+    
+    on execute do
+        log "One!"
+        counter = counter + 1
+        if counter = 4 do
+            deactivate this
+        
+        
+cyclic behaviour Behaviour2
+    property counter = 0
+    
+    on execute do
+        log "Two!"
+        counter = counter + 1
+        if counter = 4 do
+            deactivate this
+            
+            
+cyclic behaviour Behaviour3
+    property counter = 0
+    
+    on execute do
+        log "Three!"
+        counter = counter + 1
+        if counter = 4 do
+            deactivate this

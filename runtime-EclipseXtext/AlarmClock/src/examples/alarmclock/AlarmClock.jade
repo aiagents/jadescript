@@ -1,0 +1,97 @@
+module examples.alarmclock 
+
+# How to run:
+# - Launch an AlarmClock agent first, with name 'AlarmClock';
+# - Launch the AlarmClockUser agents, and specify the alarm time in the arguments 
+#   in the format 'hh:mm:ss'.
+
+ontology AlarmClockOntology
+    action WakeUp(t as timestamp, target as aid)
+    predicate TimeOut(result as integer)
+    proposition TimeIsInThePast
+
+# Parses a text in the format 'hh:mm:ss' into a Jadescript timestamp.
+function parseAlarmTime(time as text) as timestamp do
+    timeInJadescriptFormat = "T" + time + "Z+1:00" 
+    finalTime = timeInJadescriptFormat as timestamp 
+    # If the resulting time is in the past, 
+    # it is changed into tomorrow's time (+24h) 
+    if finalTime < now do
+        finalTime = finalTime + "P1D" as duration
+        
+    return finalTime
+
+
+# AlarmClockUser agent (Initiator)
+agent AlarmClockUser uses ontology AlarmClockOntology
+
+    on create with time as text do
+        log "Agent '"+ name + "' created."
+        log "Parsing alarm time..."
+        parsedTime = parseAlarmTime(time)
+        log "Setting alarm..."
+        activate SetAlarmAndWait(parsedTime) 
+
+
+
+cyclic behaviour SetAlarmAndWait  
+    for agent AlarmClockUser 
+    uses ontology AlarmClockOntology
+    
+    property time as timestamp
+
+    on create with time as timestamp do
+        time of this = time
+    
+    on activate do
+        send message request WakeUp(time, aid of agent) to 'AlarmClock'@
+        
+    on message inform TimeOut(result) when sender of message = 'AlarmClock'@ do
+        log "I am awake! (seconds= "+result+")"
+        
+    on message agree (WakeUp(t, _), True) when sender of message = 'AlarmClock'@ do
+        log "Alarm set at time: '"+t+"'"
+        
+    on message refuse when sender of message = 'AlarmClock'@ do
+        log "Could not set alarm, reason: "+content of message
+
+
+
+# AlarmClock agent (Participant)
+agent AlarmClock uses ontology AlarmClockOntology
+    on create do
+        log "Agent '" + name + "' created."
+        activate HandleAlarmRequests
+
+
+
+cyclic behaviour HandleAlarmRequests
+    for agent AlarmClock
+    uses ontology AlarmClockOntology
+    
+    on message request WakeUp(requestedTime, target) do
+        if requestedTime ≤ now do
+            send message refuse (content of message, TimeIsInThePast) to sender of message
+        else do
+            log "Alarm set at "+requestedTime+" for agent '" +name of target+"'"
+            send message agree (WakeUp(requestedTime, target), True) to sender of message
+            activate WakeUpAgent(target) 
+                at requestedTime
+
+
+
+one shot behaviour WakeUpAgent
+    for agent AlarmClock
+    uses ontology AlarmClockOntology
+    
+    property ag as aid
+    property timeOfRequest as timestamp
+    
+    on create with ag as aid do
+        ag of this = ag
+        timeOfRequest of this = now
+    
+    on activate do
+        secondsElapsed = (now - timeOfRequest) as integer
+        send message inform TimeOut(secondsElapsed) to ag
+        

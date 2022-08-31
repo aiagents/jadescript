@@ -1,0 +1,28 @@
+module tests.memberbehaviour
+
+ontology MemberBehaviourOntology
+    concept MemberBehaviourConcept
+
+agent MemberBehaviourAgent uses ontology MemberBehaviourOntology
+    property x as integer
+    on create with args as list of text do
+        log "Agent 'TestNewFile' created with arguments: "+args
+        
+    #  WIP feature: behaviour declarations nested in agent declarations 
+    #   ('for agent' clause is inferred).
+    cyclic behaviour MemberBehaviourTest
+        on execute do
+            log "hello" + x + x of agent
+            xx = MemberBehaviourConcept
+            
+    
+one shot behaviour OuterBehaviour for agent MemberBehaviourAgent
+    cyclic behaviour OtherMemberBehaviour
+        on execute do
+            log "hello" + x + x of agent
+            xx = MemberBehaviourConcept
+    
+cyclic behaviour NonMemberBehaviour for agent MemberBehaviourAgent
+    on execute do
+        log "hello" + x + x of agent
+        xx = MemberBehaviourConcept

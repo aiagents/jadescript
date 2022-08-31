@@ -1,0 +1,49 @@
+module examples.auction
+
+ontology EnglishAuction
+    
+    # Used by bidders to register/deregister to the auctioneer
+    # Note: the example assumes that the only reason for an agent to be alive is to partecipate to the auction
+    proposition ImAlive
+    proposition ImDying
+
+    # An Item that can be sold
+    concept Item(name as text)
+    concept Painting(author as text, title as text) 
+        extends Item with name= title + " by " + author
+    
+    # Used as CFP content from the auctioneer
+    action SubmitBid(
+        item as Item,
+        currentPrice as integer, 
+        bidMinimumIncrement as integer, 
+        nextTimeout as timestamp, 
+        currentlyWinning as text
+    )
+    
+    # Action of buying an item
+    action Buy(item as Item)
+    
+    # Predicate to inform when an Item is sold
+    predicate ItemSold(item as Item, buyer as aid, finalPrice as integer)
+    
+    # Predicate to inform when an Item is not sold
+    predicate ItemNotSold(item as Item)
+    
+    # Predicate that associates an item with a price
+    predicate Priced(item as Item, price as integer)
+    
+    # Predicate used to signal that a bid was rejected   
+    predicate BidRejected(reason as Proposition)
+    
+    # BidRejected reason: bid too low
+    predicate BidTooLow(minimumBid as integer)
+    
+    # BidRejected reason: wrong item
+    proposition ItemNotForSale
+    
+    # BidRejected reason: other reason
+    predicate InvalidBid(otherReason as text)
+    
+    
+    

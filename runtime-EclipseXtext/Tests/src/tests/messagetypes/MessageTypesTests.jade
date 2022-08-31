@@ -1,0 +1,98 @@
+module tests.messagetypes
+
+
+ontology Onto 
+    proposition P
+    action A 
+    concept C
+    predicate Pr(a as A, c as C)
+
+
+agent MessageTypesTest uses ontology Onto
+    on create do
+        log "SENDER!"
+        activate SendMessages
+
+
+agent Receiver uses ontology Onto
+    on create do
+        log "RECEIVER!"
+        activate ReceiveMessages
+
+
+oneshot behaviour SendMessages for agent MessageTypesTest
+    
+    on execute do 
+        send message accept_proposal (A, Pr(A, C)) to "Receiver"@
+        send message agree (A, P) to "Receiver"@
+        send message cancel A to "Receiver"@
+        send message cfp A to "Receiver"@
+        send message confirm P to "Receiver"@
+        send message disconfirm P to "Receiver"@
+        send message failure (A, Pr(A, C)) to "Receiver"@
+        send message inform P to "Receiver"@
+        send message inform_if P to "Receiver"@
+        send message propose (A, P) to "Receiver"@
+        send message query_if P to "Receiver"@
+        send message refuse (A, P) to "Receiver"@
+        send message reject_proposal (A, P, P) to "Receiver"@
+        send message request A to "Receiver"@
+        send message request_when (A, P) to "Receiver"@
+        send message request_whenever (A, P) to "Receiver"@
+
+
+cyclic behaviour ReceiveMessages for agent Receiver
+    property counter = 0
+
+    procedure logMessage with content as text do
+        log content
+        counter = counter + 1
+        log "Received count = "+counter
+
+    on message agree (A, P) do
+        do logMessage with content=""+content of message
+
+    on message accept_proposal (A, Pr(a,_)) do
+        do logMessage with content=""+content of message
+
+    on message cancel A do
+        do logMessage with content=""+content of message
+        
+    on message cfp A do
+        do logMessage with content=""+content of message
+        
+    on message confirm P do
+        do logMessage with content=""+content of message
+        
+    on message disconfirm P do
+        do logMessage with content=""+content of message
+        
+    on message failure (_ as A, _ as Pr) do 
+        do logMessage with content=""+content of message
+    
+    on message inform P do
+        do logMessage with content=""+content of message
+        
+    on message inform_if P do
+        do logMessage with content=""+content of message
+     
+    on message propose (a, p) as (A, P) do
+        do logMessage with content=""+content of message
+        
+    on message query_if P do
+        do logMessage with content=""+content of message
+        
+    on message refuse (a as A, p as P) do
+        do logMessage with content=""+content of message
+        
+    on message reject_proposal (A, P, P) do
+        do logMessage with content=""+content of message
+        
+    on message request A do
+        do logMessage with content=""+content of message
+        
+    on message request_when (A, P) do
+        do logMessage with content=""+content of message
+        
+    on message request_whenever (A, P) do
+        do logMessage with content=""+content of message
