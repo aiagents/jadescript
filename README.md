@@ -136,10 +136,6 @@ Then navigate with the terminal to the root directory of the repository and run 
    │   ├ EngishAuction/                        - Example: An auction with an Auctioneer agent and several Bidder agents
    │   ├ Examples/                             - Example: Other small, single-source-file examples
    │   ├ Tests/                                - Test: Project to test the Jadescript plugin
-   ├─ PluginInstallZip/
-   │   ├ [...] (Last builds of the ZIP file used to install Jadescript as plug-in for Eclipse)
-   └─ StandaloneCompilerJar/
-   │   └ jadescriptc.jar                       - Last deployed Jadescript compiler (stand-alone runnable JAR)
-   └─ addLibJARs.sh - BASH script used to automate the update/copy of dependency JAR files into the examples
+   └─ addLibJARs.sh - BASH script used to automate the update/copy of dependency JAR files into example projects
 	
 ```
