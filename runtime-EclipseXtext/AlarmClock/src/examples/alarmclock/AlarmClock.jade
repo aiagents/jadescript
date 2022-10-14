@@ -9,6 +9,7 @@ ontology AlarmClockOntology
     action WakeUp(t as timestamp, target as aid)
     predicate TimeOut(result as integer)
     proposition TimeIsInThePast
+    
 
 # Parses a text in the format 'hh:mm:ss' into a Jadescript timestamp.
 function parseAlarmTime(time as text) as timestamp do
