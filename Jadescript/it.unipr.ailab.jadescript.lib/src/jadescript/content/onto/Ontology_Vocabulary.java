@@ -36,6 +36,14 @@ public interface Ontology_Vocabulary {
 
     String INTERNAL_EXCEPTION_DESCRIPTION = "description";
 
+    String COULD_NOT_CONVERT = "CouldNotConvert";
+
+    String COULD_NOT_CONVERT_VALUE = "value";
+    String COULD_NOT_CONVERT_FROM_TYPE_NAME = "fromTypeName";
+
+    String COULD_NOT_CONVERT_TO_TYPE_NAME = "toTypeName";
+
+
     // Generated, for Ontology_Vocabulary.java:
     String ACCEPTPROPOSALMESSAGE_CONTENT = "AcceptProposalMessageContent";
     String ACCEPTPROPOSALMESSAGE_ELEMENT0 = "element0";

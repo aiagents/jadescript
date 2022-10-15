@@ -6,7 +6,8 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({	
 	TestDuplicatesCheckInValidator.class,
-	TypeInferrerTests.class
+	TypeInferrerTests.class,
+	TestSupportLibrary.class
 })
 public class TestSuite {
 }

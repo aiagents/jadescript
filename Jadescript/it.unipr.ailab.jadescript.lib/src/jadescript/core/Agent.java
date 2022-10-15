@@ -19,6 +19,8 @@ import jadescript.lang.JadescriptGlobalFunction;
 import jadescript.lang.JadescriptGlobalProcedure;
 import jadescript.lang.acl.StaleMessageTemplate;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -169,6 +171,18 @@ public class Agent extends jade.core.Agent {
                 "Exception Escalation",
                 "Unhandled exception with reason: " + exception.getReason()
         );
+
+        StringWriter out = new StringWriter();
+        PrintWriter writer = new PrintWriter(out);
+        exception.printStackTrace(writer);
+        doLog(
+                Level.INFO,
+                this.getClass().getName(),
+                this,
+                "Exception Escalation",
+                "Exception Stacktrace: " + out
+        );
+
         onDestroy();
         takeDown();
     }

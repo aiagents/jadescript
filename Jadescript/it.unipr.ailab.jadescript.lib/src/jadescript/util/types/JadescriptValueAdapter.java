@@ -1,5 +1,6 @@
 package jadescript.util.types;
 
+import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -66,8 +67,8 @@ public class JadescriptValueAdapter {
                 (d) -> Timestamp.fromDate((Date) d)
         );
         addClass(
-                Calendar.class, JadescriptBaseType.TIMESTAMP,
-                (c) -> Timestamp.fromCalendar((Calendar) c)
+                ZonedDateTime.class, JadescriptBaseType.TIMESTAMP,
+                (c) -> Timestamp.fromZonedDateTime((ZonedDateTime) c)
         );
 
         addClass(jadescript.lang.Duration.class, JadescriptBaseType.DURATION);

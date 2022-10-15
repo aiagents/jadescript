@@ -1,15 +1,20 @@
 package jadescript.util.types;
 
+import jade.content.AgentAction;
+import jade.content.Concept;
+import jade.content.Predicate;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.lang.acl.ACLParser;
 import jade.lang.acl.ParseException;
 import jadescript.content.onto.Ontology;
+import jadescript.core.exception.JadescriptException;
 import jadescript.core.message.Message;
 import jadescript.lang.Duration;
 import jadescript.lang.Performative;
 import jadescript.lang.Timestamp;
+import jadescript.lang.Tuple;
 import jadescript.util.JadescriptMap;
 import jadescript.util.JadescriptSet;
 
@@ -21,10 +26,30 @@ public class Converter {
     private Converter() {
     } //Do not instantiate.
 
-    public static class ConversionException extends RuntimeException {
-        public ConversionException(JadescriptBaseType fromType, JadescriptBaseType toType) {
-            super("Could not convert from '" + fromType.getTypeName() + "' to '" + toType.getTypeName() + "'.");
+    public static void conversionException(Object input, JadescriptBaseType fromType, JadescriptBaseType toType) {
+        throw new JadescriptException(Ontology.CouldNotConvert(
+                String.valueOf(input),
+                fromType.getTypeName(),
+                toType.getTypeName()
+        ));
+    }
+
+    public static Object checkedIdentityConversion(
+            Object input,
+            Class<?> toClass,
+            JadescriptBaseType fromType,
+            JadescriptBaseType toType
+    ){
+        if(toClass.isInstance(input)){
+            try {
+                return toClass.cast(input);
+            }catch (ClassCastException ignored){
+                conversionException(input, fromType, toType);
+            }
+        }else{
+            conversionException(input, fromType, toType);
         }
+        return null; //unreacheable code
     }
 
     public static class UnsupportedConversionException extends RuntimeException {
@@ -42,7 +67,7 @@ public class Converter {
                     case INTEGER:
                         return o;
                     case BOOLEAN:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case REAL:
                         return ((Integer) o).floatValue();
                     case TEXT:
@@ -64,16 +89,16 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case BOOLEAN:
                 switch (to.getBase()) {
                     case INTEGER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case BOOLEAN:
                         return o;
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return String.valueOf(o);
                     case DURATION:
@@ -92,14 +117,14 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case REAL:
                 switch (to.getBase()) {
                     case INTEGER:
                         return ((Float) o).intValue();
                     case BOOLEAN:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case REAL:
                         return o;
                     case TEXT:
@@ -124,7 +149,7 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case TEXT:
                 switch (to.getBase()) {
@@ -132,7 +157,7 @@ public class Converter {
                         try {
                             return Integer.parseInt((String) o);
                         } catch (NumberFormatException ignored) {
-                            throw new ConversionException(from.getBase(), to.getBase());
+                            conversionException(o, from.getBase(), to.getBase());
                         }
                     case BOOLEAN:
                         return Boolean.parseBoolean((String) o);
@@ -140,7 +165,7 @@ public class Converter {
                         try {
                             return Float.parseFloat((String) o);
                         } catch (NumberFormatException ignored) {
-                            throw new ConversionException(from.getBase(), to.getBase());
+                            conversionException(o, from.getBase(), to.getBase());
                         }
                     case TEXT:
                         return o;
@@ -153,18 +178,18 @@ public class Converter {
                     case AID:
                         return new AID((String) o, ((String) o).contains("@"));
                     case ONTOLOGY:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case CONCEPT:
                     case ACTION:
                     case PROPOSITION:
                     case BEHAVIOUR:
                     case AGENT:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case MESSAGE:
                         try {
                             return ACLParser.create().parse(new StringReader((String) o));
                         } catch (ParseException e) {
-                            throw new ConversionException(from.getBase(), to.getBase());
+                            conversionException(o, from.getBase(), to.getBase());
                         }
                     case LIST:
                     case MAP:
@@ -178,7 +203,7 @@ public class Converter {
                     case INTEGER:
                         return (int) ((Duration) o).getSecondsLong();
                     case BOOLEAN:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case REAL: {
                         float secs = (float) (((Duration) o).getSecondsLong());
                         float millis = (float) (((Duration) o).getMillis()) / 1000f;
@@ -199,7 +224,7 @@ public class Converter {
                     case BEHAVIOUR:
                     case AGENT:
                     case MESSAGE:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case LIST: {
                         if (to.getArg1().getBase() == JadescriptBaseType.TEXT
                                 || to.getArg1().getBase() == JadescriptBaseType.INTEGER
@@ -259,14 +284,14 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case TIMESTAMP:
                 switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return o.toString();
                     case DURATION:
@@ -287,19 +312,19 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case PERFORMATIVE:
                 switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return o.toString();
                     case DURATION:
                     case TIMESTAMP:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case PERFORMATIVE:
                         return o;
                     case AID:
@@ -315,20 +340,20 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case AID:
                 switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return o.toString();
                     case DURATION:
                     case TIMESTAMP:
                     case PERFORMATIVE:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case AID:
                         return o;
                     case ONTOLOGY:
@@ -343,21 +368,21 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case ONTOLOGY:
                 switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
-                        return "Ontology('" + ((Ontology) o).getName() + "')";
+                        return "Ontology('" + ((jade.content.onto.Ontology) o).getName() + "')";
                     case DURATION:
                     case TIMESTAMP:
                     case PERFORMATIVE:
                     case AID:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case ONTOLOGY:
                         return o;
                     case CONCEPT:
@@ -371,14 +396,14 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case CONCEPT:
                 switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return String.valueOf(o);
                     case DURATION:
@@ -386,7 +411,7 @@ public class Converter {
                     case PERFORMATIVE:
                     case AID:
                     case ONTOLOGY:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case CONCEPT:
                         return o;
                     case ACTION:
@@ -399,14 +424,14 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case ACTION:
                 switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return String.valueOf(o);
                     case DURATION:
@@ -414,7 +439,7 @@ public class Converter {
                     case PERFORMATIVE:
                     case AID:
                     case ONTOLOGY:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case CONCEPT://allow to upcast to basic 'concept' type, since actions are concepts.
                     case ACTION:
                         return o;
@@ -427,14 +452,14 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case PROPOSITION:
                 switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return String.valueOf(o);
                     case DURATION:
@@ -444,7 +469,7 @@ public class Converter {
                     case ONTOLOGY:
                     case CONCEPT:
                     case ACTION:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case PROPOSITION:
                         return o;
                     case BEHAVIOUR:
@@ -455,14 +480,14 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case BEHAVIOUR:
                 switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return "Behaviour('" + ((Behaviour) o).getBehaviourName() + "')";
                     case DURATION:
@@ -473,7 +498,7 @@ public class Converter {
                     case CONCEPT:
                     case ACTION:
                     case PROPOSITION:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case BEHAVIOUR:
                         return o;
                     case AGENT:
@@ -483,20 +508,20 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case AGENT:
                 switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return o.getClass().getSimpleName() + "('" + ((Agent) o).getName() + "')";
                     case DURATION:
                     case TIMESTAMP:
                     case PERFORMATIVE:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case AID:
                         return ((Agent) o).getAID();
                     case ONTOLOGY:
@@ -504,7 +529,7 @@ public class Converter {
                     case ACTION:
                     case PROPOSITION:
                     case BEHAVIOUR:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case AGENT:
                         return o;
                     case MESSAGE:
@@ -513,19 +538,19 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case MESSAGE:
                 switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return o.toString();
                     case DURATION:
                     case TIMESTAMP:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case PERFORMATIVE:
                         return ((Message) o).getJadescriptPerformative();
                     case AID:
@@ -535,7 +560,7 @@ public class Converter {
                     case PROPOSITION:
                     case BEHAVIOUR:
                     case AGENT:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case MESSAGE:
                         return o;
                     case LIST:
@@ -543,14 +568,14 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case LIST:
                 switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return String.valueOf(o);
                     case DURATION:
@@ -564,7 +589,7 @@ public class Converter {
                     case BEHAVIOUR:
                     case AGENT:
                     case MESSAGE:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case LIST: {
                         JadescriptTypeReference fromElement = from.getArg1();
                         JadescriptTypeReference toElement = to.getArg1();
@@ -579,7 +604,7 @@ public class Converter {
                         return result;
                     }
                     case MAP:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case SET: {
                         JadescriptTypeReference fromElement = from.getArg1();
                         JadescriptTypeReference toElement = to.getArg1();
@@ -595,14 +620,14 @@ public class Converter {
                     }
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case MAP:
                 switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return String.valueOf(o);
                     case DURATION:
@@ -617,7 +642,7 @@ public class Converter {
                     case AGENT:
                     case MESSAGE:
                     case LIST:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case MAP: {
                         JadescriptTypeReference fromKey = from.getArg1();
                         JadescriptTypeReference toKey = to.getArg1();
@@ -642,14 +667,14 @@ public class Converter {
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case SET:
                 switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return String.valueOf(o);
                     case DURATION:
@@ -663,7 +688,7 @@ public class Converter {
                     case BEHAVIOUR:
                     case AGENT:
                     case MESSAGE:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case LIST: {
                         JadescriptTypeReference fromElement = from.getArg1();
                         JadescriptTypeReference toElement = to.getArg1();
@@ -675,7 +700,7 @@ public class Converter {
                         return result;
                     }
                     case MAP:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case SET: {
                         JadescriptTypeReference fromElement = from.getArg1();
                         JadescriptTypeReference toElement = to.getArg1();
@@ -688,14 +713,14 @@ public class Converter {
                     }
                     case TUPLE:
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                 }
             case TUPLE:
                 switch(to.getBase()){
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
                     case TEXT:
                         return o.toString();
                     case DURATION:
@@ -715,10 +740,69 @@ public class Converter {
                     case TUPLE:
                         return o;
                     case OTHER:
-                        throw new ConversionException(from.getBase(), to.getBase());
+                        conversionException(o, from.getBase(), to.getBase());
+                }
+            case OTHER:
+                if(o == null){
+                    conversionException(o, from.getBase(), to.getBase());
+                }else {
+                    try {
+                        switch (to.getBase()){
+                            case INTEGER:
+                                return checkedIdentityConversion(o, Integer.class, from.getBase(), to.getBase());
+                            case BOOLEAN:
+                                return checkedIdentityConversion(o, Boolean.class, from.getBase(), to.getBase());
+                            case REAL:
+                                return checkedIdentityConversion(o, Float.class, from.getBase(), to.getBase());
+                            case TEXT:
+                                return o.toString();
+                            case DURATION:
+                                return checkedIdentityConversion(o, Duration.class, from.getBase(), to.getBase());
+                            case TIMESTAMP:
+                                return checkedIdentityConversion(o, Timestamp.class, from.getBase(), to.getBase());
+                            case PERFORMATIVE:
+                                return checkedIdentityConversion(o, Performative.class, from.getBase(), to.getBase());
+                            case AID:
+                                return checkedIdentityConversion(o, AID.class, from.getBase(), to.getBase());
+                            case ONTOLOGY:
+                                return checkedIdentityConversion(
+                                        o,
+                                        jade.content.onto.Ontology.class,
+                                        from.getBase(),
+                                        to.getBase()
+                                );
+                            case CONCEPT:
+                                return checkedIdentityConversion(o, Concept.class, from.getBase(), to.getBase());
+                            case ACTION:
+                                return checkedIdentityConversion(o, AgentAction.class, from.getBase(), to.getBase());
+                            case PROPOSITION:
+                                return checkedIdentityConversion(o, Predicate.class, from.getBase(), to.getBase());
+                            case BEHAVIOUR:
+                                return checkedIdentityConversion(o, Behaviour.class, from.getBase(), to.getBase());
+                            case AGENT:
+                                return checkedIdentityConversion(o, Performative.class, from.getBase(), to.getBase());
+                            case MESSAGE:
+                                return checkedIdentityConversion(o, Message.class, from.getBase(), to.getBase());
+                            case LIST:
+                                return checkedIdentityConversion(o, List.class, from.getBase(), to.getBase());
+                            case MAP:
+                                return checkedIdentityConversion(o, JadescriptMap.class, from.getBase(), to.getBase());
+                            case SET:
+                                return checkedIdentityConversion(o, JadescriptSet.class, from.getBase(), to.getBase());
+                            case TUPLE:
+                                return checkedIdentityConversion(o, Tuple.class, from.getBase(), to.getBase());
+                            case OTHER:
+                                conversionException(o, from.getBase(), to.getBase());
+                                throw new RuntimeException("This portion of code should be unreacheable.");
+                        }
+                    } catch (ClassCastException ignored){
+                        conversionException(o, from.getBase(), to.getBase());
+                        throw new RuntimeException("This portion of code should be unreacheable.");
+                    }
                 }
             default:
-                throw new ConversionException(from.getBase(), to.getBase());
+                conversionException(o, from.getBase(), to.getBase());
+                throw new RuntimeException("This portion of code should be unreacheable.");
         }
     }
 }

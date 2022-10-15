@@ -109,6 +109,7 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
 
 
             add(new PredicateSchema(INTERNAL_EXCEPTION), InternalException.class);
+            add(new PredicateSchema(COULD_NOT_CONVERT), CouldNotConvert.class);
 
             // Generated, for Ontology.java, inside its zero-parameter ctor (part 1):
             add(new AgentActionSchema(ACCEPTPROPOSALMESSAGE_CONTENT), jadescript.content.onto.MessageContent.AcceptProposalMessageContent.class);
@@ -141,6 +142,11 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
 
             PredicateSchema ps = (PredicateSchema) getSchema(INTERNAL_EXCEPTION);
             ps.add(INTERNAL_EXCEPTION_DESCRIPTION, getSchema(BasicOntology.STRING));
+
+            PredicateSchema ps2 = (PredicateSchema) getSchema(COULD_NOT_CONVERT);
+            ps2.add(COULD_NOT_CONVERT_VALUE, getSchema(BasicOntology.STRING));
+            ps2.add(COULD_NOT_CONVERT_FROM_TYPE_NAME, getSchema(BasicOntology.STRING));
+            ps2.add(COULD_NOT_CONVERT_TO_TYPE_NAME, getSchema(BasicOntology.STRING));
 
 
             // Generated, for Ontology.java, inside its zero-parameter ctor (part 1):
@@ -228,6 +234,10 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
 
     public static InternalException InternalException(String description){
         return new InternalException(description);
+    }
+
+    public static CouldNotConvert CouldNotConvert(String value, String fromTypeName, String toTypeName){
+        return new CouldNotConvert(value, fromTypeName, toTypeName);
     }
 
     public static Unauthorised Unauthorised() {

@@ -13,7 +13,7 @@ ontology AlarmClockOntology
 
 # Parses a text in the format 'hh:mm:ss' into a Jadescript timestamp.
 function parseAlarmTime(time as text) as timestamp do
-    timeInJadescriptFormat = "T" + time + "Z+1:00" 
+    timeInJadescriptFormat = "T" + time + "+02:00" 
     finalTime = timeInJadescriptFormat as timestamp 
     # If the resulting time is in the past, 
     # it is changed into tomorrow's time (+24h) 
@@ -75,6 +75,7 @@ cyclic behaviour HandleAlarmRequests
             send message refuse (content of message, TimeIsInThePast) to sender of message
         else do
             log "Alarm set at "+requestedTime+" for agent '" +name of target+"'"
+            log "now is "+now
             send message agree (WakeUp(requestedTime, target), True) to sender of message
             activate WakeUpAgent(target) 
                 at requestedTime

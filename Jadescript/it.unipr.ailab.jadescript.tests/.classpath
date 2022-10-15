@@ -9,5 +9,7 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
+	<classpathentry kind="lib" path="libs/jadescript.jar"/>
+	<classpathentry kind="lib" path="libs/jadescriptjavaapi.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
