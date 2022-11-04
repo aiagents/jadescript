@@ -682,8 +682,12 @@ public class OntologyElementSemantics extends Semantics<ExtendingFeature> {
             boolean asDefault
     ) {
         safeDo(input, ontoFullQualifiedName, (inputSafe, ontoFullQualifiedNameSafe) -> {
-            String typeFullyQualifiedName = input.__(module.get(CompilationHelper.class)::getFullyQualifiedName)
-                    .__(fqn -> fqn.toString(".")).orElse(inputSafe.getName()).replaceAll("\\.", "_");
+            String typeFullyQualifiedName = input
+                    .__(module.get(CompilationHelper.class)::getFullyQualifiedName)
+                    .__(fqn -> fqn.toString("."))
+                    .or(input.__(NamedFeature::getName))
+                    .orElse("")
+                    .replaceAll("\\.", "_");
             members.add(module.get(JvmTypesBuilder.class).toMethod(
                     inputSafe,
                     "__metadata_" + typeFullyQualifiedName,
