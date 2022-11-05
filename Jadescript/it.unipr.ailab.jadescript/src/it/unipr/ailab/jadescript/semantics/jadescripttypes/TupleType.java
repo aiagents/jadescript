@@ -16,7 +16,6 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmMember;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.common.types.JvmVisibility;
-import org.eclipse.xtext.xbase.jvmmodel.JvmTypeReferenceBuilder;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
 import java.util.*;
@@ -68,6 +67,14 @@ public class TupleType extends ParametricType implements EmptyCreatable, Declare
                 .map(TypeArgument::compileToJavaTypeReference)
                 .collect(Collectors.joining(", ")) +
                 ">(" + String.join(", ", listOfCompiledExpressions) + ")";
+    }
+
+    public static String compileAddToTuple(
+            String originalTuple,
+            String compiledArgument,
+            TypeArgument argumentType
+    ) {
+        return originalTuple + ".<" + argumentType.compileToJavaTypeReference() + ">add(" + compiledArgument + ")";
     }
 
 

@@ -83,7 +83,20 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
             );
 
             if (!perfValidation.thereAreErrors()) {
-                IJadescriptType contentType = module.get(RValueExpressionSemantics.class).inferType(content);
+                /*
+
+
+module.get(CompilationHelper.class).adaptMessageContentDefaults(
+                performative,
+                rves.compile(contentExpr).orElse(""),
+                inputContentType
+        )
+                 */
+                final IJadescriptType inputContentType = module.get(RValueExpressionSemantics.class).inferType(content);
+                final IJadescriptType adaptedContentType = module.get(TypeHelper.class).adaptMessageContentDefaultTypes(
+                        performative,
+                        inputContentType
+                );
 
                 final IJadescriptType contentBound = module.get(TypeHelper.class).getContentBound(
                         Performative.performativeByName.get(performative.toNullable())
@@ -91,16 +104,16 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
 
                 //The type of the content has to be "sendable" (i.e., should not contain Agents, Behaviours...)
                 module.get(ValidationHelper.class).assertion(
-                        contentType.isSendable(),
+                        adaptedContentType.isSendable(),
                         "InvalidContent",
-                        "Values of type '" + contentType.getJadescriptName() + "' cannot be sent as part of messages.",
+                        "Values of type '" + adaptedContentType.getJadescriptName() + "' cannot be sent as part of messages.",
                         content,
                         acceptor
                 );
 
                 //The type of the content has to be within the bounds of the performative expected types
                 module.get(ValidationHelper.class).assertExpectedType(
-                        contentBound, contentType,
+                        contentBound, adaptedContentType,
                         "InvalidContent",
                         content,
                         acceptor
@@ -118,7 +131,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
                 // If the ontology is not specified...
                 if (ontology.isNothing()) {
                     //... attempt to infer it from the content
-                    ontology = contentType.getDeclaringOntology();
+                    ontology = adaptedContentType.getDeclaringOntology();
 
                     // The inferred ontology has to be valid
                     module.get(ValidationHelper.class).assertion(
@@ -133,7 +146,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
                 } else {
                     // If the ontology is specified
 
-                    final Maybe<OntologyType> declaringOntology = contentType.getDeclaringOntology();
+                    final Maybe<OntologyType> declaringOntology = adaptedContentType.getDeclaringOntology();
 
                     if (declaringOntology.isPresent()) {
                         // and an ontology can be inferred from the content
@@ -219,10 +232,18 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
 
         final String contentVarName = numberedName("_contentToBeSent", input.toNullable());
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
-        final IJadescriptType contentType = rves.inferType(contentExpr);
-        result.add(w.variable("java.lang.Object", contentVarName, w.expr(
+        final IJadescriptType inputContentType = rves.inferType(contentExpr);
+        final IJadescriptType adaptedContentType = module.get(TypeHelper.class).adaptMessageContentDefaultTypes(
+                performative,
+                inputContentType
+        );
+        final String adaptedCompiledContent = module.get(TypeHelper.class).adaptMessageContentDefaultCompile(
+                performative,
+                inputContentType,
                 rves.compile(contentExpr).orElse("")
-        )));
+        );
+
+        result.add(w.variable("java.lang.Object", contentVarName, w.expr(adaptedCompiledContent)));
 
         result.add(w.variable(
                 "jadescript.core.message.Message",
@@ -238,7 +259,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
 
 
         // _msg1.setOntology(Onto.getInstance().getName());
-        result.add(w.simplStmt(setOntology(input, contentVarName, contentType, messageName)));
+        result.add(w.simplStmt(setOntology(input, contentVarName, adaptedContentType, messageName)));
 
         // _msg1.setLanguage(_codec1);
         result.add(w.simplStmt(setLanguage(messageName)));
@@ -249,7 +270,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
 
 
         //this.myAgent.getContentManager().fillContent(_msg1, Onto.received(counter));
-        fillContent(input, contentVarName, messageName, performative, result);
+        fillContent(input, adaptedContentType, contentVarName, messageName, performative, result);
 
 
         //this.myAgent.send(_msg1);
@@ -388,6 +409,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
 
     private void fillContent(
             Maybe<SendMessageStatement> input,
+            IJadescriptType contentType,
             String contentVarName,
             String messageName,
             Maybe<String> performative,
@@ -401,11 +423,10 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
 
 
         //this one down here is the functional equivalent, by applying the maybe monad on container, of:
-        //    typeSafe = toLightWeightTypeReference(module.get(RValueExpressionSemantics.class).inferType(content), container)
-        container.__(Functional.partial1(
-                module.get(CompilationHelper.class)::toLightweightTypeReference,
-                module.get(RValueExpressionSemantics.class).inferType(content)
-        )).safeDo(typeSafe -> {
+        //    typeSafe = toLightWeightTypeReference(contentType, container)
+        container.__(
+                Functional.partial1(module.get(CompilationHelper.class)::toLightweightTypeReference, contentType)
+        ).safeDo(typeSafe -> {
 
             if (typeSafe.isType(String.class)) {
                 result.add(w.callStmnt(messageName + ".setContent", w.expr(contentVarName)));
@@ -435,7 +456,8 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
                     tryBranch = w.block();
                 }
 
-                result.add(w.tryCatch(tryBranch).addCatchBranch("java.lang.Throwable", "_t",
+                result.add(w.tryCatch(tryBranch)
+                        .addCatchBranch("java.lang.Throwable", "_t",
                                 w.block().addStatement(w.callStmnt("_t.printStackTrace"))
                         )
                 );
@@ -443,7 +465,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
             } else {
                 result.add(w.callStmnt(
                         messageName + ".setByteSequenceContent",
-                        w.expr(module.get(RValueExpressionSemantics.class).compile(content).orElse(""))
+                        w.expr(contentVarName)
                 ));
             }
         });

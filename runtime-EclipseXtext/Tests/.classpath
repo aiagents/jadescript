@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="libs/jadescript.jar" sourcepath="/Users/pj/jadescript/Jadescript/it.unipr.ailab.jadescript.lib"/>
+	<classpathentry kind="lib" path="libs/jadescript.jar" sourcepath="/Users/pj/aiagents/jadescript/Jadescript/it.unipr.ailab.jadescript.lib"/>
 	<classpathentry kind="lib" path="libs/jadescriptjavaapi.jar"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="lib" path="libs/jade.jar"/>

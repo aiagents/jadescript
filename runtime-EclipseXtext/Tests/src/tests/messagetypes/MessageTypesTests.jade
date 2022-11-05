@@ -22,11 +22,18 @@ agent Receiver uses ontology Onto
 
 oneshot behaviour SendMessages for agent MessageTypesTest
     
+    
     on execute do 
+        # Sending 16 messages, one for each performative
+        # (except for inform_ref, query_ref, subscribe, proxy 
+        #  and propagate, which are currently not supported,
+        #  not_understood, because there is no message value 
+        #  available here, and unknown, because it's not a 
+        #  valid performative value).
         send message accept_proposal (A, Pr(A, C)) to "Receiver"@
         send message agree (A, P) to "Receiver"@
         send message cancel A to "Receiver"@
-        send message cfp A to "Receiver"@
+        send message cfp (A, P) to "Receiver"@
         send message confirm P to "Receiver"@
         send message disconfirm P to "Receiver"@
         send message failure (A, Pr(A, C)) to "Receiver"@
@@ -39,60 +46,71 @@ oneshot behaviour SendMessages for agent MessageTypesTest
         send message request A to "Receiver"@
         send message request_when (A, P) to "Receiver"@
         send message request_whenever (A, P) to "Receiver"@
+        # Sending 8 messages using the default values
+        send message accept_proposal A to "Receiver"@ 
+        send message agree A to "Receiver"@
+        send message cfp A to "Receiver"@
+        send message failure A to "Receiver"@
+        send message propose A to "Receiver"@
+        send message refuse A to "Receiver"@
+        send message reject_proposal (A, P) to "Receiver"@
+        send message reject_proposal A to "Receiver"@
+        # Total count = 24
+
 
 
 cyclic behaviour ReceiveMessages for agent Receiver
     property counter = 0
 
-    procedure logMessage with content as text do
-        log content
+    procedure logMessage with perf as performative,  content as text do
+        log perf + ": " + content
         counter = counter + 1
         log "Received count = "+counter
 
-    on message agree (A, P) do
-        do logMessage with content=""+content of message
+    on message agree (A, p as Proposition) do
+        do logMessage with perf= performative of message, content=""+content of message
 
-    on message accept_proposal (A, Pr(a,_)) do
-        do logMessage with content=""+content of message
+    on message accept_proposal (A, p as Proposition) do
+        do logMessage with perf= performative of message, content=""+content of message
 
     on message cancel A do
-        do logMessage with content=""+content of message
+        do logMessage with perf= performative of message, content=""+content of message
         
-    on message cfp A do
-        do logMessage with content=""+content of message
+    on message cfp (A, p as Proposition) do
+        do logMessage with perf= performative of message, content=""+content of message
         
     on message confirm P do
-        do logMessage with content=""+content of message
+        do logMessage with perf= performative of message, content=""+content of message
         
     on message disconfirm P do
-        do logMessage with content=""+content of message
+        do logMessage with perf= performative of message, content=""+content of message
         
-    on message failure (_ as A, _ as Pr) do 
-        do logMessage with content=""+content of message
+    on message failure (_ as A, _ as Proposition) do 
+        do logMessage with perf= performative of message, content=""+content of message
     
     on message inform P do
-        do logMessage with content=""+content of message
+        do logMessage with perf= performative of message, content=""+content of message
         
     on message inform_if P do
-        do logMessage with content=""+content of message
+        do logMessage with perf= performative of message, content=""+content of message
      
-    on message propose (a, p) as (A, P) do
-        do logMessage with content=""+content of message
+    on message propose (a, p) as (A, Proposition) do
+        do logMessage with perf= performative of message, content=""+content of message
         
     on message query_if P do
-        do logMessage with content=""+content of message
+        do logMessage with perf= performative of message, content=""+content of message
         
-    on message refuse (a as A, p as P) do
-        do logMessage with content=""+content of message
+    on message refuse (a as A, p as Proposition) do
+        do logMessage with perf= performative of message, content=""+content of message
         
-    on message reject_proposal (A, P, P) do
-        do logMessage with content=""+content of message
+    on message reject_proposal (A, p as Proposition, p2 as Proposition) do
+        do logMessage with perf= performative of message, content=""+content of message
         
     on message request A do
-        do logMessage with content=""+content of message
+        do logMessage with perf= performative of message, content=""+content of message
         
     on message request_when (A, P) do
-        do logMessage with content=""+content of message
+        do logMessage with perf= performative of message, content=""+content of message
         
     on message request_whenever (A, P) do
-        do logMessage with content=""+content of message
+        do logMessage with perf= performative of message, content=""+content of message

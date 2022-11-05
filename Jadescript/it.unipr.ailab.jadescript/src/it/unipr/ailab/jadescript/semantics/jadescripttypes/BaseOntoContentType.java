@@ -12,6 +12,8 @@ import org.eclipse.xtext.common.types.JvmTypeReference;
 import java.util.List;
 import java.util.Locale;
 
+import static it.unipr.ailab.maybe.Maybe.of;
+
 public class BaseOntoContentType extends JadescriptType implements OntoContentType {
 
     private final Kind kind;
@@ -94,7 +96,7 @@ public class BaseOntoContentType extends JadescriptType implements OntoContentTy
 
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
-        return Maybe.nothing();
+        return of(module.get(TypeHelper.class).ONTOLOGY);
     }
 
 

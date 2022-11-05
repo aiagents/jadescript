@@ -326,6 +326,7 @@ public class ValidationHelper implements SemanticsConsts {
                                     Performative.INFORM_REF,
                                     Performative.PROPAGATE,
                                     Performative.QUERY_REF,
+                                    Performative.PROXY,
                                     Performative.SUBSCRIBE
                             ).map(Performative.nameByPerformative::get)
                             .noneMatch(perf::equals),

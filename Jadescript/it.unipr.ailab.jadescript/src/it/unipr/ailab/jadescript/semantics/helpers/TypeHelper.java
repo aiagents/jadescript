@@ -34,6 +34,7 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypeReferenceBuilder;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -58,6 +59,9 @@ public class TypeHelper implements SemanticsConsts {
     private final Map<Performative, Function<List<TypeArgument>, MessageSubType>> messageSubTypeMap = new HashMap<>();
     private final Map<String, Performative> nameToMessageMap = new HashMap<>();
     private final Map<Performative, Supplier<IJadescriptType>> messageContentTypeRequirements = new HashMap<>();
+
+    //Associates to some performatives (ACCEPT_PROPOSAL, CFP, etc...) with a set of default elements (mainly TRUE propositions)
+    private final Map<Performative, MessageContentTupleDefaultElements> defaultContentElementsMap = new HashMap<>();
 
 
     // Top and bottom
@@ -566,6 +570,11 @@ public class TypeHelper implements SemanticsConsts {
         messageContentTypeRequirements.put(ACCEPT_PROPOSAL, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION)
         )));
+        defaultContentElementsMap.put(ACCEPT_PROPOSAL, new MessageContentTupleDefaultElements(2)
+                .addEntry(1, PROPOSITION, MessageContentTupleDefaultElements.promoteToTuple2(
+                        "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                        PROPOSITION
+                )));
         defineJVMToGenericDescriptor(AcceptProposalMessage.class, ACCEPTPROPOSAL_MESSAGE, 2);
 
         AGREE_MESSAGE = (args) -> new MessageSubType(
@@ -579,7 +588,11 @@ public class TypeHelper implements SemanticsConsts {
         messageContentTypeRequirements.put(AGREE, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION)
         )));
-
+        defaultContentElementsMap.put(AGREE, new MessageContentTupleDefaultElements(2)
+                .addEntry(1, PROPOSITION, MessageContentTupleDefaultElements.promoteToTuple2(
+                        "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                        PROPOSITION
+                )));
         defineJVMToGenericDescriptor(AgreeMessage.class, AGREE_MESSAGE, 2);
 
         CANCEL_MESSAGE = (args) -> new MessageSubType(
@@ -598,13 +611,19 @@ public class TypeHelper implements SemanticsConsts {
                 module,
                 CFPMessage.class,
                 args,
-                Arrays.asList(ACTION)
+                Arrays.asList(ACTION, PROPOSITION)
         );
         nameToMessageMap.put("CFPMessage", CFP);
         messageSubTypeMap.put(CFP, CFP_MESSAGE);
-        messageContentTypeRequirements.put(CFP, () -> ACTION);
-
-        defineJVMToGenericDescriptor(CFPMessage.class, CFP_MESSAGE, 1);
+        messageContentTypeRequirements.put(CFP, () -> TUPLE.apply(Arrays.asList(
+                covariant(ACTION), covariant(PROPOSITION)
+        )));
+        defaultContentElementsMap.put(CFP, new MessageContentTupleDefaultElements(2)
+                .addEntry(1, PROPOSITION, MessageContentTupleDefaultElements.promoteToTuple2(
+                        "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                        PROPOSITION
+                )));
+        defineJVMToGenericDescriptor(CFPMessage.class, CFP_MESSAGE, 2);
 
         CONFIRM_MESSAGE = (args) -> new MessageSubType(
                 module,
@@ -615,7 +634,6 @@ public class TypeHelper implements SemanticsConsts {
         nameToMessageMap.put("ConfirmMessage", CONFIRM);
         messageSubTypeMap.put(CONFIRM, CONFIRM_MESSAGE);
         messageContentTypeRequirements.put(CONFIRM, () -> PROPOSITION);
-
         defineJVMToGenericDescriptor(ConfirmMessage.class, CONFIRM_MESSAGE, 1);
 
         DISCONFIRM_MESSAGE = (args) -> new MessageSubType(
@@ -627,7 +645,6 @@ public class TypeHelper implements SemanticsConsts {
         nameToMessageMap.put("DisconfirmMessage", DISCONFIRM);
         messageSubTypeMap.put(DISCONFIRM, DISCONFIRM_MESSAGE);
         messageContentTypeRequirements.put(DISCONFIRM, () -> PROPOSITION);
-
         defineJVMToGenericDescriptor(DisconfirmMessage.class, DISCONFIRM_MESSAGE, 1);
 
         FAILURE_MESSAGE = (args) -> new MessageSubType(
@@ -641,6 +658,11 @@ public class TypeHelper implements SemanticsConsts {
         messageContentTypeRequirements.put(FAILURE, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION)
         )));
+        defaultContentElementsMap.put(FAILURE, new MessageContentTupleDefaultElements(2)
+                .addEntry(1, PROPOSITION, MessageContentTupleDefaultElements.promoteToTuple2(
+                        "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                        PROPOSITION
+                )));
         defineJVMToGenericDescriptor(FailureMessage.class, FAILURE_MESSAGE, 2);
 
         INFORM_MESSAGE = (args) -> new MessageSubType(
@@ -674,7 +696,6 @@ public class TypeHelper implements SemanticsConsts {
         nameToMessageMap.put("InformRefMessage", INFORM_REF);
         messageSubTypeMap.put(INFORM_REF, INFORMREF_MESSAGE);
         messageContentTypeRequirements.put(INFORM_REF, () -> LIST.apply(Arrays.asList(covariant(CONCEPT))));
-
         defineJVMToGenericDescriptor(InformRefMessage.class, INFORMREF_MESSAGE, 1);
 
         NOTUNDERSTOOD_MESSAGE = (args) -> new MessageSubType(
@@ -688,7 +709,11 @@ public class TypeHelper implements SemanticsConsts {
         messageContentTypeRequirements.put(NOT_UNDERSTOOD, () -> TUPLE.apply(Arrays.asList(
                 covariant(ANYMESSAGE), covariant(PROPOSITION)
         )));
-
+        defaultContentElementsMap.put(NOT_UNDERSTOOD, new MessageContentTupleDefaultElements(2)
+                .addEntry(1, PROPOSITION, MessageContentTupleDefaultElements.promoteToTuple2(
+                        "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                        PROPOSITION
+                )));
         defineJVMToGenericDescriptor(NotUnderstoodMessage.class, NOTUNDERSTOOD_MESSAGE, 2);
 
         PROPOSE_MESSAGE = (args) -> new MessageSubType(
@@ -702,7 +727,11 @@ public class TypeHelper implements SemanticsConsts {
         messageContentTypeRequirements.put(PROPOSE, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION)
         )));
-
+        defaultContentElementsMap.put(PROPOSE, new MessageContentTupleDefaultElements(2)
+                .addEntry(1, PROPOSITION, MessageContentTupleDefaultElements.promoteToTuple2(
+                        "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                        PROPOSITION
+                )));
         defineJVMToGenericDescriptor(ProposeMessage.class, PROPOSE_MESSAGE, 2);
 
         QUERYIF_MESSAGE = (args) -> new MessageSubType(
@@ -714,7 +743,6 @@ public class TypeHelper implements SemanticsConsts {
         nameToMessageMap.put("QueryIfMessage", QUERY_IF);
         messageSubTypeMap.put(QUERY_IF, QUERYIF_MESSAGE);
         messageContentTypeRequirements.put(QUERY_IF, () -> PROPOSITION);
-
         defineJVMToGenericDescriptor(QueryIfMessage.class, QUERYIF_MESSAGE, 1);
 
         QUERYREF_MESSAGE = (args) -> new MessageSubType(
@@ -726,7 +754,6 @@ public class TypeHelper implements SemanticsConsts {
         nameToMessageMap.put("QueryRefMessage", QUERY_REF);
         messageSubTypeMap.put(QUERY_REF, QUERYREF_MESSAGE);
         messageContentTypeRequirements.put(QUERY_REF, () -> LIST.apply(Arrays.asList(covariant(CONCEPT))));
-
         defineJVMToGenericDescriptor(QueryRefMessage.class, QUERYREF_MESSAGE, 1);
 
         REFUSE_MESSAGE = (args) -> new MessageSubType(
@@ -740,7 +767,11 @@ public class TypeHelper implements SemanticsConsts {
         messageContentTypeRequirements.put(REFUSE, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION)
         )));
-
+        defaultContentElementsMap.put(REFUSE, new MessageContentTupleDefaultElements(2)
+                .addEntry(1, PROPOSITION, MessageContentTupleDefaultElements.promoteToTuple2(
+                        "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                        PROPOSITION
+                )));
         defineJVMToGenericDescriptor(RefuseMessage.class, REFUSE_MESSAGE, 2);
 
         REJECTPROPOSAL_MESSAGE = (args) -> new MessageSubType(
@@ -754,7 +785,15 @@ public class TypeHelper implements SemanticsConsts {
         messageContentTypeRequirements.put(REJECT_PROPOSAL, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION), covariant(PROPOSITION)
         )));
-
+        defaultContentElementsMap.put(REJECT_PROPOSAL, new MessageContentTupleDefaultElements(3)
+                .addEntry(1, PROPOSITION, MessageContentTupleDefaultElements.promoteToTuple2(
+                        "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                        PROPOSITION
+                ))
+                .addEntry(2, PROPOSITION, MessageContentTupleDefaultElements.addToTuple(
+                        "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                        PROPOSITION
+                )));
         defineJVMToGenericDescriptor(RejectProposalMessage.class, REJECTPROPOSAL_MESSAGE, 3);
 
         REQUEST_MESSAGE = (args) -> new MessageSubType(
@@ -815,6 +854,11 @@ public class TypeHelper implements SemanticsConsts {
         messageSubTypeMap.put(PROXY, PROXY_MESSAGE);
         messageContentTypeRequirements.put(PROXY, () -> TUPLE.apply(Arrays.asList(
                 LIST.apply(Arrays.asList(AID)), covariant(ANYMESSAGE), covariant(PROPOSITION))));
+        defaultContentElementsMap.put(PROXY, new MessageContentTupleDefaultElements(3)
+                .addEntry(2, PROPOSITION, MessageContentTupleDefaultElements.promoteToTuple2(
+                        "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                        PROPOSITION
+                )));
         defineJVMToGenericDescriptor(ProxyMessage.class, PROXY_MESSAGE, 3);
 
         PROPAGATE_MESSAGE = (args) -> new MessageSubType(
@@ -827,6 +871,11 @@ public class TypeHelper implements SemanticsConsts {
         messageSubTypeMap.put(PROPAGATE, PROPAGATE_MESSAGE);
         messageContentTypeRequirements.put(PROPAGATE, () -> TUPLE.apply(Arrays.asList(
                 LIST.apply(Arrays.asList(AID)), covariant(ANYMESSAGE), covariant(PROPOSITION))));
+        defaultContentElementsMap.put(PROPAGATE, new MessageContentTupleDefaultElements(3)
+                .addEntry(2, PROPOSITION, MessageContentTupleDefaultElements.promoteToTuple2(
+                        "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                        PROPOSITION
+                )));
         defineJVMToGenericDescriptor(PropagateMessage.class, PROPAGATE_MESSAGE, 3);
 
 
@@ -952,7 +1001,7 @@ public class TypeHelper implements SemanticsConsts {
                 final JvmTypeReference reattempt = module.get(ContextManager.class).currentContext()
                         .searchAs(
                                 RawTypeReferenceSolverContext.class,
-                                solver->solver.rawResolveTypeReference(finalNode.getText().trim())
+                                solver -> solver.rawResolveTypeReference(finalNode.getText().trim())
                         )
                         .findAny()
                         .orElse(typeRef(finalNode.getText()));
@@ -1238,6 +1287,76 @@ public class TypeHelper implements SemanticsConsts {
         }
     }
 
+    public IJadescriptType adaptMessageContentDefaultTypes(Maybe<String> performative, IJadescriptType inputContentType) {
+        if (performative.isNothing() || performative.toNullable().isBlank()) {
+            return inputContentType;
+        }
+        final Performative perf = performativeByName.getOrDefault(performative.toNullable(), UNKNOWN);
+        final MessageContentTupleDefaultElements messageContentTupleDefaultElements = defaultContentElementsMap.get(perf);
+        if (messageContentTupleDefaultElements == null) {
+            return inputContentType;
+        } else if (inputContentType instanceof TupleType) {
+            final List<IJadescriptType> inputElementTypes = ((TupleType) inputContentType).getElementTypes();
+            final int inputArgsCount = inputElementTypes.size();
+            final int requiredArgCount = messageContentTupleDefaultElements.getTargetCount()
+                    - messageContentTupleDefaultElements.getDefaultCount();
+            if (inputArgsCount >= requiredArgCount
+                    && inputArgsCount < messageContentTupleDefaultElements.getTargetCount()) {
+                List<TypeArgument> elements = new ArrayList<>(messageContentTupleDefaultElements.getTargetCount());
+                for (int i = 0; i < messageContentTupleDefaultElements.getTargetCount(); i++) {
+                    if (i < inputArgsCount) {
+                        elements.add(inputElementTypes.get(i));
+                    } else {
+                        elements.add(covariant(messageContentTupleDefaultElements.getDefaultType(i).orElse(ANY)));
+                    }
+                }
+                return TUPLE.apply(elements);
+            } else {
+                return inputContentType;
+            }
+        } else {
+            final int requiredArgCount = messageContentTupleDefaultElements.getTargetCount()
+                    - messageContentTupleDefaultElements.getDefaultCount();
+            if (requiredArgCount <= 1) {
+                List<TypeArgument> elements = new ArrayList<>(messageContentTupleDefaultElements.getTargetCount());
+                for (int i = 0; i < messageContentTupleDefaultElements.getTargetCount(); i++) {
+                    if (i == 0) {
+                        elements.add(inputContentType);
+                    } else {
+                        elements.add(covariant(messageContentTupleDefaultElements.getDefaultType(i).orElse(ANY)));
+                    }
+                }
+                return TUPLE.apply(elements);
+            } else {
+                return inputContentType;
+            }
+        }
+    }
+
+    public String adaptMessageContentDefaultCompile(
+            Maybe<String> performative,
+            IJadescriptType inputContentType,
+            String inputExpression
+    ) {
+        if (performative.isNothing() || performative.toNullable().isBlank()) {
+            return inputExpression;
+        }
+        final Performative perf = performativeByName.getOrDefault(performative.toNullable(), UNKNOWN);
+        final MessageContentTupleDefaultElements messageContentTupleDefaultElements = defaultContentElementsMap.get(perf);
+        if (messageContentTupleDefaultElements == null) {
+            return inputExpression;
+        } else {
+            final int inputArgsCount = inputContentType instanceof TupleType
+                    ? ((TupleType) inputContentType).getElementTypes().size()
+                    : 1;
+            String result = inputExpression;
+            for (int i = inputArgsCount; i < messageContentTupleDefaultElements.getTargetCount(); i++) {
+                result = messageContentTupleDefaultElements.compile(i, inputContentType, result);
+            }
+            return result;
+        }
+    }
+
     private static class Vertex implements Comparable<Vertex> {
 
         private final List<Edge> adjacents = new ArrayList<>();
@@ -1476,10 +1595,10 @@ public class TypeHelper implements SemanticsConsts {
         return module.get(JvmTypeReferenceBuilder.class).typeRef(ident, typeArgs);
     }
 
-    public static JvmTypeReference attemptResolveTypeRef(SemanticsModule module, JvmTypeReference typeReference){
+    public static JvmTypeReference attemptResolveTypeRef(SemanticsModule module, JvmTypeReference typeReference) {
         final JvmTypeQualifiedNameParser.GenericType type = JvmTypeQualifiedNameParser
                 .parseJvmGenerics(typeReference.getIdentifier());
-        if(type == null){
+        if (type == null) {
             return typeReference;
         }
         return type.convertToTypeRef(
@@ -1839,6 +1958,65 @@ public class TypeHelper implements SemanticsConsts {
 
         public String compileConversion(String compiledRExpr) {
             return conversionCompilation.apply(compiledRExpr);
+        }
+    }
+
+    private static final class MessageContentTupleDefaultElements {
+        private final Map<Integer, IJadescriptType> argumentToDefault = new HashMap<>();
+        private final Map<Integer, BiFunction<TypeArgument, String, String>> argumentToCompile = new HashMap<>();
+
+        private final int targetCount;
+
+        private MessageContentTupleDefaultElements(int targetCount) {
+            this.targetCount = targetCount;
+        }
+
+        public MessageContentTupleDefaultElements addEntry(
+                int argumentPosition,
+                IJadescriptType defaultType,
+                BiFunction<TypeArgument, String, String> compile
+        ) {
+            argumentToDefault.put(argumentPosition, defaultType);
+            argumentToCompile.put(argumentPosition, compile);
+            return this;
+        }
+
+        public Maybe<IJadescriptType> getDefaultType(int argumentPosition) {
+            return Maybe.of(argumentToDefault.get(argumentPosition));
+        }
+
+        public String compile(int argumentPosition, TypeArgument inputType, String inputExpression) {
+            return argumentToCompile.getOrDefault(argumentPosition, (t, s) -> s).apply(inputType, inputExpression);
+        }
+
+        public static BiFunction<TypeArgument, String, String> promoteToTuple2(
+                String defaultValue,
+                TypeArgument defaultType
+        ) {
+            return (inputType, inputExpression) -> TupleType.compileNewInstance(
+                    List.of(inputExpression, defaultValue),
+                    List.of(inputType, defaultType)
+            );
+        }
+
+        public static BiFunction<TypeArgument, String, String> addToTuple(
+                String defaultValue,
+                TypeArgument defaultType
+        ) {
+            return (inputType, inputExpression) -> TupleType.compileAddToTuple(
+                    inputExpression,
+                    defaultValue,
+                    defaultType
+            );
+        }
+
+
+        public int getTargetCount() {
+            return targetCount;
+        }
+
+        public int getDefaultCount() {
+            return Math.min(argumentToDefault.size(), argumentToCompile.size());
         }
     }
 }

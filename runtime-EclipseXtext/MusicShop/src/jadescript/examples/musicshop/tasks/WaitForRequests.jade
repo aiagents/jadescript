@@ -5,17 +5,15 @@ import jadescript.examples.musicshop.onto.MusicShopOntology
 
 cyclic behaviour WaitForRequests for agent SellerAgent uses ontology MusicShopOntology
 
-    on message cfp Sell(_, it) when it matches Item(serialNumber) do
-        
-        
+    on message cfp (Sell(buyer, it), _ as Proposition) when it matches Item(serialNumber) do
         log name of agent + ": request received for item with SN: " + serialNumber
         
         if catalogue contains key serialNumber do
             price = catalogue[serialNumber]
             log name of agent + ":     -> item has price: " + price
             log name of agent + ": replying with proposal."
-            send message propose (content of message, ProposedPrice(price, it)) to sender of message
+            send message propose (Sell(buyer, it), ProposedPrice(price, it)) to sender of message
         else do
             log name of agent + ": item not available. Sending refuse message."
-            send message refuse (content of message, NotAvailable(serialNumber)) to sender of message
+            send message refuse (Sell(buyer, it), NotAvailable(serialNumber)) to sender of message
 

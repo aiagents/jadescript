@@ -13,6 +13,8 @@ public interface SemanticsConsts {
 
     String ISSUE_CODE_PREFIX = "it.unipr.ailab.jadescript.";
 
+    String ONTOLOGY_TRUE_VALUE = "jadescript.content.onto.Ontology.True()";
+
     String ISSUE_DUPLICATE_ELEMENT = ISSUE_CODE_PREFIX + "DuplicateElement";
 
     String MESSAGE_VAR_NAME = "__receivedMessage";

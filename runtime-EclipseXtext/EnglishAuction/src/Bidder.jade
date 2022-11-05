@@ -14,7 +14,7 @@ agent Bidder uses ontology EnglishAuction
         on deactivate do
             send message inform ImDying to aid("Auctioneer")
         
-        on message cfp SubmitBid(item, currentPrice, bidMinimumIncrement, nextTimeout, currentWinner) do
+        on message cfp (SubmitBid(item, currentPrice, bidMinimumIncrement, nextTimeout, currentWinner), _ as Proposition) do
             proposingPrice = currentPrice + bidMinimumIncrement
             # If we are not the best bidder, it's not too late, and we have enough money...
             if currentWinner ≠ name of agent and nextTimeout > now and proposingPrice ≤ budget do
