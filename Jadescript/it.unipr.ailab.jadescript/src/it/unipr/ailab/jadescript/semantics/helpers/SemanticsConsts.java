@@ -143,6 +143,11 @@ public interface SemanticsConsts {
         return n + e.eContainer().eContents().indexOf(e);
     }
 
+    default String hashBasedName(String prefix, EObject e){
+        if(e == null) return prefix + 0;
+        else return prefix + e.hashCode();
+    }
+
     default String uniqueName(String prefix) {
         if (uniqueNameCounterMap.containsKey(prefix)) {
             uniqueNameCounterMap.put(prefix, uniqueNameCounterMap.get(prefix) + 1L);

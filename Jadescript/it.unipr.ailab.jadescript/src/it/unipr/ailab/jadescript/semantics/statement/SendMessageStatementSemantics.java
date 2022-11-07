@@ -157,8 +157,10 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
                         module.get(ValidationHelper.class).assertion(
                                 declaringOntologyType.isAssignableFrom(ontologyType),
                                 "OntologyMismatch",
-                                "The type of this content is declared in ontology " + declaringOntologyType.getJadescriptName()
-                                        + ", but this operation requires a content declared in ontology " + ontologyType.getJadescriptName() + ".",
+                                "The type of this content is declared in ontology "
+                                        + declaringOntologyType.getJadescriptName()
+                                        + ", but this operation requires a content declared in ontology "
+                                        + ontologyType.getJadescriptName() + ".",
                                 content,
                                 ontoAcceptor
                         );
@@ -217,7 +219,7 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
     @Override
     public List<BlockWriterElement> compileStatement(Maybe<SendMessageStatement> input) {
         List<BlockWriterElement> result = new ArrayList<>();
-        String messageName = numberedName("_synthesizedMessage", input.toNullable());
+        String messageName = hashBasedName("_synthesizedMessage", input.toNullable());
 
 
         Maybe<String> performative = input.__(SendMessageStatement::getPerformative);
@@ -230,7 +232,7 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
                 w.expr("\"" + performative.orElse("null") + "\"")
         ));
 
-        final String contentVarName = numberedName("_contentToBeSent", input.toNullable());
+        final String contentVarName = hashBasedName("_contentToBeSent", input.toNullable());
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         final IJadescriptType inputContentType = rves.inferType(contentExpr);
         final IJadescriptType adaptedContentType = module.get(TypeHelper.class).adaptMessageContentDefaultTypes(
@@ -291,7 +293,8 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
             IJadescriptType receiversType = module.get(RValueExpressionSemantics.class).inferType(receiver);
             if (receiversType instanceof ListType || receiversType instanceof SetType) {
                 String receiversTypeName = receiversType.compileToJavaTypeReference();
-                IJadescriptType receiversComponentType = receiversType.getElementTypeIfCollection().orElse(module.get(TypeHelper.class).ANY);
+                IJadescriptType receiversComponentType = receiversType.getElementTypeIfCollection()
+                        .orElse(module.get(TypeHelper.class).ANY);
                 setReceiverCollection(
                         input,
                         receiver,
@@ -359,7 +362,7 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
                         messageName + ".addReceiver",
                         w.callExpr(
                                 "new jade.core.AID",
-                                w.callExpr(argOfAddReceiver + ".toString"),//TODO use javaapi's converter
+                                w.callExpr(argOfAddReceiver + ".toString"), //TODO use javaapi's converter
                                 w.expr("false")
                         )
                 )
