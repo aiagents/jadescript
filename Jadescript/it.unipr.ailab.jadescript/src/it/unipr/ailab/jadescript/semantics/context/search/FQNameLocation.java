@@ -1,5 +1,8 @@
 package it.unipr.ailab.jadescript.semantics.context.search;
 
+import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import org.jetbrains.annotations.NotNull;
 
 public class FQNameLocation extends SearchLocation {
@@ -16,6 +19,14 @@ public class FQNameLocation extends SearchLocation {
 
     public String getFullyQualifiedName() {
         return fullyQualifiedName;
+    }
+
+    public IJadescriptType extractType(SemanticsModule module){
+        if(fullyQualifiedName!=null) {
+            return module.get(TypeHelper.class).jtFromFullyQualifiedName(fullyQualifiedName);
+        }else{
+            return module.get(TypeHelper.class).ANY;
+        }
     }
 
     @Override

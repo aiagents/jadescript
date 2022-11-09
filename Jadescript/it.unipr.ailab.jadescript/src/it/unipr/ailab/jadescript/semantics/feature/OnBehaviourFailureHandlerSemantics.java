@@ -291,7 +291,7 @@ public class OnBehaviourFailureHandlerSemantics
             final AtomExpr atomExpr = f.createAtomExpr();
             final Primary pr = f.createPrimary();
 
-            pr.setIdentifier("failure");
+            pr.setIdentifier("failureReason");
             atomExpr.setAtom(pr);
             tcast.setAtomExpr(atomExpr);
             aid.setTypeCast(tcast);
@@ -319,7 +319,7 @@ public class OnBehaviourFailureHandlerSemantics
         if (expr.isPresent()) {
             Optional<FlowTypeInferringTerm> content = module.get(RValueExpressionSemantics.class)
                     .extractFlowTypeTruths(expr)
-                    .query("failure");
+                    .query("failureReason");
             if (content.isPresent()) {
                 type = content.get().getType();
             }
@@ -405,7 +405,7 @@ public class OnBehaviourFailureHandlerSemantics
         input.safeDo(inputSafe ->{
             module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
                     new OnBehaviourFailureHandlerContext(mod, out,
-                            "exception", patternMatchDeclaredVariables,
+                            "behaviour failure", patternMatchDeclaredVariables,
                             finalBehaviourType, finalReasonType
                     ));
 

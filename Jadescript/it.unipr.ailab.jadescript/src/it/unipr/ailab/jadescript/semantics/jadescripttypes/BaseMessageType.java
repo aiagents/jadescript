@@ -70,16 +70,10 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
     private void initBuiltinProperties() {
         if (!initializedProperties) {
             addProperty(new Property("sender", module.get(TypeHelper.class).AID, true, getLocation())
-                    .setCustomCompile(
-                            (__) -> MESSAGE_VAR_NAME + ".getSender()",
-                            (__, send) -> MESSAGE_VAR_NAME + ".setSender(" + send + ")"
-                    )
+                    .setCompileByJVMAccessors()
             );
             addProperty(new Property("performative", module.get(TypeHelper.class).PERFORMATIVE, true, getLocation())
-                    .setCustomCompile(
-                            (__) -> MESSAGE_VAR_NAME + ".getJadescriptPerformative()",
-                            (__, perf) -> MESSAGE_VAR_NAME + ".setJadescriptPerformative(" + perf + ")"
-                    )
+                    .setCompileByCustomJVMMethod("getJadescriptPerformative", "setJadescriptPerformative")
             );
             addProperty(new Property("content", contentType.ignoreBound(), true, getLocation())
                     .setCustomCompile(
@@ -87,10 +81,8 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
                             (__, re) -> CONTENT_VAR_NAME + "=" + re)
             );
             addProperty(new Property("ontology", module.get(TypeHelper.class).ONTOLOGY, true, getLocation())
-                    .setCustomCompile(
-                            (__) -> MESSAGE_VAR_NAME + ".getOntology()",
-                            (__, onto) -> MESSAGE_VAR_NAME + ".setOntology(" + onto + ")"
-                    ));
+                    .setCompileByJVMAccessors()
+            );
         }
         this.initializedProperties = true;
     }

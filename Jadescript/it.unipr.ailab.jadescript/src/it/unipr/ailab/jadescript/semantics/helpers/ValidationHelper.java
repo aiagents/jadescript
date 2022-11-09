@@ -32,7 +32,6 @@ import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -262,7 +261,7 @@ public class ValidationHelper implements SemanticsConsts {
     ) {
         final List<DefinitionClash> clashes = module.get(ContextManager.class).currentContext()
                 .actAs(CallableClashValidator.class)
-                .flatMap(ccv -> ccv.checkCallableClash(toBeAdded))
+                .flatMap(ccv -> ccv.checkCallableClash(module, toBeAdded))
                 .filter(dc -> !dc.getAlreadyPresentSymbol().sourceLocation()
                         .equals(dc.getToBeAddedSymbol().sourceLocation())
                 ).filter(Util.dinstinctBy(dc -> Util.tuple(

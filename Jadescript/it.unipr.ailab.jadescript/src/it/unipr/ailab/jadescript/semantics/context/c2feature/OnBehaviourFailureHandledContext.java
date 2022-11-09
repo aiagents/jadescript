@@ -20,7 +20,7 @@ public interface OnBehaviourFailureHandledContext extends SemanticsConsts {
             Predicate<IJadescriptType> readingType,
             Predicate<Boolean> canWrite
     ) {
-        Stream<String> stream = Stream.of(FAILURE_REASON_VAR_NAME, "failure");
+        Stream<String> stream = Stream.of(FAILURE_REASON_VAR_NAME, "failureReason");
         stream = safeFilter(stream, it -> it, name);
         stream = safeFilter(stream, __ -> getFailureReasonType(), readingType);
         stream = safeFilter(stream, __ -> true, canWrite);

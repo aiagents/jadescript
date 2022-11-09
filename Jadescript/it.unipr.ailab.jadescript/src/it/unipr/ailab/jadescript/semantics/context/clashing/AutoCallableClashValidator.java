@@ -1,24 +1,34 @@
 package it.unipr.ailab.jadescript.semantics.context.clashing;
 
 import com.google.common.collect.Streams;
+import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.search.FQNameLocation;
+import it.unipr.ailab.jadescript.semantics.context.search.JadescriptTypeLocation;
+import it.unipr.ailab.jadescript.semantics.context.search.JvmTypeLocation;
+import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import org.eclipse.xtext.util.Strings;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 public interface AutoCallableClashValidator extends CallableClashValidator {
 
     @Override
-    default Stream<DefinitionClash> checkCallableClash(CallableSymbol toBeAdded) {
+    default Stream<DefinitionClash> checkCallableClash(SemanticsModule module, CallableSymbol toBeAdded) {
         Stream<DefinitionClash> fromCallables;
         if (this instanceof CallableSymbol.Searcher) {
             fromCallables = ((CallableSymbol.Searcher) this).searchCallable(
-                    toBeAdded.name(),
-                    null,
-                    (size, names) -> size == toBeAdded.parameterNames().size(),
-                    (size, types) -> size == toBeAdded.parameterTypes().size()
-            ).map(alreadyPresent -> new DefinitionClash(toBeAdded, alreadyPresent));
+                            toBeAdded.name(),
+                            null,
+                            (size, names) -> size == toBeAdded.parameterNames().size(),
+                            (size, types) -> size == toBeAdded.parameterTypes().size()
+                    )
+                    .filter(alreadyPresent -> !isOverriding(module, alreadyPresent, toBeAdded))
+                    .map(alreadyPresent -> new DefinitionClash(toBeAdded, alreadyPresent));
             if (toBeAdded.parameterTypes().size() == 0) {
                 fromCallables = Streams.concat(
                         fromCallables,
@@ -60,5 +70,59 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
                 fromNameds,
                 fromCallables
         );
+    }
+
+    /**
+     * Returns true if {@code toBeAdded} is a declaration that overrides {@code alreadyPresent}.
+     */
+    static boolean isOverriding(SemanticsModule module, CallableSymbol alreadyPresent, CallableSymbol toBeAdded) {
+        final SearchLocation alreadyPresentLocation = alreadyPresent.sourceLocation();
+        final SearchLocation toBeAddedLocation = toBeAdded.sourceLocation();
+        if (alreadyPresentLocation instanceof FQNameLocation
+                && toBeAddedLocation instanceof FQNameLocation) {
+            final IJadescriptType alreadyPresentType = ((FQNameLocation) alreadyPresentLocation).extractType(module);
+            final IJadescriptType toBeAddedType = ((FQNameLocation) toBeAddedLocation).extractType(module);
+            // is overriding if...
+            return alreadyPresentType.isAssignableFrom(toBeAddedType) // it is a supertype
+                    && !alreadyPresentType.typeEquals(toBeAddedType) // it has to be strictly a supertype
+                    && isSignatureCompatibleForOverriding(alreadyPresent, toBeAdded); // the signature is compatible (in the Java sense)
+        }
+        return false;
+    }
+
+    class X0{}
+    class X1 extends X0{
+
+    }
+    class X2 extends X1{}
+
+    class A{
+        public X1 method(X1 helo){
+            return null;
+        }
+    }
+
+    class B extends A{
+        @Override
+        public X1 method(X1 helo) {
+            return null;
+        }
+    }
+
+    static boolean isSignatureCompatibleForOverriding(CallableSymbol alreadyPresent, CallableSymbol toBeAdded) {
+        if (alreadyPresent.arity() != toBeAdded.arity()) {
+            return false;
+        }
+        if(!alreadyPresent.returnType().isAssignableFrom(toBeAdded.returnType())){
+            return false;
+        }
+        final List<IJadescriptType> apTypes = alreadyPresent.parameterTypes();
+        final List<IJadescriptType> tbaTypes = toBeAdded.parameterTypes();
+        for (int i = 0; i < apTypes.size(); i++) {
+            if(!apTypes.get(i).typeEquals(tbaTypes.get(i))){
+                return false;
+            }
+        }
+        return true;
     }
 }

@@ -46,7 +46,7 @@ public class JadescriptEditorExtended extends JadescriptEditor {
 	}
 
 	// Weird fix to have some more stable behaviour with Undo/Redo
-	//NOTE: it assumes lenght >= text.length();
+	//NOTE: it assumes length >= text.length();
 	private static void replaceFix(JadescriptEditor editor, int offset, int length, String text) throws BadLocationException {
 		IRewriteTarget rwt = editor.getAdapter(IRewriteTarget.class);
 		for(int i = 0; i < length; i++) {
@@ -56,8 +56,6 @@ public class JadescriptEditorExtended extends JadescriptEditor {
 			}else {
 				si = ""+text.charAt(i);				
 			}
-			
-			System.out.println("replacing: "+si); //TODO
 			rwt.beginCompoundChange();
 			IDocument document = rwt.getDocument();	
 			document.replace(offset+i, 1, si);

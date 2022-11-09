@@ -1179,7 +1179,12 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    public IJadescriptType jtFromFullyQualifiedName(String fullyQualifiedName) {
+        return jtFromJvmTypeRef(typeRef(fullyQualifiedName));
+    }
+
     private Maybe<IJadescriptType> getFromJVMTypeReference(JvmTypeReference typeReference) {
+    	//TODO when doing typeReference.getQualifiedName('.'), an IllegalStateException could be thrown from Xtext
         if (defaultJVMToDescriptorTable.containsKey(typeReference.getQualifiedName('.'))) {
             return of(defaultJVMToDescriptorTable.get(typeReference.getQualifiedName('.')));
         } else if (defaultJVMToGenericDescriptorTable.containsKey(
