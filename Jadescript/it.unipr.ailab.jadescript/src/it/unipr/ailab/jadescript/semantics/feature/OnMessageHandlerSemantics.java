@@ -8,6 +8,7 @@ import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.MessageHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.MessageHandlerWhenExpressionContext;
+import it.unipr.ailab.jadescript.semantics.context.c2feature.MessageReceivedContext;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.FlowTypeInferringTerm;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedReference;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
@@ -56,60 +57,6 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
         super(semanticsModule);
     }
 
-
-    public static List<StatementWriter> generateExtractStatements(
-            Maybe<? extends OnMessageHandler> container,
-            IJadescriptType contentType,
-            SemanticsModule module
-    ) {
-        List<StatementWriter> result = new ArrayList<>();
-
-
-        Maybe<LightweightTypeReference> type = container.__(containerSafe -> {
-            return module.get(CompilationHelper.class).toLightweightTypeReference(contentType, containerSafe);
-        });
-
-
-        type.safeDo(typeSafe -> {
-            if (typeSafe.isSubtypeOf(String.class)) {
-                result.add(w.variable(
-                        typeSafe.toTypeReference().getQualifiedName('.'),
-                        CONTENT_VAR_NAME,
-                        w.callExpr(MESSAGE_VAR_NAME + ".getContent")
-                ));
-            } else if (typeSafe.isSubtypeOf(ContentElement.class)) {
-                result.add(w.variable(
-                        typeSafe.toTypeReference().getQualifiedName('.'),
-                        CONTENT_VAR_NAME,
-                        w.callExpr("(" + typeSafe.toTypeReference().getQualifiedName('.')
-                                + ") " + THE_AGENT + "().getContentManager().extractContent", w.expr(MESSAGE_VAR_NAME))
-                ));
-            } else if (typeSafe.isSubtypeOf(AbsContentElement.class)) {
-                result.add(w.variable(
-                        typeSafe.toTypeReference().getQualifiedName('.'),
-                        CONTENT_VAR_NAME,
-                        w.callExpr("(" + typeSafe.toTypeReference().getQualifiedName('.')
-                                + ") " + THE_AGENT + "().getContentManager().extractAbsContent", w.expr(MESSAGE_VAR_NAME))
-                ));
-            } else if (typeSafe.isSubtypeOf(Serializable.class)) {
-                result.add(w.variable(
-                        typeSafe.toTypeReference().getQualifiedName('.'),
-                        CONTENT_VAR_NAME,
-                        w.expr("(" + typeSafe.toTypeReference().getQualifiedName('.')
-                                + ")" + MESSAGE_VAR_NAME + ".getContentObject()")
-                ));
-            } else {
-                result.add(w.variable(
-                        typeSafe.toTypeReference().getQualifiedName('.'),
-                        CONTENT_VAR_NAME,
-                        w.callExpr(MESSAGE_VAR_NAME + ".getByteSequenceContent")
-                ));
-            }
-
-
-        });
-        return result;
-    }
 
     @Override
     public void generateJvmMembers(
@@ -187,11 +134,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
 
                         // if there is a when-exprssion or a pattern, then add the corresponding constraint
                         if (whenBodyX.isPresent() || contentPattern.isPresent()) {
-                            List<StatementWriter> extractStatements = OnMessageHandlerSemantics.generateExtractStatements(
-                                    input,
-                                    computedContentType,
-                                    module
-                            );
+
                             messageTemplateExpressions.add(TemplateCompilationHelper.customMessage(
                                     w.block().addStatement(
                                             w.ifStmnt(
@@ -205,8 +148,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
                                             )
                                     ).addStatement(
                                             w.tryCatch(w.block()
-                                                    .addStatements(extractStatements)
-                                                    .addStatement(w.returnStmnt(w.expr(pmData.getCompiledExpression())))
+                                                            .addStatement(w.returnStmnt(w.expr(pmData.getCompiledExpression())))
                                             ).addCatchBranch("java.lang.Throwable", "_e", w.block()
                                                     .addStatement(w.callStmnt("_e.printStackTrace"))
                                                     .addStatement(w.returnStmnt(w.expr("false"))))
@@ -286,8 +228,11 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
                                                     "message",
                                                     input.__(OnMessageHandler::getPerformative),
                                                     pmData.getAutoDeclaredVariables(),
-                                                    mod.get(TypeHelper.class)
-                                                            .instantiateMessageType(performative, contentType),
+                                                    mod.get(TypeHelper.class).instantiateMessageType(
+                                                            performative,
+                                                            contentType,
+                                                            /*normalizeToUpperBounds=*/ true
+                                                    ),
                                                     contentType
                                             )
                                     );
@@ -329,16 +274,18 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
             Maybe<OnMessageHandler> input, Maybe<CodeBlock> codeBlock, IJadescriptType contentType
     ) {
 
-        module.get(BlockSemantics.class).addInjectedStatements(
-                codeBlock,
-                generateExtractStatements(input, contentType, module)
+
+        BaseMessageType messageType = module.get(TypeHelper.class).instantiateMessageType(
+                input.__(OnMessageHandler::getPerformative),
+                contentType,
+                /*normalizeToUpperBounds=*/ true
         );
 
-        module.get(BlockSemantics.class).addInjectedVariable(codeBlock, new ContextGeneratedReference(CONTENT_VAR_NAME, contentType));
+        module.get(BlockSemantics.class).addInjectedVariable(
+                codeBlock,
+                MessageReceivedContext.contentContextGeneratedReference(messageType, contentType)
+        );
 
-
-        BaseMessageType messageType = module.get(TypeHelper.class)
-                .instantiateMessageType(input.__(OnMessageHandler::getPerformative), contentType);
         module.get(BlockSemantics.class).addInjectedVariable(
                 codeBlock,
                 new ContextGeneratedReference(MESSAGE_VAR_NAME, messageType,
@@ -356,6 +303,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
     }
 
 
+    //TODO rename method
     public void validateMessageOrPerceptEvent(
             ValidationMessageAcceptor acceptor, Maybe<OnMessageHandler> input
     ) {
@@ -431,7 +379,8 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
 
                     BaseMessageType messageType = module.get(TypeHelper.class).instantiateMessageType(
                             performative,
-                            computedContentType
+                            computedContentType,
+                            /*normalizeToUpperBounds=*/ true
                     );
                     module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
                             new MessageHandlerWhenExpressionContext(
@@ -460,8 +409,11 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
         final IJadescriptType finalContentType = contentType;
         input.safeDo(inputSafe -> {
 
-            BaseMessageType messageType = module.get(TypeHelper.class)
-                    .instantiateMessageType(input.__(OnMessageHandler::getPerformative), finalContentType);
+            BaseMessageType messageType = module.get(TypeHelper.class).instantiateMessageType(
+                    input.__(OnMessageHandler::getPerformative),
+                    finalContentType,
+                    /*normalizeToUpperBounds=*/ true
+            );
 
             module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
                     new MessageHandlerContext(
@@ -525,7 +477,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
             Maybe<? extends EObject> containerEObject,
             Maybe<SavedContext> savedContext,
             Maybe<OnMessageHandler> input,
-            boolean isValidationOnly
+            boolean isValidation
     ) {
 
         savedContext.safeDo(it -> module.get(ContextManager.class).restore(it));
@@ -533,7 +485,10 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
         IJadescriptType computedContentType = inferContentType(input);
         BaseMessageType messageType = module.get(TypeHelper.class).instantiateMessageType(
                 input.__(OnMessageHandler::getPerformative),
-                computedContentType
+                computedContentType,
+                //Not normalizing to upper bounds when validating, in order to not interfere with the
+                // type-inferring-from-pattern-match-and-when-expression system
+                /*normalizeToUpperBounds=*/ !isValidation
         );
 
         module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
@@ -561,7 +516,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
 
 
         String compiledExpression;
-        if (isValidationOnly) {
+        if (isValidation) {
             compiledExpression = "";
         } else {
             String x1 = module.get(PatternMatchingSemantics.class)
@@ -590,7 +545,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
         module.get(ContextManager.class).exit();
 
         List<JvmDeclaredType> patternMatcherClasses;
-        if (isValidationOnly) {
+        if (isValidation) {
             patternMatcherClasses = new ArrayList<>();
         } else {
             patternMatcherClasses = PatternMatchingSemantics.getPatternMatcherClasses(
@@ -603,7 +558,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
         }
 
         List<JvmField> patternMatcherFields;
-        if (isValidationOnly) {
+        if (isValidation) {
             patternMatcherFields = new ArrayList<>();
         } else {
             patternMatcherFields = PatternMatchingSemantics.getPatternMatcherFieldDeclarations(

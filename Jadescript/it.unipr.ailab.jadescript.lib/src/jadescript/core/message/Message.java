@@ -2,8 +2,12 @@ package jadescript.core.message;
 
 import java.util.Iterator;
 
+import jade.content.ContentManager;
+import jade.content.lang.Codec;
+import jade.content.onto.OntologyException;
 import jade.core.AID;
 import jade.lang.acl.ACLMessage;
+import jadescript.core.exception.JadescriptException;
 import jadescript.lang.Performative;
 
 public class Message<C> extends ACLMessage {
@@ -31,30 +35,48 @@ public class Message<C> extends ACLMessage {
     public static final int PROPAGATE = 21;
     public static final int UNKNOWN = -1;
 
+    public C content = null;
+
     public Message(int perf) {
         super(perf);
     }
 
-    public Performative getJadescriptPerformative(){
+    public Performative getJadescriptPerformative() {
         return Performative.fromCode(getPerformative());
     }
 
-    public boolean equals(Object other){
-        if(this == other){
+    @SuppressWarnings("unchecked")
+    public C getContent(ContentManager contentManager) {
+        if (content == null) {
+            try {
+                content = (C) contentManager.extractContent(this);
+            } catch (OntologyException | Codec.CodecException e) {
+                throw JadescriptException.wrap(e);
+            }
+        }
+        if(content == null){
+            // If content is still null, then something's wrong with the decoding phase
+            throw JadescriptException.wrap(new Codec.CodecException("Decoding of content returned a null object."));
+        }
+        return content;
+    }
+
+    public boolean equals(Object other) {
+        if (this == other) {
             return true;
         }
-        if(other instanceof Message){
+        if (other instanceof Message) {
             return this.toString().equals(other.toString());
         }
         return super.equals(other);
     }
 
     @SuppressWarnings("unchecked")
-    public static <T> Message<T> wrap(ACLMessage msg){
+    public static <T> Message<T> wrap(ACLMessage msg) {
         Message<T> wrapper = null;
         if (msg != null) {
             if (msg instanceof Message) {
-                    wrapper = (Message<T>) msg;
+                wrapper = (Message<T>) msg;
             } else {
                 final int performative = msg.getPerformative();
                 wrapper = (Message<T>) getEmptyWrapper(performative);
@@ -81,8 +103,7 @@ public class Message<C> extends ACLMessage {
                 wrapper.setReplyByDate(msg.getReplyByDate());
                 if (msg.hasByteSequenceContent()) {
                     wrapper.setByteSequenceContent(msg.getByteSequenceContent());
-                }
-                else {
+                } else {
                     wrapper.setContent(msg.getContent());
                 }
                 wrapper.setEncoding(msg.getEncoding());
@@ -94,7 +115,7 @@ public class Message<C> extends ACLMessage {
     }
 
     private static Message<?> getEmptyWrapper(int performative) {
-        switch (performative){
+        switch (performative) {
             case ACCEPT_PROPOSAL:
                 return new AcceptProposalMessage<>();
             case AGREE:

@@ -900,15 +900,21 @@ public class TypeHelper implements SemanticsConsts {
 
     public BaseMessageType instantiateMessageType(
             Maybe<String> performative,
-            IJadescriptType computedContentType
+            IJadescriptType computedContentType,
+            boolean normalizeToUpperBounds
     ) {
         final Maybe<? extends Function<List<TypeArgument>, ? extends BaseMessageType>> functionMaybe
                 = performative.__(performativeByName::get).__(this::getMessageType);
-        final List<TypeArgument> resultTypeArgs;
+        List<TypeArgument> resultTypeArgs;
         if (computedContentType instanceof TupleType) {
             resultTypeArgs = new ArrayList<>(((TupleType) computedContentType).getTypeArguments());
         } else {
             resultTypeArgs = List.of(computedContentType);
+        }
+
+        if (normalizeToUpperBounds) {
+            resultTypeArgs = limitMsgContentTypesToUpperBounds(
+                    performative.__(performativeByName::get), resultTypeArgs);
         }
 
         if (functionMaybe.isPresent()) {
@@ -916,6 +922,41 @@ public class TypeHelper implements SemanticsConsts {
         } else {
             return this.MESSAGE.apply(resultTypeArgs);
         }
+    }
+
+    private List<TypeArgument> limitMsgContentTypesToUpperBounds(
+            Maybe<Performative> performative,
+            List<TypeArgument> arguments
+    ) {
+        if (performative == null || performative.isNothing() || performative.wrappedEquals(UNKNOWN)) {
+            return arguments;
+        }
+
+        List<TypeArgument> result = new ArrayList<>(arguments.size());
+        final IJadescriptType requiredContentType = messageContentTypeRequirements.get(performative.toNullable()).get();
+        final List<IJadescriptType> requiredTypes;
+        if (requiredContentType instanceof TupleType) {
+            requiredTypes = ((TupleType) requiredContentType).getElementTypes();
+        } else {
+            requiredTypes = List.of(requiredContentType);
+        }
+        int i;
+        for (i = 0; i < Math.min(requiredTypes.size(), arguments.size()); i++) {
+            final IJadescriptType glb = getGLB(requiredTypes.get(i), arguments.get(i).ignoreBound());
+            if(glb.typeEquals(requiredTypes.get(i))){
+                result.add(covariant(glb));
+            }else {
+                result.add(glb);
+            }
+        }
+        if(i < requiredTypes.size()){
+            for (; i < requiredTypes.size(); i++){
+                result.add(covariant(requiredTypes.get(i)));
+            }
+        }
+
+        return result;
+
     }
 
     public Function<List<TypeArgument>, ? extends BaseMessageType> getMessageType(
@@ -1184,7 +1225,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
     private Maybe<IJadescriptType> getFromJVMTypeReference(JvmTypeReference typeReference) {
-    	//TODO when doing typeReference.getQualifiedName('.'), an IllegalStateException could be thrown from Xtext
+        //TODO when doing typeReference.getQualifiedName('.'), an IllegalStateException could be thrown from Xtext
         if (defaultJVMToDescriptorTable.containsKey(typeReference.getQualifiedName('.'))) {
             return of(defaultJVMToDescriptorTable.get(typeReference.getQualifiedName('.')));
         } else if (defaultJVMToGenericDescriptorTable.containsKey(

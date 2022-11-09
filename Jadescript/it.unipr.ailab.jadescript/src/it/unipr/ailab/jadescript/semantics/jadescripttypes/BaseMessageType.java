@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
@@ -77,8 +78,9 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
             );
             addProperty(new Property("content", contentType.ignoreBound(), true, getLocation())
                     .setCustomCompile(
-                            (__) -> CONTENT_VAR_NAME,
-                            (__, re) -> CONTENT_VAR_NAME + "=" + re)
+                            (e) -> e + "getContent("+ THE_AGENT + "().getContentManager())",
+                            // It's read only, so the setter doesn't matter:
+                            (e, re) -> e+"/*Error trying to set content*/ =" + re)
             );
             addProperty(new Property("ontology", module.get(TypeHelper.class).ONTOLOGY, true, getLocation())
                     .setCompileByJVMAccessors()

@@ -34,7 +34,7 @@ public interface MessageReceivedContext extends SemanticsConsts {
         cont = safeFilter(cont, __ -> CONTENT_VAR_NAME, name);
         cont = safeFilter(cont, __ -> getMessageContentType(), readingType);
         cont = safeFilter(cont, __ -> true, canWrite);
-        return cont.map(__ -> new ContextGeneratedReference(CONTENT_VAR_NAME, getMessageContentType()));
+        return cont.map(__ -> contentContextGeneratedReference(getMessageType(), getMessageContentType()));
     }
 
     default void debugDumpReceivedMessage(SourceCodeBuilder scb) {
@@ -42,5 +42,15 @@ public interface MessageReceivedContext extends SemanticsConsts {
         scb.line("messageContentType = " + getMessageContentType().getDebugPrint());
         scb.line("messageType = " + getMessageType().getDebugPrint());
         scb.close("}");
+    }
+
+    static ContextGeneratedReference contentContextGeneratedReference(
+            IJadescriptType messageType,
+            IJadescriptType contentType
+    ) {
+        return new ContextGeneratedReference(CONTENT_VAR_NAME, contentType,
+                (__) -> "(" + messageType.compileAsJavaCast() + " " + MESSAGE_VAR_NAME + ")" +
+                        ".getContent(" + THE_AGENT + "().getContentManager())"
+        );
     }
 }
