@@ -1,0 +1,68 @@
+module examples.musicstreaming
+
+ontology MusicStreaming
+    predicate MinimumBitrate(bitrate as integer)
+    predicate MaximumBitrate(bitrate as integer)
+    predicate MaximumPrice(price as integer)
+    predicate PriceIs(price as integer)
+    predicate BitrateIs(bitrate as integer)
+    predicate InitiatorPreconditions(
+        maxPrice as MaximumPrice,
+        minBitrate as MinimumBitrate,
+        maxBitrate as MaximumBitrate 
+    )
+    predicate ProviderConditions(
+        price as PriceIs,
+        bitrate as BitrateIs
+    )
+    
+    # Reasons to refuse to send a proposal: 
+    predicate UnableToMeetRequirements(requirements as Proposition)
+    predicate TrackUnavailable(track as Track)
+    
+    # Reasons to reject a proposal:
+    predicate BetterConditionsFound(
+        conditions as Proposition, by as aid 
+    )
+    predicate InvalidTrackException(
+        proposal as ProposeMessage of (Stream, ProviderConditions),
+        requestedTrack as Track,
+        providedTrack as Track
+    )
+    predicate InvalidConditionException(
+        proposal as ProposeMessage of (Stream, ProviderConditions),
+        precondition as Proposition,
+        faultyCondition as Proposition
+    )
+    predicate UnmetPrecondition(
+        precondition as Proposition,
+        faultyCondition as Proposition
+    )
+    
+    # Errors in the protocol execution:
+    predicate WrongTrack(
+        requestedTrack as Track, 
+        providedTrack as Track
+    )
+    predicate NotAgreedConditions(
+        agreedOn as Proposition,
+        notAgreedOn as Proposition
+    )
+    predicate CannotPerformTask(
+        task as Action,
+        reason as Proposition
+    )
+    
+    # A musical track.
+    concept Track(title as text)
+    
+    # The action of streaming a track.
+    action Stream(track as Track)
+    
+    predicate ReadyToStream(
+        track as Track, 
+        streamAtUrl as text
+    )
+    
+    
+

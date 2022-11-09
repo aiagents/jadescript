@@ -1,0 +1,201 @@
+module examples.musicstreaming
+
+import examples.musicstreaming.Track
+
+agent StreamCnetInitiator uses ontology MusicStreaming
+
+    property track as Track
+    property providers as list of aid
+    property maximumPrice as MaximumPrice
+    property minimumBitrate as MinimumBitrate
+    property maximumBitrate as MaximumBitrate
+    property fullPreconditions as InitiatorPreconditions
+    
+    on create with
+        trackTitle as text, 
+        providers as list of text,
+        maxPrice as integer,
+        minBitrate as integer,
+        maxBitrate as integer do
+        
+        for c in providers do
+            add c as aid to providers of this
+        track = Track(trackTitle)
+        maximumPrice = MaximumPrice(maxPrice)
+        minimumBitrate = MinimumBitrate(minBitrate)
+        maximumBitrate = MaximumBitrate(maxBitrate)
+        fullPreconditions = InitiatorPreconditions(
+            maximumPrice,
+            minimumBitrate,
+            maximumBitrate
+        )
+        activate InitiateCnet
+        
+        
+    on behaviour failure reason as Proposition do
+        log "Behaviour "+behaviour+" failed with reason: "+ reason
+        do nothing #TODO shutdown
+
+
+    # Inserts prop into toList, ensuring that toList 
+    #  is sorted from best proposal to worst.
+    procedure addProposalSorted with
+        prop as (Stream, ProviderConditions, aid),
+        toList as list of (Stream, ProviderConditions, aid) do
+        if length of toList = 0 do
+            add prop to toList
+        else do
+            added = false
+            for i in 0 to length of toList - 2 do
+                if compareProposals(prop[1], toList[i][1]) do
+                    add prop to toList at i
+                    added = true
+                    break
+            if not added do # It's the worst proposal.
+                add prop to toList # Add it at the end.
+
+
+    # Returns true if p1 is better or equal than p2.
+    function compareProposals(
+        p1 as ProviderConditions,
+        p2 as ProviderConditions
+    ) as boolean do
+        price1 = price of price of p1
+        bitrate1 = bitrate of bitrate of p1
+        price2 = price of price of p2
+        bitrate2 = bitrate of bitrate of p2
+        if price1 = price2 do
+            if bitrate1 ≥ bitrate2 do
+                return true
+            else do
+                return false
+        else if price1 < price2 do
+            return true 
+        else do
+            return false
+
+    
+
+    procedure validateProposal 
+        with proposal as ProposeMessage of (Stream, ProviderConditions) do
+        #TODO replace with deconstructions
+        when content of proposal matches (stream, conditions) do
+          when conditions matches ProviderConditions(PriceIs(price), BitrateIs(bitrate)) do
+            if track of stream ≠ track of this do
+                throw InvalidTrackException(
+                    proposal,
+                    track of this,
+                    track of stream
+                )
+            if price > price of maximumPrice do
+                throw InvalidConditionException(
+                    proposal,
+                    maximumPrice,
+                    PriceIs(price)
+                )
+            if bitrate < bitrate of minimumBitrate do
+                throw InvalidConditionException(
+                    proposal,
+                    minimumBitrate,
+                    BitrateIs(bitrate)
+                )
+            if bitrate > bitrate of maximumBitrate do
+                throw InvalidConditionException(
+                    proposal,
+                    maximumBitrate,
+                    BitrateIs(bitrate)
+                )
+        
+
+
+    one shot behaviour InitiateCnet
+        on execute do
+            log "Sending proposals to candidates."
+            collect = CollectProposals
+            activate collect
+            activate EvaluateProposals(collect) after "PT10S" as duration
+            
+            send message cfp (
+                Stream(track), 
+                InitiatorPreconditions(maximumPrice, minimumBitrate, maximumBitrate)
+            ) to providers
+        
+        
+    cyclic behaviour CollectProposals
+        property proposals as list of (Stream, ProviderConditions, aid)
+        
+        on message refuse (_ as Action, reason as Proposition) do
+            log "Participant with name '" +
+                name of sender of message + 
+                "' refused to propose, reason: " + reason + "."
+        
+        on message propose (Stream(track), providerConditions as ProviderConditions) do
+            if track ≠ track of agent do
+                send message reject_proposal (
+                    Stream(track), 
+                    providerConditions, 
+                    WrongTrack(
+                        providedTrack = track,
+                        requestedTrack = track of agent
+                    )
+                ) to sender of message
+            else do
+                do validateProposal with proposal=message
+                log "Proposal to stream track " + track + " received from '" +
+                    name of sender of message + "' with conditions: "+providerConditions
+                p = (Stream(track), providerConditions, sender of message)
+                do addProposalSorted with prop=p, toList=proposals
+        
+        on exception InvalidConditionException(proposal, precondition, condition) do
+            send message reject_proposal (
+                (content of proposal)[0], 
+                (content of proposal)[1],
+                UnmetPrecondition(precondition, condition)
+            ) to sender of proposal
+                
+        on exception InvalidTrackException(proposal, requested, provided) do
+            send message reject_proposal(
+                (content of proposal)[0], 
+                (content of proposal)[1],
+                WrongTrack(requested, provided)
+            ) to sender of proposal
+
+
+    one shot behaviour EvaluateProposals
+        property collect as CollectProposals
+        on create with b as CollectProposals do
+            collect = b
+            
+        on activate do
+            deactivate collect
+            activate InitiateCnet
+            if length of proposals of collect = 0 do
+                fail this with True
+            else do
+                when proposals of collect matches 
+                    [(bestTask, bestConditions, bestProvider) | rest] do
+                    activate AwaitResult(fromProvider=""@)
+                    send message accept_proposal (bestTask, bestConditions) 
+                        to bestProvider
+                    for otherProposal in rest do
+                        when otherProposal matches (otherTask, otherConditions, otherProvider) do
+                            send message reject_proposal(
+                                otherTask,
+                                otherConditions,
+                                BetterConditionsFound(
+                                    conditions=bestConditions,
+                                    by=bestProvider
+                                )
+                            ) to otherProvider
+
+
+
+    cyclic behaviour AwaitResult
+        property provider as aid
+        
+        on create with fromProvider as aid do
+            provider of this = fromProvider
+            
+        on message inform ReadyToStream(track, url) do
+            log "Steaming "+track+" from "+url
+            
