@@ -25,8 +25,6 @@ import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
-import jade.content.ContentElement;
-import jade.content.abs.AbsContentElement;
 import jade.lang.acl.MessageTemplate;
 import jadescript.lang.Performative;
 import org.eclipse.emf.common.util.EList;
@@ -35,9 +33,7 @@ import org.eclipse.xtend2.lib.StringConcatenationClient;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
-import org.eclipse.xtext.xbase.typesystem.references.LightweightTypeReference;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -283,7 +279,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
 
         module.get(BlockSemantics.class).addInjectedVariable(
                 codeBlock,
-                MessageReceivedContext.contentContextGeneratedReference(messageType, contentType)
+                MessageReceivedContext.messageContentContextGeneratedReference(messageType, contentType)
         );
 
         module.get(BlockSemantics.class).addInjectedVariable(

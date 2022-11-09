@@ -16,7 +16,11 @@ public interface MessageReceivedContext extends SemanticsConsts {
 
     IJadescriptType getMessageType();
 
-    default Stream<NamedSymbol> getMessageStream(Predicate<String> name, Predicate<IJadescriptType> readingType, Predicate<Boolean> canWrite) {
+    default Stream<NamedSymbol> getMessageStream(
+            Predicate<String> name,
+            Predicate<IJadescriptType> readingType,
+            Predicate<Boolean> canWrite
+    ) {
         Stream<Integer> mess = Stream.of(0);
         mess = safeFilter(mess, __ -> MESSAGE_VAR_NAME, name);
         final IJadescriptType messageType = getMessageType();
@@ -29,12 +33,16 @@ public interface MessageReceivedContext extends SemanticsConsts {
         ));
     }
 
-    default Stream<NamedSymbol> getContentStream(Predicate<String> name, Predicate<IJadescriptType> readingType, Predicate<Boolean> canWrite) {
+    default Stream<NamedSymbol> getContentStream(
+            Predicate<String> name,
+            Predicate<IJadescriptType> readingType,
+            Predicate<Boolean> canWrite
+    ) {
         Stream<Integer> cont = Stream.of(0);
         cont = safeFilter(cont, __ -> CONTENT_VAR_NAME, name);
         cont = safeFilter(cont, __ -> getMessageContentType(), readingType);
         cont = safeFilter(cont, __ -> true, canWrite);
-        return cont.map(__ -> contentContextGeneratedReference(getMessageType(), getMessageContentType()));
+        return cont.map(__ -> messageContentContextGeneratedReference(getMessageType(), getMessageContentType()));
     }
 
     default void debugDumpReceivedMessage(SourceCodeBuilder scb) {
@@ -44,7 +52,7 @@ public interface MessageReceivedContext extends SemanticsConsts {
         scb.close("}");
     }
 
-    static ContextGeneratedReference contentContextGeneratedReference(
+    static ContextGeneratedReference messageContentContextGeneratedReference(
             IJadescriptType messageType,
             IJadescriptType contentType
     ) {

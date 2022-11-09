@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.PerceptHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.PerceptHandlerWhenExpressionContext;
+import it.unipr.ailab.jadescript.semantics.context.c2feature.PerceptPerceivedContext;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.FlowTypeInferringTerm;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedReference;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
@@ -375,10 +376,7 @@ public class OnPerceptHandlerSemantics extends FeatureSemantics<OnPerceptHandler
 
             module.get(BlockSemantics.class).addInjectedVariable(
                     codeBlock,
-                    new ContextGeneratedReference(
-                            PERCEPT_CONTENT_VAR_NAME,
-                            finalContentType
-                    )
+                    PerceptPerceivedContext.perceptContentContextGeneratedReference(finalContentType)
             );
 
             module.get(BlockSemantics.class).validate(input.__(FeatureWithBody::getBody), acceptor);
