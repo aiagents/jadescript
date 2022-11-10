@@ -50,7 +50,7 @@ public class UserDefinedOntoContentType
                 null
         ).findAny();
         if (metadata.isEmpty()) {
-            return false;
+            return true; //assuming true; sometimes the metatadata method is generated/visible later in the process
         } else {
             return metadata.get().parameterTypes().stream().allMatch(IJadescriptType::isSendable);
         }

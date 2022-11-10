@@ -79,8 +79,11 @@ agent StreamCnetInitiator uses ontology MusicStreaming
     procedure validateProposal 
         with proposal as ProposeMessage of (Stream, ProviderConditions) do
         #TODO replace with deconstructions
+        #(stream, ProviderConditions(price, bitrate) = content of proposal
         when content of proposal matches (stream, conditions) do
-          when conditions matches ProviderConditions(PriceIs(price), BitrateIs(bitrate)) do
+          when conditions matches ProviderConditions(
+              PriceIs(price), BitrateIs(bitrate)
+          ) do
             if track of stream ≠ track of this do
                 throw InvalidTrackException(
                     proposal,
@@ -108,94 +111,93 @@ agent StreamCnetInitiator uses ontology MusicStreaming
         
 
 
-    one shot behaviour InitiateCnet
-        on execute do
-            log "Sending proposals to candidates."
-            collect = CollectProposals
-            activate collect
-            activate EvaluateProposals(collect) after "PT10S" as duration
-            
-            send message cfp (
-                Stream(track), 
-                InitiatorPreconditions(maximumPrice, minimumBitrate, maximumBitrate)
-            ) to providers
+one shot behaviour InitiateCnet for agent StreamCnetInitiator
+    on execute do
+        log "Sending proposals to candidates."
+        collect = CollectProposals
+        activate collect
+        activate EvaluateProposals(collect) after "PT10S" as duration
+        
+        send message cfp (
+            Stream(track), 
+            InitiatorPreconditions(maximumPrice, minimumBitrate, maximumBitrate)
+        ) to providers
         
         
-    cyclic behaviour CollectProposals
-        property proposals as list of (Stream, ProviderConditions, aid)
-        
-        on message refuse (_ as Action, reason as Proposition) do
-            log "Participant with name '" +
-                name of sender of message + 
-                "' refused to propose, reason: " + reason + "."
-        
-        on message propose (Stream(track), providerConditions as ProviderConditions) do
-            if track ≠ track of agent do
-                send message reject_proposal (
-                    Stream(track), 
-                    providerConditions, 
-                    WrongTrack(
-                        providedTrack = track,
-                        requestedTrack = track of agent
-                    )
-                ) to sender of message
-            else do
-                do validateProposal with proposal=message
-                log "Proposal to stream track " + track + " received from '" +
-                    name of sender of message + "' with conditions: "+providerConditions
-                p = (Stream(track), providerConditions, sender of message)
-                do addProposalSorted with prop=p, toList=proposals
-        
-        on exception InvalidConditionException(proposal, precondition, condition) do
+cyclic behaviour CollectProposals for agent StreamCnetInitiator
+    property proposals as list of (Stream, ProviderConditions, aid)
+    
+    on message refuse (_ as Action, reason as Proposition) do
+        log "Participant with name '" +
+            name of sender of message + 
+            "' refused to propose, reason: " + reason + "."
+    
+    on message propose (Stream(track), providerConditions as ProviderConditions) do
+        if track ≠ track of agent do
             send message reject_proposal (
-                (content of proposal)[0], 
-                (content of proposal)[1],
-                UnmetPrecondition(precondition, condition)
-            ) to sender of proposal
-                
-        on exception InvalidTrackException(proposal, requested, provided) do
-            send message reject_proposal(
-                (content of proposal)[0], 
-                (content of proposal)[1],
-                WrongTrack(requested, provided)
-            ) to sender of proposal
-
-
-    one shot behaviour EvaluateProposals
-        property collect as CollectProposals
-        on create with b as CollectProposals do
-            collect = b
+                Stream(track), 
+                providerConditions, 
+                WrongTrack(
+                    providedTrack = track,
+                    requestedTrack = track of agent
+                )
+            ) to sender of message
+        else do
+            do validateProposal with proposal=message
+            log "Proposal to stream track " + track + " received from '" +
+                name of sender of message + "' with conditions: "+providerConditions
+            p = (Stream(track), providerConditions, sender of message)
+            do addProposalSorted with prop=p, toList=proposals
+    
+    on exception InvalidConditionException(proposal, precondition, condition) do
+        send message reject_proposal (
+            (content of proposal)[0], 
+            (content of proposal)[1],
+            UnmetPrecondition(precondition, condition)
+        ) to sender of proposal
             
-        on activate do
-            deactivate collect
-            activate InitiateCnet
-            if length of proposals of collect = 0 do
-                fail this with True
-            else do
-                when proposals of collect matches 
-                    [(bestTask, bestConditions, bestProvider) | rest] do
-                    activate AwaitResult(fromProvider=""@)
-                    send message accept_proposal (bestTask, bestConditions) 
-                        to bestProvider
-                    for otherProposal in rest do
-                        when otherProposal matches (otherTask, otherConditions, otherProvider) do
-                            send message reject_proposal(
-                                otherTask,
-                                otherConditions,
-                                BetterConditionsFound(
-                                    conditions=bestConditions,
-                                    by=bestProvider
-                                )
-                            ) to otherProvider
+    on exception InvalidTrackException(proposal, requested, provided) do
+        send message reject_proposal(
+            (content of proposal)[0], 
+            (content of proposal)[1],
+            WrongTrack(requested, provided)
+        ) to sender of proposal
 
 
-
-    cyclic behaviour AwaitResult
-        property provider as aid
+one shot behaviour EvaluateProposals for agent StreamCnetInitiator
+    property collect as CollectProposals
+    on create with b as CollectProposals do
+        collect = b
         
-        on create with fromProvider as aid do
-            provider of this = fromProvider
-            
-        on message inform ReadyToStream(track, url) do
-            log "Steaming "+track+" from "+url
+    on activate do
+        deactivate collect
+        activate InitiateCnet
+        if length of proposals of collect = 0 do
+            fail this with True
+        else do
+            when proposals of collect matches 
+                [(bestTask, bestConditions, bestProvider) | rest] do
+                activate AwaitResult(fromProvider=""@)
+                send message accept_proposal (bestTask, bestConditions) 
+                    to bestProvider
+                for otherProposal in rest do
+                    when otherProposal matches (otherTask, otherConditions, otherProvider) do
+                        send message reject_proposal(
+                            otherTask,
+                            otherConditions,
+                            BetterConditionsFound(
+                                conditions=bestConditions,
+                                by=bestProvider
+                            )
+                        ) to otherProvider
+
+
+cyclic behaviour AwaitResult for agent StreamCnetInitiator
+    property provider as aid
+    
+    on create with fromProvider as aid do
+        provider of this = fromProvider
+        
+    on message inform ReadyToStream(track, url) do
+        log "Steaming "+track+" from "+url
             

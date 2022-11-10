@@ -31,13 +31,11 @@ public abstract class NamedEntitySemantics<T extends NamedElement> extends Seman
     @Override
     public void validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {
         if (input == null) return;
-        Maybe<String> name = input.__(NamedElement::getName);
+        Maybe<String> name = input.__(NamedElement::getName).nullIf(String::isBlank);
         if (nameShouldStartWithCapital()) {
 
             module.get(ValidationHelper.class).advice(
-                    name
-                            .__(String::charAt, 0)
-                            .__(Character::isUpperCase),
+                    name.__(String::charAt, 0).__(Character::isUpperCase),
                     "LowerCaseElementName",
                     "Names here should start with a capital letter",
                     input,

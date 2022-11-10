@@ -48,6 +48,7 @@ import static jadescript.lang.Performative.*;
 public class TypeHelper implements SemanticsConsts {
 
 
+    //Associates JVM fully-qualified-name strings to Jadescript types.
     private final Map<String, IJadescriptType> defaultJVMToDescriptorTable = new HashMap<>();
     private final Map<String, Function<List<TypeArgument>, ? extends IJadescriptType>>
             defaultJVMToGenericDescriptorTable = new HashMap<>();
@@ -1185,6 +1186,7 @@ public class TypeHelper implements SemanticsConsts {
     private void defineJVMToDescriptor(Class<?> type, IJadescriptType descriptor) {
         defaultJVMToDescriptorTable.put(this.typeRef(type).getQualifiedName('.'), descriptor);
     }
+
 
     private void defineJVMToGenericDescriptor(
             JvmTypeReference typeReference,

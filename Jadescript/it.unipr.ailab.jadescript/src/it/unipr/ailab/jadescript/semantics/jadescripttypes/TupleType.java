@@ -312,4 +312,5 @@ public class TupleType extends ParametricType implements EmptyCreatable, Declare
                 getLocation()
         );
     }
+
 }

@@ -66,6 +66,18 @@ public class BoundedTypeArgument implements TypeArgument{
         return type;
     }
 
+    @Override
+    public String getDebugPrint() {
+        switch (variance){
+            case SUPER:
+                return "«? super " + type.getDebugPrint() + "»";
+            case EXTENDS:
+                return "«? extends " + type.getDebugPrint() + "»";
+            default:
+                return type.getDebugPrint();
+        }
+    }
+
 
     public IJadescriptType getType() {
         return type;

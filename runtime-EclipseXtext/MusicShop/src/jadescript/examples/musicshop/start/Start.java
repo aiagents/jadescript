@@ -18,11 +18,11 @@ public class Start {
 			String seller3Name = "seller3";
 			String buyerName = "buyer";
 			
-			SellerAgent.create(container, seller1Name, 
+			SellerAgent.create(container, seller1Name,
 					Arrays.asList(1, 3, 4),
 					Arrays.asList(10, 12, 20)
 			);
-			SellerAgent.create(container, seller2Name, 
+			SellerAgent.create(container, seller2Name,
 					Arrays.asList(1, 2, 4),
 					Arrays.asList(8, 15, 25)
 			);

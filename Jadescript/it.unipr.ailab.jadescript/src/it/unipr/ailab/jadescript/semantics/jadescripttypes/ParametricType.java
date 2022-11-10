@@ -9,6 +9,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public abstract class ParametricType extends JadescriptType {
 
@@ -228,5 +229,14 @@ public abstract class ParametricType extends JadescriptType {
                                         .map(IJadescriptType::compileConversionType)
                                         .reduce((s1, s2) -> s1 + ", " + s2).orElse("null")) +
                 ")";
+    }
+
+    @Override
+    public String getDebugPrint() {
+        String sup = super.getDebugPrint();
+        sup = sup.substring(0, sup.length() - 1); //removing the last '}'
+        sup+= "; typeArguments: ["+typeArguments.stream().map(TypeArgument::getDebugPrint).collect(Collectors.joining(", "))+"]";
+        sup += "}";
+        return sup;
     }
 }

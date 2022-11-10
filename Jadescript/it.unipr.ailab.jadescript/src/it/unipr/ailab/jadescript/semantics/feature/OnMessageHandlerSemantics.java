@@ -144,7 +144,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
                                             )
                                     ).addStatement(
                                             w.tryCatch(w.block()
-                                                            .addStatement(w.returnStmnt(w.expr(pmData.getCompiledExpression())))
+                                                    .addStatement(w.returnStmnt(w.expr(pmData.getCompiledExpression())))
                                             ).addCatchBranch("java.lang.Throwable", "_e", w.block()
                                                     .addStatement(w.callStmnt("_e.printStackTrace"))
                                                     .addStatement(w.returnStmnt(w.expr("false"))))
@@ -294,14 +294,6 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
     @Override
     public void validateFeature(
             Maybe<OnMessageHandler> input, Maybe<FeatureContainer> container, ValidationMessageAcceptor acceptor
-    ) {
-        validateMessageOrPerceptEvent(acceptor, input);
-    }
-
-
-    //TODO rename method
-    public void validateMessageOrPerceptEvent(
-            ValidationMessageAcceptor acceptor, Maybe<OnMessageHandler> input
     ) {
 
         IJadescriptType contentType = module.get(TypeHelper.class).ANY;

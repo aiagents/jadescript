@@ -11,4 +11,6 @@ public interface TypeArgument{
     }
 
     IJadescriptType ignoreBound();
+
+    String getDebugPrint();
 }
