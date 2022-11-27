@@ -1,5 +1,7 @@
 module examples.musicstreaming
 
+import examples.musicstreaming.MusicStreaming
+
 agent StreamProvider uses ontology MusicStreaming
     on create do
         do initializeTrackDatabase
@@ -16,16 +18,16 @@ agent StreamProvider uses ontology MusicStreaming
     
     
     # Overriden by sub-agents
-    function computeProposal(forTrack as Track) as (integer, integer) do
+    function computeProposalDetails(forTrack as Track) as (integer, integer) do
         return (0, 0)
     
     
     # Overriden by sub-agents
     function canMeetRequirements(
-        forTrack as Track, requirements as Proposition
+        forTrack as Track, requirements as InitiatorPreconditions
     ) as boolean do
         return false
-        
+
     # Overriden by sub-agents
     function getUrl(forTrack as Track) as text do
         return ""
@@ -54,19 +56,19 @@ one shot behaviour SendFailureToInitiator for agent StreamProvider
         
     
 cyclic behaviour RespondToCFP for agent StreamProvider
-    on message cfp (Stream(track), requirements as InitiatorPreconditions) do
+    on message cfp (Stream(track, requestToken), requirements as InitiatorPreconditions) do
         if not hasTrack(track) do
-            send message refuse (Stream(track), TrackUnavailable(track)) 
+            send message refuse (Stream(track, requestToken), TrackUnavailable(track)) 
                 to sender of message
         else if not canMeetRequirements(track, requirements) do
             send message refuse (
-                Stream(track), UnableToMeetRequirements(requirements)
+                Stream(track, requestToken), UnableToMeetRequirements(requirements)
             ) to sender of message
         else do
-            streamProposal = computeProposal(forTrack=track)
+            streamProposal = computeProposalDetails(forTrack=track)
             price = streamProposal[0]
             bitrate = streamProposal[1]
-            stream = Stream(track)
+            stream = Stream(track, requestToken)
             conditions = ProviderConditions(PriceIs(price), BitrateIs(bitrate))
             activate AwaitResponse(stream, conditions, sender of message)
             send message propose (stream, conditions) to sender of message 
@@ -99,10 +101,10 @@ cyclic behaviour AwaitResponse for agent StreamProvider
         )
         
         
-    on message accept_proposal (Stream(track), _ as Proposition) 
+    on message accept_proposal (Stream(track, requestToken), _ as Proposition) 
         when track ≠ track of proposedStream do
         fail this with CannotPerformTask(
-            task=Stream(track),
+            task=Stream(track, requestToken),
             reason=WrongTrack(
                 requestedTrack=track,
                 providedTrack=track of proposedStream

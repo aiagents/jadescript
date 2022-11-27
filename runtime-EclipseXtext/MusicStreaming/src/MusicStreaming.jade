@@ -1,5 +1,6 @@
 module examples.musicstreaming
 
+
 ontology MusicStreaming
     predicate MinimumBitrate(bitrate as integer)
     predicate MaximumBitrate(bitrate as integer)
@@ -9,7 +10,8 @@ ontology MusicStreaming
     predicate InitiatorPreconditions(
         maxPrice as MaximumPrice,
         minBitrate as MinimumBitrate,
-        maxBitrate as MaximumBitrate 
+        maxBitrate as MaximumBitrate,
+        proposalTimeout as timestamp
     )
     predicate ProviderConditions(
         price as PriceIs,
@@ -23,16 +25,6 @@ ontology MusicStreaming
     # Reasons to reject a proposal:
     predicate BetterConditionsFound(
         conditions as Proposition, by as aid 
-    )
-    predicate InvalidTrackException(
-        proposal as ProposeMessage of (Stream, ProviderConditions),
-        requestedTrack as Track,
-        providedTrack as Track
-    )
-    predicate InvalidConditionException(
-        proposal as ProposeMessage of (Stream, ProviderConditions),
-        precondition as Proposition,
-        faultyCondition as Proposition
     )
     predicate UnmetPrecondition(
         precondition as Proposition,
@@ -52,18 +44,36 @@ ontology MusicStreaming
         task as Action,
         reason as Proposition
     )
+    predicate LateProposal(requestToken as integer)
+    predicate InvalidTrackException(
+        proposal as ProposeMessage of (Stream, ProviderConditions),
+        requestedTrack as Track
+    )
+    predicate TokenMismatchException(
+        proposal as ProposeMessage of (Stream, ProviderConditions),
+        requestToken as integer
+    )
+    predicate InvalidConditionException(
+        proposal as ProposeMessage of (Stream, ProviderConditions),
+        precondition as Proposition,
+        faultyCondition as Proposition
+    )
+    proposition NoProposals
+    proposition InitiatorInternalFailure
+    proposition StreamingTimeout
     
     # A musical track.
     concept Track(title as text)
     
     # The action of streaming a track.
-    action Stream(track as Track)
+    action Stream(track as Track, requestId as integer)
     
     predicate ReadyToStream(
         track as Track, 
         streamAtUrl as text
     )
     
+   
     
     
 

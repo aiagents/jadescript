@@ -24,6 +24,7 @@ import jadescript.lang.Performative;
 import jadescript.lang.Tuple;
 import jadescript.util.JadescriptMap;
 import jadescript.util.JadescriptSet;
+import org.eclipse.emf.common.util.WrappedException;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.naming.IQualifiedNameProvider;
@@ -944,14 +945,14 @@ public class TypeHelper implements SemanticsConsts {
         int i;
         for (i = 0; i < Math.min(requiredTypes.size(), arguments.size()); i++) {
             final IJadescriptType glb = getGLB(requiredTypes.get(i), arguments.get(i).ignoreBound());
-            if(glb.typeEquals(requiredTypes.get(i))){
+            if (glb.typeEquals(requiredTypes.get(i))) {
                 result.add(covariant(glb));
-            }else {
+            } else {
                 result.add(glb);
             }
         }
-        if(i < requiredTypes.size()){
-            for (; i < requiredTypes.size(); i++){
+        if (i < requiredTypes.size()) {
+            for (; i < requiredTypes.size(); i++) {
                 result.add(covariant(requiredTypes.get(i)));
             }
         }
@@ -1227,11 +1228,12 @@ public class TypeHelper implements SemanticsConsts {
     }
 
     private Maybe<IJadescriptType> getFromJVMTypeReference(JvmTypeReference typeReference) {
-        //TODO when doing typeReference.getQualifiedName('.'), an IllegalStateException could be thrown from Xtext
-        if (defaultJVMToDescriptorTable.containsKey(typeReference.getQualifiedName('.'))) {
-            return of(defaultJVMToDescriptorTable.get(typeReference.getQualifiedName('.')));
+
+        final String qualifiedName = typeReference.getQualifiedName('.');
+        if (defaultJVMToDescriptorTable.containsKey(qualifiedName)) {
+            return of(defaultJVMToDescriptorTable.get(qualifiedName));
         } else if (defaultJVMToGenericDescriptorTable.containsKey(
-                noGenericsTypeName(typeReference.getQualifiedName('.'))
+                noGenericsTypeName(qualifiedName)
         ) && typeReference instanceof JvmParameterizedTypeReference) {
             List<TypeArgument> args = new ArrayList<>();
             for (JvmTypeReference arg : ((JvmParameterizedTypeReference) typeReference).getArguments()) {
@@ -1239,11 +1241,11 @@ public class TypeHelper implements SemanticsConsts {
                 args.add(typeDescriptor);
             }
             final Integer expectedArguments = expectedGenericDescriptorArguments.get(
-                    noGenericsTypeName(typeReference.getQualifiedName('.'))
+                    noGenericsTypeName(qualifiedName)
             );
             if (expectedArguments != null && expectedArguments == args.size()) {
                 return of(defaultJVMToGenericDescriptorTable.get(
-                        noGenericsTypeName(typeReference.getQualifiedName('.'))
+                        noGenericsTypeName(qualifiedName)
                 ).apply(args));
             } else {
                 return nothing();
@@ -1252,6 +1254,10 @@ public class TypeHelper implements SemanticsConsts {
             return nothing();
         }
     }
+
+
+
+
 
 
     public boolean implicitConversionCanOccur(IJadescriptType from, IJadescriptType to) {
