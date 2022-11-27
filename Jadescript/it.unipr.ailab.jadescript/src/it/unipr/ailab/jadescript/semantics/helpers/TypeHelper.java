@@ -1232,26 +1232,24 @@ public class TypeHelper implements SemanticsConsts {
         final String qualifiedName = typeReference.getQualifiedName('.');
         if (defaultJVMToDescriptorTable.containsKey(qualifiedName)) {
             return of(defaultJVMToDescriptorTable.get(qualifiedName));
-        } else if (defaultJVMToGenericDescriptorTable.containsKey(
-                noGenericsTypeName(qualifiedName)
-        ) && typeReference instanceof JvmParameterizedTypeReference) {
-            List<TypeArgument> args = new ArrayList<>();
-            for (JvmTypeReference arg : ((JvmParameterizedTypeReference) typeReference).getArguments()) {
-                IJadescriptType typeDescriptor = jtFromJvmTypeRef(arg);
-                args.add(typeDescriptor);
-            }
-            final Integer expectedArguments = expectedGenericDescriptorArguments.get(
-                    noGenericsTypeName(qualifiedName)
-            );
-            if (expectedArguments != null && expectedArguments == args.size()) {
-                return of(defaultJVMToGenericDescriptorTable.get(
-                        noGenericsTypeName(qualifiedName)
-                ).apply(args));
+        } else {
+            final String noGenericsTypeName = noGenericsTypeName(qualifiedName);
+            if (defaultJVMToGenericDescriptorTable.containsKey(noGenericsTypeName)
+                    && typeReference instanceof JvmParameterizedTypeReference) {
+                List<TypeArgument> args = new ArrayList<>();
+                for (JvmTypeReference arg : ((JvmParameterizedTypeReference) typeReference).getArguments()) {
+                    IJadescriptType typeDescriptor = jtFromJvmTypeRef(arg);
+                    args.add(typeDescriptor);
+                }
+                final Integer expectedArguments = expectedGenericDescriptorArguments.get(noGenericsTypeName);
+                if (expectedArguments != null && expectedArguments == args.size()) {
+                    return of(defaultJVMToGenericDescriptorTable.get(noGenericsTypeName).apply(args));
+                } else {
+                    return nothing();
+                }
             } else {
                 return nothing();
             }
-        } else {
-            return nothing();
         }
     }
 

@@ -19,7 +19,7 @@ import static it.unipr.ailab.maybe.Maybe.nothing;
 /**
  * Created on 27/12/16.
  *
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  */
 @Singleton
 public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpression>

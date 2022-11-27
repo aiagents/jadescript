@@ -167,7 +167,8 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                     Maybe<String> name = f.__(Field::getName);
                     right.safeDo(rightSafe -> {
 
-                        @SuppressWarnings({"unchecked", "rawtypes"}) List<? extends List<String>> listOfLists = module.get(RValueExpressionSemantics.class).collectFromAllLeaves(
+                        @SuppressWarnings({"unchecked", "rawtypes"}) List<? extends List<String>> listOfLists =
+                                module.get(RValueExpressionSemantics.class).collectFromAllNodes(
                                 right,
                                 (in, expressionSemantics1) -> (List<String>) expressionSemantics1
                                         .extractPropertyChain((Maybe) in)

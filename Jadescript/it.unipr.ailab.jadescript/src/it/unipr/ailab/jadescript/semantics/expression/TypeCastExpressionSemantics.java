@@ -21,7 +21,7 @@ import static it.unipr.ailab.maybe.Maybe.nothing;
 /**
  * Created on 06/04/17.
  *
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  */
 @Singleton
 public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<TypeCast> {

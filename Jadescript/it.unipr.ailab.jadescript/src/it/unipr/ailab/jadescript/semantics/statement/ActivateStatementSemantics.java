@@ -33,7 +33,7 @@ import static it.unipr.ailab.maybe.Maybe.of;
 /**
  * Created on 09/03/18.
  *
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  */
 @Singleton
 public class ActivateStatementSemantics extends StatementSemantics<ActivateStatement> {

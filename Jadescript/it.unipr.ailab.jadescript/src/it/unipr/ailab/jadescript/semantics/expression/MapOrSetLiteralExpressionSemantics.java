@@ -26,7 +26,7 @@ import static com.google.common.collect.Streams.zip;
 /**
  * Created on 31/03/18.
  *
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  */
 @Singleton
 public class MapOrSetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetLiteral> {

@@ -18,7 +18,7 @@ import java.util.Optional;
 /**
  * Created on 28/12/16.
  *
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  */
 @Singleton
 public class EqualityComparisonExpressionSemantics extends ExpressionSemantics<EqualityComparison> {

@@ -25,7 +25,7 @@ import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 /**
  * Created on 27/12/16.
  *
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  */
 @Singleton
 public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<TernaryConditional> {

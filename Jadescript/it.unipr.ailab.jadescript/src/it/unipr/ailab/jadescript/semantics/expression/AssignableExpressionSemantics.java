@@ -10,9 +10,8 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 /**
- * Created on 29/03/18.
- *
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * Base abstract class for the semantics of those expressions which can be (by the syntax rules) used at the left side
+ * of the '=' in a declaration/assignment statement.
  */
 @Singleton
 public abstract class AssignableExpressionSemantics<T extends EObject>
@@ -22,6 +21,7 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
     public AssignableExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
+
 
     @SuppressWarnings("unused")
     public abstract Maybe<String> compileAssignment(
@@ -44,13 +44,19 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
             ValidationMessageAcceptor acceptor
     );
 
+    
+
+    /**
+     * Produces an error validator message that notifies that the input expression is not a valid expression to be put
+     * at the left of the '=' in a declaration/assignment operation.
+     */
     protected void errorNotLvalue(
             Maybe<T> input,
             ValidationMessageAcceptor acceptor
     ) {
         input.safeDo(inputSafe -> {
             acceptor.acceptError(
-                    "this is not a valid l-value expression",
+                    "This expression cannot be used at the left of the '=' sign in an assignment/declaration statement.",
                     inputSafe,
                     null,
                     ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
@@ -59,13 +65,16 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
         });
     }
 
+    /**
+     * Produces an error validator message that notifies that the input expression cannot be used as statement.
+     */
     protected void errorNotStatement(
             Maybe<T> input,
             ValidationMessageAcceptor acceptor
     ) {
         input.safeDo(inputSafe -> {
             acceptor.acceptError(
-                    "not a statement",
+                    "Not a statement.",
                     inputSafe,
                     null,
                     ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
@@ -75,6 +84,10 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
         });
     }
 
+    /**
+     * Produces an error validator message if {@code assignmentOperator} is an arithmentic-assignment operator and the
+     * {@code typeOfRExpression} is not a number.
+     */
     protected void validateArithmeticAssignmentRExpression(
             String assignmentOperator,
             Maybe<RValueExpression> expression,
@@ -92,5 +105,7 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
             );
         }
     }
+
+
 
 }

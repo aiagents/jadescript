@@ -374,7 +374,7 @@ public class OnBehaviourFailureHandlerSemantics
             );
 
             InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-            module.get(RValueExpressionSemantics.class).validateUsageAsWhenExpression(expr, expr, interceptAcceptor);
+            module.get(RValueExpressionSemantics.class).validateUsageAsHandlerCondition(expr, expr, interceptAcceptor);
             if (!interceptAcceptor.thereAreErrors()) {
                 Maybe<PatternMatchRequest> patternMatchRequest = createPatternMatchRequest(reasonPattern, input);
                 if(expr.isPresent() || patternMatchRequest.isPresent()){

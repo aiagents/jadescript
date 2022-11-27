@@ -23,7 +23,7 @@ import static it.unipr.ailab.maybe.Maybe.nothing;
 /**
  * Created on 28/12/16.
  *
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  */
 @Singleton
 public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAnd> {

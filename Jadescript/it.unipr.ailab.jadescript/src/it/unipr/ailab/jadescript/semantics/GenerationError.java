@@ -10,7 +10,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 /**
  * Created on 13/03/18.
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  */
 public class GenerationError extends RuntimeException {
 

@@ -24,7 +24,7 @@ import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 /**
  * Created on 31/03/18.
  *
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  */
 @Singleton
 public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLiteral> {

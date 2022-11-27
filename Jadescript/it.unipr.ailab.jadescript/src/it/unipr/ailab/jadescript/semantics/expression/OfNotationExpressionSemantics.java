@@ -26,7 +26,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
 /**
  * Created on 01/04/18.
  *
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  */
 @Singleton
 public class OfNotationExpressionSemantics extends AssignableExpressionSemantics<OfNotation> {

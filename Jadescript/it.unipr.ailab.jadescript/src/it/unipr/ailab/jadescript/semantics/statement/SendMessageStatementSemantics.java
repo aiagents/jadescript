@@ -40,7 +40,7 @@ import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 /**
  * Created on 11/03/18.
  *
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  */
 @SuppressWarnings("restriction")
 @Singleton

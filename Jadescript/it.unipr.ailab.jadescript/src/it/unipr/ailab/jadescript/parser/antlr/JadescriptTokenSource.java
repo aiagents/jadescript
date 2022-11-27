@@ -17,7 +17,7 @@ import java.util.Stack;
 /**
  * JadescriptTokenSource class.
  *
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  * <p>
  * This class is used to insert into the token stream some synthetic tokens
  * required by the Jadescript grammar. Specifically these are: NEWLINE, INDENT

@@ -2,7 +2,7 @@ package it.unipr.ailab.jadescript.semantics;
 
 /**
  * Created on 14/03/18.
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  */
 public class GenerationParameters {
     private GenerationParameters(){} //can not instantiate

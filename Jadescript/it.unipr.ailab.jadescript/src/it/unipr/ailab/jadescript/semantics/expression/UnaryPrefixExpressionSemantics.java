@@ -34,7 +34,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
 /**
  * Created on 28/12/16.
  *
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
+ * 
  */
 @Singleton
 public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPrefix> {

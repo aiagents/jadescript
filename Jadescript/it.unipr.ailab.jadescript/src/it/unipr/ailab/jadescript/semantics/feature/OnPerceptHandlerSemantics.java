@@ -320,7 +320,7 @@ public class OnPerceptHandlerSemantics extends FeatureSemantics<OnPerceptHandler
 
 
             InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-            module.get(RValueExpressionSemantics.class).validateUsageAsWhenExpression(expr, expr, interceptAcceptor);
+            module.get(RValueExpressionSemantics.class).validateUsageAsHandlerCondition(expr, expr, interceptAcceptor);
             if (!interceptAcceptor.thereAreErrors()) {
                 IJadescriptType computedContentType = inferContentType(input);
 

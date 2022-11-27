@@ -228,7 +228,7 @@ public class OnExceptionHandlerSemantics extends FeatureSemantics<OnExceptionHan
             );
 
             InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-            module.get(RValueExpressionSemantics.class).validateUsageAsWhenExpression(expr, expr, interceptAcceptor);
+            module.get(RValueExpressionSemantics.class).validateUsageAsHandlerCondition(expr, expr, interceptAcceptor);
             if (!interceptAcceptor.thereAreErrors()) {
                 Maybe<PatternMatchRequest> patternMatchRequest = createPatternMatchRequest(
                         contentPattern, input

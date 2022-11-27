@@ -316,7 +316,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
 
             final Maybe<RValueExpression> expr = whenBodyX.__(WhenExpression::getExpr);
             InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-            module.get(RValueExpressionSemantics.class).validateUsageAsWhenExpression(expr, expr, interceptAcceptor);
+            module.get(RValueExpressionSemantics.class).validateUsageAsHandlerCondition(expr, expr, interceptAcceptor);
             if (!interceptAcceptor.thereAreErrors()) {
 
 
