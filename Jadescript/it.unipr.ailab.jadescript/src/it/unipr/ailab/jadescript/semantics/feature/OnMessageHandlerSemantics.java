@@ -539,9 +539,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
             patternMatcherClasses = PatternMatchingSemantics.getPatternMatcherClasses(
                     auxiliaryStatements,
                     containerEObject,
-                    module.get(JvmTypesBuilder.class),
-                    module.get(TypeHelper.class),
-                    module.get(CompilationHelper.class)
+                    module
             );
         }
 
@@ -552,9 +550,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
             patternMatcherFields = PatternMatchingSemantics.getPatternMatcherFieldDeclarations(
                     auxiliaryStatements,
                     containerEObject,
-                    module.get(JvmTypesBuilder.class),
-                    module.get(TypeHelper.class),
-                    module.get(CompilationHelper.class)
+                    module
             );
         }
 

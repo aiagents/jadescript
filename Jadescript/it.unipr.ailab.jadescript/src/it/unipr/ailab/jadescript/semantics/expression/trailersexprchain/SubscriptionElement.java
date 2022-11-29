@@ -43,7 +43,7 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
 
 
     @Override
-    public String compile(ReversedDotNotationChain rest) {
+    public String compile(ReversedTrailerChain rest) {
         Maybe<String> operandCompiled = rest.compile();
         final String keyCompiled = expressionSemantics.compile(key).orElse("");
         final IJadescriptType restType = rest.inferType();
@@ -62,7 +62,7 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public IJadescriptType inferType(ReversedDotNotationChain rest) {
+    public IJadescriptType inferType(ReversedTrailerChain rest) {
         final IJadescriptType restType = rest.inferType();
 
         if (module.get(TypeHelper.class).TEXT.isAssignableFrom(restType)) {
@@ -104,7 +104,7 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public void validate(ReversedDotNotationChain rest, ValidationMessageAcceptor acceptor) {
+    public void validate(ReversedTrailerChain rest, ValidationMessageAcceptor acceptor) {
         InterceptAcceptor restSubvalidation = new InterceptAcceptor(acceptor);
         rest.validate(restSubvalidation);
         if (restSubvalidation.thereAreErrors()) {
@@ -204,7 +204,7 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
 
     @Override
     public void validateAssignment(
-            ReversedDotNotationChain rest, String assignmentOperator, Maybe<RValueExpression> rValueExpression,
+            ReversedTrailerChain rest, String assignmentOperator, Maybe<RValueExpression> rValueExpression,
             IJadescriptType typeOfRExpr, ValidationMessageAcceptor acceptor
     ) {
 
@@ -287,7 +287,7 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
 
     @Override
     public String compileAssignment(
-            ReversedDotNotationChain rest,
+            ReversedTrailerChain rest,
             String compiledExpression,
             IJadescriptType exprType
     ) {
@@ -309,12 +309,12 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public boolean isAlwaysPure(ReversedDotNotationChain rest) {
+    public boolean isAlwaysPure(ReversedTrailerChain rest) {
         return true;
     }
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(ReversedDotNotationChain rest) {
+    public List<SemanticsBoundToExpression<?>> getSubExpressions(ReversedTrailerChain rest) {
         List<SemanticsBoundToExpression<?>> result = new ArrayList<>();
         result.add(new SemanticsBoundToExpression<>(expressionSemantics, key));
         result.addAll(rest.getSubExpressions());

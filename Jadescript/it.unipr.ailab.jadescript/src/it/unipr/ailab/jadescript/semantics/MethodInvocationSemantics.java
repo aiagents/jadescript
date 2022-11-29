@@ -11,6 +11,9 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Symbol;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -70,9 +73,9 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
             if (noArgs || simpleArgs.isPresent()) {
                 SimpleArgumentList argumentsNotSafe = simpleArgs.toNullable();
                 final List<RValueExpression> argumentsSafe;
-                if (argumentsNotSafe != null && argumentsNotSafe.getExpressions()!=null) {
+                if (argumentsNotSafe != null && argumentsNotSafe.getExpressions() != null) {
                     argumentsSafe = argumentsNotSafe.getExpressions();
-                }else{
+                } else {
                     argumentsSafe = List.of();
                 }
 
@@ -297,14 +300,14 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                     if (noArgs) {
                         //case no args
                         methodsFound.addAll(module.get(ContextManager.class).currentContext().searchAs(
-                                CallableSymbol.Searcher.class,
-                                searcher -> searcher.searchCallable(
-                                        nameSafe,
-                                        null,
-                                        (s, n) -> s == 0,
-                                        (s, t) -> s == 0
-                                )
-                        ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                                        CallableSymbol.Searcher.class,
+                                        searcher -> searcher.searchCallable(
+                                                nameSafe,
+                                                null,
+                                                (s, n) -> s == 0,
+                                                (s, t) -> s == 0
+                                        )
+                                ).filter(Util.dinstinctBy(Symbol::sourceLocation))
                                 .collect(Collectors.toList()));
 
 
@@ -315,14 +318,14 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                                 simpleArgsSafe -> {
                                     int argsize = simpleArgsSafe.getExpressions().size();
                                     methodsFound.addAll(module.get(ContextManager.class).currentContext().searchAs(
-                                            CallableSymbol.Searcher.class,
-                                            searcher -> searcher.searchCallable(
-                                                    nameSafe,
-                                                    null,
-                                                    (s, n) -> s == argsize,
-                                                    (s, t) -> s == argsize
-                                            )
-                                    ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                                                    CallableSymbol.Searcher.class,
+                                                    searcher -> searcher.searchCallable(
+                                                            nameSafe,
+                                                            null,
+                                                            (s, n) -> s == argsize,
+                                                            (s, t) -> s == argsize
+                                                    )
+                                            ).filter(Util.dinstinctBy(Symbol::sourceLocation))
                                             .collect(Collectors.toList()));
 
                                     signature.set(Util.getSignature(nameSafe, simpleArgsSafe.getExpressions().size()));
@@ -330,20 +333,20 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                                 //case namedArgs!=null
                                 namedArgsSafe -> {
                                     methodsFound.addAll(module.get(ContextManager.class).currentContext().searchAs(
-                                            CallableSymbol.Searcher.class,
-                                            searcher -> searcher.searchCallable(
-                                                    nameSafe,
-                                                    null,
-                                                    (s, n) -> namedArgs
-                                                            .__(NamedArgumentList::getParameterNames)
-                                                            .__(List::size)
-                                                            .wrappedEquals(s),
-                                                    (s, t) -> namedArgs
-                                                            .__(NamedArgumentList::getParameterValues)
-                                                            .__(List::size)
-                                                            .wrappedEquals(s)
-                                            )
-                                    ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                                                    CallableSymbol.Searcher.class,
+                                                    searcher -> searcher.searchCallable(
+                                                            nameSafe,
+                                                            null,
+                                                            (s, n) -> namedArgs
+                                                                    .__(NamedArgumentList::getParameterNames)
+                                                                    .__(List::size)
+                                                                    .wrappedEquals(s),
+                                                            (s, t) -> namedArgs
+                                                                    .__(NamedArgumentList::getParameterValues)
+                                                                    .__(List::size)
+                                                                    .wrappedEquals(s)
+                                                    )
+                                            ).filter(Util.dinstinctBy(Symbol::sourceLocation))
                                             .collect(Collectors.toList()));
 
                                     List<Maybe<RValueExpression>> args = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues));
@@ -379,7 +382,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                                     nameSafe,
                                     match.parameterTypes(),
                                     match.parameterNames()
-                            )+" in "+match.sourceLocation()+";");
+                            ) + " in " + match.sourceLocation() + ";");
                         }
 
                         acceptor.acceptError(
@@ -481,6 +484,44 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                 .collect(Collectors.toList());
     }
 
+    public boolean isHoled(Maybe<MethodCall> input) {
+        Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
+        Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
+
+        if(simpleArgs.isNothing() && namedArgs.isNothing()) return false;
+        return simpleArgs.__(sal ->
+                //TODO check if any of sal is holed
+                ).extract(nullAsFalse)
+                || namedArgs.__(nal ->
+                //TODO check if any of nal is holed
+                ).extract(nullAsFalse);
+    }
+
+    public boolean isUnbounded(Maybe<MethodCall> input) {
+
+    }
+
+    public PatternMatchOutput<PatternMatchOutput.IsCompilation, ?, ?> compilePatternMatchInternal(
+            PatternMatchInput<MethodCall, ?, ?> input
+    ) {
+Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input.getPattern());
+        Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input.getPattern());
+        Maybe<String> name = input.__(MethodCall::getName);
+    }
+
+    public PatternType inferPatternType(
+            PatternMatchInput<MethodCall, ?, ?> input
+    ) {
+
+    }
+
+    public PatternMatchOutput<PatternMatchOutput.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<MethodCall, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+
+    }
+
     public boolean resolves(
             Maybe<MethodCall> input
     ) {
@@ -493,14 +534,14 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
         name.safeDo(nameSafe -> {
             if (noArgs) {
                 List<? extends CallableSymbol> methodsFound = module.get(ContextManager.class).currentContext().searchAs(
-                        CallableSymbol.Searcher.class,
-                        searcher -> searcher.searchCallable(
-                                nameSafe,
-                                null,
-                                (s, n) -> s == 0,
-                                (s, t) -> s == 0
-                        )
-                ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                                CallableSymbol.Searcher.class,
+                                searcher -> searcher.searchCallable(
+                                        nameSafe,
+                                        null,
+                                        (s, n) -> s == 0,
+                                        (s, t) -> s == 0
+                                )
+                        ).filter(Util.dinstinctBy(Symbol::sourceLocation))
                         .collect(Collectors.toList());
 
                 result.set(methodsFound.size() == 1);
@@ -510,14 +551,14 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                         simpleArgsSafe -> {
                             int argsize = simpleArgsSafe.getExpressions().size();
                             List<? extends CallableSymbol> methodsFound = module.get(ContextManager.class).currentContext().searchAs(
-                                    CallableSymbol.Searcher.class,
-                                    searcher -> searcher.searchCallable(
-                                            nameSafe,
-                                            null,
-                                            (s, n) -> s == argsize,
-                                            (s, t) -> s == argsize
-                                    )
-                            ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                                            CallableSymbol.Searcher.class,
+                                            searcher -> searcher.searchCallable(
+                                                    nameSafe,
+                                                    null,
+                                                    (s, n) -> s == argsize,
+                                                    (s, t) -> s == argsize
+                                            )
+                                    ).filter(Util.dinstinctBy(Symbol::sourceLocation))
                                     .collect(Collectors.toList());
 
                             result.set(methodsFound.size() == 1);
@@ -525,20 +566,20 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                         //case namedArgs!=null
                         namedArgsSafe -> {
                             List<? extends CallableSymbol> methodsFound = module.get(ContextManager.class).currentContext().searchAs(
-                                    CallableSymbol.Searcher.class,
-                                    searcher -> searcher.searchCallable(
-                                            nameSafe,
-                                            null,
-                                            (s, n) -> namedArgs
-                                                    .__(NamedArgumentList::getParameterNames)
-                                                    .__(List::size)
-                                                    .wrappedEquals(s),
-                                            (s, t) -> namedArgs
-                                                    .__(NamedArgumentList::getParameterValues)
-                                                    .__(List::size)
-                                                    .wrappedEquals(s)
-                                    )
-                            ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                                            CallableSymbol.Searcher.class,
+                                            searcher -> searcher.searchCallable(
+                                                    nameSafe,
+                                                    null,
+                                                    (s, n) -> namedArgs
+                                                            .__(NamedArgumentList::getParameterNames)
+                                                            .__(List::size)
+                                                            .wrappedEquals(s),
+                                                    (s, t) -> namedArgs
+                                                            .__(NamedArgumentList::getParameterValues)
+                                                            .__(List::size)
+                                                            .wrappedEquals(s)
+                                            )
+                                    ).filter(Util.dinstinctBy(Symbol::sourceLocation))
                                     .collect(Collectors.toList());
 
                             result.set(methodsFound.size() == 1);

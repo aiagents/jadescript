@@ -249,9 +249,7 @@ public class OnBehaviourFailureHandlerSemantics
             patternMatcherClasses = PatternMatchingSemantics.getPatternMatcherClasses(
                     auxiliaryStatements,
                     containerEObject,
-                    module.get(JvmTypesBuilder.class),
-                    module.get(TypeHelper.class),
-                    module.get(CompilationHelper.class)
+                    module
             );
         }
 
@@ -262,9 +260,7 @@ public class OnBehaviourFailureHandlerSemantics
             patternMatcherFields = PatternMatchingSemantics.getPatternMatcherFieldDeclarations(
                     auxiliaryStatements,
                     containerEObject,
-                    module.get(JvmTypesBuilder.class),
-                    module.get(TypeHelper.class),
-                    module.get(CompilationHelper.class)
+                    module
             );
         }
 
@@ -377,7 +373,7 @@ public class OnBehaviourFailureHandlerSemantics
             module.get(RValueExpressionSemantics.class).validateUsageAsHandlerCondition(expr, expr, interceptAcceptor);
             if (!interceptAcceptor.thereAreErrors()) {
                 Maybe<PatternMatchRequest> patternMatchRequest = createPatternMatchRequest(reasonPattern, input);
-                if(expr.isPresent() || patternMatchRequest.isPresent()){
+                if (expr.isPresent() || patternMatchRequest.isPresent()) {
                     module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
                             new OnBehaviourFailureHandlerWhenExpressionContext(
                                     mod,
@@ -387,11 +383,11 @@ public class OnBehaviourFailureHandlerSemantics
                             )
                     );
 
-                    if(patternMatchRequest.isPresent()){
+                    if (patternMatchRequest.isPresent()) {
                         module.get(PatternMatchingSemantics.class).validate(patternMatchRequest, acceptor);
                     }
 
-                    if(expr.isPresent()){
+                    if (expr.isPresent()) {
                         module.get(RValueExpressionSemantics.class).validate(expr, acceptor);
                     }
 
@@ -402,7 +398,7 @@ public class OnBehaviourFailureHandlerSemantics
 
         final IJadescriptType finalReasonType = reasonType;
         final IJadescriptType finalBehaviourType = behaviourType;
-        input.safeDo(inputSafe ->{
+        input.safeDo(inputSafe -> {
             module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
                     new OnBehaviourFailureHandlerContext(mod, out,
                             "behaviour failure", patternMatchDeclaredVariables,

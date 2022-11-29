@@ -484,9 +484,7 @@ public class OnPerceptHandlerSemantics extends FeatureSemantics<OnPerceptHandler
             patternMatcherClasses = PatternMatchingSemantics.getPatternMatcherClasses(
                     auxiliaryStatements,
                     containerEObject,
-                    module.get(JvmTypesBuilder.class),
-                    module.get(TypeHelper.class),
-                    module.get(CompilationHelper.class)
+                    module
             );
         }
 
@@ -497,9 +495,7 @@ public class OnPerceptHandlerSemantics extends FeatureSemantics<OnPerceptHandler
             patternMatcherFields = PatternMatchingSemantics.getPatternMatcherFieldDeclarations(
                     auxiliaryStatements,
                     containerEObject,
-                    module.get(JvmTypesBuilder.class),
-                    module.get(TypeHelper.class),
-                    module.get(CompilationHelper.class)
+                    module
             );
         }
 

@@ -3,6 +3,9 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -44,7 +47,48 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
             ValidationMessageAcceptor acceptor
     );
 
-    
+    /**
+     * Returns true if this expression contains holes in it e.g., unbounded identifiers or '_' placeholders.
+     */
+    public abstract boolean isHoled(Maybe<T> input);
+
+    /**
+     * Returns true if this expression contains unbounded names in it.
+     */
+    public abstract boolean isUnbounded(Maybe<T> input);
+
+
+    @SuppressWarnings("unchecked")
+    public <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
+    PatternMatchOutput<PatternMatchOutput.IsCompilation, U, N> compilePatternMatch(
+            PatternMatchInput<T, U, N> input
+    ) {
+        return (PatternMatchOutput<PatternMatchOutput.IsCompilation, U, N>) compilePatternMatchInternal(input);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
+    PatternMatchOutput<PatternMatchOutput.IsValidation, U, N> validatePatternMatch(
+            PatternMatchInput<T, U, N> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        return (PatternMatchOutput<PatternMatchOutput.IsValidation, U, N>) validatePatternMatchInternal(input, acceptor);
+    }
+
+
+    public abstract PatternMatchOutput<PatternMatchOutput.IsCompilation, ?, ?> compilePatternMatchInternal(
+            PatternMatchInput<T, ?, ?> input
+    );
+    public abstract PatternType inferPatternType(
+            PatternMatchInput<T, ?, ?> input
+    );
+    public abstract
+    PatternMatchOutput<PatternMatchOutput.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<T, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    );
+
+
 
     /**
      * Produces an error validator message that notifies that the input expression is not a valid expression to be put

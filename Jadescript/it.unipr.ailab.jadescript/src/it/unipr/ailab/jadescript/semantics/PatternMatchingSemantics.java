@@ -47,17 +47,28 @@ public class PatternMatchingSemantics extends Semantics<PatternMatchRequest> {
     }
 
 
+    /**
+     * Converts a list of {@link LocalClassStatementWriter} into a list of {@link JvmDeclaredType} (using a
+     * {@link JvmTypesBuilder}) which can in turn be used to generate inner classes to pattern match a "content" of an
+     * event against the pattern in the header of the event handler
+     *
+     * @param auxiliaryStatements the input auxiliaryStatements
+     * @param sourceEObject       the eObject indicated as source of the pattern
+     * @param module              the semantics module
+     * @return a list of {@link JvmDeclaredType} where each instance is a pattern matcher class.
+     */
     public static List<JvmDeclaredType> getPatternMatcherClasses(
             List<StatementWriter> auxiliaryStatements,
             Maybe<? extends EObject> sourceEObject,
-            JvmTypesBuilder jvmTypesBuilder,
-            TypeHelper typeHelper,
-            CompilationHelper compilationHelper
+            SemanticsModule module
     ) {
         if (sourceEObject.isNothing()) {
             return Collections.emptyList();
         }
 
+        JvmTypesBuilder jvmTypesBuilder = module.get(JvmTypesBuilder.class);
+        TypeHelper typeHelper = module.get(TypeHelper.class);
+        CompilationHelper compilationHelper = module.get(CompilationHelper.class);
 
         EObject eobj = sourceEObject.toNullable();
         return auxiliaryStatements.stream()
@@ -121,16 +132,17 @@ public class PatternMatchingSemantics extends Semantics<PatternMatchRequest> {
     public static List<JvmField> getPatternMatcherFieldDeclarations(
             List<StatementWriter> auxiliaryStatements,
             Maybe<? extends EObject> sourceObject,
-            JvmTypesBuilder jvmTypesBuilder,
-            TypeHelper typeHelper,
-            CompilationHelper compilationHelper
-
+            SemanticsModule module
     ) {
         if (sourceObject.isNothing()) {
             return Collections.emptyList();
         }
+
         EObject eobj = sourceObject.toNullable();
 
+        JvmTypesBuilder jvmTypesBuilder = module.get(JvmTypesBuilder.class);
+        TypeHelper typeHelper = module.get(TypeHelper.class);
+        CompilationHelper compilationHelper = module.get(CompilationHelper.class);
         return auxiliaryStatements.stream()
                 .filter(VariableDeclarationWriter.class::isInstance)
                 .map(VariableDeclarationWriter.class::cast)

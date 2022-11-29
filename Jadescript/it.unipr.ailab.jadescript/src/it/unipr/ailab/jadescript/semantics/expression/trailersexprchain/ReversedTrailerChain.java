@@ -1,11 +1,15 @@
 package it.unipr.ailab.jadescript.semantics.expression.trailersexprchain;
 
+import it.unipr.ailab.jadescript.jadescript.AtomExpr;
 import it.unipr.ailab.jadescript.jadescript.Primary;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.Trailer;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -19,17 +23,17 @@ import java.util.List;
  * Created on 26/08/18.
  *
  */
-public class ReversedDotNotationChain {
+public class ReversedTrailerChain {
     private final List<Maybe<TrailersExpressionChainElement>> elements = new ArrayList<>();
     private final SemanticsModule module;
 
-    public ReversedDotNotationChain(SemanticsModule module) {
+    public ReversedTrailerChain(SemanticsModule module) {
         this.module = module;
     }
 
 
-    public ReversedDotNotationChain withoutFirst() {
-        ReversedDotNotationChain result = new ReversedDotNotationChain(module);
+    public ReversedTrailerChain withoutFirst() {
+        ReversedTrailerChain result = new ReversedTrailerChain(module);
 
         result.elements.addAll(this.elements.subList(1, this.elements.size()));
 
@@ -121,7 +125,7 @@ public class ReversedDotNotationChain {
     public List<SemanticsBoundToExpression<?>> getSubExpressions() {
         List<SemanticsBoundToExpression<?>> result = new ArrayList<>();
         if(!elements.isEmpty()) {
-            ReversedDotNotationChain withoutFirst = withoutFirst();
+            ReversedTrailerChain withoutFirst = withoutFirst();
             for (Maybe<TrailersExpressionChainElement> element : elements) {
                 element.safeDo(elementSafe -> {
                     result.addAll(elementSafe.getSubExpressions(withoutFirst));
@@ -132,5 +136,40 @@ public class ReversedDotNotationChain {
         }else{
             return Collections.emptyList();
         }
+    }
+
+    public boolean isHoled() {
+        if (elements.isEmpty()) return false;
+        return elements.get(0).__(el -> el.isHoled(withoutFirst())).extract(Maybe.nullAsFalse);
+    }
+
+    public boolean isUnbounded() {
+        if (elements.isEmpty()) return false;
+        return elements.get(0).__(el -> el.isUnbounded(withoutFirst())).extract(Maybe.nullAsFalse);
+    }
+
+    public PatternMatchOutput<PatternMatchOutput.IsCompilation, ?, ?> compilePatternMatchInternal(
+            PatternMatchInput<AtomExpr, ?, ?> input
+    ) {
+        if (elements.isEmpty()) return null;//TODO add empty output generator method
+        return elements.get(0).__(el -> el.compilePatternMatchInternal(input, withoutFirst()))
+                //TODO add empty output generator method:
+                .toNullable();
+    }
+
+    public PatternType inferPatternType(PatternMatchInput<AtomExpr, ?, ?> input) {
+        if (elements.isEmpty()) return new PatternType.SimplePatternType(module.get(TypeHelper.class).NOTHING);
+        return elements.get(0).__(el -> el.inferPatternType(input, withoutFirst())).orElseGet(() ->
+                new PatternType.SimplePatternType(module.get(TypeHelper.class).NOTHING));
+    }
+
+    public PatternMatchOutput<PatternMatchOutput.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<AtomExpr, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        if (elements.isEmpty()) return null;//TODO add empty output generator method
+        return elements.get(0).__(el -> el.validatePatternMatchInternal(input, withoutFirst(), acceptor))
+                //TODO add empty output generator method:
+                .toNullable();
     }
 }

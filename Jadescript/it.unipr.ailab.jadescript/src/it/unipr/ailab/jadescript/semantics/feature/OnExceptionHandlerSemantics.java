@@ -373,9 +373,7 @@ public class OnExceptionHandlerSemantics extends FeatureSemantics<OnExceptionHan
             patternMatcherClasses = PatternMatchingSemantics.getPatternMatcherClasses(
                     auxiliaryStatements,
                     containerEObject,
-                    module.get(JvmTypesBuilder.class),
-                    module.get(TypeHelper.class),
-                    module.get(CompilationHelper.class)
+                    module
             );
         }
 
@@ -386,9 +384,7 @@ public class OnExceptionHandlerSemantics extends FeatureSemantics<OnExceptionHan
             patternMatcherFields = PatternMatchingSemantics.getPatternMatcherFieldDeclarations(
                     auxiliaryStatements,
                     containerEObject,
-                    module.get(JvmTypesBuilder.class),
-                    module.get(TypeHelper.class),
-                    module.get(CompilationHelper.class)
+                    module
             );
         }
 

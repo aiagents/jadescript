@@ -1,5 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.expression.trailersexprchain;
 
+import it.unipr.ailab.jadescript.jadescript.AtomExpr;
 import it.unipr.ailab.jadescript.jadescript.NamedArgumentList;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
@@ -7,6 +8,9 @@ import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.MethodInvocationSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
 import it.unipr.ailab.maybe.Maybe;
@@ -42,32 +46,35 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
 
 
     @Override
-    public String compile(ReversedDotNotationChain rest) {
+    public String compile(ReversedTrailerChain rest) {
         //rest should be empty, so it's ignored
 
-        return subSemantics.compile(MethodCall.methodCall(input, identifier, simpleArgs, namedArgs, false));
+        return subSemantics.compile(generateMethodCall());
+    }
+
+    private Maybe<MethodCall> generateMethodCall() {
+        return MethodCall.methodCall(input, identifier, simpleArgs, namedArgs, false);
     }
 
 
-
     @Override
-    public IJadescriptType inferType(ReversedDotNotationChain rest) {
+    public IJadescriptType inferType(ReversedTrailerChain rest) {
         //rest should be empty, so it's ignored
 
-        return subSemantics.inferType(MethodCall.methodCall(input, identifier, simpleArgs, namedArgs, false));
+        return subSemantics.inferType(generateMethodCall());
     }
 
     @Override
-    public void validate(ReversedDotNotationChain rest, ValidationMessageAcceptor acceptor) {
+    public void validate(ReversedTrailerChain rest, ValidationMessageAcceptor acceptor) {
         //rest should be empty, so it's ignored
 
-        subSemantics.validate(MethodCall.methodCall(input, identifier, simpleArgs, namedArgs, false), acceptor);
+        subSemantics.validate(generateMethodCall(), acceptor);
     }
 
 
     @Override
     public void validateAssignment(
-            ReversedDotNotationChain rest,
+            ReversedTrailerChain rest,
             String assignmentOperator,
             Maybe<RValueExpression> rValueExpression,
             IJadescriptType typeOfRExpr,
@@ -77,11 +84,13 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
         //this is never called because of prior check via syntacticValidateLValue(...)
 
         input.safeDo(inputSafe -> {
-            acceptor.acceptError("this is not a valid l-value expression",
+            acceptor.acceptError(
+                    "this is not a valid l-value expression",
                     inputSafe,
                     null,
                     ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                    "InvalidLValueExpression");
+                    "InvalidLValueExpression"
+            );
         });
     }
 
@@ -89,17 +98,19 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     @Override
     public void syntacticValidateLValue(InterceptAcceptor acceptor) {
         input.safeDo(inputSafe -> {
-            acceptor.acceptError("this is not a valid l-value expression",
+            acceptor.acceptError(
+                    "this is not a valid l-value expression",
                     inputSafe,
                     null,
                     ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                    "InvalidLValueExpression");
+                    "InvalidLValueExpression"
+            );
         });
     }
 
     @Override
     public String compileAssignment(
-            ReversedDotNotationChain rest,
+            ReversedTrailerChain rest,
             String compiledExpression,
             IJadescriptType exprType
     ) {
@@ -107,16 +118,58 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public boolean isAlwaysPure(ReversedDotNotationChain rest) {
+    public boolean isAlwaysPure(ReversedTrailerChain rest) {
         // if one day there will be declared (or inferred) purity of functions, this implementation will change
         return false;
     }
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> getSubExpressions(ReversedDotNotationChain rest) {
+    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> getSubExpressions(ReversedTrailerChain rest) {
         //rest should be empty, so it's ignored
+        return subSemantics.getSubExpressions(generateMethodCall());
+    }
 
-        return subSemantics.getSubExpressions(MethodCall.methodCall(input, identifier, simpleArgs, namedArgs, false));
+    @Override
+    public boolean isHoled(ReversedTrailerChain rest) {
+        //rest should be empty, so it's ignored
+        return subSemantics.isHoled(generateMethodCall());
+    }
+
+    @Override
+    public boolean isUnbounded(ReversedTrailerChain rest) {
+        //rest should be empty, so it's ignored
+        return subSemantics.isUnbounded(generateMethodCall());
+    }
+
+    @Override
+    public PatternMatchOutput<PatternMatchOutput.IsCompilation, ?, ?> compilePatternMatchInternal(
+            PatternMatchInput<AtomExpr, ?, ?> input,
+            ReversedTrailerChain rest
+    ) {
+        //rest should be empty, so it's ignored
+        return subSemantics.compilePatternMatchInternal(input.mapPattern(__ -> generateMethodCall().toNullable()));
+    }
+
+    @Override
+    public PatternType inferPatternType(
+            PatternMatchInput<AtomExpr, ?, ?> input,
+            ReversedTrailerChain rest
+    ) {
+        //rest should be empty, so it's ignored
+        return subSemantics.inferPatternType(input.mapPattern(__ -> generateMethodCall().toNullable()));
+    }
+
+    @Override
+    public PatternMatchOutput<PatternMatchOutput.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<AtomExpr, ?, ?> input,
+            ReversedTrailerChain rest,
+            ValidationMessageAcceptor acceptor
+    ) {
+        //rest should be empty, so it's ignored
+        return subSemantics.validatePatternMatchInternal(
+                input.mapPattern(__ -> generateMethodCall().toNullable()),
+                acceptor
+        );
     }
 
 }

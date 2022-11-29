@@ -7,7 +7,10 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.Trailer;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.expression.trailersexprchain.ReversedDotNotationChain;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.expression.trailersexprchain.ReversedTrailerChain;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -121,9 +124,39 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
         }
     }
 
+    @Override
+    public boolean isHoled(Maybe<AtomExpr> input) {
+        return buildChain(input).isHoled();
+    }
 
-    private ReversedDotNotationChain buildChain(Maybe<AtomExpr> input) {
-        ReversedDotNotationChain chain = new ReversedDotNotationChain(module);
+    @Override
+    public boolean isUnbounded(Maybe<AtomExpr> input) {
+        return buildChain(input).isUnbounded();
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchOutput.IsCompilation, ?, ?> compilePatternMatchInternal(
+            PatternMatchInput<AtomExpr, ?, ?> input
+    ) {
+        return buildChain(input.getPattern()).compilePatternMatchInternal(input);
+    }
+
+    @Override
+    public PatternType inferPatternType(PatternMatchInput<AtomExpr, ?, ?> input) {
+        return buildChain(input.getPattern()).inferPatternType(input);
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchOutput.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<AtomExpr, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        return buildChain(input.getPattern()).validatePatternMatchInternal(input, acceptor);
+    }
+
+
+    private ReversedTrailerChain buildChain(Maybe<AtomExpr> input) {
+        ReversedTrailerChain chain = new ReversedTrailerChain(module);
         boolean isAtomEaten = false;
         Maybe<Primary> atom = input.__(AtomExpr::getAtom);
         List<Maybe<Trailer>> trailers = toListOfMaybes(input.__(AtomExpr::getTrailers));

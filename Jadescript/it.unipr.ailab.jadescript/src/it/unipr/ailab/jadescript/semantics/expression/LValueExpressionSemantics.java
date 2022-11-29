@@ -5,6 +5,9 @@ import it.unipr.ailab.jadescript.jadescript.LValueExpression;
 import it.unipr.ailab.jadescript.jadescript.OfNotation;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -15,7 +18,6 @@ import java.util.Optional;
 
 /**
  * Created on 28/12/16.
- * 
  */
 @Singleton
 public class LValueExpressionSemantics extends AssignableExpressionSemantics<LValueExpression> {
@@ -25,12 +27,12 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
         super(semanticsModule);
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<LValueExpression> input) {
         Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-        if(traversed.isPresent()){
-            return traversed.get().getSemantics().getSubExpressions((Maybe)traversed.get().getInput());
+        if (traversed.isPresent()) {
+            return traversed.get().getSemantics().getSubExpressions((Maybe) traversed.get().getInput());
         }
 
         return Collections.emptyList();
@@ -38,12 +40,12 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
 
     @Override
     public Maybe<String> compile(Maybe<LValueExpression> input) {
-        return module.get(OfNotationExpressionSemantics.class).compile(input.__(i->(OfNotation)i));
+        return module.get(OfNotationExpressionSemantics.class).compile(input.__(i -> (OfNotation) i));
     }
 
     @Override
     public IJadescriptType inferType(Maybe<LValueExpression> input) {
-        return module.get(OfNotationExpressionSemantics.class).inferType(input.__(i->(OfNotation)i));
+        return module.get(OfNotationExpressionSemantics.class).inferType(input.__(i -> (OfNotation) i));
     }
 
 
@@ -54,17 +56,20 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
 
     @Override
     public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<LValueExpression> input) {
-        return Optional.of(new SemanticsBoundToExpression<>(module.get(OfNotationExpressionSemantics.class) ,input.__(i->(OfNotation)i)));
+        return Optional.of(new SemanticsBoundToExpression<>(
+                module.get(OfNotationExpressionSemantics.class),
+                input.__(i -> (OfNotation) i)
+        ));
     }
 
     @Override
     public void validate(Maybe<LValueExpression> input, ValidationMessageAcceptor acceptor) {
-        module.get(OfNotationExpressionSemantics.class).validate(input.__(i->(OfNotation)i), acceptor);
+        module.get(OfNotationExpressionSemantics.class).validate(input.__(i -> (OfNotation) i), acceptor);
     }
 
     @Override
     public Maybe<String> compileAssignment(Maybe<LValueExpression> input, String expression, IJadescriptType exprType) {
-        return module.get(OfNotationExpressionSemantics.class).compileAssignment(input.__(i->(OfNotation)i), expression, exprType);
+        return module.get(OfNotationExpressionSemantics.class).compileAssignment(input.__(i -> (OfNotation) i), expression, exprType);
     }
 
     @Override
@@ -75,7 +80,7 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
             ValidationMessageAcceptor acceptor
     ) {
         module.get(OfNotationExpressionSemantics.class).validateAssignment(
-                input.__(i->(OfNotation)i),
+                input.__(i -> (OfNotation) i),
                 assignmentOperator,
                 expression,
                 acceptor
@@ -84,8 +89,44 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
 
     @Override
     public void syntacticValidateLValue(Maybe<LValueExpression> input, ValidationMessageAcceptor acceptor) {
-        module.get(OfNotationExpressionSemantics.class).syntacticValidateLValue(input.__(i->(OfNotation)i), acceptor);
+        module.get(OfNotationExpressionSemantics.class).syntacticValidateLValue(input.__(i -> (OfNotation) i), acceptor);
     }
+
+    @Override
+    public boolean isHoled(Maybe<LValueExpression> input) {
+        return module.get(OfNotationExpressionSemantics.class).isHoled(input.__(i -> (OfNotation) i));
+    }
+
+    @Override
+    public boolean isUnbounded(Maybe<LValueExpression> input) {
+        return module.get(OfNotationExpressionSemantics.class).isUnbounded(input.__(i -> (OfNotation) i));
+    }
+
+    @Override
+    public <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
+    PatternMatchOutput<PatternMatchOutput.IsCompilation, U, N> compilePatternMatchInternal(
+            PatternMatchInput<LValueExpression, U, N> input
+    ) {
+        return module.get(OfNotationExpressionSemantics.class).compilePatternMatchInternal(input.mapPattern(i -> (OfNotation) i));
+    }
+
+    @Override
+    public PatternType inferPatternType(PatternMatchInput<LValueExpression, ?, ?> input) {
+        return module.get(OfNotationExpressionSemantics.class).inferPatternType(input.mapPattern(i -> (OfNotation) i));
+    }
+
+    @Override
+    public <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
+    PatternMatchOutput<PatternMatchOutput.IsValidation, U, N> validatePatternMatchInternal(
+            PatternMatchInput<LValueExpression, U, N> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        return module.get(OfNotationExpressionSemantics.class).validatePatternMatchInternal(
+                input.mapPattern(i -> (OfNotation) i),
+                acceptor
+        );
+    }
+
 
 
 }

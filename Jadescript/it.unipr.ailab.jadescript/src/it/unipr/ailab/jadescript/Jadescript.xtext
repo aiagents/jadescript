@@ -628,11 +628,13 @@ Matches:
 
 
 Pattern:
-	 listPattern = ListPattern
-	 | mapOrSetPattern = MapOrSetPattern
-	 | structPattern = StructurePattern
-	 | tuplePattern = TuplePattern
+	expr = LValueExpression
 ;
+//	 listPattern = ListPattern
+//	 | mapOrSetPattern = MapOrSetPattern
+//	 | structPattern = StructurePattern
+//	 | tuplePattern = TuplePattern
+//;
 
 TuplePattern: {TuplePattern}
 	 '('terms+=PatternTerm (',' terms+=PatternTerm)+ ')'
@@ -708,7 +710,7 @@ PerformativeExpression:
 
 	
 OfNotation:
-	((properties+=Identifier | properties+='aid' | properties+='agent' | properties+='last') 'of')* typeCast=AidLiteral
+	((properties+=Identifier | properties+='aid' | properties+='agent' | properties+='last') 'of')* aidLiteral=AidLiteral
 ;
 
 
