@@ -270,6 +270,8 @@ public class Maybe<OfType> {
 
     /**
      * Maybe's equivalent of {@link Optional#map(Function)}.
+     * Named __ because while identifying the operation done, the focus of the programmer should be in the argument
+     * of this method.
      */
     public <OfType2> Maybe<OfType2> __(
             Function<? super OfType, ? extends OfType2> function

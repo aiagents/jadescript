@@ -1,10 +1,15 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
+import it.unipr.ailab.jadescript.jadescript.Additive;
 import it.unipr.ailab.jadescript.jadescript.Matches;
 import it.unipr.ailab.jadescript.jadescript.Multiplicative;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -287,6 +292,50 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
         final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
         final List<Maybe<String>> operators = Maybe.toListOfMaybes(input.__(Multiplicative::getMultiplicativeOp));
         validateAssociative(operands, operators, acceptor);
+    }
+
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<Multiplicative, ?, ?> input) {
+        final Maybe<Multiplicative> pattern = input.getPattern();
+        final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(pattern.__(Multiplicative::getMatches));
+        if (mustTraverse(pattern)) {
+            return module.get(MatchesExpressionSemantics.class).compilePatternMatchInternal(
+                    input.mapPattern(__ -> operands.get(0).toNullable())
+            );
+        } else {
+            return input.createEmptyCompileOutput();
+        }
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<Multiplicative, ?, ?> input) {
+        final Maybe<Multiplicative> pattern = input.getPattern();
+        final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(pattern.__(Multiplicative::getMatches));
+        if (mustTraverse(pattern)) {
+            return module.get(MatchesExpressionSemantics.class).inferPatternTypeInternal(
+                    input.mapPattern(__ -> operands.get(0).toNullable())
+            );
+        }else{
+            return PatternType.empty(module);
+        }
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<Multiplicative, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        final Maybe<Multiplicative> pattern = input.getPattern();
+        final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(pattern.__(Multiplicative::getMatches));
+        if (mustTraverse(pattern)) {
+            return module.get(MatchesExpressionSemantics.class).validatePatternMatchInternal(
+                    input.mapPattern(__ -> operands.get(0).toNullable()),
+                    acceptor
+            );
+        } else {
+            return input.createEmptyValidationOutput();
+        }
     }
 
 }

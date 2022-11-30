@@ -1,10 +1,16 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
+import it.unipr.ailab.jadescript.jadescript.Additive;
 import it.unipr.ailab.jadescript.jadescript.ContainmentCheck;
+import it.unipr.ailab.jadescript.jadescript.Multiplicative;
 import it.unipr.ailab.jadescript.jadescript.RelationalComparison;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -110,6 +116,47 @@ public class RelationalComparisonExpressionSemantics
             return Optional.of(new SemanticsBoundToExpression<>(module.get(ContainmentCheckExpressionSemantics.class), left));
         }
         return Optional.empty();
+    }
+
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<RelationalComparison, ?, ?> input) {
+        final Maybe<RelationalComparison> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(ContainmentCheckExpressionSemantics.class).compilePatternMatchInternal(
+                    input.mapPattern(RelationalComparison::getLeft)
+            );
+        } else {
+            return input.createEmptyCompileOutput();
+        }
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<RelationalComparison, ?, ?> input) {
+        final Maybe<RelationalComparison> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(ContainmentCheckExpressionSemantics.class).inferPatternTypeInternal(
+                    input.mapPattern(RelationalComparison::getLeft)
+            );
+        }else{
+            return PatternType.empty(module);
+        }
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<RelationalComparison, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        final Maybe<RelationalComparison> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(ContainmentCheckExpressionSemantics.class).validatePatternMatchInternal(
+                    input.mapPattern(RelationalComparison::getLeft),
+                    acceptor
+            );
+        } else {
+            return input.createEmptyValidationOutput();
+        }
     }
 
     @Override

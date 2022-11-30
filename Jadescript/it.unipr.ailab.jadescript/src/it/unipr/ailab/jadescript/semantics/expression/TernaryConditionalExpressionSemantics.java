@@ -1,12 +1,13 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
-import it.unipr.ailab.jadescript.jadescript.LogicalOr;
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.jadescript.TernaryConditional;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -151,6 +152,47 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
             );
         }
 
+    }
+
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<TernaryConditional, ?, ?> input) {
+        final Maybe<TernaryConditional> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(LogicalOrExpressionSemantics.class).compilePatternMatchInternal(
+                    input.mapPattern(TernaryConditional::getCondition)
+            );
+        } else {
+            return input.createEmptyCompileOutput();
+        }
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<TernaryConditional, ?, ?> input) {
+        final Maybe<TernaryConditional> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(LogicalOrExpressionSemantics.class).inferPatternTypeInternal(
+                    input.mapPattern(TernaryConditional::getCondition)
+            );
+        }else{
+            return PatternType.empty(module);
+        }
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<TernaryConditional, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        final Maybe<TernaryConditional> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(LogicalOrExpressionSemantics.class).validatePatternMatchInternal(
+                    input.mapPattern(TernaryConditional::getCondition),
+                    acceptor
+            );
+        } else {
+            return input.createEmptyValidationOutput();
+        }
     }
 
 

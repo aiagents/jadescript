@@ -1,11 +1,13 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.EqualityComparison;
-import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
-import it.unipr.ailab.jadescript.jadescript.LogicalAnd;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -136,6 +138,50 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
                     );
                 }
             }
+        }
+    }
+
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<LogicalAnd, ?, ?> input) {
+        final Maybe<LogicalAnd> pattern = input.getPattern();
+        final List<Maybe<EqualityComparison>> operands = Maybe.toListOfMaybes(pattern.__(LogicalAnd::getEqualityComparison));
+        if (mustTraverse(pattern)) {
+            return module.get(EqualityComparisonExpressionSemantics.class).compilePatternMatchInternal(
+                    input.mapPattern(__ -> operands.get(0).toNullable())
+            );
+        } else {
+            return input.createEmptyCompileOutput();
+        }
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<LogicalAnd, ?, ?> input) {
+        final Maybe<LogicalAnd> pattern = input.getPattern();
+        final List<Maybe<EqualityComparison>> operands = Maybe.toListOfMaybes(pattern.__(LogicalAnd::getEqualityComparison));
+        if (mustTraverse(pattern)) {
+            return module.get(EqualityComparisonExpressionSemantics.class).inferPatternTypeInternal(
+                    input.mapPattern(__ -> operands.get(0).toNullable())
+            );
+        }else{
+            return PatternType.empty(module);
+        }
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<LogicalAnd, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        final Maybe<LogicalAnd> pattern = input.getPattern();
+        final List<Maybe<EqualityComparison>> operands = Maybe.toListOfMaybes(pattern.__(LogicalAnd::getEqualityComparison));
+        if (mustTraverse(pattern)) {
+            return module.get(EqualityComparisonExpressionSemantics.class).validatePatternMatchInternal(
+                    input.mapPattern(__ -> operands.get(0).toNullable()),
+                    acceptor
+            );
+        } else {
+            return input.createEmptyValidationOutput();
         }
     }
 

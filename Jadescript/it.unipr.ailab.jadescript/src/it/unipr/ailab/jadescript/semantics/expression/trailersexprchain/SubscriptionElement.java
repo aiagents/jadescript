@@ -1,5 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.expression.trailersexprchain;
 
+import it.unipr.ailab.jadescript.jadescript.AtomExpr;
 import it.unipr.ailab.jadescript.jadescript.Literal;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
@@ -7,6 +8,10 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
@@ -319,6 +324,40 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
         result.add(new SemanticsBoundToExpression<>(expressionSemantics, key));
         result.addAll(rest.getSubExpressions());
         return result;
+    }
+
+    @Override
+    public boolean isHoled(ReversedTrailerChain rest) {
+        // Subscription expressions cannot be holed by design.
+        return false;
+    }
+
+    @Override
+    public boolean isUnbounded(ReversedTrailerChain rest) {
+        // Subscription expressions cannot have unbound terms by design.
+        return false;
+    }
+
+    @Override
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
+            PatternMatchInput<AtomExpr, ?, ?> input,
+            ReversedTrailerChain rest
+    ) {
+        return input.createEmptyCompileOutput();
+    }
+
+    @Override
+    public PatternType inferPatternTypeInternal(PatternMatchInput<AtomExpr, ?, ?> input, ReversedTrailerChain rest) {
+        return PatternType.empty(module);
+    }
+
+    @Override
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<AtomExpr, ?, ?> input,
+            ReversedTrailerChain rest,
+            ValidationMessageAcceptor acceptor
+    ) {
+        return input.createEmptyValidationOutput();
     }
 
 

@@ -10,6 +10,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
@@ -142,7 +143,7 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public PatternMatchOutput<PatternMatchOutput.IsCompilation, ?, ?> compilePatternMatchInternal(
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest
     ) {
@@ -151,16 +152,16 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public PatternType inferPatternType(
+    public PatternType inferPatternTypeInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest
     ) {
         //rest should be empty, so it's ignored
-        return subSemantics.inferPatternType(input.mapPattern(__ -> generateMethodCall().toNullable()));
+        return subSemantics.inferPatternTypeInternal(input.mapPattern(__ -> generateMethodCall().toNullable()));
     }
 
     @Override
-    public PatternMatchOutput<PatternMatchOutput.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest,
             ValidationMessageAcceptor acceptor

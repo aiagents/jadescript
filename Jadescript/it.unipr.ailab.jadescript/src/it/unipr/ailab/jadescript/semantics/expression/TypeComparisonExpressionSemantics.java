@@ -1,11 +1,13 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.RelationalComparison;
-import it.unipr.ailab.jadescript.jadescript.TypeComparison;
-import it.unipr.ailab.jadescript.jadescript.TypeExpression;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
@@ -133,5 +135,46 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
         List<String> strings = module.get(RelationalComparisonExpressionSemantics.class).extractPropertyChain(left);
         subKb.add(FlowTypeInferringTerm.of(module.get(TypeExpressionSemantics.class).toJadescriptType(type)), strings);
         return subKb;
+    }
+
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<TypeComparison, ?, ?> input) {
+        final Maybe<TypeComparison> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(RelationalComparisonExpressionSemantics.class).compilePatternMatchInternal(
+                    input.mapPattern(TypeComparison::getRelationalComparison)
+            );
+        } else {
+            return input.createEmptyCompileOutput();
+        }
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<TypeComparison, ?, ?> input) {
+        final Maybe<TypeComparison> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(RelationalComparisonExpressionSemantics.class).inferPatternTypeInternal(
+                    input.mapPattern(TypeComparison::getRelationalComparison)
+            );
+        }else{
+            return PatternType.empty(module);
+        }
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<TypeComparison, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        final Maybe<TypeComparison> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(RelationalComparisonExpressionSemantics.class).validatePatternMatchInternal(
+                    input.mapPattern(TypeComparison::getRelationalComparison),
+                    acceptor
+            );
+        } else {
+            return input.createEmptyValidationOutput();
+        }
     }
 }

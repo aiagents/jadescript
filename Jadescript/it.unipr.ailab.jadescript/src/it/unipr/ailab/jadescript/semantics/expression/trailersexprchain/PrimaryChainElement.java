@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.PrimaryExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -104,28 +105,28 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public PatternMatchOutput<PatternMatchOutput.IsCompilation, ?, ?> compilePatternMatchInternal(
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest
     ) {
         //rest should be empty, so it's ignored
-        return primaryExpressionSemantics.compilePatternMatchInternal(input.mapPattern(__ -> atom.toNullable()));
+        return primaryExpressionSemantics.compilePatternMatch(input.mapPattern(__ -> atom.toNullable()));
     }
 
     @Override
-    public PatternType inferPatternType(PatternMatchInput<AtomExpr, ?, ?> input, ReversedTrailerChain rest) {
+    public PatternType inferPatternTypeInternal(PatternMatchInput<AtomExpr, ?, ?> input, ReversedTrailerChain rest) {
         //rest should be empty, so it's ignored
         return primaryExpressionSemantics.inferPatternType(input.mapPattern(__ -> atom.toNullable()));
     }
 
     @Override
-    public PatternMatchOutput<PatternMatchOutput.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest,
             ValidationMessageAcceptor acceptor
     ) {
         //rest should be empty, so it's ignored
-        return primaryExpressionSemantics.validatePatternMatchInternal(
+        return primaryExpressionSemantics.validatePatternMatch(
                 input.mapPattern(__ -> atom.toNullable()),
                 acceptor
         );

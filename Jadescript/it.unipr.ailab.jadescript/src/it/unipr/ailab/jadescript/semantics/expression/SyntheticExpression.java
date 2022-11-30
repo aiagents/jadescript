@@ -23,7 +23,6 @@ import java.util.Optional;
 public class SyntheticExpression implements RValueExpression {
 
     public enum SyntheticType{
-        AGENT_REFERENCE,
         CUSTOM
     }
 

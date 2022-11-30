@@ -9,6 +9,10 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
@@ -67,6 +71,25 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
     @Override
     public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TypeExpression> input) {
         return Optional.empty();
+    }
+
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<TypeExpression, ?, ?> input) {
+        return input.createEmptyCompileOutput();
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<TypeExpression, ?, ?> input) {
+        return PatternType.empty(module);
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<TypeExpression, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        return input.createEmptyValidationOutput();
     }
 
 

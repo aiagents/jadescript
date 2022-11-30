@@ -1,15 +1,13 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.AidLiteral;
-import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
-import it.unipr.ailab.jadescript.jadescript.OfNotation;
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -391,40 +389,45 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    public boolean isHoled(Maybe<OfNotation> input) {
-        final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
-
-        return module.get(AidLiteralExpressionSemantics.class).isHoled(aidLiteral);
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<OfNotation, ?, ?> input) {
+        final Maybe<OfNotation> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(AidLiteralExpressionSemantics.class).compilePatternMatchInternal(
+                    input.mapPattern(OfNotation::getAidLiteral)
+            );
+        } else {
+            return input.createEmptyCompileOutput();
+        }
     }
 
     @Override
-    public boolean isUnbounded(Maybe<OfNotation> input) {
-        final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
-        return module.get(AidLiteralExpressionSemantics.class).isHoled(aidLiteral);
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<OfNotation, ?, ?> input) {
+        final Maybe<OfNotation> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(AidLiteralExpressionSemantics.class).inferPatternTypeInternal(
+                    input.mapPattern(OfNotation::getAidLiteral)
+            );
+        }else{
+            return PatternType.empty(module);
+        }
     }
 
     @Override
-    public <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
-    PatternMatchOutput<PatternMatchOutput.IsCompilation, U, N> compilePatternMatchInternal(
-            PatternMatchInput<OfNotation, U, N> input
-    ) {
-        return module.get(AidLiteralExpressionSemantics.class)
-                .compilePatternMatchInternal(input.mapPattern(OfNotation::getAidLiteral));
-    }
-
-    @Override
-    public PatternType inferPatternType(PatternMatchInput<OfNotation, ?, ?> input) {
-        return module.get(AidLiteralExpressionSemantics.class)
-                .inferPatternType(input.mapPattern(OfNotation::getAidLiteral));
-    }
-
-    @Override
-    public <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
-    PatternMatchOutput<PatternMatchOutput.IsValidation, U, N> validatePatternMatchInternal(
-            PatternMatchInput<OfNotation, U, N> input,
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<OfNotation, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
-        return module.get(AidLiteralExpressionSemantics.class)
-                .validatePatternMatchInternal(input.mapPattern(OfNotation::getAidLiteral), acceptor);
+        final Maybe<OfNotation> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(AidLiteralExpressionSemantics.class).validatePatternMatchInternal(
+                    input.mapPattern(OfNotation::getAidLiteral),
+                    acceptor
+            );
+        } else {
+            return input.createEmptyValidationOutput();
+        }
     }
+
+
 }

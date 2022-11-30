@@ -993,7 +993,7 @@ public class PatternMatchingSemantics extends Semantics<PatternMatchRequest> {
         return Collections.emptyList();
     }
 
-    private List<StatementWriter> compileAdaptType(String adaptType) {
+    private static List<StatementWriter> compileAdaptType(String adaptType) {
         final ReturnStatementWriter returnFalse = w.returnStmnt(w.False);
 
         final VariableDeclarationWriter declareX = w.variable(adaptType, "__x");//initialized later
@@ -1182,9 +1182,8 @@ public class PatternMatchingSemantics extends Semantics<PatternMatchRequest> {
             return of(m.returnType());
         } else {//methods.size() > 1
             List<String> candidatesMessage = new ArrayList<>();
-            candidatesMessage.add("candidates: ");
             for (CallableSymbol match : methods) {
-                candidatesMessage.add(Util.getSignature(patternName, match.parameterTypes())
+                candidatesMessage.add(Util.getSignature(match.name(), match.parameterTypes())
                         + " in " + match.sourceLocation() + ";");
             }
 

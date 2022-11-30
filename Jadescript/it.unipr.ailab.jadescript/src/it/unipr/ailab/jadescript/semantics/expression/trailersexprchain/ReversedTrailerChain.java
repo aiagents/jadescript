@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -148,7 +149,7 @@ public class ReversedTrailerChain {
         return elements.get(0).__(el -> el.isUnbounded(withoutFirst())).extract(Maybe.nullAsFalse);
     }
 
-    public PatternMatchOutput<PatternMatchOutput.IsCompilation, ?, ?> compilePatternMatchInternal(
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input
     ) {
         if (elements.isEmpty()) return null;//TODO add empty output generator method
@@ -157,13 +158,13 @@ public class ReversedTrailerChain {
                 .toNullable();
     }
 
-    public PatternType inferPatternType(PatternMatchInput<AtomExpr, ?, ?> input) {
+    public PatternType inferPatternTypeInternal(PatternMatchInput<AtomExpr, ?, ?> input) {
         if (elements.isEmpty()) return new PatternType.SimplePatternType(module.get(TypeHelper.class).NOTHING);
-        return elements.get(0).__(el -> el.inferPatternType(input, withoutFirst())).orElseGet(() ->
+        return elements.get(0).__(el -> el.inferPatternTypeInternal(input, withoutFirst())).orElseGet(() ->
                 new PatternType.SimplePatternType(module.get(TypeHelper.class).NOTHING));
     }
 
-    public PatternMatchOutput<PatternMatchOutput.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.expression.trailersexprchain.ReversedTrailerChain;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -135,19 +136,19 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchOutput.IsCompilation, ?, ?> compilePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input
     ) {
         return buildChain(input.getPattern()).compilePatternMatchInternal(input);
     }
 
     @Override
-    public PatternType inferPatternType(PatternMatchInput<AtomExpr, ?, ?> input) {
-        return buildChain(input.getPattern()).inferPatternType(input);
+    public PatternType inferPatternTypeInternal(PatternMatchInput<AtomExpr, ?, ?> input) {
+        return buildChain(input.getPattern()).inferPatternTypeInternal(input);
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchOutput.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

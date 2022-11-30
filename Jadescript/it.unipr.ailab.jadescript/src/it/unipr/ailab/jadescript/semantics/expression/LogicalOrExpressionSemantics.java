@@ -2,11 +2,13 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
-import it.unipr.ailab.jadescript.jadescript.LogicalAnd;
-import it.unipr.ailab.jadescript.jadescript.LogicalOr;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -148,6 +150,50 @@ public class LogicalOrExpressionSemantics extends ExpressionSemantics<LogicalOr>
             }
         }
 
+    }
+
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<LogicalOr, ?, ?> input) {
+        final Maybe<LogicalOr> pattern = input.getPattern();
+        final List<Maybe<LogicalAnd>> operands = Maybe.toListOfMaybes(pattern.__(LogicalOr::getLogicalAnd));
+        if (mustTraverse(pattern)) {
+            return module.get(LogicalAndExpressionSemantics.class).compilePatternMatchInternal(
+                    input.mapPattern(__ -> operands.get(0).toNullable())
+            );
+        } else {
+            return input.createEmptyCompileOutput();
+        }
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<LogicalOr, ?, ?> input) {
+        final Maybe<LogicalOr> pattern = input.getPattern();
+        final List<Maybe<LogicalAnd>> operands = Maybe.toListOfMaybes(pattern.__(LogicalOr::getLogicalAnd));
+        if (mustTraverse(pattern)) {
+            return module.get(LogicalAndExpressionSemantics.class).inferPatternTypeInternal(
+                    input.mapPattern(__ -> operands.get(0).toNullable())
+            );
+        }else{
+            return PatternType.empty(module);
+        }
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<LogicalOr, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        final Maybe<LogicalOr> pattern = input.getPattern();
+        final List<Maybe<LogicalAnd>> operands = Maybe.toListOfMaybes(pattern.__(LogicalOr::getLogicalAnd));
+        if (mustTraverse(pattern)) {
+            return module.get(LogicalAndExpressionSemantics.class).validatePatternMatchInternal(
+                    input.mapPattern(__ -> operands.get(0).toNullable()),
+                    acceptor
+            );
+        } else {
+            return input.createEmptyValidationOutput();
+        }
     }
 
 

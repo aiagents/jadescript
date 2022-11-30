@@ -6,6 +6,10 @@ import it.unipr.ailab.jadescript.jadescript.Additive;
 import it.unipr.ailab.jadescript.jadescript.Multiplicative;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -24,8 +28,6 @@ import static it.unipr.ailab.maybe.Maybe.of;
 
 /**
  * Created on 28/12/16.
- *
- * 
  */
 @Singleton
 public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
@@ -161,10 +163,58 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     @Override
     public Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traverse(Maybe<Additive> input) {
         final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
-        if (!mustTraverse(input))
+        if (!mustTraverse(input)) {
             return Optional.empty();
+        }
 
-        return Optional.of(new ExpressionSemantics.SemanticsBoundToExpression<>(module.get(MultiplicativeExpressionSemantics.class), operands.get(0)));
+        return Optional.of(new ExpressionSemantics.SemanticsBoundToExpression<>(
+                module.get(MultiplicativeExpressionSemantics.class),
+                operands.get(0)
+        ));
+    }
+
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<Additive, ?, ?> input) {
+        final Maybe<Additive> pattern = input.getPattern();
+        final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(pattern.__(Additive::getMultiplicative));
+        if (mustTraverse(pattern)) {
+            return module.get(MultiplicativeExpressionSemantics.class).compilePatternMatchInternal(
+                    input.mapPattern(__ -> operands.get(0).toNullable())
+            );
+        } else {
+            return input.createEmptyCompileOutput();
+        }
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<Additive, ?, ?> input) {
+        final Maybe<Additive> pattern = input.getPattern();
+        final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(pattern.__(Additive::getMultiplicative));
+        if (mustTraverse(pattern)) {
+            return module.get(MultiplicativeExpressionSemantics.class).inferPatternTypeInternal(
+                    input.mapPattern(__ -> operands.get(0).toNullable())
+            );
+        }else{
+            return PatternType.empty(module);
+        }
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<Additive, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        final Maybe<Additive> pattern = input.getPattern();
+        final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(pattern.__(Additive::getMultiplicative));
+        if (mustTraverse(pattern)) {
+            return module.get(MultiplicativeExpressionSemantics.class).validatePatternMatchInternal(
+                    input.mapPattern(__ -> operands.get(0).toNullable()),
+                    acceptor
+            );
+        } else {
+            return input.createEmptyValidationOutput();
+        }
     }
 
     public void validateAssociative(

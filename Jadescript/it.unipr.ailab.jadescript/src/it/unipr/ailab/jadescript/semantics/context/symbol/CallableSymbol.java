@@ -69,6 +69,11 @@ public interface CallableSymbol extends Symbol {
     }
 
     interface Searcher {
+        String ANY_NAME = null;
+        Predicate<IJadescriptType> ANY_RETURN_TYPE = null;
+        BiPredicate<Integer, Function<Integer, String>> ANY_PARAMETER_NAMES = null;
+        BiPredicate<Integer, Function<Integer, IJadescriptType>> ANY_PARAMETER_TYPES = null;
+
         Stream<? extends CallableSymbol> searchCallable(
                 String name,
                 Predicate<IJadescriptType> returnType,

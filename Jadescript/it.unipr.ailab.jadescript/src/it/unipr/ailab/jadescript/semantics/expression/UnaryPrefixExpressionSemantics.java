@@ -1,10 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
-import it.unipr.ailab.jadescript.jadescript.OfNotation;
-import it.unipr.ailab.jadescript.jadescript.PerformativeExpression;
-import it.unipr.ailab.jadescript.jadescript.UnaryPrefix;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -13,6 +10,10 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -391,6 +392,47 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
         }
 
 
+    }
+
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<UnaryPrefix, ?, ?> input) {
+        final Maybe<UnaryPrefix> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(OfNotationExpressionSemantics.class).compilePatternMatchInternal(
+                    input.mapPattern(UnaryPrefix::getOfNotation)
+            );
+        } else {
+            return input.createEmptyCompileOutput();
+        }
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<UnaryPrefix, ?, ?> input) {
+        final Maybe<UnaryPrefix> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(OfNotationExpressionSemantics.class).inferPatternTypeInternal(
+                    input.mapPattern(UnaryPrefix::getOfNotation)
+            );
+        }else{
+            return PatternType.empty(module);
+        }
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<UnaryPrefix, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        final Maybe<UnaryPrefix> pattern = input.getPattern();
+        if (mustTraverse(pattern)) {
+            return module.get(OfNotationExpressionSemantics.class).validatePatternMatchInternal(
+                    input.mapPattern(UnaryPrefix::getOfNotation),
+                    acceptor
+            );
+        } else {
+            return input.createEmptyValidationOutput();
+        }
     }
 
 

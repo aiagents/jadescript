@@ -4,7 +4,6 @@ import it.unipr.ailab.jadescript.jadescript.AidLiteral;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeCast;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -12,7 +11,6 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.*;
-import java.util.function.Supplier;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.nullAsTrue;
@@ -79,24 +77,7 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
         return tces.isUnbounded(typeCast) || tces.isUnbounded(hap);
     }
 
-    @Override
-    public <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
-    PatternMatchOutput<PatternMatchOutput.IsCompilation, U, N> compilePatternMatchInternal(
-            PatternMatchInput<AidLiteral, U, N> input
-    ) {
-    }
 
-    @Override
-    public PatternType inferPatternType(PatternMatchInput<AidLiteral, ?, ?> input) {
-    }
-
-    @Override
-    public <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
-    PatternMatchOutput<PatternMatchOutput.IsValidation, U, N> validatePatternMatchInternal(
-            PatternMatchInput<AidLiteral, U, N> input,
-            ValidationMessageAcceptor acceptor
-    ) {
-    }
 
 
     @Override

@@ -1,5 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
+
 public class PatternMatchMode {
 
     public enum HolesAndGroundness {
@@ -17,61 +19,18 @@ public class PatternMatchMode {
         /**
          * The pattern requires each term to be bound.
          */
-        DOES_NOT_ACCEPT_HOLES
-    }
-
-    /**
-     * Identifies the type of subtyping relationship the type of the input of the pattern is required to have with the
-     * type of the input value.
-     */
-    public interface TypeRelationship {
-
-        public interface Related extends TypeRelationship {
-        }
-
-        public static final Related RELATED = new Related() {
-        };
-
-        public interface NotRelated extends TypeRelationship {
-        }
-
-        public static final NotRelated NOT_RELATED = new NotRelated() {
-        };
-
-        public interface SubtypeOrEqual extends Related {
-        }
-
-        public static final SubtypeOrEqual SUBTYPE_OR_EQUAL = new SubtypeOrEqual() {
-        };
-
-        public interface SupertypeOrEqual extends Related {
-        }
-
-        public static final SupertypeOrEqual SUPERTYPE_OR_EQUAL = new SupertypeOrEqual() {
-        };
-
-        public interface Equal extends SupertypeOrEqual, SubtypeOrEqual {
-        }
-
-        public static final Equal EQUAL = new Equal() {
-        };
-
-        public interface StrictSubtype extends SubtypeOrEqual {
-        }
-
-        public static final StrictSubtype STRICT_SUBTYPE = new StrictSubtype() {
-        };
-
-        public interface StrictSupertype extends SupertypeOrEqual {
-        }
-
-        public static final StrictSupertype STRICT_SUPERTYPE = new StrictSupertype() {
-        };
-
+        DOES_NOT_ACCEPT_HOLES,
+        /**
+         * The pattern is required to have at least one hole.
+         * For example, a destructuring assignment to a non-holed pattern is a useless operation and should be marked
+         * as error.
+         * //TODO handle validation check
+         */
+        REQUIRES_HOLES
     }
 
 
-    public enum Deconstruction {
+    public enum Unification {
         /**
          * This pattern matching either produces a context, or enriches a preexisting context,
          * with new declared variables (destructuring).
@@ -95,6 +54,17 @@ public class PatternMatchMode {
          * input expression.
          */
         DOES_NOT_NARROW_TYPE
+    }
+
+    public enum PatternApplicationPurity {
+        /**
+         * Requires the pattern matching operation to be pure, i.e., without causing side effects.
+         */
+        HAS_TO_BE_PURE,
+        /**
+         * The pattern matching operation can cause side effects.
+         */
+        IMPURE_OK
     }
 
 
@@ -130,10 +100,8 @@ public class PatternMatchMode {
         public static final BooleanExpression BOOLEAN_EXPRESSION = new BooleanExpression() {
         };
 
-        public interface AssignedExpression extends Expression {
-        }
 
-        public interface RootOfAssignedExpression extends AssignedExpression {
+        public interface RootOfAssignedExpression extends Expression {
         }
 
         /**
@@ -143,20 +111,21 @@ public class PatternMatchMode {
         public static final RootOfAssignedExpression ROOT_OF_ASSIGNED_EXPRESSION = new RootOfAssignedExpression() {
         };
 
-        public interface PartOfAssignedExpression extends AssignedExpression {
+        public interface SubPattern extends Expression {
         }
 
         /**
-         * This pattern is part of an assigned expression, but it is not the root of it.
+         * This pattern is part of another pattern.
          */
-        public static final PartOfAssignedExpression PART_OF_ASSIGNED_EXPRESSION = new PartOfAssignedExpression() {
+        public static final SubPattern SUB_PATTERN = new SubPattern() {
         };
     }
 
 
     private final HolesAndGroundness holesAndGroundness;
     private final Class<? extends TypeRelationship> typeRelationshipRequirement;
-    private final Deconstruction deconstruction;
+    private final PatternApplicationPurity patternApplicationPurity;
+    private final Unification unification;
     private final NarrowsTypeOfInput narrowsTypeOfInput;
     private final PatternLocation patternLocation;
 
@@ -164,28 +133,38 @@ public class PatternMatchMode {
     public PatternMatchMode(
             HolesAndGroundness holesAndGroundness,
             Class<? extends TypeRelationship> typeRelationshipRequirement,
-            Deconstruction deconstruction,
+            PatternApplicationPurity patternApplicationPurity,
+            Unification unification,
             NarrowsTypeOfInput narrowsTypeOfInput,
             PatternLocation patternLocation
     ) {
         this.holesAndGroundness = holesAndGroundness;
         this.typeRelationshipRequirement = typeRelationshipRequirement;
-        this.deconstruction = deconstruction;
+        this.patternApplicationPurity = patternApplicationPurity;
+        this.unification = unification;
         this.narrowsTypeOfInput = narrowsTypeOfInput;
         this.patternLocation = patternLocation;
     }
 
 
-    public HolesAndGroundness getHolesAndBoundness() {
+    public HolesAndGroundness getHolesAndGroundness() {
         return holesAndGroundness;
     }
 
+    /**
+     * Identifies the type of subtyping relationship that the type of the input of the pattern is required to have with
+     * the type of the input value at compile time.
+     */
     public Class<? extends TypeRelationship> getTypeRelationshipRequirement() {
         return typeRelationshipRequirement;
     }
 
-    public Deconstruction getDeconstruction() {
-        return deconstruction;
+    public PatternApplicationPurity getPatternApplicationPurity() {
+        return patternApplicationPurity;
+    }
+
+    public Unification getUnification() {
+        return unification;
     }
 
     public NarrowsTypeOfInput getNarrowsTypeOfInput() {

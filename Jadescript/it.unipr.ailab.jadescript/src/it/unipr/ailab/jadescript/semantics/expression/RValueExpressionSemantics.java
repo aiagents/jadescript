@@ -1,10 +1,16 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
+import it.unipr.ailab.jadescript.jadescript.Additive;
+import it.unipr.ailab.jadescript.jadescript.Multiplicative;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TernaryConditional;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -18,8 +24,6 @@ import static it.unipr.ailab.maybe.Maybe.nothing;
 
 /**
  * Created on 27/12/16.
- *
- * 
  */
 @Singleton
 public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpression>
@@ -108,6 +112,7 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
         return Optional.empty();
     }
 
+
     @Override
     public void validate(Maybe<RValueExpression> input, ValidationMessageAcceptor acceptor) {
         if (input == null || input.isNothing()) return;
@@ -123,17 +128,86 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
                 "- type found: " + input.getClass().getName());
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-	public SemanticsBoundToExpression<?> deepTraverse(Maybe<RValueExpression> input) {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public SemanticsBoundToExpression<?> deepTraverse(Maybe<RValueExpression> input) {
         Optional<SemanticsBoundToExpression<?>> x = Optional.of(
                 new SemanticsBoundToExpression<>(this, input)
         );
         Optional<SemanticsBoundToExpression<?>> lastPresent = x;
         while (x.isPresent()) {
             lastPresent = x;
-            x = x.get().getSemantics().traverse((Maybe)x.get().getInput());
+            x = x.get().getSemantics().traverse((Maybe) x.get().getInput());
         }
         return lastPresent.get();
+    }
+
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<RValueExpression, ?, ?> input) {
+        final Maybe<RValueExpression> pattern = input.getPattern();
+
+        if (mustTraverse(pattern)) {
+            if (pattern.isInstanceOf(SyntheticExpression.class)) {
+                return module.get(SyntheticExpressionSemantics.class).compilePatternMatchInternal(
+                        input.mapPattern(x -> (SyntheticExpression) x)
+                );
+            }
+            if (pattern.isInstanceOf(TernaryConditional.class)) {
+                return module.get(TernaryConditionalExpressionSemantics.class).compilePatternMatchInternal(
+                        input.mapPattern(x -> (TernaryConditional) x)
+                );
+            }
+
+        }
+
+        return input.createEmptyCompileOutput();
+
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<RValueExpression, ?, ?> input) {
+        final Maybe<RValueExpression> pattern = input.getPattern();
+
+        if (mustTraverse(pattern)) {
+            if (pattern.isInstanceOf(SyntheticExpression.class)) {
+                return module.get(SyntheticExpressionSemantics.class).inferPatternType(
+                        input.mapPattern(x -> (SyntheticExpression) x)
+                );
+            }
+            if (pattern.isInstanceOf(TernaryConditional.class)) {
+                return module.get(TernaryConditionalExpressionSemantics.class).inferPatternTypeInternal(
+                        input.mapPattern(x -> (TernaryConditional) x)
+                );
+            }
+
+        }
+        return PatternType.empty(module);
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<RValueExpression, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        final Maybe<RValueExpression> pattern = input.getPattern();
+
+        if (mustTraverse(pattern)) {
+            if (pattern.isInstanceOf(SyntheticExpression.class)) {
+                return module.get(SyntheticExpressionSemantics.class).validatePatternMatchInternal(
+                        input.mapPattern(x -> (SyntheticExpression) x),
+                        acceptor
+                );
+            }
+            if (pattern.isInstanceOf(TernaryConditional.class)) {
+                return module.get(TernaryConditionalExpressionSemantics.class).validatePatternMatchInternal(
+                        input.mapPattern(x -> (TernaryConditional) x),
+                        acceptor
+                );
+            }
+
+        }
+
+        return input.createEmptyValidationOutput();
     }
 
 }

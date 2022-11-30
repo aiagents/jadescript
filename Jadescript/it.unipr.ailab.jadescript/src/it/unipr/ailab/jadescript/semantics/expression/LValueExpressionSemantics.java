@@ -1,12 +1,11 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.LValueExpression;
-import it.unipr.ailab.jadescript.jadescript.OfNotation;
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -102,31 +101,32 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
         return module.get(OfNotationExpressionSemantics.class).isUnbounded(input.__(i -> (OfNotation) i));
     }
 
-    @Override
-    public <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
-    PatternMatchOutput<PatternMatchOutput.IsCompilation, U, N> compilePatternMatchInternal(
-            PatternMatchInput<LValueExpression, U, N> input
-    ) {
-        return module.get(OfNotationExpressionSemantics.class).compilePatternMatchInternal(input.mapPattern(i -> (OfNotation) i));
-    }
 
     @Override
-    public PatternType inferPatternType(PatternMatchInput<LValueExpression, ?, ?> input) {
-        return module.get(OfNotationExpressionSemantics.class).inferPatternType(input.mapPattern(i -> (OfNotation) i));
-    }
-
-    @Override
-    public <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
-    PatternMatchOutput<PatternMatchOutput.IsValidation, U, N> validatePatternMatchInternal(
-            PatternMatchInput<LValueExpression, U, N> input,
-            ValidationMessageAcceptor acceptor
-    ) {
-        return module.get(OfNotationExpressionSemantics.class).validatePatternMatchInternal(
-                input.mapPattern(i -> (OfNotation) i),
-                acceptor
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<LValueExpression, ?, ?> input) {
+        return module.get(OfNotationExpressionSemantics.class).compilePatternMatchInternal(
+                input.mapPattern(lve -> (OfNotation) lve)
         );
     }
 
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<LValueExpression, ?, ?> input) {
+        return module.get(OfNotationExpressionSemantics.class).inferPatternTypeInternal(
+                input.mapPattern(lve -> (OfNotation) lve)
+        );
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<LValueExpression, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        return module.get(OfNotationExpressionSemantics.class).validatePatternMatchInternal(
+                input.mapPattern(lve -> (OfNotation) lve),
+                acceptor
+        );
+    }
 
 
 }

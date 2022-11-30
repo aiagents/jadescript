@@ -806,4 +806,15 @@ public class ValidationHelper implements SemanticsConsts {
                 acceptor
         );
     }
+
+    public <T> Maybe<? extends EObject> extractEObject(Maybe<T> object) {
+        final T t = object.toNullable();
+        if(t instanceof ProxyEObject){
+            return Maybe.of(((ProxyEObject) t).getProxyEObject());
+        }else if(t instanceof EObject){
+            return Maybe.of(((EObject) t));
+        }else{
+            return Maybe.nothing();
+        }
+    }
 }

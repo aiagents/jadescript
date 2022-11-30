@@ -24,7 +24,6 @@ import jadescript.lang.Performative;
 import jadescript.lang.Tuple;
 import jadescript.util.JadescriptMap;
 import jadescript.util.JadescriptSet;
-import org.eclipse.emf.common.util.WrappedException;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.naming.IQualifiedNameProvider;
@@ -1254,10 +1253,6 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
-
-
-
-
     public boolean implicitConversionCanOccur(IJadescriptType from, IJadescriptType to) {
         if (from.typeEquals(to)) {
             return true;
@@ -1948,6 +1943,18 @@ public class TypeHelper implements SemanticsConsts {
             }
         }
         return ANY;
+    }
+
+    public TypeRelationship getTypeRelationship(IJadescriptType t1, IJadescriptType t2) {
+        if (t1.typeEquals(t2)) {
+            return TypeRelationship.EQUAL;
+        } else if (t1.isAssignableFrom(t2)) {
+            return TypeRelationship.STRICT_SUBTYPE;
+        } else if (t2.isAssignableFrom(t1)) {
+            return TypeRelationship.STRICT_SUPERTYPE;
+        } else {
+            return TypeRelationship.NOT_RELATED;
+        }
     }
 
     private List<JvmTypeReference> getParentChain(JvmTypeReference x) {

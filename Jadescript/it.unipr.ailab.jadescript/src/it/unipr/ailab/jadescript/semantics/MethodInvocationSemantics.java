@@ -2,19 +2,15 @@ package it.unipr.ailab.jadescript.semantics;
 
 import com.google.common.collect.Streams;
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
-import it.unipr.ailab.jadescript.jadescript.NamedArgumentList;
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Symbol;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -23,11 +19,13 @@ import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.jadescript.semantics.utils.Util.Tuple2;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.sonneteer.classmember.MethodWriter;
+import it.unipr.ailab.sonneteer.qualifiers.Visibility;
 import org.eclipse.emf.ecore.EReference;
+import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -488,108 +486,289 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
 
-        if(simpleArgs.isNothing() && namedArgs.isNothing()) return false;
-        return simpleArgs.__(sal ->
-                //TODO check if any of sal is holed
-                ).extract(nullAsFalse)
-                || namedArgs.__(nal ->
-                //TODO check if any of nal is holed
-                ).extract(nullAsFalse);
+        if (simpleArgs.isNothing() && namedArgs.isNothing()) return false;
+
+
+        List<Maybe<RValueExpression>> args;
+
+        if (simpleArgs.isPresent()) {
+            args = toListOfMaybes(simpleArgs.__(SimpleArgumentList::getExpressions));
+        } else {// => namedArgs.isPresent()
+            args = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues));
+        }
+
+        return args.stream().anyMatch(module.get(RValueExpressionSemantics.class)::isHoled);
     }
 
     public boolean isUnbounded(Maybe<MethodCall> input) {
+        Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
+        Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
 
+        if (simpleArgs.isNothing() && namedArgs.isNothing()) return false;
+
+
+        List<Maybe<RValueExpression>> args;
+
+        if (simpleArgs.isPresent()) {
+            args = toListOfMaybes(simpleArgs.__(SimpleArgumentList::getExpressions));
+        } else {// => namedArgs.isPresent()
+            args = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues));
+        }
+
+        return args.stream().anyMatch(module.get(RValueExpressionSemantics.class)::isHoled);
     }
 
-    public PatternMatchOutput<PatternMatchOutput.IsCompilation, ?, ?> compilePatternMatchInternal(
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<MethodCall, ?, ?> input
     ) {
-Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input.getPattern());
+        final Maybe<? extends CallableSymbol> method = resolve(input.getPattern());
+
+        Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input.getPattern());
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input.getPattern());
-        Maybe<String> name = input.__(MethodCall::getName);
+        Maybe<String> name = input.getPattern().__(MethodCall::getName);
+        boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
+        List<Maybe<RValueExpression>> argExpressions;
+        if (noArgs) {
+            argExpressions = Collections.emptyList();
+        } else if (simpleArgs.isPresent()) {
+            argExpressions = toListOfMaybes(simpleArgs.__(SimpleArgumentList::getExpressions));
+        } else /*(namedArgs.isPresent())*/ {
+            argExpressions = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues));
+
+        }
+
+
+        if (method.isPresent()) {
+            final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
+            CallableSymbol m = method.toNullable();
+            List<IJadescriptType> patternTermTypes = m.parameterTypes();
+            if (namedArgs.isPresent()) {
+                List<String> argNames = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterNames)).stream()
+                        .map(Maybe::toNullable)
+                        .collect(Collectors.toList());
+                argExpressions = sortToMatchParamNames(argExpressions, argNames, m.parameterNames());
+            }
+            List<PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults = new ArrayList<>();
+            for (int i = 0; i < argExpressions.size(); i++) {
+                Maybe<RValueExpression> term = argExpressions.get(i);
+                IJadescriptType upperBound = patternTermTypes.get(i);
+                Maybe<String> compiledExpression = Maybe.of(
+                        "__x.get" + Strings.toFirstUpper(m.parameterNames().get(i)) + "()"
+                );
+                final PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> termOutput =
+                        rves.compilePatternMatch(input.subPattern(
+                                upperBound,
+                                compiledExpression,
+                                __ -> term.toNullable(),
+                                "_" + i
+                        ));
+                subResults.add(termOutput);
+            }
+
+            PatternType patternType = inferPatternTypeInternal(input); //here it's ok to call internal
+            IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
+            MethodWriter mainMethod = module.get(PatternMatchHelper.class).prepareMatcherMethod(
+                    input.getTermID(),
+                    solvedPatternType
+            );
+            StringBuilder returnExpression = new StringBuilder("true");
+            for (int i = 0; i < subResults.size(); i++) {
+                PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> subResult = subResults.get(i);
+                returnExpression.append(" && ");
+                final PatternMatchSemanticsProcess.IsCompilation compileInfo = subResult.getProcessInfo();
+                returnExpression.append(compileInfo.compileOperationInvocation(
+                        "__x.get" + Strings.toFirstUpper(m.parameterNames().get(i)) + "()"
+                ));
+            }
+
+            mainMethod.getBody()
+                    .addStatement(w.returnStmnt(w.expr(returnExpression.toString())));
+
+            return new PatternMatchOutput<>(
+                    new PatternMatchSemanticsProcess.IsCompilation(mainMethod.getName())
+                            .addWriter(mainMethod),
+
+                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
+                            ? PatternMatchOutput.collectUnificationResults(subResults)
+                            : PatternMatchOutput.NoUnification.INSTANCE,
+
+                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
+                            ? new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
+                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            );
+
+        } else {
+            return input.createEmptyCompileOutput();
+        }
     }
 
-    public PatternType inferPatternType(
+    public PatternType inferPatternTypeInternal(
             PatternMatchInput<MethodCall, ?, ?> input
     ) {
+        final Maybe<? extends CallableSymbol> method = resolve(input.getPattern());
+        if (method.isPresent()) {
+            return new PatternType.SimplePatternType(method.toNullable().returnType());
+        } else {
+            return PatternType.empty(module);
+        }
 
     }
 
-    public PatternMatchOutput<PatternMatchOutput.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<MethodCall, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
+        final List<? extends CallableSymbol> methods = resolveCandidates(input.getPattern());
+        Maybe<MethodCall> patternCall = input.getPattern();
+        Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input.getPattern());
+        Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input.getPattern());
+        Maybe<String> name = input.getPattern().__(MethodCall::getName);
+        boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
+        List<Maybe<RValueExpression>> argExpressions;
+        if (noArgs) {
+            argExpressions = Collections.emptyList();
+        } else if (simpleArgs.isPresent()) {
+            argExpressions = toListOfMaybes(simpleArgs.__(SimpleArgumentList::getExpressions));
+        } else /*(namedArgs.isPresent())*/ {
+            argExpressions = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues));
+        }
 
+        if (methods.size() == 0) {
+            if (patternCall.isPresent()) {
+                acceptor.acceptError(
+                        "Cannot resolve structural pattern: "
+                                + Util.getSignature(name.orElse(""), argExpressions.size()),
+                        patternCall.toNullable().getProxyEObject(),
+                        null,
+                        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+                        "InvalidPattern"
+                );
+            }
+            return input.createEmptyValidationOutput();
+        } else if (methods.size() > 1) {
+            if (patternCall.isPresent()) {
+                List<String> candidatesMessage = new ArrayList<>();
+                for (CallableSymbol c : methods) {
+                    candidatesMessage.add(Util.getSignature(c.name(), c.parameterTypes()) + " in " +
+                            c.sourceLocation() + ";");
+                }
+
+                acceptor.acceptError(
+                        "Ambiguous pattern resolution: "
+                                + Util.getSignature(name.orElse(""), argExpressions.size())
+                                + ". Candidates: \n• " + String.join("\n•", candidatesMessage),
+                        patternCall.toNullable().getProxyEObject(),
+                        null,
+                        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+                        "InvalidPattern"
+                );
+            }
+            return input.createEmptyValidationOutput();
+        } else { // => methods.size() == 1
+            final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
+            CallableSymbol m = methods.get(0);
+            List<IJadescriptType> patternTermTypes = m.parameterTypes();
+            if (namedArgs.isPresent()) {
+                List<String> argNames = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterNames)).stream()
+                        .map(Maybe::toNullable)
+                        .collect(Collectors.toList());
+                argExpressions = sortToMatchParamNames(argExpressions, argNames, m.parameterNames());
+            }
+            List<PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?>> subResults = new ArrayList<>();
+            for (int i = 0; i < argExpressions.size(); i++) {
+                Maybe<RValueExpression> term = argExpressions.get(i);
+                IJadescriptType upperBound = patternTermTypes.get(i);
+                final PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> termOutput =
+                        rves.validatePatternMatch(
+                                input.subPattern(
+                                        upperBound,
+                                        __ -> term.toNullable(),
+                                        "_" + i
+                                ),
+                                acceptor
+                        );
+                subResults.add(termOutput);
+            }
+
+            PatternType patternType = inferPatternType(input);
+            IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
+
+            return new PatternMatchOutput<>(
+                    PatternMatchSemanticsProcess.IsValidation.INSTANCE,
+                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
+                            ? PatternMatchOutput.collectUnificationResults(subResults)
+                            : PatternMatchOutput.NoUnification.INSTANCE,
+                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
+                            ? new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
+                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            );
+        }
     }
 
-    public boolean resolves(
-            Maybe<MethodCall> input
-    ) {
+    public List<? extends CallableSymbol> resolveCandidates(Maybe<MethodCall> input) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
         Maybe<String> name = input.__(MethodCall::getName);
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
-        AtomicBoolean result = new AtomicBoolean(false);
 
-        name.safeDo(nameSafe -> {
+        return name.__(nameSafe -> {
             if (noArgs) {
-                List<? extends CallableSymbol> methodsFound = module.get(ContextManager.class).currentContext().searchAs(
+                return module.get(ContextManager.class).currentContext().searchAs(
                                 CallableSymbol.Searcher.class,
                                 searcher -> searcher.searchCallable(
                                         nameSafe,
-                                        null,
+                                        CallableSymbol.Searcher.ANY_RETURN_TYPE,
                                         (s, n) -> s == 0,
                                         (s, t) -> s == 0
                                 )
                         ).filter(Util.dinstinctBy(Symbol::sourceLocation))
                         .collect(Collectors.toList());
+            } else if (simpleArgs.isPresent()) {
+                final SimpleArgumentList simpleArgsSafe = simpleArgs.toNullable();
+                int argsize = simpleArgsSafe.getExpressions().size();
+                return module.get(ContextManager.class).currentContext().searchAs(
+                                CallableSymbol.Searcher.class,
+                                searcher -> searcher.searchCallable(
+                                        nameSafe,
+                                        null,
+                                        (s, n) -> s == argsize,
+                                        (s, t) -> s == argsize
+                                )
+                        ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                        .collect(Collectors.toList());
+            } else /*(namedArgs.isPresent())*/ {
+                return module.get(ContextManager.class).currentContext().searchAs(
+                                CallableSymbol.Searcher.class,
+                                searcher -> searcher.searchCallable(
+                                        nameSafe,
+                                        CallableSymbol.Searcher.ANY_RETURN_TYPE,
+                                        (s, n) -> namedArgs
+                                                .__(NamedArgumentList::getParameterNames)
+                                                .__(List::size)
+                                                .wrappedEquals(s),
+                                        (s, t) -> namedArgs
+                                                .__(NamedArgumentList::getParameterValues)
+                                                .__(List::size)
+                                                .wrappedEquals(s)
+                                )
+                        ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                        .collect(Collectors.toList());
 
-                result.set(methodsFound.size() == 1);
-            } else {
-                eitherDo(simpleArgs, namedArgs,
-                        //case simpleArgs!=null
-                        simpleArgsSafe -> {
-                            int argsize = simpleArgsSafe.getExpressions().size();
-                            List<? extends CallableSymbol> methodsFound = module.get(ContextManager.class).currentContext().searchAs(
-                                            CallableSymbol.Searcher.class,
-                                            searcher -> searcher.searchCallable(
-                                                    nameSafe,
-                                                    null,
-                                                    (s, n) -> s == argsize,
-                                                    (s, t) -> s == argsize
-                                            )
-                                    ).filter(Util.dinstinctBy(Symbol::sourceLocation))
-                                    .collect(Collectors.toList());
-
-                            result.set(methodsFound.size() == 1);
-                        },
-                        //case namedArgs!=null
-                        namedArgsSafe -> {
-                            List<? extends CallableSymbol> methodsFound = module.get(ContextManager.class).currentContext().searchAs(
-                                            CallableSymbol.Searcher.class,
-                                            searcher -> searcher.searchCallable(
-                                                    nameSafe,
-                                                    null,
-                                                    (s, n) -> namedArgs
-                                                            .__(NamedArgumentList::getParameterNames)
-                                                            .__(List::size)
-                                                            .wrappedEquals(s),
-                                                    (s, t) -> namedArgs
-                                                            .__(NamedArgumentList::getParameterValues)
-                                                            .__(List::size)
-                                                            .wrappedEquals(s)
-                                            )
-                                    ).filter(Util.dinstinctBy(Symbol::sourceLocation))
-                                    .collect(Collectors.toList());
-
-                            result.set(methodsFound.size() == 1);
-                        }
-                );
             }
+        }).orElseGet(Collections::emptyList);
+    }
 
-        });
+    public Maybe<? extends CallableSymbol> resolve(Maybe<MethodCall> input) {
+        final List<? extends CallableSymbol> callableSymbols = resolveCandidates(input);
+        if (callableSymbols.size() == 1) {
+            return Maybe.of(callableSymbols.get(0));
+        } else {
+            return Maybe.nothing();
+        }
+    }
 
-        return result.get();
+    public boolean resolves(Maybe<MethodCall> input) {
+        return resolve(input).isPresent();
     }
 
     public static <T> List<T> sortToMatchParamNames(
