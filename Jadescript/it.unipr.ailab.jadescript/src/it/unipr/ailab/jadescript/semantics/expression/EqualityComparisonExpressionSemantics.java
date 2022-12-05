@@ -42,9 +42,11 @@ public class EqualityComparisonExpressionSemantics extends ExpressionSemantics<E
 
         return Arrays.asList(
                 input.__(EqualityComparison::getLeft)
-                        .extract(x->new ExpressionSemantics.SemanticsBoundToExpression<>(module.get(TypeComparisonExpressionSemantics.class), x)),
+                        .extract(x->new ExpressionSemantics.SemanticsBoundToExpression<>(
+                                module.get(TypeComparisonExpressionSemantics.class), x)),
                 input.__(EqualityComparison::getRight)
-                        .extract(x->new ExpressionSemantics.SemanticsBoundToExpression<>(module.get(TypeComparisonExpressionSemantics.class), x))
+                        .extract(x->new ExpressionSemantics.SemanticsBoundToExpression<>(
+                                module.get(TypeComparisonExpressionSemantics.class), x))
         );
 
     }

@@ -10,7 +10,6 @@ import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.Semant
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -19,8 +18,6 @@ import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.jadescript.semantics.utils.Util.Tuple2;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.classmember.MethodWriter;
-import it.unipr.ailab.sonneteer.qualifiers.Visibility;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -497,7 +494,17 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
             args = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues));
         }
 
+
         return args.stream().anyMatch(module.get(RValueExpressionSemantics.class)::isHoled);
+    }
+
+    public boolean isTypelyHoled(Maybe<MethodCall> input) {
+        /*
+        Functional-notation patterns are identified by name and number of arguments, and, when resolved, have always
+         a compile-time-known non-holed type. Therefore, they are never typely-holed, even when their arguments are/have
+         holes.
+        */
+        return false;
     }
 
     public boolean isUnbounded(Maybe<MethodCall> input) {
@@ -515,7 +522,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
             args = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues));
         }
 
-        return args.stream().anyMatch(module.get(RValueExpressionSemantics.class)::isHoled);
+        return args.stream().anyMatch(module.get(RValueExpressionSemantics.class)::isUnbounded);
     }
 
     public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
@@ -525,7 +532,6 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
 
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input.getPattern());
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input.getPattern());
-        Maybe<String> name = input.getPattern().__(MethodCall::getName);
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
         List<Maybe<RValueExpression>> argExpressions;
         if (noArgs) {
@@ -548,45 +554,38 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                         .collect(Collectors.toList());
                 argExpressions = sortToMatchParamNames(argExpressions, argNames, m.parameterNames());
             }
-            List<PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults = new ArrayList<>();
+            List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults
+                    = new ArrayList<>(argExpressions.size());
             for (int i = 0; i < argExpressions.size(); i++) {
                 Maybe<RValueExpression> term = argExpressions.get(i);
                 IJadescriptType upperBound = patternTermTypes.get(i);
-                Maybe<String> compiledExpression = Maybe.of(
-                        "__x.get" + Strings.toFirstUpper(m.parameterNames().get(i)) + "()"
-                );
                 final PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> termOutput =
                         rves.compilePatternMatch(input.subPattern(
                                 upperBound,
-                                compiledExpression,
                                 __ -> term.toNullable(),
                                 "_" + i
                         ));
                 subResults.add(termOutput);
             }
 
-            PatternType patternType = inferPatternTypeInternal(input); //here it's ok to call internal
+            PatternType patternType = inferPatternType(input);
             IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
-            MethodWriter mainMethod = module.get(PatternMatchHelper.class).prepareMatcherMethod(
-                    input.getTermID(),
-                    solvedPatternType
-            );
-            StringBuilder returnExpression = new StringBuilder("true");
+
+            List<String> compiledSubInputs = new ArrayList<>(m.parameterNames().size());
             for (int i = 0; i < subResults.size(); i++) {
-                PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> subResult = subResults.get(i);
-                returnExpression.append(" && ");
-                final PatternMatchSemanticsProcess.IsCompilation compileInfo = subResult.getProcessInfo();
-                returnExpression.append(compileInfo.compileOperationInvocation(
-                        "__x.get" + Strings.toFirstUpper(m.parameterNames().get(i)) + "()"
-                ));
+                compiledSubInputs.add("__x.get" + Strings.toFirstUpper(m.parameterNames().get(i)) + "()");
             }
 
-            mainMethod.getBody()
-                    .addStatement(w.returnStmnt(w.expr(returnExpression.toString())));
 
             return new PatternMatchOutput<>(
-                    new PatternMatchSemanticsProcess.IsCompilation(mainMethod.getName())
-                            .addWriter(mainMethod),
+                    new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
+                            input,
+                            solvedPatternType,
+                            i -> (i < 0 || i >= compiledSubInputs.size())
+                                    ? "/*IndexOutOfBounds*/"
+                                    : compiledSubInputs.get(i),
+                            subResults
+                    ),
 
                     input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
                             ? PatternMatchOutput.collectUnificationResults(subResults)
@@ -602,12 +601,25 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
         }
     }
 
+    private PatternType inferPatternType(PatternMatchInput<MethodCall, ?, ?> input) {
+        if (isPatternGroundForEquality(input)) {
+            return PatternType.simple(inferType(input.getPattern()));
+        } else {
+            return inferPatternTypeInternal(input);
+        }
+    }
+
+    private boolean isPatternGroundForEquality(PatternMatchInput<MethodCall, ?, ?> input) {
+        return input.getMode().getPatternLocation() == PatternMatchMode.PatternLocation.SUB_PATTERN
+                && !isHoled(input.getPattern());
+    }
+
     public PatternType inferPatternTypeInternal(
             PatternMatchInput<MethodCall, ?, ?> input
     ) {
         final Maybe<? extends CallableSymbol> method = resolve(input.getPattern());
         if (method.isPresent()) {
-            return new PatternType.SimplePatternType(method.toNullable().returnType());
+            return PatternType.simple(method.toNullable().returnType());
         } else {
             return PatternType.empty(module);
         }
@@ -674,7 +686,8 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                         .collect(Collectors.toList());
                 argExpressions = sortToMatchParamNames(argExpressions, argNames, m.parameterNames());
             }
-            List<PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?>> subResults = new ArrayList<>();
+            List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>> subResults
+                    = new ArrayList<>(argExpressions.size());
             for (int i = 0; i < argExpressions.size(); i++) {
                 Maybe<RValueExpression> term = argExpressions.get(i);
                 IJadescriptType upperBound = patternTermTypes.get(i);

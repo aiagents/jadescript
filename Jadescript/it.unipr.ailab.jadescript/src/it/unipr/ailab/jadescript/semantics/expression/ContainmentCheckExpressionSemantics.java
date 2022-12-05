@@ -6,6 +6,10 @@ import it.unipr.ailab.jadescript.jadescript.ContainmentCheck;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
 import it.unipr.ailab.maybe.Maybe;
@@ -118,6 +122,44 @@ public class ContainmentCheckExpressionSemantics extends ExpressionSemantics<Con
         }
     }
 
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<ContainmentCheck, ?, ?> input) {
+        if (mustTraverse(input.getPattern())) {
+            return module.get(AdditiveExpressionSemantics.class).compilePatternMatchInternal(
+                    input.mapPattern(ContainmentCheck::getCollection)
+            );
+        } else {
+            return input.createEmptyCompileOutput();
+        }
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<ContainmentCheck, ?, ?> input) {
+        if (mustTraverse(input.getPattern())) {
+            return module.get(AdditiveExpressionSemantics.class).inferPatternTypeInternal(
+                    input.mapPattern(ContainmentCheck::getCollection));
+        } else {
+            return PatternType.empty(module);
+        }
+    }
+
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<ContainmentCheck, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        if(mustTraverse(input.getPattern())){
+            return module.get(AdditiveExpressionSemantics.class).validatePatternMatchInternal(
+                    input.mapPattern(ContainmentCheck::getCollection),
+                    acceptor
+            );
+        }else{
+            return input.createEmptyValidationOutput();
+        }
+    }
+
 
     @Override
     public void validate(Maybe<ContainmentCheck> input, ValidationMessageAcceptor acceptor) {
@@ -180,4 +222,6 @@ public class ContainmentCheckExpressionSemantics extends ExpressionSemantics<Con
             }
         }
     }
+
+
 }

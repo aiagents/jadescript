@@ -5,13 +5,11 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
-import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.classmember.MethodWriter;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -274,6 +272,35 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
     }
 
     /**
+     * Similar to {@link ExpressionSemantics#isHoled(Maybe)} , but used only by the process of type inferring of
+     * patterns.
+     * Being "typely holed" is a special case of being "holed".
+     * In fact, some holed patterns can still provide complete information about their type at compile time.
+     * One example is the functional-notation pattern. Its argument patterns can be holed, but the type of the whole
+     * pattern is completely known at compile-time, and it is the one related to the return type of the function
+     * referred by the pattern.
+     * By design, if this method returns true for a given pattern, then
+     * {@link ExpressionSemantics#inferPatternType(PatternMatchInput)} should return a
+     * {@link PatternType.HoledPatternType}, otherwise a {@link PatternType.SimplePatternType} is expected.
+     * The default implementation attempts to traverse the expression tree, and when this is not possible, it returns
+     * the same value as {@link ExpressionSemantics#isHoled(Maybe)}, but this must be overridden by special cases like
+     * the one in the example mentioned above.
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public boolean isTypelyHoled(Maybe<T> input) {
+        if (mustTraverse(input)) {
+            final Optional<SemanticsBoundToExpression<?>> traverse = traverse(input);
+            if (traverse.isPresent()) {
+                final ExpressionSemantics<?> semantics = traverse.get().getSemantics();
+                final Maybe traversedInput = traverse.get().getInput();
+                return semantics.isTypelyHoled(traversedInput);
+            }
+        }
+
+        return isHoled(input);
+    }
+
+    /**
      * Returns true if this expression contains unbounded names in it.
      * In {@link ExpressionSemantics} there is a default implementation that returns false unless a traversing is
      * required.
@@ -293,6 +320,7 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
 
         return false;
     }
+
 
     protected boolean isPatternGroundForEquality(PatternMatchInput<T, ?, ?> patternMatchInput) {
         return patternMatchInput.getMode().getPatternLocation() == PatternMatchMode.PatternLocation.SUB_PATTERN
@@ -317,7 +345,7 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
             PatternMatchInput<T, ?, ?> input
     ) {
         if (isPatternGroundForEquality(input)) {
-            return new PatternType.SimplePatternType(inferType(input.getPattern()));
+            return PatternType.simple(inferType(input.getPattern()));
         } else {
             return inferPatternTypeInternal(input);
         }
@@ -334,8 +362,8 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
 
         final boolean shouldEvaluatePatternAsRExpr = isPatternGroundForEquality(input);
         if (shouldEvaluatePatternAsRExpr) {
+            // This is a non-holed expression: validate it as such.
             validate(input.getPattern(), acceptor);
-
         }
 
 
@@ -360,7 +388,17 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
             return (PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, U, N>)
                     validateExpressionEqualityPatternMatch((PatternMatchInput.SubPattern<T, ?, ?, ?>) input);
         } else {
-            //TODO check holedness/groundness
+
+
+            if (!canBeHoled(input.getPattern())) {
+                module.get(ValidationHelper.class).assertion(
+                        !isHoled(input.getPattern()),
+                        "InvalidPattern",
+                        "This kind of expression cannot contain holes.",
+                        module.get(ValidationHelper.class).extractEObject(input.getPattern()),
+                        acceptor
+                );
+            }
 
             return (PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, U, N>) validatePatternMatchInternal(input, acceptor);
         }
@@ -394,19 +432,19 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
     private PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compileExpressionEqualityPatternMatch(
             PatternMatchInput.SubPattern<T, ?, ?, ?> input
     ) {
-        IJadescriptType patternType = inferPatternType(input).solve(input.providedInputType());
-        MethodWriter m = module.get(PatternMatchHelper.class).prepareMatcherMethod(input.getTermID(), patternType);
-        m.getBody().addStatement(w.returnStmnt(w.expr(
-                "java.util.Objects.equals(__x, " + input.compiledInput() + ")"
-        )));
+        IJadescriptType solvedPatternType = inferPatternType(input).solve(input.providedInputType());
+
         return new PatternMatchOutput<>(
-                new PatternMatchSemanticsProcess.IsCompilation(m.getName())
-                        .addWriter(m),
+                new PatternMatchSemanticsProcess.IsCompilation.AsSingleConditionMethod(
+                        input,
+                        solvedPatternType,
+                        "java.util.Objects.equals(__x, " + compile(input.getPattern()).orElse("") + ")"
+                ),
                 input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
                         ? PatternMatchOutput.EMPTY_UNIFICATION
                         : PatternMatchOutput.NoUnification.INSTANCE,
                 input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                        ? new PatternMatchOutput.WithTypeNarrowing(patternType)
+                        ? new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
                         : PatternMatchOutput.NoNarrowing.INSTANCE
         );
     }
@@ -419,4 +457,13 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
 
     protected abstract PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?>
     validatePatternMatchInternal(PatternMatchInput<T, ?, ?> input, ValidationMessageAcceptor acceptor);
+
+
+    protected boolean canBeHoled(Maybe<T> input) {
+        //TODO
+    }
+    //ALSO TODO ensure that each pattern matching is evaluated inside its own subscope
+    //          this is because a pattern could introduce variables that are used in the same pattern
+    //          - then remember to populate the resulting context with the variables given by the output object
+    //ALSO TODO refactor compile-expression to provide auxiliary statements in one sweep
 }

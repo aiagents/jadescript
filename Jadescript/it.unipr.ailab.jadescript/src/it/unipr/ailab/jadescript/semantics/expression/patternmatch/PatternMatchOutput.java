@@ -62,7 +62,7 @@ public class PatternMatchOutput<
     }
 
     public static <T extends PatternMatchSemanticsProcess>
-    DoesUnification collectUnificationResults(List<PatternMatchOutput<T, ?, ?>> subUnifications){
+    DoesUnification collectUnificationResults(List<PatternMatchOutput<? extends T, ?, ?>> subUnifications){
         List<NamedSymbol> result = new ArrayList<>();
         for (PatternMatchOutput<?, ?, ?> subUnification : subUnifications) {
             final Unification unificationInfo = subUnification.getUnificationInfo();

@@ -31,6 +31,9 @@ import static com.google.common.collect.Streams.zip;
 @Singleton
 public class MapOrSetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetLiteral> {
 
+
+    //TODO splito in two separate semantics
+
     public MapOrSetLiteralExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }

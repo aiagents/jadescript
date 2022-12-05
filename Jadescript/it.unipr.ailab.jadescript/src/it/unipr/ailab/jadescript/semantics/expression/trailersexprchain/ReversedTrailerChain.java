@@ -159,9 +159,9 @@ public class ReversedTrailerChain {
     }
 
     public PatternType inferPatternTypeInternal(PatternMatchInput<AtomExpr, ?, ?> input) {
-        if (elements.isEmpty()) return new PatternType.SimplePatternType(module.get(TypeHelper.class).NOTHING);
+        if (elements.isEmpty()) return PatternType.simple(module.get(TypeHelper.class).NOTHING);
         return elements.get(0).__(el -> el.inferPatternTypeInternal(input, withoutFirst())).orElseGet(() ->
-                new PatternType.SimplePatternType(module.get(TypeHelper.class).NOTHING));
+                PatternType.simple(module.get(TypeHelper.class).NOTHING));
     }
 
     public PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
@@ -172,5 +172,10 @@ public class ReversedTrailerChain {
         return elements.get(0).__(el -> el.validatePatternMatchInternal(input, withoutFirst(), acceptor))
                 //TODO add empty output generator method:
                 .toNullable();
+    }
+
+    public boolean isTypelyHoled() {
+        if(elements.isEmpty()) return false;
+        return elements.get(0).__(el -> el.isTypelyHoled(withoutFirst())).extract(Maybe.nullAsFalse);
     }
 }

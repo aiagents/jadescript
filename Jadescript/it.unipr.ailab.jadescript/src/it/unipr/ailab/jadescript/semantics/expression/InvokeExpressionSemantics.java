@@ -4,6 +4,10 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.InvokeExpression;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -31,12 +35,6 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
     public List<ExpressionSemantics.SemanticsBoundToExpression<?>> getSubExpressions(Maybe<InvokeExpression> input) {
         final Maybe<RValueExpression> expr = input.__(InvokeExpression::getExpr);
         final List<Maybe<RValueExpression>> argValues = toListOfMaybes(input.__(InvokeExpression::getArgumentValues));
-        if(mustTraverse(input)){
-            Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                return Collections.singletonList(traversed.get());
-            }
-        }
 
         List<ExpressionSemantics.SemanticsBoundToExpression<?>> result = new ArrayList<>();
         result.add(new ExpressionSemantics.SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), expr));
@@ -160,6 +158,25 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
     @Override
     public Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traverse(Maybe<InvokeExpression> input) {
         return Optional.empty();
+    }
+
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<InvokeExpression, ?, ?> input) {
+        return input.createEmptyCompileOutput();
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<InvokeExpression, ?, ?> input) {
+        return PatternType.empty(module);
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<InvokeExpression, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        return input.createEmptyValidationOutput();
     }
 
     @Override

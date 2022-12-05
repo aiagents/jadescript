@@ -900,16 +900,24 @@ Literal:
 
 ListLiteral:
 	{ListLiteral} 
-	('[' (values+=RValueExpression (',' values+=RValueExpression)*)? ']' 
-		(withTypeSpecifier?='of' typeParameter=TypeExpression)?
+	(
+	 '['
+	 (values+=RValueExpression (',' values+=RValueExpression)*)?
+	 (withPipe?='|' rest=RValueExpression)?
+	 ']' (withTypeSpecifier?='of' typeParameter=TypeExpression)?
 	);
 
 
 MapOrSetLiteral:
 	{MapOrSetLiteral} 
-	('{' keys+=RValueExpression (=>isMap?=':' values+=RValueExpression)? (',' keys+=RValueExpression (=>':'values+=RValueExpression)?)* '}' 
-		(withTypeSpecifiers?='of' keyTypeParameter=TypeExpression (=>isMapT?=':' valueTypeParameter=TypeExpression)?)?) 
-	| (isEmpty?='{' '}' withTypeSpecifiers?='of' keyTypeParameter=TypeExpression (=>isMapT?=':'valueTypeParameter=TypeExpression)?);
+	(
+     '{' 
+  	 keys+=RValueExpression (=>isMap?=':' values+=RValueExpression)? (',' keys+=RValueExpression (=>':'values+=RValueExpression)?)*
+  	 (withPipe?='|' rest=RValueExpression)? 
+     '}' (withTypeSpecifiers?='of' keyTypeParameter=TypeExpression (=>isMapT?=':' valueTypeParameter=TypeExpression)?)?) 
+	
+	| 
+	(isEmpty?='{' (isMap?=':')? '}' withTypeSpecifiers?='of' keyTypeParameter=TypeExpression (=>isMapT?=':'valueTypeParameter=TypeExpression)?);
 
 
 BooleanLiteral:

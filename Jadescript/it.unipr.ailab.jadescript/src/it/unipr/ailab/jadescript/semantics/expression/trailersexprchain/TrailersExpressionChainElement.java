@@ -74,4 +74,6 @@ public abstract class TrailersExpressionChainElement {
             ReversedTrailerChain rest,
             ValidationMessageAcceptor acceptor
     );
+
+    public abstract boolean isTypelyHoled(ReversedTrailerChain rest);
 }

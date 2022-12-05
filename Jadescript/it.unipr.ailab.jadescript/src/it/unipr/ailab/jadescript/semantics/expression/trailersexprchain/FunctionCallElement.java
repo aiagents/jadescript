@@ -173,4 +173,10 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
         );
     }
 
+    @Override
+    public boolean isTypelyHoled(ReversedTrailerChain rest) {
+        //rest should be empty, so it's ignored
+        return subSemantics.isTypelyHoled(generateMethodCall());
+    }
+
 }

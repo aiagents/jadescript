@@ -30,6 +30,7 @@ import org.eclipse.xtext.naming.IQualifiedNameProvider;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypeReferenceBuilder;
 
 import java.io.Serializable;
@@ -46,6 +47,7 @@ import static jadescript.lang.Performative.*;
 
 
 public class TypeHelper implements SemanticsConsts {
+
 
 
     //Associates JVM fully-qualified-name strings to Jadescript types.
@@ -66,6 +68,8 @@ public class TypeHelper implements SemanticsConsts {
 
 
     // Top and bottom
+    public final Function<String, UtilityType> TOP;
+    public final Function<String, UtilityType> BOTTOM;
     public final UtilityType ANY;
     public final UtilityType NOTHING;
 
@@ -188,6 +192,8 @@ public class TypeHelper implements SemanticsConsts {
         };
         defineJVMToDescriptor(Object.class, ANY);
 
+        TOP = (String s) -> ErroneousType.top(module, s, ANY);
+
 
         NOTHING = new UtilityType(
                 module,
@@ -226,6 +232,8 @@ public class TypeHelper implements SemanticsConsts {
                 );
             }
         };
+
+        BOTTOM = (String s) -> ErroneousType.bottom(module, s, NOTHING);
 
         VOID = new UtilityType(
                 module,
@@ -2076,6 +2084,97 @@ public class TypeHelper implements SemanticsConsts {
 
         public int getDefaultCount() {
             return Math.min(argumentToDefault.size(), argumentToCompile.size());
+        }
+    }
+
+
+    public static class ErroneousType extends UtilityType {
+
+        private final String description;
+        private final IJadescriptType relationshipDelegate;
+
+        static ErroneousType top(SemanticsModule module, String description, IJadescriptType giveMeANY) {
+            return new ErroneousType(
+                    module,
+                    builtinPrefix + "TOP_ERR",
+                    "(error)any",
+                    module.get(JvmTypeReferenceBuilder.class).typeRef("/*ANY*/java.lang.Object"),
+                    description,
+                    giveMeANY
+            );
+        }
+
+        static ErroneousType bottom(SemanticsModule module, String description, IJadescriptType giveMeNOTHING) {
+            return new ErroneousType(
+                    module,
+                    builtinPrefix + "BOTTOM_ERR",
+                    "(error)nothing",
+                    module.get(JvmTypeReferenceBuilder.class).typeRef("/*NOTHING*/java.lang.Object"),
+                    description,
+                    giveMeNOTHING
+            );
+        }
+
+        private ErroneousType(
+                SemanticsModule module,
+                String typeID,
+                String simpleName,
+                JvmTypeReference jvmType,
+                String description,
+                IJadescriptType relationshipDelegate
+        ) {
+            super(module, typeID, simpleName, jvmType);
+            this.description = description;
+            this.relationshipDelegate = relationshipDelegate;
+        }
+
+        @Override
+        public boolean typeEquals(IJadescriptType other) {
+            return relationshipDelegate.typeEquals(other);
+        }
+
+        @Override
+        public boolean isAssignableFrom(IJadescriptType other) {
+            return relationshipDelegate.isAssignableFrom(other);
+        }
+
+
+
+        @Override
+        public void validateType(Maybe<? extends EObject> input, ValidationMessageAcceptor acceptor) {
+            module.get(ValidationHelper.class).assertion(
+                    false,
+                    "InvalidType",
+                    description,
+                    input,
+                    acceptor
+            );
+        }
+
+        @Override
+        public boolean isSendable() {
+            return false;
+        }
+
+        @Override
+        public boolean isErroneous() {
+            return true;
+        }
+
+        @Override
+        public Maybe<OntologyType> getDeclaringOntology() {
+            return nothing();
+        }
+
+        @Override
+        public TypeNamespace namespace() {
+            return new BuiltinOpsNamespace(
+                    module,
+                    nothing(),
+                    List.of(),
+                    List.of(),
+                    getLocation()
+            );
         }
     }
 }

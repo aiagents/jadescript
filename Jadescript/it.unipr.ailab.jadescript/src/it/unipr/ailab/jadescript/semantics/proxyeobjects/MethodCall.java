@@ -21,7 +21,7 @@ public class MethodCall extends ProxyEObject {
             Maybe<NamedArgumentList> namedArgs,
             boolean isProcedure
     ) {
-        super(input);
+        super(input instanceof ProxyEObject ? ((ProxyEObject) input).getProxyEObject() : input);
         this.name = name;
         this.simpleArgs = simpleArgs;
         this.namedArgs = namedArgs;
@@ -34,10 +34,10 @@ public class MethodCall extends ProxyEObject {
             Maybe<SimpleArgumentList> simpleArgs,
             Maybe<NamedArgumentList> namedArgs,
             boolean isProcedure
-            ){
-        if(input.isPresent() && name.isPresent()){
+    ) {
+        if (input.isPresent() && name.isPresent()) {
             return of(new MethodCall(input.toNullable(), name.toNullable(), simpleArgs, namedArgs, isProcedure));
-        }else{
+        } else {
             return nothing();
         }
     }
@@ -48,10 +48,10 @@ public class MethodCall extends ProxyEObject {
             Maybe<SimpleArgumentList> simpleArgs,
             Maybe<NamedArgumentList> namedArgs,
             boolean isProcedure
-    ){
-        if(name.isPresent()){
+    ) {
+        if (name.isPresent()) {
             return of(new MethodCall(input, name.toNullable(), simpleArgs, namedArgs, isProcedure));
-        }else{
+        } else {
             return nothing();
         }
     }
@@ -62,10 +62,10 @@ public class MethodCall extends ProxyEObject {
             Maybe<SimpleArgumentList> simpleArgs,
             Maybe<NamedArgumentList> namedArgs,
             boolean isProcedure
-    ){
-        if(input.isPresent() ){
+    ) {
+        if (input.isPresent()) {
             return of(new MethodCall(input.toNullable(), name, simpleArgs, namedArgs, isProcedure));
-        }else{
+        } else {
             return nothing();
         }
     }

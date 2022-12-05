@@ -6,6 +6,10 @@ import it.unipr.ailab.jadescript.jadescript.Literal;
 import it.unipr.ailab.jadescript.jadescript.MapOrSetLiteral;
 import it.unipr.ailab.jadescript.jadescript.StringLiteralSimple;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -114,7 +118,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
         } else if (map.isPresent()) {
             return module.get(MapOrSetLiteralExpressionSemantics.class).inferType(map);
         } else {
-            throw new UnsupportedNodeType("Literals supported now: text, integer, real, boolean, aid, duration, timestamp, list, map");
+            throw new UnsupportedNodeType("Literals supported now: text, integer, real, boolean, timestamp, list, map, set");
         }
     }
 
@@ -145,6 +149,83 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
 
         return Optional.empty();
 
+    }
+
+
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<Literal, ?, ?> input) {
+        final Maybe<StringLiteralSimple> string = input.getPattern().__(Literal::getString);
+        final Maybe<ListLiteral> list = input.getPattern().__(Literal::getList);
+        final Maybe<MapOrSetLiteral> map = input.getPattern().__(Literal::getMap);
+        if (mustTraverse(input.getPattern())) {
+            if (string.isPresent()) {
+                return module.get(StringLiteralSemantics.class).compilePatternMatchInternal(
+                        input.mapPattern(__ -> string.toNullable())
+                );
+            } else if (list.isPresent()) {
+                return module.get(ListLiteralExpressionSemantics.class).compilePatternMatchInternal(
+                        input.mapPattern(__ -> list.toNullable())
+                );
+            } else if (map.isPresent()) {
+                return module.get(MapOrSetLiteralExpressionSemantics.class).compilePatternMatchInternal(
+                        input.mapPattern(__ -> map.toNullable())
+                );
+            }
+        }
+        return input.createEmptyCompileOutput();
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<Literal, ?, ?> input) {
+        final Maybe<StringLiteralSimple> string = input.getPattern().__(Literal::getString);
+        final Maybe<ListLiteral> list = input.getPattern().__(Literal::getList);
+        final Maybe<MapOrSetLiteral> map = input.getPattern().__(Literal::getMap);
+        if (mustTraverse(input.getPattern())) {
+            if (string.isPresent()) {
+                return module.get(StringLiteralSemantics.class).inferPatternTypeInternal(
+                        input.mapPattern(__ -> string.toNullable())
+                );
+            } else if (list.isPresent()) {
+                return module.get(ListLiteralExpressionSemantics.class).inferPatternTypeInternal(
+                        input.mapPattern(__ -> list.toNullable())
+                );
+            } else if (map.isPresent()) {
+                return module.get(MapOrSetLiteralExpressionSemantics.class).inferPatternTypeInternal(
+                        input.mapPattern(__ -> map.toNullable())
+                );
+            }
+        }
+        return PatternType.empty(module);
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<Literal, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        final Maybe<StringLiteralSimple> string = input.getPattern().__(Literal::getString);
+        final Maybe<ListLiteral> list = input.getPattern().__(Literal::getList);
+        final Maybe<MapOrSetLiteral> map = input.getPattern().__(Literal::getMap);
+        if (mustTraverse(input.getPattern())) {
+            if (string.isPresent()) {
+                return module.get(StringLiteralSemantics.class).validatePatternMatchInternal(
+                        input.mapPattern(__ -> string.toNullable()),
+                        acceptor
+                );
+            } else if (list.isPresent()) {
+                return module.get(ListLiteralExpressionSemantics.class).validatePatternMatchInternal(
+                        input.mapPattern(__ -> list.toNullable()),
+                        acceptor
+                );
+            } else if (map.isPresent()) {
+                return module.get(MapOrSetLiteralExpressionSemantics.class).validatePatternMatchInternal(
+                        input.mapPattern(__ -> map.toNullable()),
+                        acceptor
+                );
+            }
+        }
+        return input.createEmptyValidationOutput();
     }
 
     @Override

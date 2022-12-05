@@ -132,5 +132,8 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
         );
     }
 
-
+    @Override
+    public boolean isTypelyHoled(ReversedTrailerChain rest) {
+        return primaryExpressionSemantics.isTypelyHoled(atom);
+    }
 }

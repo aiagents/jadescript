@@ -43,6 +43,7 @@ import static it.unipr.ailab.maybe.Maybe.of;
 @Singleton
 public class PrimaryExpressionSemantics extends AssignableExpressionSemantics<Primary> {
 
+    //TODO split tuple semantics out
 
     public PrimaryExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);

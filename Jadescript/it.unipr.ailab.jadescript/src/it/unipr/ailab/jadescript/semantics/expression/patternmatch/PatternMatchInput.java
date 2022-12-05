@@ -6,8 +6,7 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
-import it.unipr.ailab.maybe.Either3;
+import it.unipr.ailab.maybe.Either;
 import it.unipr.ailab.maybe.Maybe;
 
 import java.util.function.Function;
@@ -22,15 +21,28 @@ public abstract class PatternMatchInput<
     private final Maybe<T> pattern;
     private final String termID;
 
-    public PatternMatchInput(SemanticsModule module, PatternMatchMode patternMatchMode, Maybe<T> pattern, String termID) {
+    private final String rootPatternMatchVariableName;
+
+    public PatternMatchInput(
+            SemanticsModule module,
+            PatternMatchMode patternMatchMode,
+            Maybe<T> pattern,
+            String termID,
+            String rootPatternMatchVariableName
+    ) {
         this.module = module;
         this.patternMatchMode = patternMatchMode;
         this.pattern = pattern;
         this.termID = termID;
+        this.rootPatternMatchVariableName = rootPatternMatchVariableName;
     }
 
     public PatternMatchMode getMode() {
         return patternMatchMode;
+    }
+
+    public String getRootPatternMatchVariableName() {
+        return rootPatternMatchVariableName;
     }
 
     public String getTermID() {
@@ -48,23 +60,6 @@ public abstract class PatternMatchInput<
 
     public abstract IJadescriptType providedInputType();
 
-    public abstract Maybe<String> compiledInput();
-
-    public <T2> SubPattern<T2, T, U, N> subPattern(
-            IJadescriptType providedInputType,
-            Maybe<String> compiledInput,
-            Function<T, T2> extractSubpattern,
-            String idSuffix
-    ) {
-        return new SubPattern<>(
-                module,
-                providedInputType,
-                compiledInput,
-                this,
-                pattern.__(extractSubpattern),
-                idSuffix
-        );
-    }
 
     public <T2> SubPattern<T2, T, U, N> subPattern(
             Maybe<RValueExpression> inputExpression,
@@ -84,7 +79,7 @@ public abstract class PatternMatchInput<
             IJadescriptType providedInputType,
             Function<T, T2> extractSubpattern,
             String idSuffix
-    ){
+    ) {
         return new SubPattern<>(
                 module,
                 providedInputType,
@@ -96,7 +91,7 @@ public abstract class PatternMatchInput<
 
     public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> createEmptyCompileOutput() {
         return new PatternMatchOutput<>(
-                new PatternMatchSemanticsProcess.IsCompilation(""),
+                new PatternMatchSemanticsProcess.IsCompilation.AsEmpty(this),
                 getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
                         ? PatternMatchOutput.EMPTY_UNIFICATION
                         : PatternMatchOutput.NoUnification.INSTANCE,
@@ -126,7 +121,8 @@ public abstract class PatternMatchInput<
                 SemanticsModule module,
                 Maybe<RValueExpression> inputExpr,
                 Maybe<T> pattern,
-                String termID
+                String termID,
+                String rootPatternMatchVariableName
         ) {
             super(module, new PatternMatchMode(
                     PatternMatchMode.HolesAndGroundness.ACCEPTS_FREE_VARS,
@@ -135,7 +131,7 @@ public abstract class PatternMatchInput<
                     PatternMatchMode.Unification.WITH_VAR_DECLARATION,
                     PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
                     PatternMatchMode.PatternLocation.STATEMENT_GUARD
-            ), pattern, termID);
+            ), pattern, termID, rootPatternMatchVariableName);
             this.inputExpr = inputExpr;
         }
 
@@ -145,7 +141,8 @@ public abstract class PatternMatchInput<
                     module,
                     inputExpr,
                     getPattern().__(function),
-                    getTermID()
+                    getTermID(),
+                    getRootPatternMatchVariableName()
             );
         }
 
@@ -155,10 +152,7 @@ public abstract class PatternMatchInput<
             return module.get(RValueExpressionSemantics.class).inferType(inputExpr);
         }
 
-        @Override
-        public Maybe<String> compiledInput() {
-            return module.get(RValueExpressionSemantics.class).compile(inputExpr);
-        }
+
     }
 
     public static class HandlerHeader<T>
@@ -171,7 +165,8 @@ public abstract class PatternMatchInput<
                 IJadescriptType contentUpperBound,
                 String referenceToContent,
                 Maybe<T> pattern,
-                String termID
+                String termID,
+                String rootPatternMatchVariableName
         ) {
             super(module, new PatternMatchMode(
                     PatternMatchMode.HolesAndGroundness.ACCEPTS_FREE_VARS,
@@ -180,7 +175,7 @@ public abstract class PatternMatchInput<
                     PatternMatchMode.Unification.WITH_VAR_DECLARATION,
                     PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
                     PatternMatchMode.PatternLocation.FEATURE_HEADER
-            ), pattern, termID);
+            ), pattern, termID, rootPatternMatchVariableName);
             this.referenceToContent = referenceToContent;
             this.contentUpperBound = contentUpperBound;
         }
@@ -192,18 +187,14 @@ public abstract class PatternMatchInput<
                     contentUpperBound,
                     referenceToContent,
                     getPattern().__(function),
-                    getTermID()
+                    getTermID(),
+                    getRootPatternMatchVariableName()
             );
         }
 
         @Override
         public IJadescriptType providedInputType() {
             return contentUpperBound;
-        }
-
-        @Override
-        public Maybe<String> compiledInput() {
-            return Maybe.of(referenceToContent);
         }
 
 
@@ -217,7 +208,8 @@ public abstract class PatternMatchInput<
                 SemanticsModule module,
                 Maybe<RValueExpression> inputExpr,
                 Maybe<T> pattern,
-                String termID
+                String termID,
+                String rootPatternMatchVariableName
         ) {
             super(module, new PatternMatchMode(
                     PatternMatchMode.HolesAndGroundness.ACCEPTS_NONVAR_HOLES_ONLY,
@@ -226,7 +218,7 @@ public abstract class PatternMatchInput<
                     PatternMatchMode.Unification.WITHOUT_VAR_DECLARATION,
                     PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
                     PatternMatchMode.PatternLocation.BOOLEAN_EXPRESSION
-            ), pattern, termID);
+            ), pattern, termID, rootPatternMatchVariableName);
             this.inputExpr = inputExpr;
         }
 
@@ -236,18 +228,14 @@ public abstract class PatternMatchInput<
                     module,
                     inputExpr,
                     getPattern().__(function),
-                    getTermID()
+                    getTermID(),
+                    getRootPatternMatchVariableName()
             );
         }
 
         @Override
         public IJadescriptType providedInputType() {
             return module.get(RValueExpressionSemantics.class).inferType(inputExpr);
-        }
-
-        @Override
-        public Maybe<String> compiledInput() {
-            return module.get(RValueExpressionSemantics.class).compile(inputExpr);
         }
 
 
@@ -261,7 +249,8 @@ public abstract class PatternMatchInput<
                 SemanticsModule module,
                 Maybe<RValueExpression> inputExpr,
                 Maybe<T> pattern,
-                String termID
+                String termID,
+                String rootPatternMatchVariableName
         ) {
             super(module, new PatternMatchMode(
                     PatternMatchMode.HolesAndGroundness.ACCEPTS_NONVAR_HOLES_ONLY,
@@ -270,7 +259,7 @@ public abstract class PatternMatchInput<
                     PatternMatchMode.Unification.WITH_VAR_DECLARATION,
                     PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
                     PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
-            ), pattern, termID);
+            ), pattern, termID, rootPatternMatchVariableName);
             this.inputExpr = inputExpr;
         }
 
@@ -280,7 +269,8 @@ public abstract class PatternMatchInput<
                     module,
                     inputExpr,
                     getPattern().__(function),
-                    getTermID()
+                    getTermID(),
+                    getRootPatternMatchVariableName()
             );
         }
 
@@ -288,11 +278,6 @@ public abstract class PatternMatchInput<
         @Override
         public IJadescriptType providedInputType() {
             return module.get(RValueExpressionSemantics.class).inferType(inputExpr);
-        }
-
-        @Override
-        public Maybe<String> compiledInput() {
-            return module.get(RValueExpressionSemantics.class).compile(inputExpr);
         }
 
 
@@ -306,27 +291,28 @@ public abstract class PatternMatchInput<
         private final PatternMatchInput<RT, U, N> rootInput;
         private final String suffixID;
 
-        private final Either3<
+        private final Either<
                 Maybe<RValueExpression>,
-                IJadescriptType,
-                Util.Tuple2<IJadescriptType, Maybe<String>>
-                > inputInfo;
+                IJadescriptType> inputInfo;
 
         private SubPattern(
                 SemanticsModule module,
-                Either3<Maybe<RValueExpression>, IJadescriptType, Util.Tuple2<IJadescriptType, Maybe<String>>> inputInfo,
+                Either<Maybe<RValueExpression>, IJadescriptType> inputInfo,
                 PatternMatchInput<RT, U, N> rootInput,
                 Maybe<T> pattern,
                 String suffixID
         ) {
             super(module, new PatternMatchMode(
                     rootInput.getMode().getHolesAndGroundness(),
-                    rootInput.getMode().getTypeRelationshipRequirement(),
+                    // Subpatterns always have a "related" requirement, except when in assignment/declarations.
+                    rootInput.getMode().getPatternLocation() == PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
+                            ? TypeRelationship.SupertypeOrEqual.class
+                            : TypeRelationship.Related.class,
                     rootInput.getMode().getPatternApplicationPurity(),
                     rootInput.getMode().getUnification(),
                     rootInput.getMode().getNarrowsTypeOfInput(),
                     PatternMatchMode.PatternLocation.SUB_PATTERN
-            ), pattern, rootInput.termID + suffixID);
+            ), pattern, rootInput.termID + suffixID, rootInput.getRootPatternMatchVariableName());
             this.rootInput = rootInput;
             this.suffixID = suffixID;
             this.inputInfo = inputInfo;
@@ -339,19 +325,9 @@ public abstract class PatternMatchInput<
                 Maybe<T> pattern,
                 String suffixID
         ) {
-            this(module, new Either3.Left<>(inputExpr), rootInput, pattern, suffixID);
+            this(module, new Either.Left<>(inputExpr), rootInput, pattern, suffixID);
         }
 
-        public SubPattern(
-                SemanticsModule module,
-                IJadescriptType inputType,
-                Maybe<String> compiledInput,
-                PatternMatchInput<RT, U, N> rootInput,
-                Maybe<T> pattern,
-                String suffixID
-        ) {
-            this(module, new Either3.Right<>(new Util.Tuple2<>(inputType, compiledInput)), rootInput, pattern, suffixID);
-        }
 
         public SubPattern(
                 SemanticsModule module,
@@ -360,7 +336,7 @@ public abstract class PatternMatchInput<
                 Maybe<T> pattern,
                 String suffixID
         ) {
-            this(module, new Either3.Center<>(inputType), rootInput, pattern, suffixID);
+            this(module, new Either.Right<>(inputType), rootInput, pattern, suffixID);
         }
 
         public PatternMatchInput<RT, U, N> getRootInput() {
@@ -374,35 +350,17 @@ public abstract class PatternMatchInput<
 
         @Override
         public IJadescriptType providedInputType() {
-            if (inputInfo instanceof Either3.Left) {
+            if (inputInfo instanceof Either.Left) {
                 return module.get(RValueExpressionSemantics.class).inferType(
-                        ((Either3.Left<Maybe<RValueExpression>, IJadescriptType, Util.Tuple2<IJadescriptType, Maybe<String>>>) inputInfo)
-                                .get());
-            } else if (inputInfo instanceof Either3.Center) {
-                return (((Either3.Center<Maybe<RValueExpression>, IJadescriptType, Util.Tuple2<IJadescriptType, Maybe<String>>>) inputInfo)
-                        .get());
-            } else if (inputInfo instanceof Either3.Right) {
-                return ((Either3.Right<Maybe<RValueExpression>, IJadescriptType, Util.Tuple2<IJadescriptType, Maybe<String>>>) inputInfo)
-                        .get().get_1();
+                        ((Either.Left<Maybe<RValueExpression>, IJadescriptType>) inputInfo).getLeft());
+            } else if (inputInfo instanceof Either.Right) {
+                return (((Either.Right<Maybe<RValueExpression>, IJadescriptType>) inputInfo).getRight());
             }
 
-            return null; // Not possible by Either3 design.
+            return null; // Not possible by Either design.
         }
 
-        @Override
-        public Maybe<String> compiledInput() {
-            if (inputInfo instanceof Either3.Left) {
-                return module.get(RValueExpressionSemantics.class).compile(
-                        ((Either3.Left<Maybe<RValueExpression>, IJadescriptType, Util.Tuple2<IJadescriptType, Maybe<String>>>) inputInfo)
-                                .get());
-            } else if (inputInfo instanceof Either3.Center) {
-                return Maybe.nothing();
-            } else if (inputInfo instanceof Either3.Right) {
-                return ((Either3.Right<Maybe<RValueExpression>, IJadescriptType, Util.Tuple2<IJadescriptType, Maybe<String>>>) inputInfo)
-                        .get().get_2();
-            }
-            return null; // Not possible by Either3 design.
-        }
+
     }
 
 }

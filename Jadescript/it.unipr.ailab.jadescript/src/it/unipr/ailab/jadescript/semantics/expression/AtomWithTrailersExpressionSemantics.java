@@ -36,12 +36,6 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
 
     @Override
     public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<AtomExpr> input) {
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                return Collections.singletonList(traversed.get());
-            }
-        }
         return buildChain(input).getSubExpressions();
     }
 
@@ -180,12 +174,11 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
     @SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
     public boolean isAlwaysPure(Maybe<AtomExpr> input) {
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                return traversed.get().getSemantics().isAlwaysPure((Maybe)traversed.get().getInput());
-            }
-        }
         return buildChain(input).isAlwaysPure();
+    }
+
+    @Override
+    public boolean isTypelyHoled(Maybe<AtomExpr> input) {
+        return buildChain(input).isTypelyHoled();
     }
 }

@@ -360,5 +360,9 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
         return input.createEmptyValidationOutput();
     }
 
-
+    @Override
+    public boolean isTypelyHoled(ReversedTrailerChain rest) {
+        // Subscription expressions cannot be holed by design.
+        return false;
+    }
 }
