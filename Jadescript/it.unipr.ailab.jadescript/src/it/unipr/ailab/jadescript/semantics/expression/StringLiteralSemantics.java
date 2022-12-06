@@ -2,6 +2,10 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
@@ -145,6 +149,22 @@ public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSim
     @Override
     public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<StringLiteralSimple> input) {
         return Optional.empty();
+    }
+
+    @Override
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<StringLiteralSimple, ?, ?> input) {
+        return input.createEmptyCompileOutput();
+    }
+
+    @Override
+    protected PatternType inferPatternTypeInternal(PatternMatchInput<StringLiteralSimple, ?, ?> input) {
+        return PatternType.empty(module);
+    }
+
+    @Override
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(PatternMatchInput<StringLiteralSimple, ?, ?> input, ValidationMessageAcceptor acceptor) {
+        return input.createEmptyValidationOutput();
     }
 
 

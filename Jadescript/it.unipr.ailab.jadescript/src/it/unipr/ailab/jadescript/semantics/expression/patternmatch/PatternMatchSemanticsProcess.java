@@ -199,6 +199,22 @@ public interface PatternMatchSemanticsProcess {
             }
         }
 
+        public static abstract class AsInlineCondition extends IsCompilation {
+
+
+            public AsInlineCondition(PatternMatchInput<?, ?, ?> patternMatchInput) {
+                super(patternMatchInput);
+            }
+
+            @Override
+            public Stream<? extends ClassMemberWriter> getWriters() {
+                return Stream.empty();
+            }
+
+            @Override
+            public abstract String compileOperationInvocation(String input);
+        }
+
         public static class AsEmpty extends IsCompilation {
 
             public AsEmpty(PatternMatchInput<?, ?, ?> patternMatchInput) {

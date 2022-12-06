@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.emf.ecore.EObject;
@@ -368,20 +369,7 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
 
 
         //TODO validate solvedType
-        final IJadescriptType solvedType = inferPatternType(input).solve(input.providedInputType());
-        module.get(ValidationHelper.class).assertion(
-                input.getMode().getTypeRelationshipRequirement().isInstance(
-                        module.get(TypeHelper.class).getTypeRelationship(
-                                solvedType,
-                                input.providedInputType()
-                        )
-                ),
-                "InvalidProvidedInput",
-                "Cannot apply here an input of type " + input.providedInputType().getJadescriptName()
-                        + " to a pattern which expects an input of type " + solvedType.getJadescriptName(),
-                module.get(ValidationHelper.class).extractEObject(input.getPattern()),
-                acceptor
-        );
+        validatePatternTypeRelationshipRequirement(input, acceptor);
         //TODO check purity
 
         if (shouldEvaluatePatternAsRExpr) {
@@ -404,6 +392,52 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
         }
     }
 
+    protected void validatePatternTypeRelationshipRequirement(
+            Maybe<T> pattern,
+            Class<? extends TypeRelationship> requirement,
+            TypeRelationship actualRelationship,
+            IJadescriptType providedInputType,
+            IJadescriptType solvedPatternType,
+            ValidationMessageAcceptor acceptor
+    ) {
+        module.get(ValidationHelper.class).assertion(
+                requirement.isInstance(actualRelationship),
+                "InvalidProvidedInput",
+                "Cannot apply here an input of type " + providedInputType.getJadescriptName()
+                        + " to a pattern which expects an input of type " + solvedPatternType.getJadescriptName(),
+                module.get(ValidationHelper.class).extractEObject(pattern),
+                acceptor
+        );
+    }
+
+    protected <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
+    void validatePatternTypeRelationshipRequirement(
+            PatternMatchInput<T, U, N> input,
+            IJadescriptType solvedType,
+            ValidationMessageAcceptor acceptor
+    ) {
+        validatePatternTypeRelationshipRequirement(
+                input.getPattern(),
+                input.getMode().getTypeRelationshipRequirement(),
+                module.get(TypeHelper.class).getTypeRelationship(solvedType, input.providedInputType()),
+                input.providedInputType(),
+                solvedType,
+                acceptor
+        );
+    }
+
+    protected <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
+    void validatePatternTypeRelationshipRequirement(
+            PatternMatchInput<T, U, N> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        validatePatternTypeRelationshipRequirement(
+                input,
+                inferPatternType(input).solve(input.providedInputType()),
+                acceptor
+        );
+    }
+
 
     private PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validateExpressionEqualityPatternMatch(
             PatternMatchInput.SubPattern<T, ?, ?, ?> input
@@ -422,14 +456,14 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
 
     /**
      * Handles the compilation in the case where the pattern is a non-holed subpattern expression, and therefore it
-     * should be treated as expression. In these cases, at runtime the corresponding (part of the) input value has to be
-     * equal to the value resulting from the pattern's sub-expression evaluation.
+     * should be treated as expression. In these cases, at runtime the pattern matches if the corresponding (part of
+     * the) input value is equal to the value resulting from the pattern's sub-expression evaluation.
      *
      * @param input the subpattern.
      * @return a pattern matching component that simply checks if the evaluated input expression equals to the evaluated
      * expression given as subpattern.
      */
-    private PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compileExpressionEqualityPatternMatch(
+    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compileExpressionEqualityPatternMatch(
             PatternMatchInput.SubPattern<T, ?, ?, ?> input
     ) {
         IJadescriptType solvedPatternType = inferPatternType(input).solve(input.providedInputType());

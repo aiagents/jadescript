@@ -68,6 +68,7 @@ public class TypeHelper implements SemanticsConsts {
 
 
     // Top and bottom
+    //TODO use new TOP/BOTTOM system when possible
     public final Function<String, UtilityType> TOP;
     public final Function<String, UtilityType> BOTTOM;
     public final UtilityType ANY;

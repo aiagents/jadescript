@@ -38,7 +38,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
             "explicit element type specification, the pattern contains unbound terms, " +
             "and the missing information cannot be retrieved by the input value type. " +
             "Suggestion: specify the expected type of the elements by adding " +
-            "'of TYPE' after the closed bracket, or make sure that the input is " +
+            "'of TYPE' after the closing bracket, or make sure that the input is " +
             "narrowed to a valid list type.";
 
     public ListLiteralExpressionSemantics(SemanticsModule semanticsModule) {
