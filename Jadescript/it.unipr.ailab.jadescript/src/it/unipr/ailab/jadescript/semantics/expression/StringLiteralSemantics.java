@@ -163,7 +163,7 @@ public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSim
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(PatternMatchInput<StringLiteralSimple, ?, ?> input, ValidationMessageAcceptor acceptor) {
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(PatternMatchInput<StringLiteralSimple, ?, ?> input, ValidationMessageAcceptor acceptor) {
         return input.createEmptyValidationOutput();
     }
 

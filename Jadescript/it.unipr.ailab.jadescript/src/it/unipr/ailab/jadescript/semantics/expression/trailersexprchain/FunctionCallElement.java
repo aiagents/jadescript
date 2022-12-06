@@ -143,7 +143,7 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest
     ) {
@@ -161,7 +161,7 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest,
             ValidationMessageAcceptor acceptor

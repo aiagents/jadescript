@@ -163,7 +163,7 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<TypeComparison, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

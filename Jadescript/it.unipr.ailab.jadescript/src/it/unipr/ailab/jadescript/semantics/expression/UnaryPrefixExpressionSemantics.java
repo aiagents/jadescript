@@ -420,7 +420,7 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<UnaryPrefix, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

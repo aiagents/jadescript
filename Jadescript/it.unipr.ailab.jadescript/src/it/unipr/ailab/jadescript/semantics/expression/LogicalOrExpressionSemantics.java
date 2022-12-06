@@ -180,7 +180,7 @@ public class LogicalOrExpressionSemantics extends ExpressionSemantics<LogicalOr>
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<LogicalOr, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

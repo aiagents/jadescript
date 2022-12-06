@@ -36,7 +36,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     private static final String PROVIDED_TYPE_TO_PATTERN_IS_NOT_LIST_MESSAGE
             = "Cannot infer the type of the elements in the pattern - the list pattern has no " +
             "explicit element type specification, the pattern contains unbound terms, " +
-            "and the missing information cannot be retrieved by the input value type. " +
+            "and the missing information cannot be retrieved from the input value type. " +
             "Suggestion: specify the expected type of the elements by adding " +
             "'of TYPE' after the closing bracket, or make sure that the input is " +
             "narrowed to a valid list type.";
@@ -174,16 +174,16 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     }
 
     @Override
-    public boolean isUnbounded(Maybe<ListLiteral> input) {
+    public boolean isUnbound(Maybe<ListLiteral> input) {
         List<Maybe<RValueExpression>> values = toListOfMaybes(input.__(ListLiteral::getValues));
         boolean isWithPipe = input.__(ListLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         final boolean valuesAnyMatch = values.stream()
                 .filter(Maybe::isPresent)
-                .anyMatch(rves::isUnbounded);
+                .anyMatch(rves::isUnbound);
         if (isWithPipe) {
-            return rves.isUnbounded(rest) || valuesAnyMatch;
+            return rves.isUnbound(rest) || valuesAnyMatch;
         } else {
             return valuesAnyMatch;
         }
@@ -202,21 +202,12 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
 
         if (!isWithPipe && prePipeElementCount == 0) {
             //Empty list pattern
-            return new PatternMatchOutput<>(
-                    new PatternMatchSemanticsProcess.IsCompilation.AsSingleConditionMethod(
-                            input,
-                            solvedPatternType,
-                            "__x.isEmpty()"
-                    ),
-                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                            ? PatternMatchOutput.EMPTY_UNIFICATION
-                            : PatternMatchOutput.NoUnification.INSTANCE,
-
-                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                            ? new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            return input.createSingleConditionMethodOutput(
+                    solvedPatternType,
+                    "__x.isEmpty()",
+                    () -> PatternMatchOutput.EMPTY_UNIFICATION,
+                    () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
             );
-
         } else {
             final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
             final List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults =
@@ -247,7 +238,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
             }
 
             if (isWithPipe) {
-                final PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> restOutput =
+                final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> restOutput =
                         rves.compilePatternMatch(input.subPattern(
                                 solvedPatternType,
                                 __ -> rest.toNullable(),
@@ -280,21 +271,13 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
 
             String sizeOp = isWithPipe ? ">=" : "==";
 
-            return new PatternMatchOutput<>(
-                    new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
-                            input,
-                            solvedPatternType,
-                            List.of("__x.size() " + sizeOp + " " + prePipeElementCount),
-                            compiledSubInputs,
-                            subResults
-                    ),
-                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                            ? PatternMatchOutput.collectUnificationResults(subResults)
-                            : PatternMatchOutput.NoUnification.INSTANCE,
-
-                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                            ? new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            return input.createCompositeMethodOutput(
+                    solvedPatternType,
+                    List.of("__x.size() " + sizeOp + " " + prePipeElementCount),
+                    compiledSubInputs,
+                    subResults,
+                    () -> PatternMatchOutput.collectUnificationResults(subResults),
+                    () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
             );
         }
 
@@ -312,7 +295,8 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
                     return typeHelper.LIST.apply(List.of(inputElementType));
                 } else {
                     return typeHelper.LIST.apply(List.of(typeHelper.TOP.apply(
-                            PROVIDED_TYPE_TO_PATTERN_IS_NOT_LIST_MESSAGE)));
+                            PROVIDED_TYPE_TO_PATTERN_IS_NOT_LIST_MESSAGE
+                    )));
                 }
             });
         } else {
@@ -321,7 +305,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<ListLiteral, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
@@ -362,14 +346,9 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
             }
         }
 
-        return new PatternMatchOutput<>(
-                PatternMatchSemanticsProcess.IsValidation.INSTANCE,
-                input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                        ? PatternMatchOutput.collectUnificationResults(subResults)
-                        : PatternMatchOutput.NoUnification.INSTANCE,
-                input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                        ? new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-                        : PatternMatchOutput.NoNarrowing.INSTANCE
+        return input.createValidationOutput(
+                () -> PatternMatchOutput.collectUnificationResults(subResults),
+                () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
         );
     }
 

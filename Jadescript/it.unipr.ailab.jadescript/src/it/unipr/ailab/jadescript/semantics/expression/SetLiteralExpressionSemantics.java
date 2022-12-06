@@ -1,21 +1,15 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
-import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
-import it.unipr.ailab.jadescript.jadescript.MapOrSetLiteral;
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.jadescript.TypeExpression;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,7 +28,7 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     private static final String PROVIDED_TYPE_TO_PATTERN_IS_NOT_SET_MESSAGE
             = "Cannot infer the type of the elements in the pattern - the set pattern has no " +
             "explicit element type specification, the pattern contains unbound terms, " +
-            "and the missing information cannot be retrieved by the input value type. " +
+            "and the missing information cannot be retrieved from the input value type. " +
             "Suggestion: specify the expected type of the elements by adding " +
             "'of TYPE' after the closing curly bracket, or make sure that the input is " +
             "narrowed to a valid set type.";
@@ -174,7 +168,7 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
         boolean isWithPipe = input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
-        return isWithPipe && rves.isHoled(rest);
+        return isWithPipe && rest.isPresent() && rves.isHoled(rest);
     }
 
     @Override
@@ -188,18 +182,18 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
         if (hasTypeSpecifier && typeParameter.isPresent()) {
             return false;
         } else {
-            return isWithPipe && rves.isTypelyHoled(rest);
+            return isWithPipe && rest.isPresent() && rves.isTypelyHoled(rest);
         }
 
     }
 
     @Override
-    public boolean isUnbounded(Maybe<MapOrSetLiteral> input) {
+    public boolean isUnbound(Maybe<MapOrSetLiteral> input) {
         //NOTE: set patterns cannot have holes before the pipe sign (enforced by validator)
         boolean isWithPipe = input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
-        return isWithPipe && rves.isUnbounded(rest);
+        return isWithPipe && rest.isPresent() && rves.isUnbound(rest);
     }
 
     @Override
@@ -214,18 +208,11 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
 
         if (!isWithPipe && prePipeElementCount == 0) {
             //Empty set pattern
-            return new PatternMatchOutput<>(
-                    new PatternMatchSemanticsProcess.IsCompilation.AsSingleConditionMethod(
-                            input,
-                            solvedPatternType,
-                            "__x.isEmpty()"
-                    ),
-                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                            ? PatternMatchOutput.EMPTY_UNIFICATION
-                            : PatternMatchOutput.NoUnification.INSTANCE,
-                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                            ? new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            return input.createSingleConditionMethodOutput(
+                    solvedPatternType,
+                    "__x.isEmpty()",
+                    () -> PatternMatchOutput.EMPTY_UNIFICATION,
+                    () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
             );
         } else {
             final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
@@ -248,23 +235,20 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
                     Maybe<RValueExpression> term = values.get(i);
                     final Maybe<String> compiledTerm = rves.compile(term);
                     final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> elemOutput =
-                            new PatternMatchOutput<>(
-                                    containmentCondition(input, elementType, i, term, compiledTerm),
-                                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                                            ? PatternMatchOutput.EMPTY_UNIFICATION
-                                            : PatternMatchOutput.NoUnification.INSTANCE,
-                                    input.getMode().getNarrowsTypeOfInput()
-                                            == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                                            ? new PatternMatchOutput.WithTypeNarrowing(elementType)
-                                            : PatternMatchOutput.NoNarrowing.INSTANCE
-                            );
+                            input.subPatternGroundTerm(elementType, __ -> term.toNullable(), "_" + i)
+                                    .createInlineConditionOutput(
+                                            (ignored) -> "__x.contains(" + compiledTerm.orElse("") + ")",
+                                            () -> PatternMatchOutput.EMPTY_UNIFICATION,
+                                            () -> new PatternMatchOutput.WithTypeNarrowing(elementType)
+                                    );
+
                     subResults.add(elemOutput);
                 }
             }
 
 
             if (isWithPipe) {
-                final PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> restOutput =
+                final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> restOutput =
                         rves.compilePatternMatch(input.subPattern(
                                 solvedPatternType,
                                 __ -> rest.toNullable(),
@@ -302,57 +286,88 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
 
             String sizeOp = isWithPipe ? ">=" : "==";
 
-            return new PatternMatchOutput<>(
-                    new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
-                            input,
-                            solvedPatternType,
-                            List.of("__x.size() " + sizeOp + " " + prePipeElementCount),
-                            compiledSubInputs,
-                            subResults
-                    ),
-                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                            ? PatternMatchOutput.collectUnificationResults(subResults)
-                            : PatternMatchOutput.NoUnification.INSTANCE,
-
-                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                            ? new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            return input.createCompositeMethodOutput(
+                    solvedPatternType,
+                    List.of("__x.size() " + sizeOp + " " + prePipeElementCount),
+                    compiledSubInputs,
+                    subResults,
+                    () -> PatternMatchOutput.collectUnificationResults(subResults),
+                    () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
             );
 
         }
     }
 
-    @NotNull
-    private PatternMatchSemanticsProcess.IsCompilation.AsInlineCondition containmentCondition(
-            PatternMatchInput<MapOrSetLiteral, ?, ?> input,
-            IJadescriptType elementType,
-            int i,
-            Maybe<RValueExpression> term,
-            Maybe<String> compiledTerm
-    ) {
-        return new PatternMatchSemanticsProcess.IsCompilation.AsInlineCondition(input.subPattern(
-                elementType,
-                __ -> term.toNullable(),
-                "_" + i
-        )) {
-            @Override
-            public String compileOperationInvocation(String ignored) {
-                return "__x.contains(" + compiledTerm.orElse("") + ")";
-            }
-        };
-    }
-
 
     @Override
     protected PatternType inferPatternTypeInternal(PatternMatchInput<MapOrSetLiteral, ?, ?> input) {
-
+        if (isTypelyHoled(input.getPattern())) {
+            return PatternType.holed(inputType -> {
+                final TypeHelper typeHelper = module.get(TypeHelper.class);
+                if (inputType instanceof SetType) {
+                    final IJadescriptType inputElementType = ((SetType) inputType).getElementType();
+                    return typeHelper.SET.apply(List.of(inputElementType));
+                } else {
+                    return typeHelper.SET.apply(List.of(typeHelper.TOP.apply(
+                            PROVIDED_TYPE_TO_PATTERN_IS_NOT_SET_MESSAGE
+                    )));
+                }
+            });
+        } else {
+            return PatternType.simple(inferType(input.getPattern()));
+        }
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<MapOrSetLiteral, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
-        //TODO set patterns cannot contain holed terms before the pipe!
+        List<Maybe<RValueExpression>> values = toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
+        boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
+        PatternType patternType = inferPatternType(input);
+        IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
+        int prePipeElementCount = values.size();
+
+
+        List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>> subResults =
+                new ArrayList<>(prePipeElementCount + (isWithPipe ? 1 : 0));
+
+        RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
+        if (isWithPipe) {
+            subResults.add(rves.validatePatternMatch(input.subPattern(
+                    solvedPatternType,
+                    MapOrSetLiteral::getRest,
+                    "_rest"
+            ), acceptor));
+        }
+
+
+        if (prePipeElementCount > 0) {
+            IJadescriptType elementType;
+            if (solvedPatternType instanceof SetType) {
+                elementType = ((SetType) solvedPatternType).getElementType();
+            } else {
+                elementType = solvedPatternType.getElementTypeIfCollection()
+                        .orElseGet(() -> module.get(TypeHelper.class).TOP.apply(
+                                PROVIDED_TYPE_TO_PATTERN_IS_NOT_SET_MESSAGE
+                        ));
+            }
+            for (int i = 0; i < values.size(); i++) {
+                Maybe<RValueExpression> term = values.get(i);
+                subResults.add(rves.validatePatternMatch(input.subPatternGroundTerm(
+                        elementType,
+                        __ -> term.toNullable(),
+                        "_" + i
+                ), acceptor));
+            }
+        }
+
+        return input.createValidationOutput(
+                ()-> PatternMatchOutput.collectUnificationResults(subResults),
+                ()-> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
+        );
+
+
     }
 }

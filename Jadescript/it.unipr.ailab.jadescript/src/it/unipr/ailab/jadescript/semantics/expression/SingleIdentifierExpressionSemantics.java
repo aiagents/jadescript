@@ -259,7 +259,7 @@ public class SingleIdentifierExpressionSemantics
     }
 
     @Override
-    public boolean isUnbounded(Maybe<VirtualIdentifier> input) {
+    public boolean isUnbound(Maybe<VirtualIdentifier> input) {
         return !resolves(input);
     }
 
@@ -267,7 +267,7 @@ public class SingleIdentifierExpressionSemantics
     protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<VirtualIdentifier, ?, ?> input) {
         final String identifier = input.getPattern().__(VirtualIdentifier::getIdent).orElse("");
-        if (isUnbounded(input.getPattern())) {
+        if (isUnbound(input.getPattern())) {
 
             if (input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION) {
                 IJadescriptType solvedPatternType = inferPatternType(input).solve(input.providedInputType());
@@ -334,11 +334,11 @@ public class SingleIdentifierExpressionSemantics
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<VirtualIdentifier, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
-        if (isUnbounded(input.getPattern())) {
+        if (isUnbound(input.getPattern())) {
             final String identifier = input.getPattern().__(VirtualIdentifier::getIdent).orElse("");
             module.get(ValidationHelper.class).assertion(
                     input.getMode().getUnification() != PatternMatchMode.Unification.WITHOUT_VAR_DECLARATION,

@@ -97,8 +97,8 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
     }
 
     @Override
-    public boolean isUnbounded(Maybe<LValueExpression> input) {
-        return module.get(OfNotationExpressionSemantics.class).isUnbounded(input.__(i -> (OfNotation) i));
+    public boolean isUnbound(Maybe<LValueExpression> input) {
+        return module.get(OfNotationExpressionSemantics.class).isUnbound(input.__(i -> (OfNotation) i));
     }
 
 
@@ -118,7 +118,7 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<LValueExpression, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

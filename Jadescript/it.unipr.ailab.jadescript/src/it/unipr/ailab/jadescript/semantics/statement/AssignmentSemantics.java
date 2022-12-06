@@ -187,7 +187,7 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
                 .require(x -> x instanceof OfNotation)
                 .__(x -> (OfNotation) x)
                 .require(x -> x.getProperties() == null || x.getProperties().isEmpty())
-                .__(OfNotation::getTypeCast)
+                .__(OfNotation::getAidLiteral)
                 .require(x -> !x.isIsAidExpr())
                 .__(AidLiteral::getTypeCast)
                 .require(x -> x.getTypeCasts() == null || x.getTypeCasts().isEmpty())

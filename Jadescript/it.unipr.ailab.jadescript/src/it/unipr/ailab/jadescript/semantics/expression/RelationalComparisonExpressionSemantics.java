@@ -1,9 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.Additive;
 import it.unipr.ailab.jadescript.jadescript.ContainmentCheck;
-import it.unipr.ailab.jadescript.jadescript.Multiplicative;
 import it.unipr.ailab.jadescript.jadescript.RelationalComparison;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -144,7 +142,7 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<RelationalComparison, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

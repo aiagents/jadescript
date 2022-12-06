@@ -59,7 +59,7 @@ public abstract class TrailersExpressionChainElement {
 
     public abstract boolean isUnbounded(ReversedTrailerChain rest);
 
-    public abstract PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
+    public abstract PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest
     );
@@ -69,7 +69,7 @@ public abstract class TrailersExpressionChainElement {
             ReversedTrailerChain rest
     );
 
-    public abstract PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public abstract PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest,
             ValidationMessageAcceptor acceptor

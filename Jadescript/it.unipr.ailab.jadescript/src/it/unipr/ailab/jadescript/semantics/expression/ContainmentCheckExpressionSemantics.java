@@ -146,7 +146,7 @@ public class ContainmentCheckExpressionSemantics extends ExpressionSemantics<Con
 
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<ContainmentCheck, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

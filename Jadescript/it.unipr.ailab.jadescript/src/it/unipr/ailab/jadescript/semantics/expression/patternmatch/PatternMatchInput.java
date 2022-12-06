@@ -6,10 +6,12 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
-import it.unipr.ailab.maybe.Either;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.sonneteer.statement.StatementWriter;
 
+import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public abstract class PatternMatchInput<
         T,
@@ -62,20 +64,6 @@ public abstract class PatternMatchInput<
 
 
     public <T2> SubPattern<T2, T, U, N> subPattern(
-            Maybe<RValueExpression> inputExpression,
-            Function<T, T2> extractSubpattern,
-            String idSuffix
-    ) {
-        return new SubPattern<>(
-                module,
-                inputExpression,
-                this,
-                pattern.__(extractSubpattern),
-                idSuffix
-        );
-    }
-
-    public <T2> SubPattern<T2, T, U, N> subPattern(
             IJadescriptType providedInputType,
             Function<T, T2> extractSubpattern,
             String idSuffix
@@ -86,6 +74,21 @@ public abstract class PatternMatchInput<
                 this,
                 pattern.__(extractSubpattern),
                 idSuffix
+        );
+    }
+
+    public <T2> SubPattern<T2, T, U, N> subPatternGroundTerm(
+            IJadescriptType providedInputType,
+            Function<T, T2> extractSubpattern,
+            String idSuffix
+    ) {
+        return new SubPattern<>(
+                module,
+                providedInputType,
+                this,
+                pattern.__(extractSubpattern),
+                idSuffix,
+                PatternMatchMode.HolesAndGroundness.DOES_NOT_ACCEPT_HOLES
         );
     }
 
@@ -113,6 +116,258 @@ public abstract class PatternMatchInput<
         );
     }
 
+    public <P extends PatternMatchSemanticsProcess>
+    PatternMatchOutput<P, ?, ?> createOutput(
+            P processInfo,
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+
+
+        return new PatternMatchOutput<>(
+                processInfo,
+                this.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
+                        ? getUnificationInfo.get()
+                        : PatternMatchOutput.NoUnification.INSTANCE,
+                this.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
+                        ? getNarrowingInfo.get()
+                        : PatternMatchOutput.NoNarrowing.INSTANCE
+        );
+    }
+
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod, ?, ?>
+    createCompositeMethodOutput(
+            IJadescriptType solvedPatternType,
+            List<String> additionalPreconditions,
+            Function<Integer, String> compiledSubInputs,
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+        return createOutput(
+                new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
+                        this,
+                        solvedPatternType,
+                        additionalPreconditions,
+                        compiledSubInputs
+                ),
+                getUnificationInfo,
+                getNarrowingInfo
+        );
+    }
+
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod, ?, ?>
+    createCompositeMethodOutput(
+            IJadescriptType solvedPatternType,
+            Function<Integer, String> compiledSubInputs,
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+        return createOutput(
+                new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
+                        this,
+                        solvedPatternType,
+                        compiledSubInputs
+                ),
+                getUnificationInfo,
+                getNarrowingInfo
+        );
+    }
+
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod, ?, ?>
+    createCompositeMethodOutput(
+            IJadescriptType solvedPatternType,
+            List<String> additionalPreconditions,
+            Function<Integer, String> compiledSubInputs,
+            List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults,
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+        return createOutput(
+                new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
+                        this,
+                        solvedPatternType,
+                        additionalPreconditions,
+                        compiledSubInputs,
+                        subResults
+                ),
+                getUnificationInfo,
+                getNarrowingInfo
+        );
+    }
+
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod, ?, ?>
+    createCompositeMethodOutput(
+            IJadescriptType solvedPatternType,
+            Function<Integer, String> compiledSubInputs,
+            List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults,
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+        return createOutput(
+                new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
+                        this,
+                        solvedPatternType,
+                        compiledSubInputs,
+                        subResults
+                ),
+                getUnificationInfo,
+                getNarrowingInfo
+        );
+    }
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod, ?, ?>
+    createCompositeMethodOutput(
+            List<StatementWriter> auxiliaryStatements,
+            IJadescriptType solvedPatternType,
+            List<String> additionalPreconditions,
+            Function<Integer, String> compiledSubInputs,
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+        return createOutput(
+                new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
+                        this,
+                        auxiliaryStatements,
+                        solvedPatternType,
+                        additionalPreconditions,
+                        compiledSubInputs
+                ),
+                getUnificationInfo,
+                getNarrowingInfo
+        );
+    }
+
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod, ?, ?>
+    createCompositeMethodOutput(
+            List<StatementWriter> auxiliaryStatements,
+            IJadescriptType solvedPatternType,
+            Function<Integer, String> compiledSubInputs,
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+        return createOutput(
+                new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
+                        this,
+                        auxiliaryStatements,
+                        solvedPatternType,
+                        compiledSubInputs
+                ),
+                getUnificationInfo,
+                getNarrowingInfo
+        );
+    }
+
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod, ?, ?>
+    createCompositeMethodOutput(
+            List<StatementWriter> auxiliaryStatements,
+            IJadescriptType solvedPatternType,
+            List<String> additionalPreconditions,
+            Function<Integer, String> compiledSubInputs,
+            List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults,
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+        return createOutput(
+                new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
+                        this,
+                        auxiliaryStatements,
+                        solvedPatternType,
+                        additionalPreconditions,
+                        compiledSubInputs,
+                        subResults
+                ),
+                getUnificationInfo,
+                getNarrowingInfo
+        );
+    }
+
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod, ?, ?>
+    createCompositeMethodOutput(
+            List<StatementWriter> auxiliaryStatements,
+            IJadescriptType solvedPatternType,
+            Function<Integer, String> compiledSubInputs,
+            List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults,
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+        return createOutput(
+                new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
+                        this,
+                        auxiliaryStatements,
+                        solvedPatternType,
+                        compiledSubInputs,
+                        subResults
+                ),
+                getUnificationInfo,
+                getNarrowingInfo
+        );
+    }
+
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsSingleConditionMethod, ?, ?>
+    createSingleConditionMethodOutput(
+            IJadescriptType solvedPatternType,
+            String condition,
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+        return createOutput(
+                new PatternMatchSemanticsProcess.IsCompilation.AsSingleConditionMethod(
+                        this,
+                        solvedPatternType,
+                        condition
+                ),
+                getUnificationInfo,
+                getNarrowingInfo
+        );
+    }
+
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsInlineCondition, ?, ?>
+    createInlineConditionOutput(
+            Function<String, String> generateCondition,
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+        return createOutput(
+                new PatternMatchSemanticsProcess.IsCompilation.AsInlineCondition(this) {
+                    @Override
+                    public String compileOperationInvocation(String input) {
+                        return generateCondition.apply(input);
+                    }
+                },
+                getUnificationInfo,
+                getNarrowingInfo
+        );
+    }
+
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsFieldAssigningMethod, ?, ?>
+    createFieldAssigningMethodOutput(
+            IJadescriptType solvedPatternType,
+            String fieldName,
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+        return createOutput(
+                new PatternMatchSemanticsProcess.IsCompilation.AsFieldAssigningMethod(
+                        this,
+                        solvedPatternType,
+                        fieldName
+                ),
+                getUnificationInfo,
+                getNarrowingInfo
+        );
+    }
+
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?>
+    createValidationOutput(
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+        return createOutput(
+                PatternMatchSemanticsProcess.IsValidation.INSTANCE,
+                getUnificationInfo,
+                getNarrowingInfo
+        );
+    }
+
     public static class WhenMatchesStatement<T>
             extends PatternMatchInput<T, PatternMatchOutput.DoesUnification, PatternMatchOutput.WithTypeNarrowing> {
         private final Maybe<RValueExpression> inputExpr;
@@ -125,7 +380,7 @@ public abstract class PatternMatchInput<
                 String rootPatternMatchVariableName
         ) {
             super(module, new PatternMatchMode(
-                    PatternMatchMode.HolesAndGroundness.ACCEPTS_FREE_VARS,
+                    PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
                     TypeRelationship.Related.class,
                     PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
                     PatternMatchMode.Unification.WITH_VAR_DECLARATION,
@@ -169,7 +424,7 @@ public abstract class PatternMatchInput<
                 String rootPatternMatchVariableName
         ) {
             super(module, new PatternMatchMode(
-                    PatternMatchMode.HolesAndGroundness.ACCEPTS_FREE_VARS,
+                    PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
                     TypeRelationship.SubtypeOrEqual.class,
                     PatternMatchMode.PatternApplicationPurity.HAS_TO_BE_PURE,
                     PatternMatchMode.Unification.WITH_VAR_DECLARATION,
@@ -253,7 +508,7 @@ public abstract class PatternMatchInput<
                 String rootPatternMatchVariableName
         ) {
             super(module, new PatternMatchMode(
-                    PatternMatchMode.HolesAndGroundness.ACCEPTS_NONVAR_HOLES_ONLY,
+                    PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_VARS,
                     TypeRelationship.SupertypeOrEqual.class,
                     PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
                     PatternMatchMode.Unification.WITH_VAR_DECLARATION,
@@ -291,19 +546,30 @@ public abstract class PatternMatchInput<
         private final PatternMatchInput<RT, U, N> rootInput;
         private final String suffixID;
 
-        private final Either<
-                Maybe<RValueExpression>,
-                IJadescriptType> inputInfo;
+        private final IJadescriptType inputInfo;
 
         private SubPattern(
                 SemanticsModule module,
-                Either<Maybe<RValueExpression>, IJadescriptType> inputInfo,
+                IJadescriptType inputInfo,
                 PatternMatchInput<RT, U, N> rootInput,
                 Maybe<T> pattern,
                 String suffixID
         ) {
+            this(module, inputInfo, rootInput, pattern, suffixID, null);
+        }
+
+        private SubPattern(
+                SemanticsModule module,
+                IJadescriptType inputInfo,
+                PatternMatchInput<RT, U, N> rootInput,
+                Maybe<T> pattern,
+                String suffixID,
+                PatternMatchMode.HolesAndGroundness holesAndGroundnessRequirement
+        ) {
             super(module, new PatternMatchMode(
-                    rootInput.getMode().getHolesAndGroundness(),
+                    holesAndGroundnessRequirement == null
+                            ? rootInput.getMode().getHolesAndGroundness()
+                            : holesAndGroundnessRequirement,
                     // Subpatterns always have a "related" requirement, except when in assignment/declarations.
                     rootInput.getMode().getPatternLocation() == PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
                             ? TypeRelationship.SupertypeOrEqual.class
@@ -318,26 +584,6 @@ public abstract class PatternMatchInput<
             this.inputInfo = inputInfo;
         }
 
-        public SubPattern(
-                SemanticsModule module,
-                Maybe<RValueExpression> inputExpr,
-                PatternMatchInput<RT, U, N> rootInput,
-                Maybe<T> pattern,
-                String suffixID
-        ) {
-            this(module, new Either.Left<>(inputExpr), rootInput, pattern, suffixID);
-        }
-
-
-        public SubPattern(
-                SemanticsModule module,
-                IJadescriptType inputType,
-                PatternMatchInput<RT, U, N> rootInput,
-                Maybe<T> pattern,
-                String suffixID
-        ) {
-            this(module, new Either.Right<>(inputType), rootInput, pattern, suffixID);
-        }
 
         public PatternMatchInput<RT, U, N> getRootInput() {
             return rootInput;
@@ -350,17 +596,11 @@ public abstract class PatternMatchInput<
 
         @Override
         public IJadescriptType providedInputType() {
-            if (inputInfo instanceof Either.Left) {
-                return module.get(RValueExpressionSemantics.class).inferType(
-                        ((Either.Left<Maybe<RValueExpression>, IJadescriptType>) inputInfo).getLeft());
-            } else if (inputInfo instanceof Either.Right) {
-                return (((Either.Right<Maybe<RValueExpression>, IJadescriptType>) inputInfo).getRight());
-            }
-
-            return null; // Not possible by Either design.
+            return inputInfo;
         }
 
 
     }
+
 
 }

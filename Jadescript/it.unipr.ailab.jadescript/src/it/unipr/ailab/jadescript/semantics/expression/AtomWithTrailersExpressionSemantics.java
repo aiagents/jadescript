@@ -17,7 +17,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -125,7 +124,7 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
     }
 
     @Override
-    public boolean isUnbounded(Maybe<AtomExpr> input) {
+    public boolean isUnbound(Maybe<AtomExpr> input) {
         return buildChain(input).isUnbounded();
     }
 
@@ -142,7 +141,7 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

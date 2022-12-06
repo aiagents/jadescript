@@ -99,6 +99,8 @@ public interface PatternMatchSemanticsProcess {
 
             private final List<String> additionalPreconditions;
 
+            private final List<StatementWriter> auxiliaryStatements;
+
 
             public AsCompositeMethod(
                     PatternMatchInput<?, ?, ?> patternMatchInput,
@@ -109,6 +111,7 @@ public interface PatternMatchSemanticsProcess {
                 super(patternMatchInput, solvedPatternType);
                 this.compiledSubInputs = compiledSubInputs;
                 this.additionalPreconditions = additionalPreconditions;
+                this.auxiliaryStatements = List.of();
 
             }
 
@@ -123,6 +126,7 @@ public interface PatternMatchSemanticsProcess {
                 this.compiledSubInputs = compiledSubInputs;
                 this.additionalPreconditions = additionalPreconditions;
                 this.subResults.addAll(subResults);
+                this.auxiliaryStatements = List.of();
             }
 
             public AsCompositeMethod(
@@ -133,6 +137,7 @@ public interface PatternMatchSemanticsProcess {
                 super(patternMatchInput, solvedPatternType);
                 this.compiledSubInputs = compiledSubInputs;
                 this.additionalPreconditions = List.of();
+                this.auxiliaryStatements = List.of();
             }
 
             public AsCompositeMethod(
@@ -145,12 +150,70 @@ public interface PatternMatchSemanticsProcess {
                 this.compiledSubInputs = compiledSubInputs;
                 this.additionalPreconditions = List.of();
                 this.subResults.addAll(subResults);
+                this.auxiliaryStatements = List.of();
+            }
+            public AsCompositeMethod(
+                    PatternMatchInput<?, ?, ?> patternMatchInput,
+                    List<StatementWriter> auxiliaryStatements,
+                    IJadescriptType solvedPatternType,
+                    List<String> additionalPreconditions,
+                    Function<Integer, String> compiledSubInputs
+            ) {
+                super(patternMatchInput, solvedPatternType);
+                this.compiledSubInputs = compiledSubInputs;
+                this.additionalPreconditions = additionalPreconditions;
+                this.auxiliaryStatements = auxiliaryStatements;
+
+            }
+
+            public AsCompositeMethod(
+                    PatternMatchInput<?, ?, ?> patternMatchInput,
+                    List<StatementWriter> auxiliaryStatements,
+                    IJadescriptType solvedPatternType,
+                    List<String> additionalPreconditions,
+                    Function<Integer, String> compiledSubInputs,
+                    List<PatternMatchOutput<? extends IsCompilation, ?, ?>> subResults
+            ) {
+                super(patternMatchInput, solvedPatternType);
+                this.compiledSubInputs = compiledSubInputs;
+                this.additionalPreconditions = additionalPreconditions;
+                this.subResults.addAll(subResults);
+                this.auxiliaryStatements = auxiliaryStatements;
+            }
+
+            public AsCompositeMethod(
+                    PatternMatchInput<?, ?, ?> patternMatchInput,
+                    List<StatementWriter> auxiliaryStatements,
+                    IJadescriptType solvedPatternType,
+                    Function<Integer, String> compiledSubInputs
+            ) {
+                super(patternMatchInput, solvedPatternType);
+                this.compiledSubInputs = compiledSubInputs;
+                this.additionalPreconditions = List.of();
+                this.auxiliaryStatements = auxiliaryStatements;
+            }
+
+            public AsCompositeMethod(
+                    PatternMatchInput<?, ?, ?> patternMatchInput,
+                    List<StatementWriter> auxiliaryStatements,
+                    IJadescriptType solvedPatternType,
+                    Function<Integer, String> compiledSubInputs,
+                    List<PatternMatchOutput<? extends IsCompilation, ?, ?>> subResults
+            ) {
+                super(patternMatchInput, solvedPatternType);
+                this.compiledSubInputs = compiledSubInputs;
+                this.additionalPreconditions = List.of();
+                this.subResults.addAll(subResults);
+                this.auxiliaryStatements = auxiliaryStatements;
             }
 
             public MethodWriter generatedMethod() {
                 MethodWriter m = w.method(Visibility.PUBLIC, false, false, "boolean", patternMatchInput.getTermID())
                         .addParameter(w.param("java.lang.Object", "__objx"));
                 m.getBody().addStatements(compiledAdaptType);
+
+                m.getBody().addStatements(auxiliaryStatements);
+
                 StringBuilder sb = new StringBuilder("true");
                 for (String additionalPrecondition : additionalPreconditions) {
                     sb.append(" && ");

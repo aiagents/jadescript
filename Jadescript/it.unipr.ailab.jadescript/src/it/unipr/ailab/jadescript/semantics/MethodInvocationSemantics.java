@@ -522,10 +522,10 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
             args = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues));
         }
 
-        return args.stream().anyMatch(module.get(RValueExpressionSemantics.class)::isUnbounded);
+        return args.stream().anyMatch(module.get(RValueExpressionSemantics.class)::isUnbound);
     }
 
-    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<MethodCall, ?, ?> input
     ) {
         final Maybe<? extends CallableSymbol> method = resolve(input.getPattern());
@@ -559,7 +559,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
             for (int i = 0; i < argExpressions.size(); i++) {
                 Maybe<RValueExpression> term = argExpressions.get(i);
                 IJadescriptType upperBound = patternTermTypes.get(i);
-                final PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> termOutput =
+                final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> termOutput =
                         rves.compilePatternMatch(input.subPattern(
                                 upperBound,
                                 __ -> term.toNullable(),
@@ -577,23 +577,14 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
             }
 
 
-            return new PatternMatchOutput<>(
-                    new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
-                            input,
-                            solvedPatternType,
-                            i -> (i < 0 || i >= compiledSubInputs.size())
-                                    ? "/*IndexOutOfBounds*/"
-                                    : compiledSubInputs.get(i),
-                            subResults
-                    ),
-
-                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                            ? PatternMatchOutput.collectUnificationResults(subResults)
-                            : PatternMatchOutput.NoUnification.INSTANCE,
-
-                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                            ? new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            return input.createCompositeMethodOutput(
+                    solvedPatternType,
+                    i -> (i < 0 || i >= compiledSubInputs.size())
+                            ? "/*IndexOutOfBounds*/"
+                            : compiledSubInputs.get(i),
+                    subResults,
+                    () -> PatternMatchOutput.collectUnificationResults(subResults),
+                    () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
             );
 
         } else {
@@ -691,7 +682,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
             for (int i = 0; i < argExpressions.size(); i++) {
                 Maybe<RValueExpression> term = argExpressions.get(i);
                 IJadescriptType upperBound = patternTermTypes.get(i);
-                final PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> termOutput =
+                final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> termOutput =
                         rves.validatePatternMatch(
                                 input.subPattern(
                                         upperBound,
@@ -706,14 +697,9 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
             PatternType patternType = inferPatternType(input);
             IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
 
-            return new PatternMatchOutput<>(
-                    PatternMatchSemanticsProcess.IsValidation.INSTANCE,
-                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                            ? PatternMatchOutput.collectUnificationResults(subResults)
-                            : PatternMatchOutput.NoUnification.INSTANCE,
-                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                            ? new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            return input.createValidationOutput(
+                    () -> PatternMatchOutput.collectUnificationResults(subResults),
+                    () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
             );
         }
     }

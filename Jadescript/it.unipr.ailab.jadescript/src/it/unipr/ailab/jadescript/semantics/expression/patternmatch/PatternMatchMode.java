@@ -9,7 +9,7 @@ public class PatternMatchMode {
          * The pattern can have variables not bounded to any value
          * (and also other types of holes).
          */
-        ACCEPTS_FREE_VARS,
+        ACCEPTS_ANY_HOLE,
         /**
          * The pattern can have holes which are not free variables.
          * (e.g., the '_' placeholder).
@@ -21,12 +21,11 @@ public class PatternMatchMode {
          */
         DOES_NOT_ACCEPT_HOLES,
         /**
-         * The pattern is required to have at least one hole.
-         * For example, a destructuring assignment to a non-holed pattern is a useless operation and should be marked
-         * as error.
-         * //TODO handle validation check
+         * The pattern is required to have at least one unbound variable.
+         * For example, a destructuring assignment to a completely bound pattern is a useless operation and should be
+         * marked as error.
          */
-        REQUIRES_HOLES
+        REQUIRES_FREE_VARS
     }
 
 
@@ -69,6 +68,26 @@ public class PatternMatchMode {
 
 
     public interface PatternLocation {
+
+        static String describeLocation(PatternMatchInput<?,?,?> input){
+            final PatternLocation loc = input.getMode().getPatternLocation();
+            if(loc instanceof FeatureHeader){
+                return "in the header of a member feature";
+            }else if(loc instanceof StatementGuard){
+                return "in the guard of a control flow statement";
+            }else if(loc instanceof BooleanExpression){
+                return "in a boolean expression";
+            }else if(loc instanceof RootOfAssignedExpression){
+                return "at the left of an assignment/declaration operation";
+            }else if(loc instanceof SubPattern && input instanceof PatternMatchInput.SubPattern){
+                return "as part of another pattern "
+                        +describeLocation(((PatternMatchInput.SubPattern<?, ?, ?, ?>) input).getRootInput());
+            }else if(loc instanceof Expression){
+                return "in an expression";
+            }else{
+                return "";
+            }
+        }
         public interface FeatureHeader extends PatternLocation {
         }
 
@@ -120,6 +139,8 @@ public class PatternMatchMode {
         public static final SubPattern SUB_PATTERN = new SubPattern() {
         };
     }
+
+
 
 
     private final HolesAndGroundness holesAndGroundness;

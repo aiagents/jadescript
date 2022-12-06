@@ -163,7 +163,7 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
                     input.mapPattern(TypeCast::getAtomExpr)
             );
         } else if (castsTypes.size() == 1) {
-            final PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> subResult
+            final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> subResult
                     = module.get(AtomWithTrailersExpressionSemantics.class).compilePatternMatch(
                     input.subPattern(
                             castsTypes.get(0),
@@ -171,19 +171,12 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
                             "_typecast0"
                     )
             );
-            return new PatternMatchOutput<>(
-                    new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
-                            input,
-                            castsTypes.get(0),
-                            __ -> "__x",
-                            List.of(subResult)
-                    ),
-                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                            ? PatternMatchOutput.collectUnificationResults(List.of(subResult))
-                            : PatternMatchOutput.NoUnification.INSTANCE,
-                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                            ? new PatternMatchOutput.WithTypeNarrowing(castsTypes.get(0))
-                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            return input.createCompositeMethodOutput(
+                    castsTypes.get(0),
+                    __ -> "__x",
+                    List.of(subResult),
+                    () -> PatternMatchOutput.collectUnificationResults(List.of(subResult)),
+                    () -> new PatternMatchOutput.WithTypeNarrowing(castsTypes.get(0))
             );
         } else {
             final IJadescriptType castToType = castsTypes.get(castsTypes.size() - 1);
@@ -196,19 +189,12 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
                     ),
                     castsTypes.subList(0, castsTypes.size() - 1)
             );
-            return new PatternMatchOutput<>(
-                    new PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod(
-                            input,
-                            castToType,
-                            __ -> "__x",
-                            List.of(subResult)
-                    ),
-                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                            ? PatternMatchOutput.collectUnificationResults(List.of(subResult))
-                            : PatternMatchOutput.NoUnification.INSTANCE,
-                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                            ? new PatternMatchOutput.WithTypeNarrowing(castToType)
-                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            return input.createCompositeMethodOutput(
+                    castToType,
+                    __ -> "__x",
+                    List.of(subResult),
+                    () -> PatternMatchOutput.collectUnificationResults(List.of(subResult)),
+                    () -> new PatternMatchOutput.WithTypeNarrowing(castToType)
             );
         }
     }
@@ -231,7 +217,7 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<TypeCast, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
@@ -253,7 +239,7 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
         );
     }
 
-    private PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchRecursive(
+    private PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchRecursive(
             PatternMatchInput<TypeCast, ?, ?> input,
             List<IJadescriptType> castsTypes,
             ValidationMessageAcceptor acceptor
@@ -264,7 +250,7 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
                     acceptor
             );
         } else if (castsTypes.size() == 1) {
-            PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> subResult
+            PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> subResult
                     = module.get(AtomWithTrailersExpressionSemantics.class).validatePatternMatch(
                     input.subPattern(
                             castsTypes.get(0),
@@ -273,35 +259,25 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
                     ),
                     acceptor
             );
-            return new PatternMatchOutput<>(
-                    PatternMatchSemanticsProcess.IsValidation.INSTANCE,
-                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                            ? PatternMatchOutput.collectUnificationResults(List.of(subResult))
-                            : PatternMatchOutput.NoUnification.INSTANCE,
-                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                            ? new PatternMatchOutput.WithTypeNarrowing(castsTypes.get(0))
-                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            return input.createValidationOutput(
+                    () -> PatternMatchOutput.collectUnificationResults(List.of(subResult)),
+                    () -> new PatternMatchOutput.WithTypeNarrowing(castsTypes.get(0))
             );
         } else {
             final IJadescriptType castToType = castsTypes.get(castsTypes.size() - 1);
             final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> subResult
                     = validatePatternMatchRecursive(
-                            input.subPattern(
-                                    castToType,
-                                    __ -> __,
-                                    "_typecast" + (castsTypes.size()-1)
-                            ),
-                    castsTypes.subList(0, castsTypes.size()-1),
+                    input.subPattern(
+                            castToType,
+                            __ -> __,
+                            "_typecast" + (castsTypes.size() - 1)
+                    ),
+                    castsTypes.subList(0, castsTypes.size() - 1),
                     acceptor
             );
-            return new PatternMatchOutput<>(
-                    PatternMatchSemanticsProcess.IsValidation.INSTANCE,
-                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                            ? PatternMatchOutput.collectUnificationResults(List.of(subResult))
-                            : PatternMatchOutput.NoUnification.INSTANCE,
-                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                            ? new PatternMatchOutput.WithTypeNarrowing(castToType)
-                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            return input.createValidationOutput(
+                    () -> PatternMatchOutput.collectUnificationResults(List.of(subResult)),
+                    () -> new PatternMatchOutput.WithTypeNarrowing(castToType)
             );
         }
     }

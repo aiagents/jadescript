@@ -101,11 +101,11 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
     @Override
     public boolean isUnbounded(ReversedTrailerChain rest) {
         //rest should be empty, so it's ignored
-        return primaryExpressionSemantics.isUnbounded(atom);
+        return primaryExpressionSemantics.isUnbound(atom);
     }
 
     @Override
-    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest
     ) {
@@ -120,7 +120,7 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest,
             ValidationMessageAcceptor acceptor

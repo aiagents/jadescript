@@ -4,7 +4,6 @@ import it.unipr.ailab.jadescript.jadescript.AidLiteral;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeCast;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -70,11 +69,11 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    public boolean isUnbounded(Maybe<AidLiteral> input) {
+    public boolean isUnbound(Maybe<AidLiteral> input) {
         final Maybe<TypeCast> typeCast = input.__(AidLiteral::getTypeCast);
         final Maybe<TypeCast> hap = input.__(AidLiteral::getHap);
         final TypeCastExpressionSemantics tces = module.get(TypeCastExpressionSemantics.class);
-        return tces.isUnbounded(typeCast) || tces.isUnbounded(hap);
+        return tces.isUnbound(typeCast) || tces.isUnbound(hap);
     }
 
 

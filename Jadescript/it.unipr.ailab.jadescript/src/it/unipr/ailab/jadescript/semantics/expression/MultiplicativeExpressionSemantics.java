@@ -1,7 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.Additive;
 import it.unipr.ailab.jadescript.jadescript.Matches;
 import it.unipr.ailab.jadescript.jadescript.Multiplicative;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
@@ -322,7 +321,7 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<Multiplicative, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

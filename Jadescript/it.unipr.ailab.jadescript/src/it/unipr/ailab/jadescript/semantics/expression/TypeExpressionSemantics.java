@@ -19,7 +19,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
 import it.unipr.ailab.maybe.Maybe;
 import jadescript.content.JadescriptOntoElement;
 import org.eclipse.xtext.common.types.JvmTypeReference;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Arrays;
@@ -85,7 +84,7 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<TypeExpression, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

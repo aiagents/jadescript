@@ -352,7 +352,7 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest,
             ValidationMessageAcceptor acceptor

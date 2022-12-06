@@ -16,24 +16,26 @@ public class PatternMatchOutput<
     private final U unificationInfo;
     private final N typeNarrowingInfo;
 
-    public PatternMatchOutput(
+    PatternMatchOutput(
             P processInfo,
             U unificationInfo,
             N typeNarrowingInfo
-    ){
+    ) {
         this.processInfo = processInfo;
         this.unificationInfo = unificationInfo;
         this.typeNarrowingInfo = typeNarrowingInfo;
     }
 
-    public PatternMatchOutput<P, U, N> mapIfUnifies(Function<DoesUnification, U> func){
-        if(this.getUnificationInfo() instanceof DoesUnification){
+
+
+    public PatternMatchOutput<P, U, N> mapIfUnifies(Function<DoesUnification, U> func) {
+        if (this.getUnificationInfo() instanceof DoesUnification) {
             return new PatternMatchOutput<>(
                     getProcessInfo(),
                     func.apply(((DoesUnification) this.getUnificationInfo())),
                     getTypeNarrowingInfo()
             );
-        }else{
+        } else {
             return this;
         }
     }
@@ -44,7 +46,7 @@ public class PatternMatchOutput<
     public interface TypeNarrowing {
     }
 
-    public P getProcessInfo(){
+    public P getProcessInfo() {
         return processInfo;
     }
 
@@ -62,11 +64,11 @@ public class PatternMatchOutput<
     }
 
     public static <T extends PatternMatchSemanticsProcess>
-    DoesUnification collectUnificationResults(List<PatternMatchOutput<? extends T, ?, ?>> subUnifications){
+    DoesUnification collectUnificationResults(List<PatternMatchOutput<? extends T, ?, ?>> subUnifications) {
         List<NamedSymbol> result = new ArrayList<>();
         for (PatternMatchOutput<?, ?, ?> subUnification : subUnifications) {
             final Unification unificationInfo = subUnification.getUnificationInfo();
-            if(unificationInfo instanceof DoesUnification){
+            if (unificationInfo instanceof DoesUnification) {
                 result.addAll(((DoesUnification) unificationInfo).unifiedVariables);
             }
         }

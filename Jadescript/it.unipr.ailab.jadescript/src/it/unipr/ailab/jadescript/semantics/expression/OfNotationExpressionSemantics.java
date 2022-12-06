@@ -414,7 +414,7 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<OfNotation, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

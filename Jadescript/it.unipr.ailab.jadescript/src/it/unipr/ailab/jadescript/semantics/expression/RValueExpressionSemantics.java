@@ -1,8 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.Additive;
-import it.unipr.ailab.jadescript.jadescript.Multiplicative;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TernaryConditional;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -185,7 +183,7 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<RValueExpression, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

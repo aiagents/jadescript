@@ -169,7 +169,7 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
     }
 
     @Override
-    protected PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<LogicalAnd, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
