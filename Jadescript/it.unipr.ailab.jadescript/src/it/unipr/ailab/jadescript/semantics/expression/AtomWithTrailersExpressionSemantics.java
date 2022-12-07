@@ -129,19 +129,19 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input
     ) {
         return buildChain(input.getPattern()).compilePatternMatchInternal(input);
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(PatternMatchInput<AtomExpr, ?, ?> input) {
-        return buildChain(input.getPattern()).inferPatternTypeInternal(input);
+    public PatternType inferPatternTypeInternal(Maybe<AtomExpr> input) {
+        return buildChain(input).inferPatternTypeInternal(input);
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

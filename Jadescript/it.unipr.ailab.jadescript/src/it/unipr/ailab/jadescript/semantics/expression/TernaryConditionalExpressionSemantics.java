@@ -155,7 +155,7 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<TernaryConditional, ?, ?> input) {
         final Maybe<TernaryConditional> pattern = input.getPattern();
         if (mustTraverse(pattern)) {
@@ -168,19 +168,17 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<TernaryConditional, ?, ?> input) {
-        final Maybe<TernaryConditional> pattern = input.getPattern();
-        if (mustTraverse(pattern)) {
+    public PatternType inferPatternTypeInternal(Maybe<TernaryConditional> input) {
+        if (mustTraverse(input)) {
             return module.get(LogicalOrExpressionSemantics.class).inferPatternTypeInternal(
-                    input.mapPattern(TernaryConditional::getCondition)
-            );
+                    input.__(TernaryConditional::getCondition));
         }else{
             return PatternType.empty(module);
         }
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<TernaryConditional, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

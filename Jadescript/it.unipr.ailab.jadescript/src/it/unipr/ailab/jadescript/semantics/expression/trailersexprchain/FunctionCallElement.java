@@ -153,11 +153,11 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
 
     @Override
     public PatternType inferPatternTypeInternal(
-            PatternMatchInput<AtomExpr, ?, ?> input,
+            Maybe<AtomExpr> input,
             ReversedTrailerChain rest
     ) {
         //rest should be empty, so it's ignored
-        return subSemantics.inferPatternTypeInternal(input.mapPattern(__ -> generateMethodCall().toNullable()));
+        return subSemantics.inferPatternTypeInternal(input.__(__ -> generateMethodCall().toNullable()));
     }
 
     @Override

@@ -152,18 +152,18 @@ public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSim
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<StringLiteralSimple, ?, ?> input) {
         return input.createEmptyCompileOutput();
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<StringLiteralSimple, ?, ?> input) {
+    public PatternType inferPatternTypeInternal(Maybe<StringLiteralSimple> input) {
         return PatternType.empty(module);
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(PatternMatchInput<StringLiteralSimple, ?, ?> input, ValidationMessageAcceptor acceptor) {
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(PatternMatchInput<StringLiteralSimple, ?, ?> input, ValidationMessageAcceptor acceptor) {
         return input.createEmptyValidationOutput();
     }
 

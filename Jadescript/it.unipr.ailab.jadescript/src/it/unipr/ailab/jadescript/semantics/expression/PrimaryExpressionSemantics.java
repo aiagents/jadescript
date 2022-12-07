@@ -65,8 +65,9 @@ public class PrimaryExpressionSemantics extends AssignableExpressionSemantics<Pr
         final List<SemanticsBoundToExpression<?>> result = new ArrayList<>();
         result.add(invoke.extract(x -> new SemanticsBoundToExpression<>(module.get(InvokeExpressionSemantics.class), x)));
         result.add(literal.extract(x -> new SemanticsBoundToExpression<>(module.get(LiteralExpressionSemantics.class), x)));
+        final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         expr.forEach(e ->
-                result.add(e.extract(x -> new SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), x)))
+                result.add(e.extract(x -> new SemanticsBoundToExpression<>(rves, x)))
         );
         return result;
     }

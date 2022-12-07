@@ -347,7 +347,7 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(PatternMatchInput<AtomExpr, ?, ?> input, ReversedTrailerChain rest) {
+    public PatternType inferPatternTypeInternal(Maybe<AtomExpr> input, ReversedTrailerChain rest) {
         return PatternType.empty(module);
     }
 

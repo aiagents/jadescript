@@ -137,7 +137,7 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<TypeCast, ?, ?> input
     ) {
         final List<Maybe<TypeExpression>> casts = toListOfMaybes(input.getPattern().__(TypeCast::getTypeCasts));
@@ -201,13 +201,12 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
 
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<TypeCast, ?, ?> input) {
-        final List<Maybe<TypeExpression>> casts = toListOfMaybes(input.getPattern().__(TypeCast::getTypeCasts));
+    public PatternType inferPatternTypeInternal(Maybe<TypeCast> input) {
+        final List<Maybe<TypeExpression>> casts = toListOfMaybes(input.__(TypeCast::getTypeCasts));
 
-        if (mustTraverse(input.getPattern()) || casts.isEmpty()) {
+        if (mustTraverse(input) || casts.isEmpty()) {
             return module.get(AtomWithTrailersExpressionSemantics.class).inferPatternTypeInternal(
-                    input.mapPattern(TypeCast::getAtomExpr)
-            );
+                    input.__(TypeCast::getAtomExpr));
         }
 
         IJadescriptType outmost = module.get(TypeExpressionSemantics.class).toJadescriptType(
@@ -217,7 +216,7 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<TypeCast, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

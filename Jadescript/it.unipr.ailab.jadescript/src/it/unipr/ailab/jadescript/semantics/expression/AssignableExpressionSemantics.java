@@ -59,7 +59,7 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
             Maybe<T> input,
             ValidationMessageAcceptor acceptor
     ) {
-        input.safeDo(inputSafe -> {
+        module.get(ValidationHelper.class).extractEObject(input).safeDo(inputSafe -> {
             acceptor.acceptError(
                     "This expression cannot be used at the left of the '=' sign in an assignment/declaration statement.",
                     inputSafe,
@@ -77,7 +77,7 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
             Maybe<T> input,
             ValidationMessageAcceptor acceptor
     ) {
-        input.safeDo(inputSafe -> {
+        module.get(ValidationHelper.class).extractEObject(input).safeDo(inputSafe -> {
             acceptor.acceptError(
                     "Not a statement.",
                     inputSafe,

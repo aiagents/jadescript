@@ -87,18 +87,18 @@ public class SyntheticExpressionSemantics extends ExpressionSemantics<SyntheticE
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<SyntheticExpression, ?, ?> input) {
         return input.createEmptyCompileOutput();
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<SyntheticExpression, ?, ?> input) {
+    public PatternType inferPatternTypeInternal(Maybe<SyntheticExpression> input) {
         return PatternType.empty(module);
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<SyntheticExpression, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

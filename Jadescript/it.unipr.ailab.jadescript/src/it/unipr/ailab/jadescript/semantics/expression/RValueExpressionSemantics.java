@@ -140,7 +140,7 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<RValueExpression, ?, ?> input) {
         final Maybe<RValueExpression> pattern = input.getPattern();
 
@@ -163,19 +163,16 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<RValueExpression, ?, ?> input) {
-        final Maybe<RValueExpression> pattern = input.getPattern();
+    public PatternType inferPatternTypeInternal(Maybe<RValueExpression> input) {
 
-        if (mustTraverse(pattern)) {
-            if (pattern.isInstanceOf(SyntheticExpression.class)) {
-                return module.get(SyntheticExpressionSemantics.class).inferPatternType(
-                        input.mapPattern(x -> (SyntheticExpression) x)
-                );
+        if (mustTraverse(input)) {
+            if (input.isInstanceOf(SyntheticExpression.class)) {
+                return module.get(SyntheticExpressionSemantics.class).inferPatternTypeInternal(
+                        input.__(i -> (SyntheticExpression) i));
             }
-            if (pattern.isInstanceOf(TernaryConditional.class)) {
+            if (input.isInstanceOf(TernaryConditional.class)) {
                 return module.get(TernaryConditionalExpressionSemantics.class).inferPatternTypeInternal(
-                        input.mapPattern(x -> (TernaryConditional) x)
-                );
+                        input.__(i -> (TernaryConditional) i));
             }
 
         }
@@ -183,7 +180,7 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<RValueExpression, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

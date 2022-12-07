@@ -117,7 +117,7 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<RelationalComparison, ?, ?> input) {
         final Maybe<RelationalComparison> pattern = input.getPattern();
         if (mustTraverse(pattern)) {
@@ -130,19 +130,17 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<RelationalComparison, ?, ?> input) {
-        final Maybe<RelationalComparison> pattern = input.getPattern();
-        if (mustTraverse(pattern)) {
+    public PatternType inferPatternTypeInternal(Maybe<RelationalComparison> input) {
+        if (mustTraverse(input)) {
             return module.get(ContainmentCheckExpressionSemantics.class).inferPatternTypeInternal(
-                    input.mapPattern(RelationalComparison::getLeft)
-            );
+                    input.__(RelationalComparison::getLeft));
         }else{
             return PatternType.empty(module);
         }
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<RelationalComparison, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

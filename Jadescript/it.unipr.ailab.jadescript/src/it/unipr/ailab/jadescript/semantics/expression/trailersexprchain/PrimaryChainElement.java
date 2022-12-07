@@ -19,7 +19,6 @@ import java.util.List;
 
 /**
  * Created on 26/08/18.
- *
  */
 public class PrimaryChainElement extends TrailersExpressionChainElement {
 
@@ -110,13 +109,15 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
             ReversedTrailerChain rest
     ) {
         //rest should be empty, so it's ignored
-        return primaryExpressionSemantics.compilePatternMatch(input.mapPattern(__ -> atom.toNullable()));
+        return primaryExpressionSemantics.compilePatternMatchInternal(
+                input.mapPattern(__ -> atom.toNullable()));
     }
 
+
     @Override
-    public PatternType inferPatternTypeInternal(PatternMatchInput<AtomExpr, ?, ?> input, ReversedTrailerChain rest) {
+    public PatternType inferPatternTypeInternal(Maybe<AtomExpr> input, ReversedTrailerChain rest) {
         //rest should be empty, so it's ignored
-        return primaryExpressionSemantics.inferPatternType(input.mapPattern(__ -> atom.toNullable()));
+        return primaryExpressionSemantics.inferPatternTypeInternal(input.__(AtomExpr::getAtom));
     }
 
     @Override
@@ -126,7 +127,7 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
             ValidationMessageAcceptor acceptor
     ) {
         //rest should be empty, so it's ignored
-        return primaryExpressionSemantics.validatePatternMatch(
+        return primaryExpressionSemantics.validatePatternMatchInternal(
                 input.mapPattern(__ -> atom.toNullable()),
                 acceptor
         );

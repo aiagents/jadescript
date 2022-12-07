@@ -273,14 +273,14 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<MapOrSetLiteral, ?, ?> input) {
         boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.getPattern().__(MapOrSetLiteral::getRest);
         final List<Maybe<RValueExpression>> keys = toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
         final List<Maybe<RValueExpression>> values = toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
         int prePipeElementCount = Math.min(keys.size(), values.size());
-        PatternType patternType = inferPatternType(input);
+        PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
         IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
 
 
@@ -297,7 +297,6 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
             final List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults =
                     new ArrayList<>(prePipeElementCount * 2 + (isWithPipe ? 1 : 0));
 
-            //TODO
             final List<String> keyReferences = new ArrayList<>(prePipeElementCount);
             final List<StatementWriter> auxStatements = new ArrayList<>(prePipeElementCount);
 
@@ -408,9 +407,10 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<MapOrSetLiteral, ?, ?> input) {
-        if (isTypelyHoled(input.getPattern())) {
+    public PatternType inferPatternTypeInternal(Maybe<MapOrSetLiteral> input) {
+        if (isTypelyHoled(input)) {
             //TODO treat the two type arguments separately
+            //      moreover, the type of the keys cannot be holed, and therefore has NOT to be solved
             return PatternType.holed(inputType -> {
                 final TypeHelper typeHelper = module.get(TypeHelper.class);
                 if (inputType instanceof MapType) {
@@ -425,12 +425,12 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
                 }
             });
         } else {
-            return PatternType.simple(inferType(input.getPattern()));
+            return PatternType.simple(inferType(input));
         }
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<MapOrSetLiteral, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
@@ -438,7 +438,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
         final List<Maybe<RValueExpression>> keys = toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
         final List<Maybe<RValueExpression>> values = toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
         int prePipeElementCount = Math.min(keys.size(), values.size());
-        PatternType patternType = inferPatternType(input);
+        PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
         IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
 
         List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>> subResults
