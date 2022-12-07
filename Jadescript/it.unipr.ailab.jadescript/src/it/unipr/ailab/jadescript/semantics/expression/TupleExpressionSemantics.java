@@ -66,7 +66,7 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
                 validationHelper.extractEObject(input),
                 acceptor
         );
-    }
+    } 
 
     @Override
     public Maybe<String> compileAssignment(
