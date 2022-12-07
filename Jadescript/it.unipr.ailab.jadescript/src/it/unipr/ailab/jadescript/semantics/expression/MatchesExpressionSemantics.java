@@ -165,7 +165,7 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<Matches, ?, ?> input) {
         final Maybe<Matches> pattern = input.getPattern();
         if (mustTraverse(pattern)) {
@@ -178,11 +178,10 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<Matches, ?, ?> input) {
-        final Maybe<Matches> pattern = input.getPattern();
-        if (mustTraverse(pattern)) {
+    public PatternType inferPatternTypeInternal(Maybe<Matches> input) {
+        if (mustTraverse(input)) {
             return module.get(UnaryPrefixExpressionSemantics.class).inferPatternTypeInternal(
-                    input.mapPattern(Matches::getUnaryExpr)
+                    input.__(Matches::getUnaryExpr)
             );
         }else{
             return PatternType.empty(module);
@@ -190,7 +189,7 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<Matches, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

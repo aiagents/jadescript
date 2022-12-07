@@ -138,7 +138,7 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<TypeComparison, ?, ?> input) {
         final Maybe<TypeComparison> pattern = input.getPattern();
         if (mustTraverse(pattern)) {
@@ -151,19 +151,17 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<TypeComparison, ?, ?> input) {
-        final Maybe<TypeComparison> pattern = input.getPattern();
-        if (mustTraverse(pattern)) {
+    public PatternType inferPatternTypeInternal(Maybe<TypeComparison> input) {
+        if (mustTraverse(input)) {
             return module.get(RelationalComparisonExpressionSemantics.class).inferPatternTypeInternal(
-                    input.mapPattern(TypeComparison::getRelationalComparison)
-            );
+                    input.__(TypeComparison::getRelationalComparison));
         }else{
             return PatternType.empty(module);
         }
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<TypeComparison, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

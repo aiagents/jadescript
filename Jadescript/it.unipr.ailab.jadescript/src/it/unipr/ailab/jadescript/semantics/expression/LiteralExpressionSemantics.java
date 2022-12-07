@@ -222,7 +222,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
 
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<Literal, ?, ?> input) {
         final Maybe<StringLiteralSimple> string = input.getPattern().__(Literal::getString);
         final Maybe<ListLiteral> list = input.getPattern().__(Literal::getList);
@@ -253,30 +253,22 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<Literal, ?, ?> input) {
-        final Maybe<StringLiteralSimple> string = input.getPattern().__(Literal::getString);
-        final Maybe<ListLiteral> list = input.getPattern().__(Literal::getList);
-        final Maybe<MapOrSetLiteral> mapOrSet = input.getPattern().__(Literal::getMap);
+    public PatternType inferPatternTypeInternal(Maybe<Literal> input) {
+        final Maybe<StringLiteralSimple> string = input.__(Literal::getString);
+        final Maybe<ListLiteral> list = input.__(Literal::getList);
+        final Maybe<MapOrSetLiteral> mapOrSet = input.__(Literal::getMap);
         final boolean isMap = isMap(mapOrSet);
 
-        if (mustTraverse(input.getPattern())) {
+        if (mustTraverse(input)) {
             if (string.isPresent()) {
-                return module.get(StringLiteralSemantics.class).inferPatternTypeInternal(
-                        input.mapPattern(__ -> string.toNullable())
-                );
+                return module.get(StringLiteralSemantics.class).inferPatternTypeInternal(string);
             } else if (list.isPresent()) {
-                return module.get(ListLiteralExpressionSemantics.class).inferPatternTypeInternal(
-                        input.mapPattern(__ -> list.toNullable())
-                );
+                return module.get(ListLiteralExpressionSemantics.class).inferPatternTypeInternal(list);
             } else if (mapOrSet.isPresent()) {
                 if (isMap) {
-                    return module.get(MapLiteralExpressionSemantics.class).inferPatternTypeInternal(
-                            input.mapPattern(__ -> mapOrSet.toNullable())
-                    );
+                    return module.get(MapLiteralExpressionSemantics.class).inferPatternTypeInternal(mapOrSet);
                 } else {
-                    return module.get(SetLiteralExpressionSemantics.class).inferPatternTypeInternal(
-                            input.mapPattern(__ -> mapOrSet.toNullable())
-                    );
+                    return module.get(SetLiteralExpressionSemantics.class).inferPatternTypeInternal(mapOrSet);
                 }
             }
         }
@@ -284,7 +276,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<Literal, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

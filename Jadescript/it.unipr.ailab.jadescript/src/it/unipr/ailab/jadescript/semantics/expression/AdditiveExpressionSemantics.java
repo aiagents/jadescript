@@ -174,7 +174,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<Additive, ?, ?> input) {
         final Maybe<Additive> pattern = input.getPattern();
         final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(pattern.__(Additive::getMultiplicative));
@@ -188,20 +188,18 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<Additive, ?, ?> input) {
-        final Maybe<Additive> pattern = input.getPattern();
-        final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(pattern.__(Additive::getMultiplicative));
-        if (mustTraverse(pattern)) {
-            return module.get(MultiplicativeExpressionSemantics.class).inferPatternTypeInternal(
-                    input.mapPattern(__ -> operands.get(0).toNullable())
-            );
+    public PatternType inferPatternTypeInternal(Maybe<Additive> input) {
+
+        final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
+        if (mustTraverse(input)) {
+            return module.get(MultiplicativeExpressionSemantics.class).inferPatternTypeInternal(operands.get(0));
         }else{
             return PatternType.empty(module);
         }
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<Additive, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

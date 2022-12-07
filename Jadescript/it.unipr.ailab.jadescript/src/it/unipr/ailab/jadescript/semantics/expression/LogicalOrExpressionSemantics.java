@@ -153,7 +153,7 @@ public class LogicalOrExpressionSemantics extends ExpressionSemantics<LogicalOr>
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<LogicalOr, ?, ?> input) {
         final Maybe<LogicalOr> pattern = input.getPattern();
         final List<Maybe<LogicalAnd>> operands = Maybe.toListOfMaybes(pattern.__(LogicalOr::getLogicalAnd));
@@ -167,20 +167,17 @@ public class LogicalOrExpressionSemantics extends ExpressionSemantics<LogicalOr>
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<LogicalOr, ?, ?> input) {
-        final Maybe<LogicalOr> pattern = input.getPattern();
-        final List<Maybe<LogicalAnd>> operands = Maybe.toListOfMaybes(pattern.__(LogicalOr::getLogicalAnd));
-        if (mustTraverse(pattern)) {
-            return module.get(LogicalAndExpressionSemantics.class).inferPatternTypeInternal(
-                    input.mapPattern(__ -> operands.get(0).toNullable())
-            );
+    public PatternType inferPatternTypeInternal(Maybe<LogicalOr> input) {
+        final List<Maybe<LogicalAnd>> operands = Maybe.toListOfMaybes(input.__(LogicalOr::getLogicalAnd));
+        if (mustTraverse(input)) {
+            return module.get(LogicalAndExpressionSemantics.class).inferPatternTypeInternal(operands.get(0));
         }else{
             return PatternType.empty(module);
         }
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<LogicalOr, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

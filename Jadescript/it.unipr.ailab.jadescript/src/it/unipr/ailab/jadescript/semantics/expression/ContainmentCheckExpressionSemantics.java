@@ -123,7 +123,7 @@ public class ContainmentCheckExpressionSemantics extends ExpressionSemantics<Con
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<ContainmentCheck, ?, ?> input) {
         if (mustTraverse(input.getPattern())) {
             return module.get(AdditiveExpressionSemantics.class).compilePatternMatchInternal(
@@ -135,10 +135,10 @@ public class ContainmentCheckExpressionSemantics extends ExpressionSemantics<Con
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<ContainmentCheck, ?, ?> input) {
-        if (mustTraverse(input.getPattern())) {
+    public PatternType inferPatternTypeInternal(Maybe<ContainmentCheck> input) {
+        if (mustTraverse(input)) {
             return module.get(AdditiveExpressionSemantics.class).inferPatternTypeInternal(
-                    input.mapPattern(ContainmentCheck::getCollection));
+                    input.__(ContainmentCheck::getCollection));
         } else {
             return PatternType.empty(module);
         }
@@ -146,7 +146,7 @@ public class ContainmentCheckExpressionSemantics extends ExpressionSemantics<Con
 
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<ContainmentCheck, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

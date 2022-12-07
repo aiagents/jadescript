@@ -65,7 +65,7 @@ public abstract class TrailersExpressionChainElement {
     );
 
     public abstract PatternType inferPatternTypeInternal(
-            PatternMatchInput<AtomExpr, ?, ?> input,
+            Maybe<AtomExpr> input,
             ReversedTrailerChain rest
     );
 

@@ -568,7 +568,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                 subResults.add(termOutput);
             }
 
-            PatternType patternType = inferPatternType(input);
+            PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
             IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
 
             List<String> compiledSubInputs = new ArrayList<>(m.parameterNames().size());
@@ -592,23 +592,22 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
         }
     }
 
-    private PatternType inferPatternType(PatternMatchInput<MethodCall, ?, ?> input) {
-        if (isPatternGroundForEquality(input)) {
-            return PatternType.simple(inferType(input.getPattern()));
+    private PatternType inferPatternType(Maybe<MethodCall> input, PatternMatchMode mode) {
+        if (isPatternGroundForEquality(input, mode)) {
+            return PatternType.simple(inferType(input));
         } else {
             return inferPatternTypeInternal(input);
         }
     }
 
-    private boolean isPatternGroundForEquality(PatternMatchInput<MethodCall, ?, ?> input) {
-        return input.getMode().getPatternLocation() == PatternMatchMode.PatternLocation.SUB_PATTERN
-                && !isHoled(input.getPattern());
+    private boolean isPatternGroundForEquality(Maybe<MethodCall> input, PatternMatchMode mode) {
+        return mode.getPatternLocation() == PatternMatchMode.PatternLocation.SUB_PATTERN && !isHoled(input);
     }
 
     public PatternType inferPatternTypeInternal(
-            PatternMatchInput<MethodCall, ?, ?> input
+            Maybe<MethodCall> input
     ) {
-        final Maybe<? extends CallableSymbol> method = resolve(input.getPattern());
+        final Maybe<? extends CallableSymbol> method = resolve(input);
         if (method.isPresent()) {
             return PatternType.simple(method.toNullable().returnType());
         } else {
@@ -694,7 +693,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                 subResults.add(termOutput);
             }
 
-            PatternType patternType = inferPatternType(input);
+            PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
             IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
 
             return input.createValidationOutput(

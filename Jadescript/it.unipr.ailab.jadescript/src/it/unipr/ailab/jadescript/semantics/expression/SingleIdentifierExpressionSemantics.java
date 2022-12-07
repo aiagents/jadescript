@@ -264,13 +264,13 @@ public class SingleIdentifierExpressionSemantics
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<VirtualIdentifier, ?, ?> input) {
         final String identifier = input.getPattern().__(VirtualIdentifier::getIdent).orElse("");
         if (isUnbound(input.getPattern())) {
 
             if (input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION) {
-                IJadescriptType solvedPatternType = inferPatternType(input).solve(input.providedInputType());
+                IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.providedInputType());
                 String localClassName = "__PatternMatcher" + input.getPattern()
                         .__(ProxyEObject::getProxyEObject)
                         .__(Objects::hashCode)
@@ -284,23 +284,18 @@ public class SingleIdentifierExpressionSemantics
 
                 module.get(ContextManager.class).currentScope().addNamedElement(deconstructedVariable);
 
-                return new PatternMatchOutput<>(
-                        new PatternMatchSemanticsProcess.IsCompilation.AsFieldAssigningMethod(
-                                input,
-                                solvedPatternType,
-                                identifier
-                        ),
-                        new PatternMatchOutput.DoesUnification(List.of(deconstructedVariable)),
-                        input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                                ? new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-                                : PatternMatchOutput.NoNarrowing.INSTANCE
+                return input.createFieldAssigningMethodOutput(
+                        solvedPatternType,
+                        identifier,
+                        () -> new PatternMatchOutput.DoesUnification(List.of(deconstructedVariable)),
+                        () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
                 );
             } else {
                 return input.createEmptyCompileOutput();
             }
         } else {
 
-            IJadescriptType solvedPatternType = inferPatternType(input).solve(input.providedInputType());
+            IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.providedInputType());
             Maybe<String> tempCompile = compile(input.getPattern());
             String compiledFinal;
             if (tempCompile.__(s -> s.startsWith(input.getRootPatternMatchVariableName())).extract(nullAsFalse)) {
@@ -308,33 +303,26 @@ public class SingleIdentifierExpressionSemantics
             } else {
                 compiledFinal = tempCompile.orElse(identifier);
             }
-            return new PatternMatchOutput<>(
-                    new PatternMatchSemanticsProcess.IsCompilation.AsSingleConditionMethod(
-                            input,
-                            solvedPatternType,
-                            "java.util.Objects.equals(__x," + compiledFinal + ")"
-                    ),
-                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                            ? PatternMatchOutput.EMPTY_UNIFICATION
-                            : PatternMatchOutput.NoUnification.INSTANCE,
-                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                            ? new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            return input.createSingleConditionMethodOutput(
+                    solvedPatternType,
+                    "java.util.Objects.equals(__x," + compiledFinal + ")",
+                    () -> PatternMatchOutput.EMPTY_UNIFICATION,
+                    () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
             );
         }
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<VirtualIdentifier, ?, ?> input) {
-        if (isTypelyHoled(input.getPattern())) {
+    public PatternType inferPatternTypeInternal(Maybe<VirtualIdentifier> input) {
+        if (isTypelyHoled(input)) {
             return PatternType.holed(inputType -> inputType);
         } else {
-            return PatternType.simple(inferType(input.getPattern()));
+            return PatternType.simple(inferType(input));
         }
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<VirtualIdentifier, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
@@ -349,7 +337,7 @@ public class SingleIdentifierExpressionSemantics
             );
 
             if (input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION) {
-                IJadescriptType solvedPatternType = inferPatternType(input).solve(input.providedInputType());
+                IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.providedInputType());
 
                 String localClassName = "__PatternMatcher" + input.getPattern()
                         .__(ProxyEObject::getProxyEObject)
@@ -375,14 +363,10 @@ public class SingleIdentifierExpressionSemantics
                     );
                 }
 
-                return new PatternMatchOutput<>(
-                        PatternMatchSemanticsProcess.IsValidation.INSTANCE,
-                        new PatternMatchOutput.DoesUnification(List.of(deconstructedVariable)),
-                        input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                                ? new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-                                : PatternMatchOutput.NoNarrowing.INSTANCE
+                return input.createValidationOutput(
+                        () -> new PatternMatchOutput.DoesUnification(List.of(deconstructedVariable)),
+                        () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
                 );
-
             } else {
                 return input.createEmptyValidationOutput();
             }
@@ -395,14 +379,9 @@ public class SingleIdentifierExpressionSemantics
                     input.getPattern().__(VirtualIdentifier::getProxyEObject),
                     acceptor
             );
-            return new PatternMatchOutput<>(
-                    PatternMatchSemanticsProcess.IsValidation.INSTANCE,
-                    input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
-                            ? PatternMatchOutput.EMPTY_UNIFICATION
-                            : PatternMatchOutput.NoUnification.INSTANCE,
-                    input.getMode().getNarrowsTypeOfInput() == PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE
-                            ? new PatternMatchOutput.WithTypeNarrowing(typeOfNamedSymbol)
-                            : PatternMatchOutput.NoNarrowing.INSTANCE
+            return input.createValidationOutput(
+                    () -> PatternMatchOutput.EMPTY_UNIFICATION,
+                    () -> new PatternMatchOutput.WithTypeNarrowing(typeOfNamedSymbol)
             );
         }
     }

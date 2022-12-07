@@ -190,13 +190,13 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<ListLiteral, ?, ?> input) {
         List<Maybe<RValueExpression>> values = toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
         Maybe<RValueExpression> rest = input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe = input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse) && rest.isPresent();
         int prePipeElementCount = values.size();
-        PatternType patternType = inferPatternType(input);
+        PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
         IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
 
 
@@ -285,8 +285,8 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<ListLiteral, ?, ?> input) {
-        if (isTypelyHoled(input.getPattern())) {
+    public PatternType inferPatternTypeInternal(Maybe<ListLiteral> input) {
+        if (isTypelyHoled(input)) {
             // Has no type specifier and it is typely holed.
             return PatternType.holed(inputType -> {
                 final TypeHelper typeHelper = module.get(TypeHelper.class);
@@ -300,12 +300,12 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
                 }
             });
         } else {
-            return PatternType.simple(inferType(input.getPattern()));
+            return PatternType.simple(inferType(input));
         }
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<ListLiteral, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
@@ -313,7 +313,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
         Maybe<RValueExpression> rest = input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe = input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse) && rest.isPresent();
         int prePipeElementCount = values.size();
-        PatternType patternType = inferPatternType(input);
+        PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
         IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
 
         List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>> subResults
@@ -370,7 +370,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
                 (!valuesList.isEmpty() && !valuesList.stream().allMatch(Maybe::isNothing))
                         || hasTypeSpecifier,
                 "ListLiteralCannotComputeType",
-                "Missing type specification for empty list listeral",
+                "Missing type specification for empty list literal",
                 input,
                 stage1Validation
         );

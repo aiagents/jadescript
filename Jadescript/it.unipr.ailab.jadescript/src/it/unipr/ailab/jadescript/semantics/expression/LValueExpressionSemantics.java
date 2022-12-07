@@ -103,7 +103,7 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
 
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<LValueExpression, ?, ?> input) {
         return module.get(OfNotationExpressionSemantics.class).compilePatternMatchInternal(
                 input.mapPattern(lve -> (OfNotation) lve)
@@ -111,14 +111,13 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<LValueExpression, ?, ?> input) {
+    public PatternType inferPatternTypeInternal(Maybe<LValueExpression> input) {
         return module.get(OfNotationExpressionSemantics.class).inferPatternTypeInternal(
-                input.mapPattern(lve -> (OfNotation) lve)
-        );
+                input.__(lve -> (OfNotation) lve));
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<LValueExpression, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

@@ -281,7 +281,7 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
      * pattern is completely known at compile-time, and it is the one related to the return type of the function
      * referred by the pattern.
      * By design, if this method returns true for a given pattern, then
-     * {@link ExpressionSemantics#inferPatternType(PatternMatchInput)} should return a
+     * {@link ExpressionSemantics#inferPatternType(Maybe, PatternMatchMode)} should return a
      * {@link PatternType.HoledPatternType}, otherwise a {@link PatternType.SimplePatternType} is expected.
      * The default implementation attempts to traverse the expression tree, and when this is not possible, it returns
      * the same value as {@link ExpressionSemantics#isHoled(Maybe)}, but this must be overridden by special cases like
@@ -324,8 +324,15 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
 
 
     protected boolean isSubPatternGroundForEquality(PatternMatchInput<T, ?, ?> patternMatchInput) {
-        return patternMatchInput.getMode().getPatternLocation() == PatternMatchMode.PatternLocation.SUB_PATTERN
-                && !isHoled(patternMatchInput.getPattern());
+        return isSubPatternGroundForEquality(patternMatchInput.getPattern(), patternMatchInput.getMode());
+    }
+
+    protected boolean isSubPatternGroundForEquality(Maybe<T> pattern, PatternMatchMode mode) {
+        return isSubPatternGroundForEquality(pattern, mode.getPatternLocation());
+    }
+
+    protected boolean isSubPatternGroundForEquality(Maybe<T> pattern, PatternMatchMode.PatternLocation location){
+        return location == PatternMatchMode.PatternLocation.SUB_PATTERN && !isHoled(pattern);
     }
 
     @SuppressWarnings("unchecked")
@@ -343,14 +350,23 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
     }
 
     public PatternType inferPatternType(
-            PatternMatchInput<T, ?, ?> input
+            Maybe<T> input, PatternMatchMode mode
     ) {
-        if (isSubPatternGroundForEquality(input)) {
-            return PatternType.simple(inferType(input.getPattern()));
+        if (isSubPatternGroundForEquality(input, mode)) {
+            return PatternType.simple(inferType(input));
         } else {
             return inferPatternTypeInternal(input);
         }
     }
+
+    public PatternType inferSubPatternType(Maybe<T> input){
+        if(isSubPatternGroundForEquality(input, PatternMatchMode.PatternLocation.SUB_PATTERN)){
+            return PatternType.simple(inferType(input));
+        }else{
+            return inferPatternTypeInternal(input);
+        }
+    }
+
 
 
     @SuppressWarnings("unchecked")
@@ -471,7 +487,7 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
     ) {
         validatePatternTypeRelationshipRequirement(
                 input,
-                inferPatternType(input).solve(input.providedInputType()),
+                inferPatternType(input.getPattern(), input.getMode()).solve(input.providedInputType()),
                 acceptor
         );
     }
@@ -481,7 +497,7 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
     validateExpressionEqualityPatternMatch(
             PatternMatchInput.SubPattern<T, ?, ?, ?> input
     ) {
-        IJadescriptType patternType = inferPatternType(input).solve(input.providedInputType());
+        IJadescriptType patternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.providedInputType());
         return input.createValidationOutput(
                 () -> PatternMatchOutput.EMPTY_UNIFICATION,
                 () -> new PatternMatchOutput.WithTypeNarrowing(patternType)
@@ -500,7 +516,7 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
     protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compileExpressionEqualityPatternMatch(
             PatternMatchInput.SubPattern<T, ?, ?, ?> input
     ) {
-        IJadescriptType solvedPatternType = inferPatternType(input).solve(input.providedInputType());
+        IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.providedInputType());
         return input.createSingleConditionMethodOutput(
                 solvedPatternType,
                 "java.util.Objects.equals(__x, " + compile(input.getPattern()).orElse("") + ")",
@@ -510,18 +526,20 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
     }
 
 
-    protected abstract PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public abstract PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<T, ?, ?> input);
 
-    protected abstract PatternType inferPatternTypeInternal(PatternMatchInput<T, ?, ?> input);
+    public abstract PatternType inferPatternTypeInternal(Maybe<T> input);
 
-    protected abstract PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>
+    public abstract PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>
     validatePatternMatchInternal(PatternMatchInput<T, ?, ?> input, ValidationMessageAcceptor acceptor);
 
 
     protected boolean canBeHoled(Maybe<T> input) {
         //TODO
     }
+
+
     //ALSO TODO ensure that each pattern matching is evaluated inside its own subscope
     //          this is because a pattern could introduce variables that are used in the same pattern
     //          - then remember to populate the resulting context with the variables given by the output object

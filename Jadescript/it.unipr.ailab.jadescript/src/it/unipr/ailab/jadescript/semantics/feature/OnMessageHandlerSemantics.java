@@ -442,7 +442,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
             tcast.setAtomExpr(atomExpr);
             aid.setTypeCast(tcast);
             aid.setIsAidExpr(false);
-            of.setTypeCast(aid);
+            of.setAidLiteral(aid);
             of.getProperties().add("content");
 
             up.setDebugScope(false);

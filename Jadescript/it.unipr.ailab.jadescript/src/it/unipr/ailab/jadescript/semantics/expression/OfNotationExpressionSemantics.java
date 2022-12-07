@@ -389,7 +389,7 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<OfNotation, ?, ?> input) {
         final Maybe<OfNotation> pattern = input.getPattern();
         if (mustTraverse(pattern)) {
@@ -402,19 +402,17 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<OfNotation, ?, ?> input) {
-        final Maybe<OfNotation> pattern = input.getPattern();
-        if (mustTraverse(pattern)) {
+    public PatternType inferPatternTypeInternal(Maybe<OfNotation> input) {
+        if (mustTraverse(input)) {
             return module.get(AidLiteralExpressionSemantics.class).inferPatternTypeInternal(
-                    input.mapPattern(OfNotation::getAidLiteral)
-            );
+                    input.__(OfNotation::getAidLiteral));
         }else{
             return PatternType.empty(module);
         }
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<OfNotation, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

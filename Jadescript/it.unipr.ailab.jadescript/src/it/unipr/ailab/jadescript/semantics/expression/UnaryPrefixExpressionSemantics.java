@@ -395,7 +395,7 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<UnaryPrefix, ?, ?> input) {
         final Maybe<UnaryPrefix> pattern = input.getPattern();
         if (mustTraverse(pattern)) {
@@ -408,19 +408,17 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<UnaryPrefix, ?, ?> input) {
-        final Maybe<UnaryPrefix> pattern = input.getPattern();
-        if (mustTraverse(pattern)) {
+    public PatternType inferPatternTypeInternal(Maybe<UnaryPrefix> input) {
+        if (mustTraverse(input)) {
             return module.get(OfNotationExpressionSemantics.class).inferPatternTypeInternal(
-                    input.mapPattern(UnaryPrefix::getOfNotation)
-            );
+                    input.__(UnaryPrefix::getOfNotation));
         }else{
             return PatternType.empty(module);
         }
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<UnaryPrefix, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

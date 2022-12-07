@@ -149,7 +149,7 @@ public class ReversedTrailerChain {
         return elements.get(0).__(el -> el.isUnbounded(withoutFirst())).extract(Maybe.nullAsFalse);
     }
 
-    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input
     ) {
         if (elements.isEmpty()) return null;//TODO add empty output generator method
@@ -158,13 +158,15 @@ public class ReversedTrailerChain {
                 .toNullable();
     }
 
-    public PatternType inferPatternTypeInternal(PatternMatchInput<AtomExpr, ?, ?> input) {
+    public PatternType inferPatternTypeInternal(
+            Maybe<AtomExpr> input
+    ) {
         if (elements.isEmpty()) return PatternType.simple(module.get(TypeHelper.class).NOTHING);
         return elements.get(0).__(el -> el.inferPatternTypeInternal(input, withoutFirst())).orElseGet(() ->
                 PatternType.simple(module.get(TypeHelper.class).NOTHING));
     }
 
-    public PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

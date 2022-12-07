@@ -160,18 +160,18 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<InvokeExpression, ?, ?> input) {
         return input.createEmptyCompileOutput();
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<InvokeExpression, ?, ?> input) {
+    public PatternType inferPatternTypeInternal(Maybe<InvokeExpression> input) {
         return PatternType.empty(module);
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<InvokeExpression, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {

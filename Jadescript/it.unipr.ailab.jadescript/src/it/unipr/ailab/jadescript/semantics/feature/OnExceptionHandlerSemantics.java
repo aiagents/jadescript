@@ -289,7 +289,7 @@ public class OnExceptionHandlerSemantics extends FeatureSemantics<OnExceptionHan
             tcast.setAtomExpr(atomExpr);
             aid.setTypeCast(tcast);
             aid.setIsAidExpr(false);
-            of.setTypeCast(aid);
+            of.setAidLiteral(aid);
             up.setDebugScope(false);
             up.setDebugType(false);
             up.setOfNotation(of);

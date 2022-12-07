@@ -73,18 +73,18 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<TypeExpression, ?, ?> input) {
         return input.createEmptyCompileOutput();
     }
 
     @Override
-    protected PatternType inferPatternTypeInternal(PatternMatchInput<TypeExpression, ?, ?> input) {
+    public PatternType inferPatternTypeInternal(Maybe<TypeExpression> input) {
         return PatternType.empty(module);
     }
 
     @Override
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<TypeExpression, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
