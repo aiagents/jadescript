@@ -281,7 +281,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
         final List<Maybe<RValueExpression>> values = toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
         int prePipeElementCount = Math.min(keys.size(), values.size());
         PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
-        IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
+        IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
 
 
         if (!isWithPipe && prePipeElementCount == 0) {
@@ -439,7 +439,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
         final List<Maybe<RValueExpression>> values = toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
         int prePipeElementCount = Math.min(keys.size(), values.size());
         PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
-        IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
+        IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
 
         List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>> subResults
                 = new ArrayList<>(prePipeElementCount * 2 + (isWithPipe ? 1 : 0));

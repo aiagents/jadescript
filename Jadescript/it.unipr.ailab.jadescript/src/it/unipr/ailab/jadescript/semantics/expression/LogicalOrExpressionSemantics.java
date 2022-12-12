@@ -159,7 +159,7 @@ public class LogicalOrExpressionSemantics extends ExpressionSemantics<LogicalOr>
         final List<Maybe<LogicalAnd>> operands = Maybe.toListOfMaybes(pattern.__(LogicalOr::getLogicalAnd));
         if (mustTraverse(pattern)) {
             return module.get(LogicalAndExpressionSemantics.class).compilePatternMatchInternal(
-                    input.mapPattern(__ -> operands.get(0).toNullable())
+                    input.replacePattern(operands.get(0))
             );
         } else {
             return input.createEmptyCompileOutput();
@@ -185,7 +185,7 @@ public class LogicalOrExpressionSemantics extends ExpressionSemantics<LogicalOr>
         final List<Maybe<LogicalAnd>> operands = Maybe.toListOfMaybes(pattern.__(LogicalOr::getLogicalAnd));
         if (mustTraverse(pattern)) {
             return module.get(LogicalAndExpressionSemantics.class).validatePatternMatchInternal(
-                    input.mapPattern(__ -> operands.get(0).toNullable()),
+                    input.replacePattern(operands.get(0)),
                     acceptor
             );
         } else {

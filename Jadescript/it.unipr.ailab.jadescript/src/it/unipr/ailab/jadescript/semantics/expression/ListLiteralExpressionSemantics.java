@@ -197,7 +197,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
         boolean isWithPipe = input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse) && rest.isPresent();
         int prePipeElementCount = values.size();
         PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
-        IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
+        IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
 
 
         if (!isWithPipe && prePipeElementCount == 0) {
@@ -314,7 +314,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
         boolean isWithPipe = input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse) && rest.isPresent();
         int prePipeElementCount = values.size();
         PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
-        IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
+        IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
 
         List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>> subResults
                 = new ArrayList<>(prePipeElementCount + (isWithPipe ? 1 : 0));

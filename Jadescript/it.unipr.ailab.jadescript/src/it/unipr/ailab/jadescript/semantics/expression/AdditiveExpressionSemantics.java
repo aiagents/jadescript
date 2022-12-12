@@ -180,7 +180,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(pattern.__(Additive::getMultiplicative));
         if (mustTraverse(pattern)) {
             return module.get(MultiplicativeExpressionSemantics.class).compilePatternMatchInternal(
-                    input.mapPattern(__ -> operands.get(0).toNullable())
+                    input.replacePattern(operands.get(0))
             );
         } else {
             return input.createEmptyCompileOutput();
@@ -207,7 +207,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(pattern.__(Additive::getMultiplicative));
         if (mustTraverse(pattern)) {
             return module.get(MultiplicativeExpressionSemantics.class).validatePatternMatchInternal(
-                    input.mapPattern(__ -> operands.get(0).toNullable()),
+                    input.replacePattern(operands.get(0)),
                     acceptor
             );
         } else {

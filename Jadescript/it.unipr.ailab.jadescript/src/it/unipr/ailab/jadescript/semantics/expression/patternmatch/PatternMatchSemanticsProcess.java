@@ -339,7 +339,33 @@ public interface PatternMatchSemanticsProcess {
             }
 
         }
+
+        public static class AsPlaceholderMethod extends AsMethod {
+
+            public AsPlaceholderMethod(
+                    PatternMatchInput<?, ?, ?> patternMatchInput,
+                    IJadescriptType solvedPatternType
+            ) {
+                super(patternMatchInput, solvedPatternType);
+            }
+
+            public MethodWriter generatedWriter() {
+                MethodWriter m = w.method(Visibility.PUBLIC, false, false, "boolean", patternMatchInput.getTermID())
+                        .addParameter(w.param("java.lang.Object", "__objx"));
+                m.getBody().addStatements(compiledAdaptType);
+                m.getBody().addStatement(w.returnStmnt(w.True));
+                return m;
+            }
+
+            @Override
+            public Stream<? extends ClassMemberWriter> getWriters() {
+                return Stream.of(generatedWriter());
+            }
+
+        }
     }
+
+
 
 
 }

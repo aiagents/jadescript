@@ -746,6 +746,7 @@ Primary:
 	('(' exprs+=RValueExpression (',' exprs+=RValueExpression)* ')')
 	| literal=Literal 
 	| identifier=(Identifier | 'aid' | 'this') 
+	| placeholder?='_'
 	| agent='agent'
 	| message='message'
 	| percept='percept'

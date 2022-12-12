@@ -152,7 +152,7 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
                 pattern.__(LogicalAnd::getEqualityComparison));
         if (mustTraverse(pattern)) {
             return module.get(EqualityComparisonExpressionSemantics.class).compilePatternMatchInternal(
-                    input.mapPattern(__ -> operands.get(0).toNullable())
+                    input.replacePattern(operands.get(0))
             );
         } else {
             return input.createEmptyCompileOutput();
@@ -183,7 +183,7 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
         );
         if (mustTraverse(pattern)) {
             return module.get(EqualityComparisonExpressionSemantics.class).validatePatternMatchInternal(
-                    input.mapPattern(__ -> operands.get(0).toNullable()),
+                    input.replacePattern(operands.get(0)),
                     acceptor
             );
         } else {

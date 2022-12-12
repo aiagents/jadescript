@@ -59,8 +59,14 @@ public abstract class PatternMatchInput<
             Function<T, R> function
     );
 
+    public <R> PatternMatchInput<R, U, N> replacePattern(
+            Maybe<R> pattern
+    ) {
+        return this.mapPattern(__ -> pattern.toNullable());
+    }
 
-    public abstract IJadescriptType providedInputType();
+
+    public abstract IJadescriptType getProvidedInputType();
 
 
     public <T2> SubPattern<T2, T, U, N> subPattern(
@@ -214,6 +220,7 @@ public abstract class PatternMatchInput<
                 getNarrowingInfo
         );
     }
+
     public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsCompositeMethod, ?, ?>
     createCompositeMethodOutput(
             List<StatementWriter> auxiliaryStatements,
@@ -320,6 +327,19 @@ public abstract class PatternMatchInput<
         );
     }
 
+    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsPlaceholderMethod, ?, ?>
+    createPlaceholderMethodOutput(
+            IJadescriptType solvedPatterType,
+            Supplier<? extends PatternMatchOutput.Unification> getUnificationInfo,
+            Supplier<? extends PatternMatchOutput.TypeNarrowing> getNarrowingInfo
+    ) {
+        return createOutput(
+                new PatternMatchSemanticsProcess.IsCompilation.AsPlaceholderMethod(this, solvedPatterType),
+                getUnificationInfo,
+                getNarrowingInfo
+        );
+    }
+
     public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation.AsInlineCondition, ?, ?>
     createInlineConditionOutput(
             Function<String, String> generateCondition,
@@ -403,7 +423,7 @@ public abstract class PatternMatchInput<
 
 
         @Override
-        public IJadescriptType providedInputType() {
+        public IJadescriptType getProvidedInputType() {
             return module.get(RValueExpressionSemantics.class).inferType(inputExpr);
         }
 
@@ -448,7 +468,7 @@ public abstract class PatternMatchInput<
         }
 
         @Override
-        public IJadescriptType providedInputType() {
+        public IJadescriptType getProvidedInputType() {
             return contentUpperBound;
         }
 
@@ -489,7 +509,7 @@ public abstract class PatternMatchInput<
         }
 
         @Override
-        public IJadescriptType providedInputType() {
+        public IJadescriptType getProvidedInputType() {
             return module.get(RValueExpressionSemantics.class).inferType(inputExpr);
         }
 
@@ -511,6 +531,7 @@ public abstract class PatternMatchInput<
                     PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_VARS,
                     TypeRelationship.SupertypeOrEqual.class,
                     PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+                    PatternMatchMode.Reassignment.REQUIRE_REASSIGN,
                     PatternMatchMode.Unification.WITH_VAR_DECLARATION,
                     PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
                     PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
@@ -531,7 +552,7 @@ public abstract class PatternMatchInput<
 
 
         @Override
-        public IJadescriptType providedInputType() {
+        public IJadescriptType getProvidedInputType() {
             return module.get(RValueExpressionSemantics.class).inferType(inputExpr);
         }
 
@@ -595,7 +616,7 @@ public abstract class PatternMatchInput<
         }
 
         @Override
-        public IJadescriptType providedInputType() {
+        public IJadescriptType getProvidedInputType() {
             return inputInfo;
         }
 

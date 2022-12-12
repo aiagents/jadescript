@@ -203,7 +203,7 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
         boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.getPattern().__(MapOrSetLiteral::getRest);
         PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
-        IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
+        IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
         int prePipeElementCount = values.size();
 
         if (!isWithPipe && prePipeElementCount == 0) {
@@ -326,7 +326,7 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
         List<Maybe<RValueExpression>> values = toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
         boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
-        IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
+        IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
         int prePipeElementCount = values.size();
 
 

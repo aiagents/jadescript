@@ -66,7 +66,7 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
                 validationHelper.extractEObject(input),
                 acceptor
         );
-    } 
+    }
 
     @Override
     public Maybe<String> compileAssignment(
@@ -165,7 +165,7 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
         List<Maybe<RValueExpression>> terms = input.getPattern().__(TupledExpressions::getTuples)
                 .extract(Maybe::nullAsEmptyList);
         PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
-        IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
+        IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
         int elementCount = terms.size();
 
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
@@ -269,7 +269,7 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
         List<Maybe<RValueExpression>> terms = input.getPattern().__(TupledExpressions::getTuples)
                 .extract(Maybe::nullAsEmptyList);
         PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
-        IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
+        IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
         int elementCount = terms.size();
 
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);

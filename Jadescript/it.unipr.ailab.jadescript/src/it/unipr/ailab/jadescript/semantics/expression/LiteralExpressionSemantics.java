@@ -227,24 +227,31 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
         final Maybe<StringLiteralSimple> string = input.getPattern().__(Literal::getString);
         final Maybe<ListLiteral> list = input.getPattern().__(Literal::getList);
         final Maybe<MapOrSetLiteral> mapOrSet = input.getPattern().__(Literal::getMap);
+        final Maybe<String> number = input.getPattern().__(Literal::getNumber);
+        final Maybe<String> bool = input.getPattern().__(Literal::getBool);
+        final Maybe<String> timestamp = input.getPattern().__(Literal::getTimestamp);
         final boolean isMap = isMap(mapOrSet);
         if (mustTraverse(input.getPattern())) {
             if (string.isPresent()) {
                 return module.get(StringLiteralSemantics.class).compilePatternMatchInternal(
-                        input.mapPattern(__ -> string.toNullable())
+                        input.replacePattern(string)
                 );
             } else if (list.isPresent()) {
                 return module.get(ListLiteralExpressionSemantics.class).compilePatternMatchInternal(
-                        input.mapPattern(__ -> list.toNullable())
+                        input.replacePattern(list)
+                );
+            } else if (number.isPresent() || bool.isPresent() || timestamp.isPresent()) {
+                return compileExpressionEqualityPatternMatch(
+                        input
                 );
             } else if (mapOrSet.isPresent()) {
                 if (isMap) {
                     return module.get(MapLiteralExpressionSemantics.class).compilePatternMatchInternal(
-                            input.mapPattern(__ -> mapOrSet.toNullable())
+                            input.replacePattern(mapOrSet)
                     );
                 } else {
                     return module.get(SetLiteralExpressionSemantics.class).compilePatternMatchInternal(
-                            input.mapPattern(__ -> mapOrSet.toNullable())
+                            input.replacePattern(mapOrSet)
                     );
                 }
             }
@@ -257,6 +264,9 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
         final Maybe<StringLiteralSimple> string = input.__(Literal::getString);
         final Maybe<ListLiteral> list = input.__(Literal::getList);
         final Maybe<MapOrSetLiteral> mapOrSet = input.__(Literal::getMap);
+        final Maybe<String> number = input.__(Literal::getNumber);
+        final Maybe<String> bool = input.__(Literal::getBool);
+        final Maybe<String> timestamp = input.__(Literal::getTimestamp);
         final boolean isMap = isMap(mapOrSet);
 
         if (mustTraverse(input)) {
@@ -264,6 +274,8 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
                 return module.get(StringLiteralSemantics.class).inferPatternTypeInternal(string);
             } else if (list.isPresent()) {
                 return module.get(ListLiteralExpressionSemantics.class).inferPatternTypeInternal(list);
+            } else if (number.isPresent() || bool.isPresent() || timestamp.isPresent()) {
+                return PatternType.simple(inferType(input));
             } else if (mapOrSet.isPresent()) {
                 if (isMap) {
                     return module.get(MapLiteralExpressionSemantics.class).inferPatternTypeInternal(mapOrSet);
@@ -283,29 +295,34 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
         final Maybe<StringLiteralSimple> string = input.getPattern().__(Literal::getString);
         final Maybe<ListLiteral> list = input.getPattern().__(Literal::getList);
         final Maybe<MapOrSetLiteral> mapOrSet = input.getPattern().__(Literal::getMap);
+        final Maybe<String> number = input.getPattern().__(Literal::getNumber);
+        final Maybe<String> bool = input.getPattern().__(Literal::getBool);
+        final Maybe<String> timestamp = input.getPattern().__(Literal::getTimestamp);
         final boolean isMap = isMap(mapOrSet);
 
         if (mustTraverse(input.getPattern())) {
             if (string.isPresent()) {
                 return module.get(StringLiteralSemantics.class).validatePatternMatchInternal(
-                        input.mapPattern(__ -> string.toNullable()),
+                        input.replacePattern(string),
                         acceptor
                 );
             } else if (list.isPresent()) {
                 return module.get(ListLiteralExpressionSemantics.class).validatePatternMatchInternal(
-                        input.mapPattern(__ -> list.toNullable()),
+                        input.replacePattern(list),
                         acceptor
                 );
+            } else if (number.isPresent() || bool.isPresent() || timestamp.isPresent()) {
+                return validateExpressionEqualityPatternMatch(input, acceptor);
             } else if (mapOrSet.isPresent()) {
                 if (isValidSyntactically(mapOrSet, "pattern", acceptor)) {
                     if (isMap) {
                         return module.get(MapLiteralExpressionSemantics.class).validatePatternMatchInternal(
-                                input.mapPattern(__ -> mapOrSet.toNullable()),
+                                input.replacePattern(mapOrSet),
                                 acceptor
                         );
                     } else {
                         return module.get(SetLiteralExpressionSemantics.class).validatePatternMatchInternal(
-                                input.mapPattern(__ -> mapOrSet.toNullable()),
+                                input.replacePattern(mapOrSet),
                                 acceptor
                         );
                     }
@@ -322,9 +339,9 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
         final Maybe<StringLiteralSimple> string = input.__(Literal::getString);
         final Maybe<String> number = input.__(Literal::getNumber);
         final Maybe<String> bool = input.__(Literal::getBool);
+        final Maybe<String> timestamp = input.__(Literal::getTimestamp);
         final Maybe<ListLiteral> list = input.__(Literal::getList);
         final Maybe<MapOrSetLiteral> mapOrSet = input.__(Literal::getMap);
-        final Maybe<String> timestamp = input.__(Literal::getTimestamp);
         final boolean isMap = isMap(mapOrSet);
 
 

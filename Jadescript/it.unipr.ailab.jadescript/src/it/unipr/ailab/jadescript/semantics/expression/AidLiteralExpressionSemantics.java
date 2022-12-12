@@ -4,12 +4,17 @@ import it.unipr.ailab.jadescript.jadescript.AidLiteral;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeCast;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.*;
+import java.util.function.Function;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.nullAsTrue;
@@ -22,7 +27,7 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
     @Override
     public void validate(Maybe<AidLiteral> input, ValidationMessageAcceptor acceptor) {
         module.get(TypeCastExpressionSemantics.class).validate(input.__(AidLiteral::getTypeCast), acceptor);
-        if(input.__(AidLiteral::getHap).isPresent()){
+        if (input.__(AidLiteral::getHap).isPresent()) {
             module.get(TypeCastExpressionSemantics.class).validate(input.__(AidLiteral::getHap), acceptor);
         }
     }
@@ -50,9 +55,9 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
 
     @Override
     public void syntacticValidateLValue(Maybe<AidLiteral> input, ValidationMessageAcceptor acceptor) {
-        if(input.__(AidLiteral::isIsAidExpr).extract(nullAsFalse)){
+        if (input.__(AidLiteral::isIsAidExpr).extract(nullAsFalse)) {
             errorNotLvalue(input, acceptor);
-        }else{
+        } else {
             module.get(TypeCastExpressionSemantics.class).syntacticValidateLValue(
                     input.__(AidLiteral::getTypeCast),
                     acceptor
@@ -77,7 +82,96 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
     }
 
 
+    @Override
+    public boolean isTypelyHoled(Maybe<AidLiteral> input) {
+        final Maybe<TypeCast> typeCast = input.__(AidLiteral::getTypeCast);
+        final Maybe<TypeCast> hap = input.__(AidLiteral::getHap);
+        final TypeCastExpressionSemantics tces = module.get(TypeCastExpressionSemantics.class);
+        return tces.isTypelyHoled(typeCast) || tces.isTypelyHoled(hap);
+    }
 
+    @Override
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
+            PatternMatchInput<AidLiteral, ?, ?> input
+    ) {
+        final Maybe<TypeCast> hap = input.getPattern().__(AidLiteral::getHap);
+        final TypeCastExpressionSemantics tces = module.get(TypeCastExpressionSemantics.class);
+        if (hap.isPresent()) {
+            final IJadescriptType textType = module.get(TypeHelper.class).TEXT;
+
+            List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults =
+                    new ArrayList<>(2);
+            subResults.add(tces.compilePatternMatch(input.subPattern(
+                    textType,
+                    AidLiteral::getTypeCast,
+                    "_localname"
+            )));
+            subResults.add(tces.compilePatternMatch(input.subPattern(
+                    textType,
+                    __ -> hap.toNullable(),
+                    "_hap"
+            )));
+
+            Function<Integer, String> compiledSubinputs = (i) -> {
+                if (i == 0) {
+                    return "__x.getLocalName()";
+                } else {
+                    return "__x.getHap()";
+                }
+            };
+
+            return input.createCompositeMethodOutput(
+                    inferPatternType(input.getPattern(), input.getMode())
+                            .solve(input.getProvidedInputType()),
+                    compiledSubinputs,
+                    subResults,
+                    () -> PatternMatchOutput.collectUnificationResults(subResults),
+                    () -> new PatternMatchOutput.WithTypeNarrowing(module.get(TypeHelper.class).AID)
+            );
+        } else {
+            return tces.compilePatternMatchInternal(input.mapPattern(AidLiteral::getTypeCast));
+        }
+    }
+
+    @Override
+    public PatternType inferPatternTypeInternal(Maybe<AidLiteral> input) {
+        final IJadescriptType t = mustTraverse(input)
+                ? module.get(TypeCastExpressionSemantics.class).inferType(input.__(AidLiteral::getTypeCast))
+                : module.get(TypeHelper.class).AID;
+        return PatternType.simple(t);
+    }
+
+    @Override
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+            PatternMatchInput<AidLiteral, ?, ?> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        final Maybe<TypeCast> hap = input.getPattern().__(AidLiteral::getHap);
+        final TypeCastExpressionSemantics tces = module.get(TypeCastExpressionSemantics.class);
+        if (hap.isPresent()) {
+            final IJadescriptType textType = module.get(TypeHelper.class).TEXT;
+
+            List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>> subResults =
+                    new ArrayList<>(2);
+            subResults.add(tces.validatePatternMatch(input.subPattern(
+                    textType,
+                    AidLiteral::getTypeCast,
+                    "_localname"
+            ), acceptor));
+            subResults.add(tces.validatePatternMatch(input.subPattern(
+                    textType,
+                    __ -> hap.toNullable(),
+                    "_hap"
+            ), acceptor));
+
+            return input.createValidationOutput(
+                    () -> PatternMatchOutput.collectUnificationResults(subResults),
+                    () -> new PatternMatchOutput.WithTypeNarrowing(module.get(TypeHelper.class).AID)
+            );
+        } else {
+            return tces.validatePatternMatchInternal(input.mapPattern(AidLiteral::getTypeCast), acceptor);
+        }
+    }
 
     @Override
     public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<AidLiteral> input) {
@@ -147,4 +241,6 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
         }
 
     }
+
+
 }

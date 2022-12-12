@@ -270,7 +270,7 @@ public class SingleIdentifierExpressionSemantics
         if (isUnbound(input.getPattern())) {
 
             if (input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION) {
-                IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.providedInputType());
+                IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.getProvidedInputType());
                 String localClassName = "__PatternMatcher" + input.getPattern()
                         .__(ProxyEObject::getProxyEObject)
                         .__(Objects::hashCode)
@@ -295,7 +295,7 @@ public class SingleIdentifierExpressionSemantics
             }
         } else {
 
-            IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.providedInputType());
+            IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.getProvidedInputType());
             Maybe<String> tempCompile = compile(input.getPattern());
             String compiledFinal;
             if (tempCompile.__(s -> s.startsWith(input.getRootPatternMatchVariableName())).extract(nullAsFalse)) {
@@ -337,7 +337,7 @@ public class SingleIdentifierExpressionSemantics
             );
 
             if (input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION) {
-                IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.providedInputType());
+                IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.getProvidedInputType());
 
                 String localClassName = "__PatternMatcher" + input.getPattern()
                         .__(ProxyEObject::getProxyEObject)
@@ -373,7 +373,7 @@ public class SingleIdentifierExpressionSemantics
         } else {
             IJadescriptType typeOfNamedSymbol = inferType(input.getPattern());
             module.get(ValidationHelper.class).assertExpectedType(
-                    input.providedInputType(),
+                    input.getProvidedInputType(),
                     typeOfNamedSymbol,
                     "UnexpectedTermType",
                     input.getPattern().__(VirtualIdentifier::getProxyEObject),

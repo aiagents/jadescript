@@ -110,7 +110,7 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
     ) {
         //rest should be empty, so it's ignored
         return primaryExpressionSemantics.compilePatternMatchInternal(
-                input.mapPattern(__ -> atom.toNullable()));
+                input.replacePattern(atom));
     }
 
 
@@ -128,7 +128,7 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
     ) {
         //rest should be empty, so it's ignored
         return primaryExpressionSemantics.validatePatternMatchInternal(
-                input.mapPattern(__ -> atom.toNullable()),
+                input.replacePattern(atom),
                 acceptor
         );
     }

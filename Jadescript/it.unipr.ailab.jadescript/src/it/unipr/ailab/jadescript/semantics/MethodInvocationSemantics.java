@@ -569,7 +569,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
             }
 
             PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
-            IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
+            IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
 
             List<String> compiledSubInputs = new ArrayList<>(m.parameterNames().size());
             for (int i = 0; i < subResults.size(); i++) {
@@ -694,7 +694,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
             }
 
             PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
-            IJadescriptType solvedPatternType = patternType.solve(input.providedInputType());
+            IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
 
             return input.createValidationOutput(
                     () -> PatternMatchOutput.collectUnificationResults(subResults),

@@ -148,7 +148,7 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
             ReversedTrailerChain rest
     ) {
         //rest should be empty, so it's ignored
-        return subSemantics.compilePatternMatchInternal(input.mapPattern(__ -> generateMethodCall().toNullable()));
+        return subSemantics.compilePatternMatchInternal(input.replacePattern(generateMethodCall()));
     }
 
     @Override
@@ -168,7 +168,7 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     ) {
         //rest should be empty, so it's ignored
         return subSemantics.validatePatternMatchInternal(
-                input.mapPattern(__ -> generateMethodCall().toNullable()),
+                input.replacePattern(generateMethodCall()),
                 acceptor
         );
     }

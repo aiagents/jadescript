@@ -300,7 +300,7 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
         final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(pattern.__(Multiplicative::getMatches));
         if (mustTraverse(pattern)) {
             return module.get(MatchesExpressionSemantics.class).compilePatternMatchInternal(
-                    input.mapPattern(__ -> operands.get(0).toNullable())
+                    input.replacePattern(operands.get(0))
             );
         } else {
             return input.createEmptyCompileOutput();
@@ -327,7 +327,7 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
         final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(pattern.__(Multiplicative::getMatches));
         if (mustTraverse(pattern)) {
             return module.get(MatchesExpressionSemantics.class).validatePatternMatchInternal(
-                    input.mapPattern(__ -> operands.get(0).toNullable()),
+                    input.replacePattern(operands.get(0)),
                     acceptor
             );
         } else {

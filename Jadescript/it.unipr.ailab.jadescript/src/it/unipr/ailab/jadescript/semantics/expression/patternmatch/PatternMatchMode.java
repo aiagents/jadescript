@@ -17,15 +17,21 @@ public class PatternMatchMode {
          */
         ACCEPTS_NONVAR_HOLES_ONLY,
         /**
-         * The pattern requires each term to be bound.
+         * The pattern cannot contain any kind of hole.
          */
         DOES_NOT_ACCEPT_HOLES,
         /**
          * The pattern is required to have at least one unbound variable.
-         * For example, a destructuring assignment to a completely bound pattern is a useless operation and should be
-         * marked as error.
+         * For example, a for-destructuring to a completely bound pattern is a useless operation and should be
+         * marked as error (for-destructuring cannot reassign values in the outer scope).
          */
-        REQUIRES_FREE_VARS
+        REQUIRES_FREE_VARS,
+        /**
+         * The pattern is required to have at least one unbound or assignable variable.
+         * For example, a destructuring assignment to a pattern which does not declare any variable or does not reassign
+         * any L-Expression, is a useless operation and should be marked as error.
+         */
+        REQUIRES_FREE_OR_ASSIGNABLE_VARS
     }
 
 
@@ -41,6 +47,8 @@ public class PatternMatchMode {
         WITHOUT_VAR_DECLARATION
     }
 
+
+
     public enum NarrowsTypeOfInput {
         /**
          * This pattern matching can contribute to produce a context, or to modify a preexisting
@@ -54,6 +62,42 @@ public class PatternMatchMode {
          */
         DOES_NOT_NARROW_TYPE
     }
+
+    /**
+     * Determines if the pattern can be a failing pattern (i.e., it can contain run-time conditions that cannot be
+     * predicted to match at compile-time) or if it is required to be guaranteed, at compile time, to always match (if
+     * the type - which should be also checked at compile time - is compatible, of course).
+     * If a pattern input has the mode REQUIRES_SUCCESSFUL_MATCH, patterns which match with runtime-only conditions
+     * cannot be used as pattern, and the validator should check this.
+     * For example, list, map and set patterns which have terms before the pipe, or which do not contain pipes, cannot
+     * guarantee at compile time to match even if the input type is compatible, because the result of the matching
+     * depends on the size of the input collection, which is only known at runtime.
+     * On the other side, resolving structural patterns and tuples can be always used, regardless of the requirement
+     * expressed by this mode.
+     */
+    public enum RequiresSuccessfulMatch {
+        REQUIRES_SUCCESSFUL_MATCH,
+        CAN_FAIL
+    }
+
+    /**
+     * Determines how to interpret not-holed expressions.
+     * Pattern-matching of holed expressions are not influenced by this.
+     */
+    public enum Reassignment {
+        /**
+         * If this not-holed-expression is a valid L-Expression, just perform an assignment, otherwise, mark as error at
+         * compile time.
+         */
+        REQUIRE_REASSIGN,
+        /**
+         * This not-holed-expression is always considered an R-Expression, whose resulting value is checked for equality
+         * against the corresponding input.
+         */
+        CHECK_EQUALITY
+    }
+
+
 
     public enum PatternApplicationPurity {
         /**
@@ -142,26 +186,36 @@ public class PatternMatchMode {
 
 
 
-
+    /* Requirements on the pattern and the input value: */
     private final HolesAndGroundness holesAndGroundness;
     private final Class<? extends TypeRelationship> typeRelationshipRequirement;
+    private final RequiresSuccessfulMatch requiresSuccessfulMatch;
     private final PatternApplicationPurity patternApplicationPurity;
+    private final Reassignment reassignment;
+
+    /* Expectations on the additional information from the pattern match evaluation results: */
     private final Unification unification;
     private final NarrowsTypeOfInput narrowsTypeOfInput;
+
+    /* Additional input information: */
     private final PatternLocation patternLocation;
 
 
     public PatternMatchMode(
             HolesAndGroundness holesAndGroundness,
             Class<? extends TypeRelationship> typeRelationshipRequirement,
+            RequiresSuccessfulMatch requiresSuccessfulMatch,
             PatternApplicationPurity patternApplicationPurity,
+            Reassignment reassignment,
             Unification unification,
             NarrowsTypeOfInput narrowsTypeOfInput,
             PatternLocation patternLocation
     ) {
         this.holesAndGroundness = holesAndGroundness;
         this.typeRelationshipRequirement = typeRelationshipRequirement;
+        this.requiresSuccessfulMatch = requiresSuccessfulMatch;
         this.patternApplicationPurity = patternApplicationPurity;
+        this.reassignment = reassignment;
         this.unification = unification;
         this.narrowsTypeOfInput = narrowsTypeOfInput;
         this.patternLocation = patternLocation;
@@ -194,5 +248,13 @@ public class PatternMatchMode {
 
     public PatternLocation getPatternLocation() {
         return patternLocation;
+    }
+
+    public Reassignment getReassignment() {
+        return reassignment;
+    }
+
+    public RequiresSuccessfulMatch getRequiresSuccessfulMatch() {
+        return requiresSuccessfulMatch;
     }
 }
