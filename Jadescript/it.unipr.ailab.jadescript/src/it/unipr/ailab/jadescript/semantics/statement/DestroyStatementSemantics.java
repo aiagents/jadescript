@@ -12,12 +12,11 @@ import it.unipr.ailab.jadescript.semantics.expression.SingleIdentifierExpression
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
-import jade.core.behaviours.Behaviour;
+
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.ArrayList;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -32,14 +31,14 @@ public class DestroyStatementSemantics extends StatementSemantics<DestroyStateme
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<DestroyStatement> input) {
-        List<BlockWriterElement> result = new ArrayList<>();
+    public void compileStatement(Maybe<DestroyStatement> input, StatementCompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> target = input.__(DestroyStatement::getTarget);
 
-        result.add(w.callStmnt(
-                module.get(RValueExpressionSemantics.class).compile(target).orElse("") + ".destroy"
+        acceptor.accept(w.callStmnt(
+                module.get(RValueExpressionSemantics.class).compile(target, acceptor).orElse("") + ".destroy"
         ));
-        return result;
+
+
 
     }
 

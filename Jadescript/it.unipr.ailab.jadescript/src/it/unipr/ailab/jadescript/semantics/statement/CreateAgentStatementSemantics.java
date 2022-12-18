@@ -15,7 +15,7 @@ import it.unipr.ailab.jadescript.semantics.namespace.JvmModelBasedNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
+import jade.domain.AMSService;
 import jade.wrapper.ContainerController;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -361,7 +361,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<CreateAgentStatement> input) {
+    public void compileStatement(Maybe<CreateAgentStatement> input, StatementCompilationOutputAcceptor acceptor) {
         List<Maybe<RValueExpression>> args;
         if (input.__(CreateAgentStatement::getNamedArgs).isPresent()) {
             args = Maybe.toListOfMaybes(input
@@ -395,13 +395,18 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
         }
         final Maybe<RValueExpression> nickName = input.__(CreateAgentStatement::getAgentNickName);
 
-        return Collections.singletonList(w.simplStmt(agentType.compileToJavaTypeReference()
+        final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
+        final String compiledNickName = rves
+                .compile(nickName, acceptor)
+                .orElse("");
+
+        acceptor.accept(w.simpleStmt(agentType.compileToJavaTypeReference()
                 + ".create(" + THE_AGENT + "().getContainerController(), "
-                + module.get(RValueExpressionSemantics.class).compile(nickName).extract(nullAsEmptyString)
+                + compiledNickName
                 + (args.isEmpty() || args.stream().allMatch(Maybe::isNothing) ? "" : ", ")
                 + args.stream()
-                .map(module.get(RValueExpressionSemantics.class)::compile)
-                .map(ms -> ms.extract(nullAsEmptyString))
+                .map(input1 -> rves.compile(input1, acceptor))
+                .map(ms -> ms.orElse(""))
                 .collect(Collectors.joining(", "))
                 + ")"
         ));

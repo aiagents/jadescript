@@ -20,6 +20,6 @@ public class SimpleStatementWriter extends StatementWriter {
 
     @Override
     public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-        return w.simplStmt(SimpleExpressionWriter.replacePlaceholderInString(stmt, bindingProvider::bindRead));
+        return w.simpleStmt(SimpleExpressionWriter.replacePlaceholderInString(stmt, bindingProvider::bindRead));
     }
 }

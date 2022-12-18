@@ -3,12 +3,10 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -28,16 +26,16 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
 
 
     @SuppressWarnings("unused")
-    public abstract Maybe<String> compileAssignment(
+    public abstract void compileAssignment(
             Maybe<T> input,
             String compiledExpression,
-            IJadescriptType exprType
+            IJadescriptType exprType,
+            StatementCompilationOutputAcceptor acceptor
     );
 
     @SuppressWarnings("unused")
     public abstract void validateAssignment(
             Maybe<T> input,
-            String assignmentOperator,
             Maybe<RValueExpression> expression,
             ValidationMessageAcceptor acceptor
     );
@@ -49,8 +47,6 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
     );
 
 
-
-
     /**
      * Produces an error validator message that notifies that the input expression is not a valid expression to be put
      * at the left of the '=' in a declaration/assignment operation.
@@ -59,9 +55,23 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
             Maybe<T> input,
             ValidationMessageAcceptor acceptor
     ) {
-        module.get(ValidationHelper.class).extractEObject(input).safeDo(inputSafe -> {
+        errorNotLvalue(input,
+                "This expression cannot be used at the left of the '=' sign in an assignment/declaration statement.",
+                acceptor);
+    }
+
+    /**
+     * Produces an error validator message that notifies that the input expression is not a valid expression to be put
+     * at the left of the '=' in a declaration/assignment operation.
+     */
+    protected void errorNotLvalue(
+            Maybe<T> input,
+            String customMessage,
+            ValidationMessageAcceptor acceptor
+    ) {
+        Util.extractEObject(input).safeDo(inputSafe -> {
             acceptor.acceptError(
-                    "This expression cannot be used at the left of the '=' sign in an assignment/declaration statement.",
+                    customMessage,
                     inputSafe,
                     null,
                     ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
@@ -70,6 +80,8 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
         });
     }
 
+
+
     /**
      * Produces an error validator message that notifies that the input expression cannot be used as statement.
      */
@@ -77,7 +89,7 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
             Maybe<T> input,
             ValidationMessageAcceptor acceptor
     ) {
-        module.get(ValidationHelper.class).extractEObject(input).safeDo(inputSafe -> {
+        Util.extractEObject(input).safeDo(inputSafe -> {
             acceptor.acceptError(
                     "Not a statement.",
                     inputSafe,
@@ -89,27 +101,9 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
         });
     }
 
-    /**
-     * Produces an error validator message if {@code assignmentOperator} is an arithmentic-assignment operator and the
-     * {@code typeOfRExpression} is not a number.
-     */
-    protected void validateArithmeticAssignmentRExpression(
-            String assignmentOperator,
-            Maybe<RValueExpression> expression,
-            ValidationMessageAcceptor acceptor,
-            IJadescriptType typeOfRExpression
-    ) {
-        if (assignmentOperator.equals("+=") || assignmentOperator.equals("-=") || assignmentOperator.equals("*=")
-                || assignmentOperator.equals("/=") || assignmentOperator.equals("%=")) {
-            module.get(ValidationHelper.class).assertExpectedType(Number.class, typeOfRExpression,
-                    "InvalidOperandType",
-                    expression,
-                    null,
-                    ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                    acceptor
-            );
-        }
-    }
+    @Override
+    public abstract boolean isValidLExpr(Maybe<T> input);
+
 
 
 

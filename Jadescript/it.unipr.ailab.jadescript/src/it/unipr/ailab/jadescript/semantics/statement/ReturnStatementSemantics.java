@@ -15,7 +15,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import it.unipr.ailab.sonneteer.statement.ReturnStatementWriter;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -101,10 +100,10 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<ReturnStatement> input) {
+    public void compileStatement(Maybe<ReturnStatement> input, StatementCompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> expr = input.__(ReturnStatement::getExpr);
 
-        String compiledExpression = module.get(RValueExpressionSemantics.class).compile(expr).orElse("");
+        String compiledExpression = module.get(RValueExpressionSemantics.class).compile(expr, acceptor).orElse("");
         if(expr.isPresent()){
             final Optional<IJadescriptType> expectedReturn = module.get(ContextManager.class)
                     .currentContext()
@@ -124,10 +123,7 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
             }
         }
 
-        ReturnStatementWriter returnStatementWriter = w.returnStmnt(w.expr(compiledExpression));
-        return Collections.singletonList(
-                returnStatementWriter
-        );
+        acceptor.accept(w.returnStmnt(w.expr(compiledExpression)));
     }
 
     @Override

@@ -3,7 +3,6 @@ package it.unipr.ailab.jadescript.semantics.statement;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
@@ -11,7 +10,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -45,12 +43,13 @@ public class ThrowStatementSemantics extends StatementSemantics<ThrowStatement> 
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<ThrowStatement> input) {
+    public void compileStatement(Maybe<ThrowStatement> input, StatementCompilationOutputAcceptor acceptor) {
 
-        return Collections.singletonList(w.callStmnt(
+        acceptor.accept(w.callStmnt(
                 EXCEPTION_THROWER_NAME+".__throw",
                 w.expr(module.get(RValueExpressionSemantics.class).compile(
-                        input.__(ThrowStatement::getReason)
+                        input.__(ThrowStatement::getReason),
+                        acceptor
                 ).orElse(""))
         ));
     }

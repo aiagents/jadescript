@@ -877,7 +877,7 @@ public class OntologyElementSemantics extends Semantics<ExtendingFeature> {
                                 superArgumentsCompiled = module.get(CompilationHelper.class).compileRValueList(superArguments);
                             }
 
-                            w.simplStmt("super(" + superArgumentsCompiled + ")")
+                            w.simpleStmt("super(" + superArgumentsCompiled + ")")
                                     .writeSonnet(scb);
 
 

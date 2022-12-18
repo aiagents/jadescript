@@ -13,6 +13,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -22,12 +23,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.nothing;
 
 /**
  * Created on 28/12/16.
- *
- * 
  */
 @Singleton
 public class LogicalOrExpressionSemantics extends ExpressionSemantics<LogicalOr> {
@@ -53,20 +54,27 @@ public class LogicalOrExpressionSemantics extends ExpressionSemantics<LogicalOr>
     }
 
     @Override
-    public Maybe<String> compile(Maybe<LogicalOr> input) {
-        if (input == null) return nothing();
+    public ExpressionCompilationResult compile(Maybe<LogicalOr> input, StatementCompilationOutputAcceptor acceptor) {
+        if (input == null) return empty();
         Maybe<EList<LogicalAnd>> logicalAnds = input.__(LogicalOr::getLogicalAnd);
-
-        StringBuilder sb = new StringBuilder();
         List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(logicalAnds);
+        ExpressionCompilationResult result = empty();
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
         for (int i = 0; i < ands.size(); i++) {
             Maybe<LogicalAnd> and = ands.get(i);
+            final ExpressionCompilationResult operandCompiled = module.get(LogicalAndExpressionSemantics.class)
+                    .compile(and, acceptor);
             if (i != 0) {
-                sb.append(" || ");
+                result = result(result + " || " + operandCompiled)
+                        .setFTKB(typeHelper.mergeByLUB(
+                                result.getFlowTypingKB(),
+                                operandCompiled.getFlowTypingKB()
+                        ));
+            } else {
+                result = operandCompiled;
             }
-            sb.append(module.get(LogicalAndExpressionSemantics.class).compile(and).orElse(""));
         }
-        return Maybe.of(sb.toString());
+        return result;
     }
 
     @Override
@@ -114,12 +122,20 @@ public class LogicalOrExpressionSemantics extends ExpressionSemantics<LogicalOr>
     @Override
     public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<LogicalOr> input) {
         if (mustTraverse(input)) {
-            Maybe<EList<LogicalAnd>> logicalAnds = input.__(LogicalOr::getLogicalAnd);
-            List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(logicalAnds);
-            return Optional.of(new SemanticsBoundToExpression<>(module.get(LogicalAndExpressionSemantics.class),ands.get(0)));
+            List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(input.__(LogicalOr::getLogicalAnd));
+            return Optional.of(new SemanticsBoundToExpression<>(module.get(LogicalAndExpressionSemantics.class), ands.get(0)));
         }
 
         return Optional.empty();
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<LogicalOr> input) {
+        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(input.__(LogicalOr::getLogicalAnd));
+        if (mustTraverse(input) && !ands.isEmpty()) {
+            return module.get(LogicalAndExpressionSemantics.class).isPatternEvaluationPure(ands.get(0));
+        }
+        return true;
     }
 
     @Override
@@ -145,7 +161,8 @@ public class LogicalOrExpressionSemantics extends ExpressionSemantics<LogicalOr>
                             input,
                             JadescriptPackage.eINSTANCE.getLogicalOr_LogicalAnd(),
                             i,
-                            acceptor);
+                            acceptor
+                    );
                 }
             }
         }
@@ -154,12 +171,13 @@ public class LogicalOrExpressionSemantics extends ExpressionSemantics<LogicalOr>
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<LogicalOr, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<LogicalOr, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         final Maybe<LogicalOr> pattern = input.getPattern();
         final List<Maybe<LogicalAnd>> operands = Maybe.toListOfMaybes(pattern.__(LogicalOr::getLogicalAnd));
         if (mustTraverse(pattern)) {
             return module.get(LogicalAndExpressionSemantics.class).compilePatternMatchInternal(
-                    input.replacePattern(operands.get(0))
+                    input.replacePattern(operands.get(0)),
+                    acceptor
             );
         } else {
             return input.createEmptyCompileOutput();
@@ -171,7 +189,7 @@ public class LogicalOrExpressionSemantics extends ExpressionSemantics<LogicalOr>
         final List<Maybe<LogicalAnd>> operands = Maybe.toListOfMaybes(input.__(LogicalOr::getLogicalAnd));
         if (mustTraverse(input)) {
             return module.get(LogicalAndExpressionSemantics.class).inferPatternTypeInternal(operands.get(0));
-        }else{
+        } else {
             return PatternType.empty(module);
         }
     }

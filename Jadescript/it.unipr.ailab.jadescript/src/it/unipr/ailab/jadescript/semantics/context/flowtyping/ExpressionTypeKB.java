@@ -12,6 +12,11 @@ import java.util.function.BiFunction;
 public class ExpressionTypeKB {
     private final List<ExpressionTypeTruth> truths = new ArrayList<>();
 
+    public ExpressionTypeKB copy(){
+        final ExpressionTypeKB etkb = new ExpressionTypeKB();
+        this.truths.forEach(etkb::add);
+        return etkb;
+    }
     public ExpressionTypeKB mergeWith(
             ExpressionTypeKB kb2,
             BiFunction<FlowTypeInferringTerm, FlowTypeInferringTerm, FlowTypeInferringTerm> conflictResolution

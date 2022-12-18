@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.Primary;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.PrimaryExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
@@ -12,6 +13,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchO
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -36,9 +38,9 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
 
 
     @Override
-    public String compile(ReversedTrailerChain rest) {
+    public ExpressionCompilationResult compile(ReversedTrailerChain rest, StatementCompilationOutputAcceptor acceptor) {
         //rest should be empty, so it's ignored
-        return primaryExpressionSemantics.compile(atom).orElse("");
+        return primaryExpressionSemantics.compile(atom, acceptor);
     }
 
     @Override
@@ -56,13 +58,12 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
     @Override
     public void validateAssignment(
             ReversedTrailerChain rest,
-            String assignmentOperator,
             Maybe<RValueExpression> rValueExpression,
             IJadescriptType typeOfRExpr,
             ValidationMessageAcceptor acceptor
     ) {
         //rest should be empty, so it's ignored
-        primaryExpressionSemantics.validateAssignment(atom, assignmentOperator, rValueExpression, acceptor);
+        primaryExpressionSemantics.validateAssignment(atom, rValueExpression, acceptor);
     }
 
     @Override
@@ -71,13 +72,14 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public String compileAssignment(
+    public void compileAssignment(
             ReversedTrailerChain rest,
             String compiledExpression,
-            IJadescriptType exprType
+            IJadescriptType exprType,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         //rest should be empty, so it's ignored
-        return primaryExpressionSemantics.compileAssignment(atom, compiledExpression, exprType).orElse("");
+        primaryExpressionSemantics.compileAssignment(atom, compiledExpression, exprType, acceptor);
     }
 
     @Override
@@ -106,11 +108,12 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
-            ReversedTrailerChain rest
+            ReversedTrailerChain rest,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         //rest should be empty, so it's ignored
         return primaryExpressionSemantics.compilePatternMatchInternal(
-                input.replacePattern(atom));
+                input.replacePattern(atom), acceptor);
     }
 
 
@@ -135,6 +138,19 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
 
     @Override
     public boolean isTypelyHoled(ReversedTrailerChain rest) {
+        //rest should be empty, so it's ignored
         return primaryExpressionSemantics.isTypelyHoled(atom);
+    }
+
+    @Override
+    public boolean isValidLexpr(ReversedTrailerChain rest) {
+        //rest should be empty, so it's ignored
+        return primaryExpressionSemantics.isValidLExpr(atom);
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(ReversedTrailerChain rest) {
+        //rest should be empty, so it's ignored
+        return primaryExpressionSemantics.isPatternEvaluationPure(atom);
     }
 }

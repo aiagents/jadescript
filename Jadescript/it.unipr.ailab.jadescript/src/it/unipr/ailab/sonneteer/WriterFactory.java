@@ -40,6 +40,9 @@ public class WriterFactory {
         return instance;
     }
 
+    public LocalClassStatementWriter localClass(String name){
+        return new LocalClassStatementWriter(name);
+    }
     public IClassDeclarationWriter clas(Visibility visibility, boolean isFinal, boolean isStatic, String name) {
         return new ClassDeclarationWriter(visibility, isFinal, isStatic, name);
     }
@@ -114,7 +117,7 @@ public class WriterFactory {
         return new ForEachWriter(varType, varName, iterable, body);
     }
 
-    public SimpleStatementWriter simplStmt(String stmt){
+    public SimpleStatementWriter simpleStmt(String stmt){
         return new SimpleStatementWriter(stmt);
     }
 

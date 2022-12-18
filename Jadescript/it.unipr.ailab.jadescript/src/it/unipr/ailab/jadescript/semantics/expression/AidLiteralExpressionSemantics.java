@@ -10,12 +10,14 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchS
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.*;
 import java.util.function.Function;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.nullAsTrue;
 
@@ -33,24 +35,28 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    public Maybe<String> compileAssignment(
+    public void compileAssignment(
             Maybe<AidLiteral> input,
             String compiledExpression,
-            IJadescriptType exprType
+            IJadescriptType exprType,
+            StatementCompilationOutputAcceptor acceptor
     ) {
-        return module.get(TypeCastExpressionSemantics.class)
-                .compileAssignment(input.__(AidLiteral::getTypeCast), compiledExpression, exprType);
+        module.get(TypeCastExpressionSemantics.class).compileAssignment(
+                input.__(AidLiteral::getTypeCast),
+                compiledExpression,
+                exprType,
+                acceptor
+        );
     }
 
     @Override
     public void validateAssignment(
             Maybe<AidLiteral> input,
-            String assignmentOperator,
             Maybe<RValueExpression> expression,
             ValidationMessageAcceptor acceptor
     ) {
         module.get(TypeCastExpressionSemantics.class)
-                .validateAssignment(input.__(AidLiteral::getTypeCast), assignmentOperator, expression, acceptor);
+                .validateAssignment(input.__(AidLiteral::getTypeCast), expression, acceptor);
     }
 
     @Override
@@ -61,6 +67,28 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
             module.get(TypeCastExpressionSemantics.class).syntacticValidateLValue(
                     input.__(AidLiteral::getTypeCast),
                     acceptor
+            );
+        }
+    }
+
+    @Override
+    public boolean isValidLExpr(Maybe<AidLiteral> input) {
+        if (input.__(AidLiteral::isIsAidExpr).extract(nullAsFalse)) {
+            return false;
+        } else {
+            return module.get(TypeCastExpressionSemantics.class).isValidLExpr(
+                    input.__(AidLiteral::getTypeCast)
+            );
+        }
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<AidLiteral> input) {
+        if (input.__(AidLiteral::isIsAidExpr).extract(nullAsFalse)) {
+            return true;
+        } else {
+            return module.get(TypeCastExpressionSemantics.class).isPatternEvaluationPure(
+                    input.__(AidLiteral::getTypeCast)
             );
         }
     }
@@ -92,7 +120,8 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
-            PatternMatchInput<AidLiteral, ?, ?> input
+            PatternMatchInput<AidLiteral, ?, ?> input,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         final Maybe<TypeCast> hap = input.getPattern().__(AidLiteral::getHap);
         final TypeCastExpressionSemantics tces = module.get(TypeCastExpressionSemantics.class);
@@ -105,12 +134,12 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
                     textType,
                     AidLiteral::getTypeCast,
                     "_localname"
-            )));
+            ), acceptor));
             subResults.add(tces.compilePatternMatch(input.subPattern(
                     textType,
                     __ -> hap.toNullable(),
                     "_hap"
-            )));
+            ), acceptor));
 
             Function<Integer, String> compiledSubinputs = (i) -> {
                 if (i == 0) {
@@ -129,7 +158,7 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
                     () -> new PatternMatchOutput.WithTypeNarrowing(module.get(TypeHelper.class).AID)
             );
         } else {
-            return tces.compilePatternMatchInternal(input.mapPattern(AidLiteral::getTypeCast));
+            return tces.compilePatternMatchInternal(input.mapPattern(AidLiteral::getTypeCast), acceptor);
         }
     }
 
@@ -195,22 +224,22 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    public Maybe<String> compile(Maybe<AidLiteral> input) {
+    public ExpressionCompilationResult compile(Maybe<AidLiteral> input, StatementCompilationOutputAcceptor acceptor) {
         String result;
-        final Maybe<String> leftCompiled = module.get(TypeCastExpressionSemantics.class)
-                .compile(input.__(AidLiteral::getTypeCast));
+        final ExpressionCompilationResult leftCompiled = module.get(TypeCastExpressionSemantics.class)
+                .compile(input.__(AidLiteral::getTypeCast), acceptor);
         if (input.__(AidLiteral::isIsAidExpr).extract(nullAsFalse)) {
-            String argString = "java.lang.String.valueOf(" + leftCompiled.orElse("") + ")";
+            String argString = "java.lang.String.valueOf(" + leftCompiled + ")";
             String isGuid = "false";
             if (input.__(AidLiteral::getHap).isPresent()) {
                 isGuid = "true";
-                final Maybe<String> rightCompiled = module.get(TypeCastExpressionSemantics.class)
-                        .compile(input.__(AidLiteral::getHap));
+                final ExpressionCompilationResult rightCompiled = module.get(TypeCastExpressionSemantics.class)
+                        .compile(input.__(AidLiteral::getHap), acceptor);
                 argString += " + \"@\" + " +
-                        "java.lang.String.valueOf(" + rightCompiled.orElse("") + ")";
+                        "java.lang.String.valueOf(" + rightCompiled + ")";
             }
             result = "new jade.core.AID(" + argString + ", " + isGuid + ")";
-            return Maybe.of(result);
+            return result(result);
         } else {
             return leftCompiled;
         }

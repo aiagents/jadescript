@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -17,6 +18,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
@@ -48,23 +51,26 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
     }
 
     @Override
-    public Maybe<String> compileAssignment(Maybe<TypeCast> input, String compiledExpression, IJadescriptType exprType) {
+    public void compileAssignment(Maybe<TypeCast> input, String compiledExpression, IJadescriptType exprType, StatementCompilationOutputAcceptor acceptor) {
         if (input == null)
-            return nothing();
-        final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
-        return module.get(AtomWithTrailersExpressionSemantics.class).compileAssignment(atomExpr, compiledExpression, exprType);
+            return;
+        module.get(AtomWithTrailersExpressionSemantics.class).compileAssignment(
+                input.__(TypeCast::getAtomExpr),
+                compiledExpression,
+                exprType,
+                acceptor
+        );
     }
 
     @Override
     public void validateAssignment(
             Maybe<TypeCast> input,
-            String assignmentOperator,
             Maybe<RValueExpression> expression,
             ValidationMessageAcceptor acceptor
     ) {
         if (input == null) return;
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
-        module.get(AtomWithTrailersExpressionSemantics.class).validateAssignment(atomExpr, assignmentOperator, expression, acceptor);
+        module.get(AtomWithTrailersExpressionSemantics.class).validateAssignment(atomExpr, expression, acceptor);
     }
 
     @Override
@@ -80,11 +86,24 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
     }
 
     @Override
-    public Maybe<String> compile(Maybe<TypeCast> input) {
-        if (input == null) return nothing();
+    public boolean isValidLExpr(Maybe<TypeCast> input) {
+        //TODO update: if the the sub-expression is a single identifier, and the identifier does not resolve, this
+        // could be a typed declaration of a local variable.
+        return false;
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<TypeCast> input) {
+        return true;
+    }
+
+    @Override
+    public ExpressionCompilationResult compile(Maybe<TypeCast> input, StatementCompilationOutputAcceptor acceptor) {
+        if (input == null) return empty();
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
         final List<Maybe<TypeExpression>> typeCasts = Maybe.toListOfMaybes(input.__(TypeCast::getTypeCasts));
-        String result = module.get(AtomWithTrailersExpressionSemantics.class).compile(atomExpr).orElse("");
+        ExpressionCompilationResult result = module.get(AtomWithTrailersExpressionSemantics.class)
+                .compile(atomExpr, acceptor);
         if (!typeCasts.isEmpty()) {
             IJadescriptType lastCast = module.get(AtomWithTrailersExpressionSemantics.class).inferType(atomExpr);
             for (Maybe<TypeExpression> tc : typeCasts) {
@@ -96,14 +115,14 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
 
 
                 //noinspection StringConcatenationInLoop
-                result = "(" + toCastType.compileAsJavaCast() + " jadescript.util.types.Converter.convert(" +
+                result = result("(" + toCastType.compileAsJavaCast() + " jadescript.util.types.Converter.convert(" +
                         result + ", " + ct1 + ", " + ct2
-                        + "))";
+                        + "))");
 
                 lastCast = toCastType;
             }
         }
-        return Maybe.of(result);
+        return result;
     }
 
     @Override
@@ -138,29 +157,32 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
-            PatternMatchInput<TypeCast, ?, ?> input
+            PatternMatchInput<TypeCast, ?, ?> input,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         final List<Maybe<TypeExpression>> casts = toListOfMaybes(input.getPattern().__(TypeCast::getTypeCasts));
         if (mustTraverse(input.getPattern()) || casts.isEmpty()) {
             return module.get(AtomWithTrailersExpressionSemantics.class).compilePatternMatchInternal(
-                    input.mapPattern(TypeCast::getAtomExpr)
+                    input.mapPattern(TypeCast::getAtomExpr),
+                    acceptor
             );
         }
         final List<IJadescriptType> castsTypes = casts.stream()
                 .map(module.get(TypeExpressionSemantics.class)::toJadescriptType)
                 .collect(Collectors.toList());
 
-        return compilePatternMatchRecursive(input, castsTypes);
+        return compilePatternMatchRecursive(input, castsTypes, acceptor);
     }
 
     private PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchRecursive(
             PatternMatchInput<TypeCast, ?, ?> input,
-
-            List<IJadescriptType> castsTypes
+            List<IJadescriptType> castsTypes,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         if (castsTypes.isEmpty()) {
             return module.get(AtomWithTrailersExpressionSemantics.class).compilePatternMatchInternal(
-                    input.mapPattern(TypeCast::getAtomExpr)
+                    input.mapPattern(TypeCast::getAtomExpr),
+                    acceptor
             );
         } else if (castsTypes.size() == 1) {
             final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> subResult
@@ -169,7 +191,8 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
                             castsTypes.get(0),
                             TypeCast::getAtomExpr,
                             "_typecast0"
-                    )
+                    ),
+                    acceptor
             );
             return input.createCompositeMethodOutput(
                     castsTypes.get(0),
@@ -187,7 +210,8 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
                             __ -> __,
                             "_typecast" + (castsTypes.size() - 1)
                     ),
-                    castsTypes.subList(0, castsTypes.size() - 1)
+                    castsTypes.subList(0, castsTypes.size() - 1),
+                    acceptor
             );
             return input.createCompositeMethodOutput(
                     castToType,

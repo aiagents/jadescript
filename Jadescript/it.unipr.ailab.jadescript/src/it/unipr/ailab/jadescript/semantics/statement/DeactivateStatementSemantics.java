@@ -11,11 +11,9 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.SingleIdentifierExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.BoundedTypeArgument;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
-import jade.core.behaviours.Behaviour;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -34,8 +32,7 @@ public class DeactivateStatementSemantics extends StatementSemantics<DeactivateS
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<DeactivateStatement> input) {
-        List<BlockWriterElement> result = new ArrayList<>();
+    public void compileStatement(Maybe<DeactivateStatement> input, StatementCompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> target = input.__(DeactivateStatement::getTarget);
         Maybe<RValueExpression> delay = input.__(DeactivateStatement::getDelay);
         Maybe<RValueExpression> end = input.__(DeactivateStatement::getEndTime);
@@ -43,23 +40,23 @@ public class DeactivateStatementSemantics extends StatementSemantics<DeactivateS
 
         String methodName = "deactivate";
         List<ExpressionWriter> params = new ArrayList<>();
+        final String compiledBehaviour = module.get(RValueExpressionSemantics.class).compile(target, acceptor).orElse("");
 
         if (delay.isPresent()) {
             methodName += "_after";
-            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(delay).orElse("")));
+            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(delay, acceptor).orElse("")));
         }
 
         if (end.isPresent()) {
             methodName += "_at";
-            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(end).orElse("")));
+            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(end, acceptor).orElse("")));
         }
 
 
-        result.add(w.callStmnt(
-                module.get(RValueExpressionSemantics.class).compile(target).orElse("") + "." + methodName,
+        acceptor.accept(w.callStmnt(
+                compiledBehaviour + "." + methodName,
                 params
         ));
-        return result;
 
     }
 
@@ -116,16 +113,16 @@ public class DeactivateStatementSemantics extends StatementSemantics<DeactivateS
         ));
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-	@Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Override
     public List<Effect> computeEffects(Maybe<? extends EObject> input) {
-        Maybe<RValueExpression> target = input.__(x->(DeactivateStatement)x).__(DeactivateStatement::getTarget);
+        Maybe<RValueExpression> target = input.__(x -> (DeactivateStatement) x).__(DeactivateStatement::getTarget);
 
         final SemanticsBoundToExpression<?> deepSemantics = module.get(RValueExpressionSemantics.class).deepTraverse(target);
         //noinspection unchecked,rawtypes
         if (deepSemantics.getSemantics() instanceof SingleIdentifierExpressionSemantics
                 && ((SingleIdentifierExpressionSemantics) deepSemantics.getSemantics())
-                .isThisReference((Maybe)deepSemantics.getInput())) {
+                .isThisReference((Maybe) deepSemantics.getInput())) {
             return Effect.JumpsAwayFromOperation.INSTANCE.toList();
         } else {
             return super.computeEffects(input);

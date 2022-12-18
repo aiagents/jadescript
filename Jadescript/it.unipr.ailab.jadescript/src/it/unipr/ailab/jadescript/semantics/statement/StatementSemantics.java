@@ -14,7 +14,6 @@ import java.util.List;
 
 /**
  * Created on 26/04/18.
- *
  */
 @Singleton
 public abstract class StatementSemantics<T>
@@ -26,19 +25,17 @@ public abstract class StatementSemantics<T>
         super(semanticsModule);
     }
 
-    public abstract List<BlockWriterElement> compileStatement(Maybe<T> input);
-
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-	public List<StatementWriter> generateAuxiliaryStatements(Maybe<T> input) {
-        List<StatementWriter> result = new ArrayList<>();
-        for (ExpressionSemantics.SemanticsBoundToExpression<?> includedExpression : includedExpressions(input)) {
-            result.addAll(includedExpression.getSemantics()
-                    .generateAuxiliaryStatements((Maybe)includedExpression.getInput()));
-
-        }
-        return result;
-    }
+    /**
+     * Compiles the statement into {@link BlockWriterElement} instances, which are used to generate the actual Java
+     * code.
+     *
+     * @param input    the input statement
+     * @param acceptor acceptor used to collect the resulting {@link BlockWriterElement}s
+     */
+    public abstract void compileStatement(
+            Maybe<T> input,
+            StatementCompilationOutputAcceptor acceptor
+    );
 
     public abstract List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<T> input);
 

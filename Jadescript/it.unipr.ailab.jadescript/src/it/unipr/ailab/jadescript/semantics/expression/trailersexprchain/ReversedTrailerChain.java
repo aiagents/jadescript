@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.Trailer;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
@@ -13,6 +14,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchS
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -42,10 +44,10 @@ public class ReversedTrailerChain {
     }
 
 
-    public Maybe<String> compile() {
-        if (elements.isEmpty()) return Maybe.of("");
+    public ExpressionCompilationResult compile(StatementCompilationOutputAcceptor acceptor) {
+        if (elements.isEmpty()) return ExpressionCompilationResult.empty();
         return elements.get(0)
-                .__(TrailersExpressionChainElement::compile, withoutFirst());
+                .__(e -> e.compile(withoutFirst(), acceptor)).orElseGet(ExpressionCompilationResult::empty);
     }
 
     public IJadescriptType inferType() {
@@ -61,7 +63,6 @@ public class ReversedTrailerChain {
     }
 
     public void validateAssignment(
-            String assignmentOperator,
             Maybe<RValueExpression> rValueExpression,
             IJadescriptType typeOfRExpr,
             ValidationMessageAcceptor acceptor
@@ -81,16 +82,21 @@ public class ReversedTrailerChain {
 
         elements.get(0).safeDo(e->e.validateAssignment(
                 withoutFirst(),
-                assignmentOperator,
                 rValueExpression,
                 typeOfRExpr,
                 acceptor)
         );
     }
 
-    public Maybe<String> compileAssignment(String compiledExpression, IJadescriptType exprType) {
-        if (elements.isEmpty()) return Maybe.of("");
-        return elements.get(0).__(e->e.compileAssignment(withoutFirst(), compiledExpression, exprType));
+    public void compileAssignment(
+            String compiledExpression,
+            IJadescriptType exprType,
+            StatementCompilationOutputAcceptor acceptor
+    ) {
+        if (elements.isEmpty()) return;
+        elements.get(0).safeDo(safeElement-> {
+            safeElement.compileAssignment(withoutFirst(), compiledExpression, exprType, acceptor);
+        });
     }
 
     public void addPrimary(Maybe<Primary> atom) {
@@ -150,12 +156,18 @@ public class ReversedTrailerChain {
     }
 
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
-            PatternMatchInput<AtomExpr, ?, ?> input
+            PatternMatchInput<AtomExpr, ?, ?> input,
+            StatementCompilationOutputAcceptor acceptor
     ) {
-        if (elements.isEmpty()) return null;//TODO add empty output generator method
-        return elements.get(0).__(el -> el.compilePatternMatchInternal(input, withoutFirst()))
-                //TODO add empty output generator method:
-                .toNullable();
+        if (elements.isEmpty()) return input.createEmptyCompileOutput();
+        final Maybe<? extends PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>>
+                patternMatchOutputMaybe = elements.get(0)
+                .__(el -> el.compilePatternMatchInternal(input, withoutFirst(), acceptor));
+        if(patternMatchOutputMaybe.isPresent()){
+            return patternMatchOutputMaybe.toNullable();
+        }else{
+            return input.createEmptyCompileOutput();
+        }
     }
 
     public PatternType inferPatternTypeInternal(
@@ -170,14 +182,30 @@ public class ReversedTrailerChain {
             PatternMatchInput<AtomExpr, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
-        if (elements.isEmpty()) return null;//TODO add empty output generator method
-        return elements.get(0).__(el -> el.validatePatternMatchInternal(input, withoutFirst(), acceptor))
-                //TODO add empty output generator method:
-                .toNullable();
+        if (elements.isEmpty()) return input.createEmptyValidationOutput();
+        final Maybe<? extends PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>>
+                patternMatchOutputMaybe = elements.get(0)
+                .__(el -> el.validatePatternMatchInternal(input, withoutFirst(), acceptor));
+
+        if(patternMatchOutputMaybe.isPresent()){
+            return patternMatchOutputMaybe.toNullable();
+        }else{
+            return input.createEmptyValidationOutput();
+        }
     }
 
     public boolean isTypelyHoled() {
         if(elements.isEmpty()) return false;
         return elements.get(0).__(el -> el.isTypelyHoled(withoutFirst())).extract(Maybe.nullAsFalse);
+    }
+
+    public boolean isValidLExpr() {
+        if(elements.isEmpty()) return false;
+        return elements.get(0).__(el -> el.isValidLexpr(withoutFirst())).extract(Maybe.nullAsFalse);
+    }
+
+    public boolean isPatternEvaluationPure() {
+        if(elements.isEmpty()) return true;
+        return elements.get(0).__(el -> el.isPatternEvaluationPure(withoutFirst())).extract(Maybe.nullAsTrue);
     }
 }

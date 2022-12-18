@@ -32,49 +32,34 @@ public class LogStatementSemantics extends StatementSemantics<LogStatement> {
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<LogStatement> input) {
+    public void compileStatement(Maybe<LogStatement> input, StatementCompilationOutputAcceptor acceptor) {
 //        String logger =  "jade.util.Logger.getMyLogger(this.getClass().getName())";
         String logger = "jadescript.core.Agent.doLog";
 
 
         String content;
         if (input.__(LogStatement::getExpr).isPresent()) {
-            content = module.get(RValueExpressionSemantics.class).compile(input.__(LogStatement::getExpr)).orElse("");
+            content = module.get(RValueExpressionSemantics.class).compile(
+                    input.__(LogStatement::getExpr),
+                    acceptor
+            ).orElse("");
         } else {
             content = "\"\"";
         }
 
 
         var thisRef = Util.getOuterClassThisReference(input).orElse("this");
-        return input.__(LogStatement::getLoglevel).__(
-                        logLevelSafe -> {
-                            return w.callStmnt(
-                                    logger,
-                                    w.expr("jade.util.Logger." + logLevelSafe),
-                                    w.expr(thisRef + ".getClass().getName()"),
-                                    w.expr(thisRef),
-                                    w.expr("\"" + module.get(ContextManager.class)
-                                            .currentContext()
-                                            .getCurrentOperationLogName() + "\""),
-                                    w.expr("java.lang.String.valueOf(" + content + ")")
-                            );
-
-                        }, (/*log level is empty*/) -> {
-                            return w.callStmnt(
-                                    logger,
-                                    w.expr("jade.util.Logger.INFO"),
-                                    w.expr(thisRef + ".getClass().getName()"),
-                                    w.expr(thisRef),
-                                    w.expr("\"" + module.get(ContextManager.class)
-                                            .currentContext()
-                                            .getCurrentOperationLogName() + "\""),
-                                    w.expr("java.lang.String.valueOf(" + content + ")")
-                            );
-                        })
-                .__(w -> (BlockWriterElement) w)
-                .__(Collections::singletonList)
-                .orElse(Collections.emptyList());
-
+        String logLevel = "jade.util.Logger." + input.__(LogStatement::getLoglevel).orElse("INFO");
+        acceptor.accept(w.callStmnt(
+                logger,
+                w.expr("jade.util.Logger." + logLevel),
+                w.expr(thisRef + ".getClass().getName()"),
+                w.expr(thisRef),
+                w.expr("\"" + module.get(ContextManager.class)
+                        .currentContext()
+                        .getCurrentOperationLogName() + "\""),
+                w.expr("java.lang.String.valueOf(" + content + ")")
+        ));
     }
 
     @Override

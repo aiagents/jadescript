@@ -9,7 +9,6 @@ import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import it.unipr.ailab.sonneteer.statement.SingleLineStatementCommentWriter;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.emf.ecore.EObject;
@@ -30,7 +29,7 @@ public class BreakStatementSemantics extends StatementSemantics<BreakStatement> 
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<BreakStatement> input) {
+    public void compileStatement(Maybe<BreakStatement> input, StatementCompilationOutputAcceptor acceptor) {
 
         StatementWriter result;
 
@@ -46,10 +45,11 @@ public class BreakStatementSemantics extends StatementSemantics<BreakStatement> 
             }
             break;
             default: {
-                result = new SingleLineStatementCommentWriter("/*internal error*/ break;");
+                result = w.simpleStmt("/*internal error*/ break;");
             }
         }
-        return Collections.singletonList(result);
+
+        acceptor.accept(result);
     }
 
     @Override

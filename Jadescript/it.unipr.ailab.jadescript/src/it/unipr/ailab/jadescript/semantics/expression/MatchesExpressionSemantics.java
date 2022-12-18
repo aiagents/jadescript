@@ -2,7 +2,6 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.PatternMatchingSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.HandlerWhenExpressionContext;
@@ -12,17 +11,18 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.PatternMatchRequest;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
@@ -50,39 +50,92 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
                 unary.extract(x -> new SemanticsBoundToExpression<>(module.get(UnaryPrefixExpressionSemantics.class), x)));
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
-    public Maybe<String> compile(Maybe<Matches> input) {
+    public ExpressionCompilationResult compile(Maybe<Matches> input, StatementCompilationOutputAcceptor acceptor) {
         if (mustTraverse(input)) {
             Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
             if (traversed.isPresent()) {
                 //noinspection rawtypes
-                return traversed.get().getSemantics().compile((Maybe) traversed.get().getInput());
+                return traversed.get().getSemantics().compile((Maybe) traversed.get().getInput(), acceptor);
             }
         }
-        final Maybe<UnaryPrefix> unary = input.__(Matches::getUnaryExpr);
-        return module.get(PatternMatchingSemantics.class).compileMatchesExpression(input, unary);
+        final Maybe<UnaryPrefix> inputExpr = input.__(Matches::getUnaryExpr);
+        final Maybe<LValueExpression> pattern = input.__(Matches::getPattern).__(i -> (LValueExpression) i);
+        final ExpressionCompilationResult compiledInputExpr = module.get(UnaryPrefixExpressionSemantics.class).compile(
+                inputExpr,
+                acceptor
+        );
+        final Optional<HandlerWhenExpressionContext> handlerHeaderContext = module.get(ContextManager.class)
+                .currentContext()
+                .actAs(HandlerWhenExpressionContext.class)
+                .findFirst();
+        final List<String> inputExprPropertyChain = compiledInputExpr.getPropertyChain();//TODO it might be an empty list, check (and check also in other usages)
+        if (handlerHeaderContext.isPresent()) {
+            //We are in a handler header, probably in a when-expression
+            final IJadescriptType upperBound;
+            if(inputExprPropertyChain.isEmpty()){
+                upperBound = module.get(TypeHelper.class).ANY;
+            }else {
+                upperBound = handlerHeaderContext.get()
+                        .computeUpperBoundForPropertyChain(inputExprPropertyChain);
+            }
+            final PatternMatchOutput<
+                    ? extends PatternMatchSemanticsProcess.IsCompilation,
+                    PatternMatchOutput.DoesUnification,
+                    PatternMatchOutput.WithTypeNarrowing> output =
+                    module.get(PatternMatchHelper.class).compileHeaderPatternMatching(
+                            upperBound,
+                            compiledInputExpr.toString(),//TODO check that the input expr is not compiled multiple times...
+                            pattern,
+                            acceptor
+                    );
+
+            //TODO Handle unification...
+
+            ExpressionCompilationResult result = result(output.getProcessInfo()
+                    .operationInvocationText(compiledInputExpr.toString()));
+            if (!inputExprPropertyChain.isEmpty()) {
+                result = result
+                        .updateFTKB(kb -> kb.add(
+                                FlowTypeInferringTerm.of(output.getTypeNarrowingInfo().getNarrowedType()),
+                                inputExprPropertyChain
+                        ));
+            }
+            return result;
+        } else {
+            final PatternMatchOutput<
+                    ? extends PatternMatchSemanticsProcess.IsCompilation,
+                    PatternMatchOutput.NoUnification,
+                    PatternMatchOutput.WithTypeNarrowing> output =
+                    module.get(PatternMatchHelper.class).compileMatchesExpressionPatternMatching(
+                            inputExpr,
+                            pattern,
+                            acceptor
+                    );
+
+            ExpressionCompilationResult result = result(output.getProcessInfo()
+                    .operationInvocationText(compiledInputExpr.toString()));
+            if (!inputExprPropertyChain.isEmpty()) {
+                result = result
+                        .updateFTKB(kb -> kb.add(
+                                FlowTypeInferringTerm.of(output.getTypeNarrowingInfo().getNarrowedType()),
+                                inputExprPropertyChain
+                        ));
+            }
+            return result;
+
+        }
     }
 
-    private boolean isInWhenExpression() {
+    private boolean isInHandlerWhenExpression() {
         return module.get(ContextManager.class).currentContext()
                 .actAs(HandlerWhenExpressionContext.class)
                 .findFirst().isPresent();
     }
 
-    @Override
-    public List<? extends StatementWriter> generateAuxiliaryStatements(Maybe<Matches> input) {
-        if (mustTraverse(input) || input.isNothing()) {
-            return super.generateAuxiliaryStatements(input);
-        }
-        final Maybe<Pattern> pattern = input.__(Matches::getPattern);
-        final Maybe<UnaryPrefix> unary = input.__(Matches::getUnaryExpr);
-        return module.get(PatternMatchingSemantics.class).generateAuxiliaryStatements(
-                PatternMatchRequest.patternMatchRequest(input, pattern, unary, isInWhenExpression())
-        );
-    }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public IJadescriptType inferType(Maybe<Matches> input) {
         if (mustTraverse(input)) {
@@ -108,7 +161,18 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
         return Optional.of(new SemanticsBoundToExpression<>(module.get(UnaryPrefixExpressionSemantics.class), unary));
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<Matches> input) {
+        if (mustTraverse(input)) {
+            return module.get(UnaryPrefixExpressionSemantics.class).isPatternEvaluationPure(
+                    input.__(Matches::getUnaryExpr)
+            );
+        }else{
+            return true;
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public void validate(Maybe<Matches> input, ValidationMessageAcceptor acceptor) {
         if (mustTraverse(input)) {
@@ -120,57 +184,59 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
             }
         }
 
-        final Maybe<Pattern> pattern = input.__(Matches::getPattern);
-        final Maybe<UnaryPrefix> unary = input.__(Matches::getUnaryExpr);
-        module.get(PatternMatchingSemantics.class).validate(
-                PatternMatchRequest.patternMatchRequest(
-                        input,
-                        pattern,
-                        unary,
-                        isInWhenExpression()
-                ),
-                acceptor
-        );
-    }
+        final Maybe<LValueExpression> pattern = input.__(Matches::getPattern).__(i -> (LValueExpression) i);
+        final Maybe<UnaryPrefix> inputExpr = input.__(Matches::getUnaryExpr);
+
+        final Optional<HandlerWhenExpressionContext> handlerHeaderContext = module.get(ContextManager.class)
+                .currentContext()
+                .actAs(HandlerWhenExpressionContext.class)
+                .findFirst();
+        if (handlerHeaderContext.isPresent()) {
+            //We are in a handler header, probably in a when-expression
+            final List<String> propertyChain = module.get(UnaryPrefixExpressionSemantics.class)
+                    .extractPropertyChain(inputExpr);
+            final IJadescriptType upperBound = handlerHeaderContext.get()
+                    .computeUpperBoundForPropertyChain(propertyChain);
+            final PatternMatchOutput<
+                    ? extends PatternMatchSemanticsProcess.IsValidation,
+                    PatternMatchOutput.DoesUnification,
+                    PatternMatchOutput.WithTypeNarrowing> output =
+                    module.get(PatternMatchHelper.class).validateHeaderPatternMatching(
+                            upperBound,
+                            "__",
+                            pattern,
+                            acceptor
+                    );
+            //TODO handle unified variables
+            //TODO handle narrowing
 
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    @Override
-    public ExpressionTypeKB extractFlowTypeTruths(Maybe<Matches> input) {
+        } else {
+            final PatternMatchOutput<
+                    ? extends PatternMatchSemanticsProcess.IsValidation,
+                    PatternMatchOutput.NoUnification,
+                    PatternMatchOutput.WithTypeNarrowing> output =
+                    module.get(PatternMatchHelper.class).validateMatchesExpressionPatternMatching(
+                            inputExpr,
+                            pattern,
+                            acceptor
+                    );
 
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                //noinspection rawtypes
-                return traversed.get().getSemantics().extractFlowTypeTruths((Maybe) traversed.get().getInput());
-            }
+            //TODO handle narrowing
+
         }
-
-        final Maybe<Pattern> pattern = input.__(Matches::getPattern);
-        final Maybe<UnaryPrefix> unary = input.__(Matches::getUnaryExpr);
-        ExpressionTypeKB subKb = module.get(UnaryPrefixExpressionSemantics.class).extractFlowTypeTruths(unary);
-        List<String> strings = module.get(UnaryPrefixExpressionSemantics.class).extractPropertyChain(unary);
-
-
-        pattern.safeDo(patternSafe -> {
-            subKb.add(FlowTypeInferringTerm.of(inferPatternType(patternSafe)
-                    .orElse(module.get(TypeHelper.class).ANY)), strings);
-        });
-        return subKb;
     }
 
 
-    public Maybe<IJadescriptType> inferPatternType(Pattern pattern) {
-        return module.get(PatternMatchingSemantics.class).inferPatternType(pattern);
-    }
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<Matches, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<Matches, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         final Maybe<Matches> pattern = input.getPattern();
         if (mustTraverse(pattern)) {
             return module.get(UnaryPrefixExpressionSemantics.class).compilePatternMatchInternal(
-                    input.mapPattern(Matches::getUnaryExpr)
+                    input.mapPattern(Matches::getUnaryExpr),
+                    acceptor
             );
         } else {
             return input.createEmptyCompileOutput();
@@ -183,7 +249,7 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
             return module.get(UnaryPrefixExpressionSemantics.class).inferPatternTypeInternal(
                     input.__(Matches::getUnaryExpr)
             );
-        }else{
+        } else {
             return PatternType.empty(module);
         }
     }

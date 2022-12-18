@@ -1,8 +1,11 @@
 package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 
+import it.unipr.ailab.jadescript.jadescript.LValueExpression;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.jadescript.UnaryPrefix;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.UnaryPrefixExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
@@ -22,7 +25,6 @@ public abstract class PatternMatchInput<
     private final PatternMatchMode patternMatchMode;
     private final Maybe<T> pattern;
     private final String termID;
-
     private final String rootPatternMatchVariableName;
 
     public PatternMatchInput(
@@ -98,7 +100,7 @@ public abstract class PatternMatchInput<
         );
     }
 
-    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> createEmptyCompileOutput() {
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> createEmptyCompileOutput() {
         return new PatternMatchOutput<>(
                 new PatternMatchSemanticsProcess.IsCompilation.AsEmpty(this),
                 getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
@@ -110,7 +112,7 @@ public abstract class PatternMatchInput<
         );
     }
 
-    public PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> createEmptyValidationOutput() {
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> createEmptyValidationOutput() {
         return new PatternMatchOutput<>(
                 PatternMatchSemanticsProcess.IsValidation.INSTANCE,
                 getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION
@@ -349,7 +351,7 @@ public abstract class PatternMatchInput<
         return createOutput(
                 new PatternMatchSemanticsProcess.IsCompilation.AsInlineCondition(this) {
                     @Override
-                    public String compileOperationInvocation(String input) {
+                    public String operationInvocationText(String input) {
                         return generateCondition.apply(input);
                     }
                 },
@@ -402,7 +404,9 @@ public abstract class PatternMatchInput<
             super(module, new PatternMatchMode(
                     PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
                     TypeRelationship.Related.class,
+                    PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
                     PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+                    PatternMatchMode.Reassignment.CHECK_EQUALITY,
                     PatternMatchMode.Unification.WITH_VAR_DECLARATION,
                     PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
                     PatternMatchMode.PatternLocation.STATEMENT_GUARD
@@ -446,7 +450,9 @@ public abstract class PatternMatchInput<
             super(module, new PatternMatchMode(
                     PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
                     TypeRelationship.SubtypeOrEqual.class,
+                    PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
                     PatternMatchMode.PatternApplicationPurity.HAS_TO_BE_PURE,
+                    PatternMatchMode.Reassignment.CHECK_EQUALITY,
                     PatternMatchMode.Unification.WITH_VAR_DECLARATION,
                     PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
                     PatternMatchMode.PatternLocation.FEATURE_HEADER
@@ -477,11 +483,11 @@ public abstract class PatternMatchInput<
 
     public static class MatchesExpression<T>
             extends PatternMatchInput<T, PatternMatchOutput.NoUnification, PatternMatchOutput.WithTypeNarrowing> {
-        private final Maybe<RValueExpression> inputExpr;
+        private final Maybe<UnaryPrefix> inputExpr;
 
         public MatchesExpression(
                 SemanticsModule module,
-                Maybe<RValueExpression> inputExpr,
+                Maybe<UnaryPrefix> inputExpr,
                 Maybe<T> pattern,
                 String termID,
                 String rootPatternMatchVariableName
@@ -489,7 +495,9 @@ public abstract class PatternMatchInput<
             super(module, new PatternMatchMode(
                     PatternMatchMode.HolesAndGroundness.ACCEPTS_NONVAR_HOLES_ONLY,
                     TypeRelationship.Related.class,
+                    PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
                     PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+                    PatternMatchMode.Reassignment.CHECK_EQUALITY,
                     PatternMatchMode.Unification.WITHOUT_VAR_DECLARATION,
                     PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
                     PatternMatchMode.PatternLocation.BOOLEAN_EXPRESSION
@@ -510,7 +518,7 @@ public abstract class PatternMatchInput<
 
         @Override
         public IJadescriptType getProvidedInputType() {
-            return module.get(RValueExpressionSemantics.class).inferType(inputExpr);
+            return module.get(UnaryPrefixExpressionSemantics.class).inferType(inputExpr);
         }
 
 
@@ -528,8 +536,9 @@ public abstract class PatternMatchInput<
                 String rootPatternMatchVariableName
         ) {
             super(module, new PatternMatchMode(
-                    PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_VARS,
+                    PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_OR_ASSIGNABLE_VARS,
                     TypeRelationship.SupertypeOrEqual.class,
+                    PatternMatchMode.RequiresSuccessfulMatch.REQUIRES_SUCCESSFUL_MATCH,
                     PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
                     PatternMatchMode.Reassignment.REQUIRE_REASSIGN,
                     PatternMatchMode.Unification.WITH_VAR_DECLARATION,
@@ -557,6 +566,59 @@ public abstract class PatternMatchInput<
         }
 
 
+    }
+
+    public static class ForAssignment<T,
+            U extends PatternMatchOutput.Unification,
+            N extends PatternMatchOutput.TypeNarrowing> extends PatternMatchInput<T, U, N> {
+        private final IJadescriptType elementType;
+
+        public ForAssignment(
+                SemanticsModule module,
+                IJadescriptType elementType,
+                Maybe<T> pattern,
+                String termID,
+                String rootPatternMatchVariableName
+        ) {
+            super(
+                    module,
+                    new PatternMatchMode(
+                            PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_VARS,
+                            TypeRelationship.SupertypeOrEqual.class,
+                            PatternMatchMode.RequiresSuccessfulMatch.REQUIRES_SUCCESSFUL_MATCH,
+                            PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+                            PatternMatchMode.Reassignment.REQUIRE_REASSIGN,
+                            PatternMatchMode.Unification.WITH_VAR_DECLARATION,
+                            PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
+                            PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
+                    ),
+                    pattern,
+                    termID,
+                    rootPatternMatchVariableName
+            );
+            this.elementType = elementType;
+        }
+
+
+        @Override
+        public <R> ForAssignment<R, U, N> mapPattern(Function<T, R> function) {
+            return new ForAssignment<>(
+                    module,
+                    this.getElementType(),
+                    this.getPattern().__(function),
+                    this.getTermID(),
+                    this.getRootPatternMatchVariableName()
+            );
+        }
+
+        @Override
+        public IJadescriptType getProvidedInputType() {
+            return elementType;
+        }
+
+        public IJadescriptType getElementType() {
+            return elementType;
+        }
     }
 
 
@@ -595,7 +657,9 @@ public abstract class PatternMatchInput<
                     rootInput.getMode().getPatternLocation() == PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
                             ? TypeRelationship.SupertypeOrEqual.class
                             : TypeRelationship.Related.class,
+                    rootInput.getMode().getRequiresSuccessfulMatch(),
                     rootInput.getMode().getPatternApplicationPurity(),
+                    rootInput.getMode().getReassignment(),
                     rootInput.getMode().getUnification(),
                     rootInput.getMode().getNarrowsTypeOfInput(),
                     PatternMatchMode.PatternLocation.SUB_PATTERN

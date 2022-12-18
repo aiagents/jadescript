@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.helpers;
 
 import it.unipr.ailab.jadescript.jadescript.CodeBlock;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.jadescript.Statement;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.jvmmodel.JadescriptCompilerUtils;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -11,13 +12,14 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import it.unipr.ailab.sonneteer.WriterFactory;
+import it.unipr.ailab.sonneteer.comment.MultilineCommentWriter;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
-import it.unipr.ailab.sonneteer.statement.BlockWriter;
-import it.unipr.ailab.sonneteer.statement.LocalVarBindingProvider;
-import it.unipr.ailab.sonneteer.statement.StatementWriter;
-import it.unipr.ailab.sonneteer.statement.VariableDeclarationWriter;
+import it.unipr.ailab.sonneteer.statement.*;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtend2.lib.StringConcatenationClient;
 import org.eclipse.xtext.common.types.JvmExecutable;
@@ -25,6 +27,8 @@ import org.eclipse.xtext.common.types.JvmField;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.naming.IQualifiedNameProvider;
 import org.eclipse.xtext.naming.QualifiedName;
+import org.eclipse.xtext.nodemodel.ICompositeNode;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 import org.eclipse.xtext.xbase.typesystem.references.LightweightTypeReference;
 import org.jetbrains.annotations.NotNull;
@@ -39,6 +43,8 @@ import static it.unipr.ailab.maybe.Maybe.of;
 public class CompilationHelper implements IQualifiedNameProvider {
 
     private final SemanticsModule module;
+
+    private final static WriterFactory w = WriterFactory.getInstance();
 
     public CompilationHelper(SemanticsModule module) {
         this.module = module;
@@ -157,12 +163,13 @@ public class CompilationHelper implements IQualifiedNameProvider {
 
     public List<String> adaptAndCompileRValueList(
             List<? extends RValueExpression> rvals,
-            List<IJadescriptType> destinationTypes
+            List<IJadescriptType> destinationTypes,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         List<String> compiledArgs = rvals.stream()
                 .map(Maybe::of)
                 .map(x -> x.__(xx -> (RValueExpression) xx))
-                .map(x -> module.get(RValueExpressionSemantics.class).compile(x))
+                .map(x -> module.get(RValueExpressionSemantics.class).compile(x, acceptor))
                 .map(x -> x.orElse(""))
                 .collect(Collectors.toList());
         List<IJadescriptType> argTypes = rvals.stream()
@@ -175,7 +182,8 @@ public class CompilationHelper implements IQualifiedNameProvider {
 
     public String compileRValueList(
             List<? extends RValueExpression> rvals,
-            List<IJadescriptType> destinationTypes
+            List<IJadescriptType> destinationTypes,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         if (rvals == null) return "";
         StringBuilder sb = new StringBuilder();
@@ -186,15 +194,15 @@ public class CompilationHelper implements IQualifiedNameProvider {
                 IJadescriptType argType = module.get(RValueExpressionSemantics.class).inferType(expr);
                 if (module.get(TypeHelper.class).implicitConversionCanOccur(argType, destType)) {
                     sb.append(module.get(TypeHelper.class).compileImplicitConversion(
-                            module.get(RValueExpressionSemantics.class).compile(expr).orElse(""),
+                            module.get(RValueExpressionSemantics.class).compile(expr, acceptor).orElse(""),
                             argType,
                             destType
                     ));
                 } else {
-                    sb.append(module.get(RValueExpressionSemantics.class).compile(expr).orElse(""));
+                    sb.append(module.get(RValueExpressionSemantics.class).compile(expr, acceptor).orElse(""));
                 }
             } else {
-                sb.append(module.get(RValueExpressionSemantics.class).compile(expr).orElse(""));
+                sb.append(module.get(RValueExpressionSemantics.class).compile(expr, acceptor).orElse(""));
             }
             if (i != rvals.size() - 1) {
                 sb.append(",");
@@ -203,8 +211,8 @@ public class CompilationHelper implements IQualifiedNameProvider {
         return sb.toString();
     }
 
-    public String compileRValueList(List<RValueExpression> rvals) {
-        return compileRValueList(rvals, null);
+    public String compileRValueList(List<RValueExpression> rvals, StatementCompilationOutputAcceptor acceptor) {
+        return compileRValueList(rvals, null, acceptor);
     }
 
 
@@ -239,6 +247,37 @@ public class CompilationHelper implements IQualifiedNameProvider {
         } else {
             return "null";
         }
+    }
+
+
+    public static Maybe<String> sourceToLocationText(Maybe<? extends EObject> input) {
+        return Util.extractEObject(input).__(eObject -> {
+            final ICompositeNode node = NodeModelUtils.getNode(eObject);
+            int startLine = node.getStartLine();
+            int endLine = node.getEndLine();
+            if(startLine == endLine) {
+                return "at line " + startLine;
+            }else{
+                return "from line " + startLine + " to line " + endLine;
+            }
+        });
+    }
+    public static Maybe<String> sourceToText(Maybe<? extends EObject> input) {
+        return Util.extractEObject(input).__(eObject -> {
+            final ICompositeNode node = NodeModelUtils.getNode(eObject);
+            return node.getText();
+        });
+    }
+
+    public static MultilineCommentWriter inputStatementComment(Maybe<Statement> input, String prefix) {
+        final MultilineCommentWriter multiComment = w.multiComment(
+                prefix + " " + sourceToLocationText(input).orElse("[Unknown location in source]")
+        );
+        String source = sourceToText(input).orElse("[unknown source]");
+        for (String line : source.split("\\R")) {
+            multiComment.addLine(line);
+        }
+        return multiComment;
     }
 
     public LightweightTypeReference toLightweightTypeReference(IJadescriptType type, EObject container) {

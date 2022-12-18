@@ -16,6 +16,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import jadescript.content.JadescriptOntoElement;
 import org.eclipse.xtext.common.types.JvmTypeReference;
@@ -28,6 +29,8 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
@@ -49,9 +52,9 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
     }
 
     @Override
-    public Maybe<String> compile(Maybe<TypeExpression> input) {
-        if (input == null) return nothing();
-        return of(toJadescriptType(input).compileToJavaTypeReference());
+    public ExpressionCompilationResult compile(Maybe<TypeExpression> input, StatementCompilationOutputAcceptor acceptor) {
+        if (input == null) return empty();
+        return result(toJadescriptType(input).compileToJavaTypeReference());
     }
 
 
@@ -73,8 +76,13 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
     }
 
     @Override
+    public boolean isPatternEvaluationPure(Maybe<TypeExpression> input) {
+        return true;
+    }
+
+    @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<TypeExpression, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<TypeExpression, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         return input.createEmptyCompileOutput();
     }
 

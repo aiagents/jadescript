@@ -16,6 +16,8 @@ public interface MessageReceivedContext extends SemanticsConsts {
 
     IJadescriptType getMessageType();
 
+
+
     default Stream<NamedSymbol> getMessageStream(
             Predicate<String> name,
             Predicate<IJadescriptType> readingType,

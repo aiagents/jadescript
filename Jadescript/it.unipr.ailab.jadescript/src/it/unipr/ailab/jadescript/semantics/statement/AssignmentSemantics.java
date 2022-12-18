@@ -15,10 +15,8 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -35,9 +33,7 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<Assignment> input) {
-        List<BlockWriterElement> result = new ArrayList<>();
-
+    public void compileStatement(Maybe<Assignment> input, StatementCompilationOutputAcceptor acceptor) {
         Optional<String> ident = extractIdentifierIfAvailable(input);
         Optional<? extends NamedSymbol> variable;
         if (ident.isPresent()) {
@@ -52,44 +48,32 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
 
 
         Maybe<RValueExpression> rexpr = input.__(Assignment::getRexpr);
-        String compiledRExpression = module.get(RValueExpressionSemantics.class).compile(rexpr).orElse("");
-        String assignOp = input.__(Assignment::getAssignOp).extract(Maybe.nullAsEmptyString);
-        //do nothing;
-        if ("=".equals(assignOp)) {//check for inferred declaration
+        String compiledRExpression = module.get(RValueExpressionSemantics.class).compile(rexpr, acceptor).orElse("");
+
+        if (true) {//check for inferred declaration
             if (ident.isPresent() && variable.isEmpty()) {
-                result.addAll(compileVarDeclaration(ident.get(), input.__(Assignment::getRexpr)));
-                return result;
+                compileVarDeclaration(ident.get(), input.__(Assignment::getRexpr), acceptor);
             }
         }
 
-        if (variable.isPresent() && variable.get() instanceof UserVariable) {
-            UserVariable userVariable = (UserVariable) variable.get();
-            userVariable.notifyWriteUsage();
-            module.get(CompilationHelper.class).lateBindingContext().pushVariable(userVariable);
-            result.add(w.varAssPlaceholder(userVariable.name(), w.expr(compiledRExpression)));
-        } else {
-            result.add(w.simplStmt(module.get(LValueExpressionSemantics.class).compileAssignment(
-                    input.__(Assignment::getLexpr),
-                    compiledRExpression,
-                    module.get(RValueExpressionSemantics.class).inferType(rexpr)
-            ).orElse("")));
-        }
-        return result;
+
     }
 
-    public List<BlockWriterElement> compileVarDeclaration(String name, Maybe<RValueExpression> expr) {
-        List<BlockWriterElement> result = new ArrayList<>();
+    public void compileVarDeclaration(
+            String name,
+            Maybe<RValueExpression> expr,
+            StatementCompilationOutputAcceptor acceptor
+    ) {
 
         IJadescriptType type = module.get(RValueExpressionSemantics.class).inferType(expr);
         final UserVariable userVariable = module.get(ContextManager.class)
                 .currentScope().addUserVariable(name, type, true);
         module.get(CompilationHelper.class).lateBindingContext().pushVariable(userVariable);
-        result.add(w.varDeclPlaceholder(
+        acceptor.accept(w.varDeclPlaceholder(
                 type.compileToJavaTypeReference(),
                 name,
-                w.expr(module.get(RValueExpressionSemantics.class).compile(expr).orElse(""))
+                w.expr(module.get(RValueExpressionSemantics.class).compile(expr, acceptor).orElse(""))
         ));
-        return result;
     }
 
     @Override
@@ -103,13 +87,12 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
 
     @Override
     public void validate(Maybe<Assignment> input, ValidationMessageAcceptor acceptor) {
-        String assignOp = input.__(Assignment::getAssignOp).extract(Maybe.nullAsEmptyString);
         Maybe<RValueExpression> rexpr = input.__(Assignment::getRexpr);
-        if (!assignOp.equals("=")) {
-            return;
-        }
         InterceptAcceptor syntacticSubValidation = new InterceptAcceptor(acceptor);
-        module.get(LValueExpressionSemantics.class).syntacticValidateLValue(input.__(Assignment::getLexpr), syntacticSubValidation);
+        module.get(LValueExpressionSemantics.class).syntacticValidateLValue(
+                input.__(Assignment::getLexpr),
+                syntacticSubValidation
+        );
 
         if (!syntacticSubValidation.thereAreErrors()) {
 
@@ -173,7 +156,6 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
 
             module.get(LValueExpressionSemantics.class).validateAssignment(
                     input.__(Assignment::getLexpr),
-                    assignOp,
                     rexpr,
                     acceptor
             );

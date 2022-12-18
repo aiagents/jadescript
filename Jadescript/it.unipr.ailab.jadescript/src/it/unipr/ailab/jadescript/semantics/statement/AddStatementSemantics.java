@@ -38,18 +38,14 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
 
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<AddStatement> input) {
-        List<BlockWriterElement> result = new ArrayList<>();
-        if (input == null) {
-            return result;
-        }
+    public void compileStatement(Maybe<AddStatement> input, StatementCompilationOutputAcceptor acceptor) {
 
         boolean isSetCollection = module.get(RValueExpressionSemantics.class)
                 .inferType(input.__(AddStatement::getCollection)) instanceof SetType;
-        String collection = module.get(RValueExpressionSemantics.class)
-                .compile(input.__(AddStatement::getCollection)).orElse("");
         String element = module.get(RValueExpressionSemantics.class)
-                .compile(input.__(AddStatement::getElement)).orElse("");
+                .compile(input.__(AddStatement::getElement), acceptor).orElse("");
+        String collection = module.get(RValueExpressionSemantics.class)
+                .compile(input.__(AddStatement::getCollection), acceptor).orElse("");
         String putOrAdd = input.__(AddStatement::getPutOrAdd).extract(Maybe.nullAsEmptyString);
         if(isSetCollection){
             putOrAdd = "add"; //overrides "put" if it's a set
@@ -57,13 +53,14 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
         String all = input.__(AddStatement::isAll).extract(nullAsFalse)?"All":"";
         final String methodName = collection + "." + putOrAdd + all;
         if (!input.__(AddStatement::isWithIndex).extract(nullAsFalse)) {
-            result.add(w.callStmnt(methodName, w.expr(element)));
+            acceptor.accept(w.callStmnt(methodName, w.expr(element)));
         } else {
-            String index = module.get(RValueExpressionSemantics.class).compile(input.__(AddStatement::getIndex)).orElse("");
-            result.add(w.callStmnt(methodName, w.expr(index), w.expr(element)));
+            String index = module.get(RValueExpressionSemantics.class).compile(
+                    input.__(AddStatement::getIndex),
+                    acceptor
+            ).orElse("");
+            acceptor.accept(w.callStmnt(methodName, w.expr(index), w.expr(element)));
         }
-
-        return result;
     }
 
     @Override

@@ -39,13 +39,15 @@ public class ClearStatementSemantics extends StatementSemantics<ClearStatement> 
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<ClearStatement> input) {
-        List<BlockWriterElement> result = new ArrayList<>();
+    public void compileStatement(Maybe<ClearStatement> input, StatementCompilationOutputAcceptor acceptor) {
         if (input != null) {
-            result.add(w.callStmnt(module.get(RValueExpressionSemantics.class)
-                    .compile(input.__(ClearStatement::getCollection)).orElse("") + ".clear"));
+            acceptor.accept(w.callStmnt(
+                    module.get(RValueExpressionSemantics.class).compile(
+                            input.__(ClearStatement::getCollection),
+                            acceptor
+                    ).orElse("") + ".clear"
+            ));
         }
-        return result;
     }
 
     @Override
@@ -63,12 +65,12 @@ public class ClearStatementSemantics extends StatementSemantics<ClearStatement> 
                             searcher -> searcher.searchCallable(
                                     "clear",
                                     null,
-                                    (s,n)->s==0,
-                                    (s,t)->s==0
+                                    (s, n) -> s == 0,
+                                    (s, t) -> s == 0
                             )
                     ).findAny().isPresent(),
                     "NotClearableCollection",
-                    "Cannot perform 'clear' on this type of collection - '"+collectionType+"'.",
+                    "Cannot perform 'clear' on this type of collection - '" + collectionType + "'.",
                     input,
                     JadescriptPackage.eINSTANCE.getClearStatement_Collection(),
                     acceptor

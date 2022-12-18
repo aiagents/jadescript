@@ -8,12 +8,10 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociated;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation;
-import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.BoundedTypeArgument;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedBehaviourType;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
@@ -32,8 +30,6 @@ import static it.unipr.ailab.maybe.Maybe.of;
 
 /**
  * Created on 09/03/18.
- *
- * 
  */
 @Singleton
 public class ActivateStatementSemantics extends StatementSemantics<ActivateStatement> {
@@ -52,6 +48,54 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
             ));
         });
         return result;
+    }
+
+    @Override
+    public void compileStatement(Maybe<ActivateStatement> input, StatementCompilationOutputAcceptor acceptor) {
+
+
+        Maybe<RValueExpression> expr = input.__(ActivateStatement::getExpression);
+        Maybe<RValueExpression> period = input.__(ActivateStatement::getPeriod);
+        Maybe<RValueExpression> delay = input.__(ActivateStatement::getDelay);
+        Maybe<RValueExpression> start = input.__(ActivateStatement::getStartTime);
+        String methodName = "activate";
+        List<ExpressionWriter> params = new ArrayList<>();
+
+        final String compiledBehaviour = module.get(RValueExpressionSemantics.class).compile(
+                expr,
+                acceptor
+        ).orElse("");
+
+        params.add(w.expr(THE_AGENT + "()"));
+        if (delay.isPresent()) {
+            methodName += "_after";
+            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
+                    delay,
+                    acceptor
+            ).orElse("")));
+        }
+
+        if (start.isPresent()) {
+            methodName += "_at";
+            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
+                    start,
+                    acceptor
+            ).orElse("")));
+        }
+
+        if (period.isPresent()) {
+            methodName += "_every";
+            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
+                    period,
+                    acceptor
+            ).orElse("")));
+        }
+
+
+        acceptor.accept(w.callStmnt(
+                compiledBehaviour + "." + methodName,
+                params
+        ));
     }
 
     @Override
@@ -147,40 +191,6 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
         }
 
 
-    }
-
-    @Override
-    public List<BlockWriterElement> compileStatement(Maybe<ActivateStatement> input) {
-        List<BlockWriterElement> result = new ArrayList<>();
-        result.add(w.commentStmt("Activate statement"));
-        Maybe<RValueExpression> expr = input.__(ActivateStatement::getExpression);
-        Maybe<RValueExpression> period = input.__(ActivateStatement::getPeriod);
-        Maybe<RValueExpression> delay = input.__(ActivateStatement::getDelay);
-        Maybe<RValueExpression> start = input.__(ActivateStatement::getStartTime);
-        String methodName = "activate";
-        List<ExpressionWriter> params = new ArrayList<>();
-        params.add(w.expr(THE_AGENT+"()"));
-        if (delay.isPresent()) {
-            methodName += "_after";
-            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(delay).orElse("")));
-        }
-
-        if (start.isPresent()) {
-            methodName += "_at";
-            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(start).orElse("")));
-        }
-
-        if (period.isPresent()) {
-            methodName += "_every";
-            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(period).orElse("")));
-        }
-
-
-        result.add(w.callStmnt(
-                module.get(RValueExpressionSemantics.class).compile(expr).orElse("") + "." + methodName,
-                params
-        ));
-        return result;
     }
 
 

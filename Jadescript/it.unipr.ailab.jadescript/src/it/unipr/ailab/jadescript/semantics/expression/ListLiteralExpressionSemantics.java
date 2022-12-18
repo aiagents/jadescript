@@ -12,6 +12,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -24,6 +25,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
@@ -61,14 +63,15 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     }
 
     @Override
-    public Maybe<String> compile(Maybe<ListLiteral> input) {
+    public ExpressionCompilationResult compile(Maybe<ListLiteral> input, StatementCompilationOutputAcceptor acceptor) {
         Maybe<EList<RValueExpression>> values = input.__(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter = input.__(ListLiteral::getTypeParameter);
         if (values.__(List::isEmpty).extract(Maybe.nullAsTrue)) {
             final IJadescriptType elementType = module.get(TypeExpressionSemantics.class)
                     .toJadescriptType(typeParameter);
-            return Maybe.of("new java.util.ArrayList<" + elementType.compileToJavaTypeReference() + ">()");
+            return result("new java.util.ArrayList<" + elementType.compileToJavaTypeReference() + ">()");
         }
+
 
         StringBuilder sb = new StringBuilder("java.util.Arrays.asList(");
         List<Maybe<RValueExpression>> valuesList = Maybe.toListOfMaybes(values);
@@ -76,11 +79,11 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
             if (i != 0) {
                 sb.append(", ");
             }
-            sb.append(module.get(RValueExpressionSemantics.class).compile(valuesList.get(i)));
+            sb.append(module.get(RValueExpressionSemantics.class).compile(valuesList.get(i), acceptor));
         }
         sb.append(")");
 
-        return Maybe.of("new java.util.ArrayList<>(" + sb + ")");
+        return result("new java.util.ArrayList<>(" + sb + ")");
     }
 
     @Override
@@ -133,6 +136,22 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     @Override
     public Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traverse(Maybe<ListLiteral> input) {
         return Optional.empty();
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<ListLiteral> input) {
+        List<Maybe<RValueExpression>> values = toListOfMaybes(input.__(ListLiteral::getValues));
+        boolean isWithPipe = input.__(ListLiteral::isWithPipe).extract(nullAsFalse);
+        Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
+        final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
+        final boolean valuesAllMatch = values.stream()
+                .filter(Maybe::isPresent)
+                .allMatch(rves::isPatternEvaluationPure);
+        if(isWithPipe){
+            return rves.isPatternEvaluationPure(rest) && valuesAllMatch;
+        }else{
+            return valuesAllMatch;
+        }
     }
 
     @Override
@@ -191,7 +210,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<ListLiteral, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<ListLiteral, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         List<Maybe<RValueExpression>> values = toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
         Maybe<RValueExpression> rest = input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe = input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse) && rest.isPresent();
@@ -230,7 +249,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
                                     elementType,
                                     __ -> term.toNullable(),
                                     "_" + i
-                            ));
+                            ), acceptor);
                     subResults.add(elemOutput);
                 }
 
@@ -243,7 +262,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
                                 solvedPatternType,
                                 __ -> rest.toNullable(),
                                 "_rest"
-                        ));
+                        ), acceptor);
                 subResults.add(restOutput);
             }
 

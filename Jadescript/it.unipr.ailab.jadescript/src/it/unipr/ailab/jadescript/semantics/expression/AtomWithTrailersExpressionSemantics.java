@@ -14,6 +14,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.expression.trailersexprchain.ReversedTrailerChain;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -39,8 +40,8 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
     }
 
     @Override
-    public Maybe<String> compile(Maybe<AtomExpr> input) {
-        return buildChain(input).compile();
+    public ExpressionCompilationResult compile(Maybe<AtomExpr> input, StatementCompilationOutputAcceptor acceptor) {
+        return buildChain(input).compile(acceptor);
     }
 
 
@@ -72,14 +73,18 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
     }
 
     @Override
-    public Maybe<String> compileAssignment(Maybe<AtomExpr> input, String compiledExpression, IJadescriptType exprType) {
-        return buildChain(input).compileAssignment(compiledExpression, exprType);
+    public void compileAssignment(
+            Maybe<AtomExpr> input,
+            String compiledExpression,
+            IJadescriptType exprType,
+            StatementCompilationOutputAcceptor acceptor
+    ) {
+        buildChain(input).compileAssignment(compiledExpression, exprType, acceptor);
     }
 
     @Override
     public void validateAssignment(
             Maybe<AtomExpr> input,
-            String assignmentOperator,
             Maybe<RValueExpression> expression,
             ValidationMessageAcceptor acceptor
     ) {
@@ -91,9 +96,7 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
         if (!subValidation.thereAreErrors()) {
             IJadescriptType typeOfRExpression = module.get(RValueExpressionSemantics.class).inferType(expression);
 
-            validateArithmeticAssignmentRExpression(assignmentOperator, expression, acceptor, typeOfRExpression);
-
-            buildChain(input).validateAssignment(assignmentOperator, expression, typeOfRExpression, acceptor);
+            buildChain(input).validateAssignment(expression, typeOfRExpression, acceptor);
 
         }
 
@@ -119,6 +122,16 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
     }
 
     @Override
+    public boolean isValidLExpr(Maybe<AtomExpr> input) {
+        return buildChain(input).isValidLExpr();
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<AtomExpr> input) {
+        return buildChain(input).isPatternEvaluationPure();
+    }
+
+    @Override
     public boolean isHoled(Maybe<AtomExpr> input) {
         return buildChain(input).isHoled();
     }
@@ -130,9 +143,10 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
-            PatternMatchInput<AtomExpr, ?, ?> input
+            PatternMatchInput<AtomExpr, ?, ?> input,
+            StatementCompilationOutputAcceptor acceptor
     ) {
-        return buildChain(input.getPattern()).compilePatternMatchInternal(input);
+        return buildChain(input.getPattern()).compilePatternMatchInternal(input, acceptor);
     }
 
     @Override
@@ -170,7 +184,6 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
         return chain;
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
     public boolean isAlwaysPure(Maybe<AtomExpr> input) {
         return buildChain(input).isAlwaysPure();

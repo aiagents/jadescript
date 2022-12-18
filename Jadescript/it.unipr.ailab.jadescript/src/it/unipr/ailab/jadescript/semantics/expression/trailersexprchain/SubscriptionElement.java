@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
+import it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
@@ -15,6 +16,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.XNumberLiteral;
@@ -25,6 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 
 
 /**
@@ -48,21 +52,21 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
 
 
     @Override
-    public String compile(ReversedTrailerChain rest) {
-        Maybe<String> operandCompiled = rest.compile();
-        final String keyCompiled = expressionSemantics.compile(key).orElse("");
+    public ExpressionCompilationResult compile(ReversedTrailerChain rest, StatementCompilationOutputAcceptor acceptor) {
+        ExpressionCompilationResult operandCompiled = rest.compile(acceptor);
+        ExpressionCompilationResult keyCompiled = expressionSemantics.compile(key, acceptor);
         final IJadescriptType restType = rest.inferType();
         if (module.get(TypeHelper.class).TEXT.isAssignableFrom(restType)) {
-            return "(\"\"+" + operandCompiled + ".charAt(" + keyCompiled + "))";
+            return result("(\"\"+" + operandCompiled + ".charAt(" + keyCompiled + "))");
         }
         if (restType instanceof TupleType) {
             final Optional<Integer> integer = extractIntegerIfAvailable(key);
             if (integer.isPresent()) {
-                return ((TupleType) restType).compileGet(operandCompiled.orElse(""), integer.get());
+                return result(((TupleType) restType).compileGet(operandCompiled.getGeneratedText(), integer.get()));
             }
         }
 
-        return operandCompiled + ".get(" + keyCompiled + ")";
+        return result(operandCompiled + ".get(" + keyCompiled + ")");
 
     }
 
@@ -209,7 +213,7 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
 
     @Override
     public void validateAssignment(
-            ReversedTrailerChain rest, String assignmentOperator, Maybe<RValueExpression> rValueExpression,
+            ReversedTrailerChain rest, Maybe<RValueExpression> rValueExpression,
             IJadescriptType typeOfRExpr, ValidationMessageAcceptor acceptor
     ) {
 
@@ -291,25 +295,33 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public String compileAssignment(
+    public void compileAssignment(
             ReversedTrailerChain rest,
             String compiledExpression,
-            IJadescriptType exprType
+            IJadescriptType exprType,
+            StatementCompilationOutputAcceptor acceptor
     ) {
-        String restCompiled = rest.compile().orElse("");
+        ExpressionCompilationResult restCompiled = rest.compile(acceptor);
         IJadescriptType restType = rest.inferType();
 
 
         if (restType instanceof ListType) {
-            return restCompiled + ".set("
-                    + expressionSemantics.compile(key).orElse("")
-                    + ", " + compiledExpression + ")";
+            acceptor.accept(w.simpleStmt(
+                    restCompiled + ".set("
+                            + expressionSemantics.compile(key, acceptor)
+                            + ", " + compiledExpression + ")"
+            ));
         } else if (restType instanceof MapType) {
-            return restCompiled + ".put("
-                    + expressionSemantics.compile(key).orElse("")
-                    + ", " + compiledExpression + ")";
+            acceptor.accept(w.simpleStmt(
+                    restCompiled + ".put("
+                            + expressionSemantics.compile(key, acceptor)
+                            + ", " + compiledExpression + ")"
+            ));
         } else {
-            return restCompiled + "[" + expressionSemantics.compile(key).orElse("") + "] = " + compiledExpression;
+            acceptor.accept(w.simpleStmt(
+                    restCompiled + "[" + expressionSemantics.compile(key, acceptor)
+                            + "] = " + compiledExpression
+            ));
         }
     }
 
@@ -339,9 +351,10 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
-            ReversedTrailerChain rest
+            ReversedTrailerChain rest,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }
@@ -364,5 +377,17 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
     public boolean isTypelyHoled(ReversedTrailerChain rest) {
         // Subscription expressions cannot be holed by design.
         return false;
+    }
+
+    @Override
+    public boolean isValidLexpr(ReversedTrailerChain rest) {
+        // Can be used as L-Expression only if the subscripted operand is a Map or a List.
+        IJadescriptType restType = rest.inferType();
+        return restType instanceof MapType || restType instanceof ListType;
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(ReversedTrailerChain rest) {
+        return true;
     }
 }

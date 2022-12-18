@@ -224,7 +224,7 @@ public class OnBehaviourFailureHandlerSemantics
                     .compileMatchesExpression(patternMatchRequest)
                     .orElse("");
             String x2 = module.get(RValueExpressionSemantics.class)
-                    .compile(expr)
+                    .compile(expr, )
                     .orElse("");
             if (!x1.isBlank() && !x2.isBlank()) {
                 compiledExpression = "(" + x1 + ") && (" + x2 + ")";

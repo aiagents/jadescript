@@ -117,7 +117,7 @@ public class OnCreateHandlerSemantics extends FeatureSemantics<OnCreateHandler> 
                                     Maybe<FormalParameter> parameter = parameters.get(i);
                                     Maybe<TypeExpression> parameterType = parameter.__(FormalParameter::getType);
 
-                                    String typeCompiled = module.get(TypeExpressionSemantics.class).compile(parameterType).orElse("");
+                                    String typeCompiled = module.get(TypeExpressionSemantics.class).compile(parameterType, ).orElse("");
                                     IJadescriptType type = module.get(TypeExpressionSemantics.class).toJadescriptType(parameterType);
 
                                     Maybe<String> parameterName = parameter.__(FormalParameter::getName);

@@ -19,7 +19,6 @@ import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import it.unipr.ailab.sonneteer.statement.controlflow.IfStatementWriter;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
@@ -41,27 +40,9 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
         super(semanticsModule);
     }
 
-    @Override
-    public List<StatementWriter> generateAuxiliaryStatements(Maybe<IfStatement> input) {
-        Maybe<RValueExpression> condition = input.__(IfStatement::getCondition);
-        List<Maybe<RValueExpression>> elseIfConditions = toListOfMaybes(input.__(IfStatement::getElseIfConditions));
-        module.get(ContextManager.class).pushScope();
-        List<StatementWriter> statementWriters = new ArrayList<>(
-                module.get(RValueExpressionSemantics.class).generateAuxiliaryStatements(condition)
-        );
-        module.get(ContextManager.class).popScope();
-
-        for (Maybe<RValueExpression> elseIfCondition : elseIfConditions) {
-            module.get(ContextManager.class).pushScope();
-            statementWriters.addAll(module.get(RValueExpressionSemantics.class).generateAuxiliaryStatements(elseIfCondition));
-            module.get(ContextManager.class).popScope();
-        }
-        return statementWriters;
-    }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<IfStatement> input) {
-        List<BlockWriterElement> result = new ArrayList<>();
+    public void compileStatement(Maybe<IfStatement> input, StatementCompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> condition = input.__(IfStatement::getCondition);
         Maybe<OptionalBlock> thenBranch = input.__(IfStatement::getThenBranch);
 
@@ -71,16 +52,16 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
         Maybe<OptionalBlock> elseBranch = input.__(IfStatement::getElseBranch);
 
         module.get(ContextManager.class).pushScope();
-        module.get(RValueExpressionSemantics.class).generateAuxiliaryStatements(condition);
-        String conditionCompiled = module.get(RValueExpressionSemantics.class).compile(condition).orElse("");
+        String conditionCompiled = module.get(RValueExpressionSemantics.class)
+                .compile(condition, acceptor).orElse("");
         BlockWriter thenBranchCompiled = module.get(BlockSemantics.class).compileOptionalBlock(thenBranch);
         IfStatementWriter ifsp = w.ifStmnt(w.expr(conditionCompiled), thenBranchCompiled);
         module.get(ContextManager.class).popScope();
 
         for (int i = 0; i < elseIfBranches.size(); ++i) {
             module.get(ContextManager.class).pushScope();
-            module.get(RValueExpressionSemantics.class).generateAuxiliaryStatements(elseIfConditions.get(i));
-            String elseIfCond = module.get(RValueExpressionSemantics.class).compile(elseIfConditions.get(i)).orElse("");
+            String elseIfCond = module.get(RValueExpressionSemantics.class)
+                    .compile(elseIfConditions.get(i), acceptor).orElse("");
             BlockWriter elseIfBranch = module.get(BlockSemantics.class).compileOptionalBlock(elseIfBranches.get(i));
             ifsp.addElseIfBranch(w.expr(elseIfCond), elseIfBranch);
             module.get(ContextManager.class).popScope();
@@ -92,8 +73,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
         }
 
 
-        result.add(ifsp);
-        return result;
+        acceptor.accept(ifsp);
     }
 
     @Override

@@ -12,6 +12,8 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.TupledExpressions;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -21,15 +23,17 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
+
 /**
  * Semantics for the expression made of a parentheses-delimited list of comma-separated expressions, a.k.a. "tuple".
  * This semantics class assumes that a tuple has at least 2 elements. Code that uses this semantics has to make sure
  * that this is the case.
  * Please note that the type of the tuple is parameterized on the types of its elements, and its length is known at
  * compile time.
- * For example, (1, "hello") is a tuple with type signature (integer, text).
+ * For example, (1, "hello") is a binary tuple with type signature (integer, text).
  * There is no 1-length tuple, as it would be just a parenthesized expression.
- * There is no 0-length tuple, as the language does not provide (for now) any 'unit'-like data type.
+ * There is no 0-length tuple, as the language does not provide (at the moment) any 'unit'-like data type.
  * Moreover, the maximum supported number of elements in a tuple is 20 (this is enforced by the validator).
  */
 public class TupleExpressionSemantics extends AssignableExpressionSemantics<TupledExpressions> {
@@ -63,28 +67,31 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
                 size <= 20,
                 "TupleTooBig",
                 "Tuples with more than 20 elements are not supported.",
-                validationHelper.extractEObject(input),
+                Util.extractEObject(input),
                 acceptor
         );
     }
 
     @Override
-    public Maybe<String> compileAssignment(
+    public void compileAssignment(
             Maybe<TupledExpressions> input,
             String compiledExpression,
-            IJadescriptType exprType
+            IJadescriptType exprType,
+            StatementCompilationOutputAcceptor acceptor
     ) {
-        return Maybe.nothing();
+        //TODO fast-l-expr compilation?
+        // (if all elements are l-exprs, just compile it as multi-assignment? it would be faster than pattern matching)
     }
 
     @Override
     public void validateAssignment(
             Maybe<TupledExpressions> input,
-            String assignmentOperator,
             Maybe<RValueExpression> expression,
             ValidationMessageAcceptor acceptor
     ) {
         // Do nothing
+        //TODO fast-l-expr compilation?
+        // (if all elements are l-exprs, just compile it as multi-assignment? it would be faster than pattern matching)
     }
 
     @Override
@@ -92,7 +99,23 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
             Maybe<TupledExpressions> input,
             ValidationMessageAcceptor acceptor
     ) {
+        //TODO fast-l-expr compilation?
+        // (if all elements are l-exprs, just compile it as multi-assignment? it would be faster than pattern matching)
         errorNotLvalue(input, acceptor);
+    }
+
+    @Override
+    public boolean isValidLExpr(Maybe<TupledExpressions> input) {
+        //TODO fast-l-expr compilation?
+        // (if all elements are l-exprs, just compile it as multi-assignment? it would be faster than pattern matching)
+        return false;
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<TupledExpressions> input) {
+        return input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList)
+                .stream()
+                .allMatch(module.get(RValueExpressionSemantics.class)::isPatternEvaluationPure);
     }
 
     @Override
@@ -105,17 +128,17 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
     }
 
     @Override
-    public Maybe<String> compile(Maybe<TupledExpressions> input) {
+    public ExpressionCompilationResult compile(Maybe<TupledExpressions> input, StatementCompilationOutputAcceptor acceptor) {
         final Integer initialCapacity = input.__(TupledExpressions::getSize).orElse(2);
         List<Maybe<RValueExpression>> exprs = input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList);
         List<String> elements = new ArrayList<>(initialCapacity);
         List<TypeArgument> types = new ArrayList<>(initialCapacity);
         RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         for (Maybe<RValueExpression> expr : exprs) {
-            elements.add(rves.compile(expr).orElse(""));
+            elements.add(rves.compile(expr, acceptor).getGeneratedText());
             types.add(rves.inferType(expr));
         }
-        return Maybe.of(TupleType.compileNewInstance(elements, types));
+        return result(TupleType.compileNewInstance(elements, types));
     }
 
     @Override
@@ -161,7 +184,7 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<TupledExpressions, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<TupledExpressions, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         List<Maybe<RValueExpression>> terms = input.getPattern().__(TupledExpressions::getTuples)
                 .extract(Maybe::nullAsEmptyList);
         PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
@@ -197,7 +220,7 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
                     termType,
                     __ -> term.toNullable(),
                     "_" + i
-            ));
+            ), acceptor);
             subResults.add(subResult);
         }
 

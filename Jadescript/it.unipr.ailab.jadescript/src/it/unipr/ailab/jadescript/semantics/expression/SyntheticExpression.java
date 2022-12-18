@@ -28,29 +28,39 @@ public class SyntheticExpression implements RValueExpression {
 
     public static class SemanticsMethods{
         public List<? extends ExpressionSemantics<?>> getSubExpressions() {
+            // Override if needed
             return Collections.emptyList();
         }
 
-        public Maybe<String> compile() {
-            return Maybe.nothing();
+        public ExpressionCompilationResult compile() {
+            // Override if needed
+            return ExpressionCompilationResult.empty();
         }
 
         public IJadescriptType inferType(TypeHelper typeHelper) {
+            // Override if needed
             return typeHelper.ANY;
         }
 
         @SuppressWarnings("SameReturnValue")
         public boolean mustTraverse() {
+            // Override if needed
             return false;
         }
 
         public Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traverse() {
+            // Override if needed
             return Optional.empty();
         }
 
         @SuppressWarnings("EmptyMethod")
         public void validate(ValidationMessageAcceptor acceptor) {
             // Override if needed
+        }
+
+        public boolean isPatternEvaluationPure() {
+            // Override if needed
+            return true;
         }
     }
 

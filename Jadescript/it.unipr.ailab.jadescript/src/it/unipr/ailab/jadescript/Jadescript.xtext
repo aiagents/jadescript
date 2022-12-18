@@ -524,7 +524,7 @@ BreakStatement:
 
 
 Assignment:
-	lexpr=LValueExpression assignOp=AssignmentOp rexpr=RValueExpression;
+	lexpr=LValueExpression '=' rexpr=RValueExpression;
 
 
 IfStatement:
@@ -537,7 +537,7 @@ IfStatement:
 
 
 WhenMatchesStatement:
-	'when' unary=UnaryPrefix 'matches' patterns+=Pattern 'do' branches+=OptionalBlock
+	'when' inputExpr=RValueExpression 'matches' patterns+=Pattern 'do' branches+=OptionalBlock
 	((ENDLINE)? 'else' 'matches' patterns+=Pattern 'do' branches+=OptionalBlock)*
 	(=> (ENDLINE)? withElseBranch?='else' 'do' elseBranch=OptionalBlock)?;
 
@@ -628,7 +628,7 @@ Matches:
 
 
 Pattern:
-	expr = LValueExpression
+	LValueExpression
 ;
 //	 listPattern = ListPattern
 //	 | mapOrSetPattern = MapOrSetPattern
@@ -764,8 +764,7 @@ InvokeExpression:
 ;
 
 
-AssignmentOp:
-	"=";
+
 
 EqualityOp:
 	'=' | '!=' | '≠';

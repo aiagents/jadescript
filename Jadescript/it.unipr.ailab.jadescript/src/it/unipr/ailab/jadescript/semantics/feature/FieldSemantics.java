@@ -16,7 +16,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmMember;
 import org.eclipse.xtext.common.types.JvmTypeReference;
@@ -73,7 +72,7 @@ public class FieldSemantics extends FeatureSemantics<Field> {
                                 module.get(ContextManager.class).restore(savedContext);
                                 module.get(ContextManager.class).enterProceduralFeature(FieldInitializerContext::new);
 
-                                scb.add(module.get(RValueExpressionSemantics.class).compile(right).orElse(""));
+                                scb.add(module.get(RValueExpressionSemantics.class).compile(right, ).orElse(""));
 
                                 module.get(ContextManager.class).exit();
 

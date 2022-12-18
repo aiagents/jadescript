@@ -12,7 +12,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -40,7 +39,8 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
             String collectionCompiled,
             Maybe<RValueExpression> element,
             Maybe<RValueExpression> index,
-            boolean isWithIndex
+            boolean isWithIndex,
+            StatementCompilationOutputAcceptor acceptor
     ) {
 
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
@@ -48,11 +48,11 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
             return w.callStmnt(
                     collectionCompiled + ".remove",
                     w.expr(
-                            "(int)" + rves.compile(index).orElse("")
+                            "(int)" + rves.compile(index, acceptor).orElse("")
                     )
             );
         } else {
-            String arg = rves.compile(element).orElse("");
+            String arg = rves.compile(element, acceptor).orElse("");
             if (module.get(TypeHelper.class).INTEGER.isAssignableFrom(rves.inferType(element))) {
                 arg = "(Integer) " + arg;
             }
@@ -65,31 +65,33 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
 
     private StatementWriter compileRemoveKeyFromMap(
             String collectionCompiled,
-            Maybe<RValueExpression> key
+            Maybe<RValueExpression> key,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         return w.callStmnt(
                 collectionCompiled + ".remove",
-                w.expr(module.get(RValueExpressionSemantics.class).compile(key).orElse(""))
+                w.expr(module.get(RValueExpressionSemantics.class).compile(key, acceptor).orElse(""))
         );
     }
 
     private StatementWriter compileRemoveAllFromListOrSet(
             String collectionCompiled,
             Maybe<RValueExpression> argCollection,
-            boolean isRetain
+            boolean isRetain,
+            StatementCompilationOutputAcceptor acceptor
     ) {
 
 
         return w.callStmnt(
                 collectionCompiled + "." + (isRetain ? "retain" : "remove") + "All",
-                w.expr(module.get(RValueExpressionSemantics.class).compile(argCollection).orElse(""))
+                w.expr(module.get(RValueExpressionSemantics.class).compile(argCollection, acceptor).orElse(""))
         );
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<RemoveStatement> input) {
+    public void compileStatement(Maybe<RemoveStatement> input, StatementCompilationOutputAcceptor acceptor) {
         final Maybe<RValueExpression> collection = input.__(RemoveStatement::getCollection);
-        String collectionCompiled = module.get(RValueExpressionSemantics.class).compile(collection).orElse("");
+        String collectionCompiled = module.get(RValueExpressionSemantics.class).compile(collection, acceptor).orElse("");
         final boolean isRetain = input.__(RemoveStatement::isRetain).extract(nullAsFalse);
         final boolean isWithIndex = input.__(RemoveStatement::isWithIndex).extract(nullAsFalse);
         final boolean isAll = input.__(RemoveStatement::isAll).extract(nullAsFalse);
@@ -99,20 +101,21 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
         StatementWriter statementWriter;
         if (typeOfCollection instanceof ListType || typeOfCollection instanceof SetType) {
             if (isAll) {
-                statementWriter = compileRemoveAllFromListOrSet(collectionCompiled, element, isRetain);
+                statementWriter = compileRemoveAllFromListOrSet(collectionCompiled, element, isRetain, acceptor);
             } else {
                 statementWriter = compileRemoveElementFromList(
                         collectionCompiled,
                         element,
                         index,
-                        isWithIndex
+                        isWithIndex,
+                        acceptor
                 );
             }
         } else { //(typeOfCollection instanceof MapType)
-            statementWriter = compileRemoveKeyFromMap(collectionCompiled, index);
+            statementWriter = compileRemoveKeyFromMap(collectionCompiled, index, acceptor);
         }
 
-        return Collections.singletonList(statementWriter);
+        acceptor.accept(statementWriter);
     }
 
 

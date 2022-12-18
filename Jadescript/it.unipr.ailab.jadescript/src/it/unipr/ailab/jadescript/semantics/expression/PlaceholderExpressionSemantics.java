@@ -7,13 +7,16 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchO
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.List;
 import java.util.Optional;
+
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 
 public class PlaceholderExpressionSemantics extends ExpressionSemantics<Primary> {
     public PlaceholderExpressionSemantics(SemanticsModule semanticsModule) {
@@ -27,7 +30,7 @@ public class PlaceholderExpressionSemantics extends ExpressionSemantics<Primary>
             Maybe<Primary> input,
             ValidationMessageAcceptor acceptor
     ) {
-        module.get(ValidationHelper.class).extractEObject(input).safeDo(inputSafe -> {
+        Util.extractEObject(input).safeDo(inputSafe -> {
             acceptor.acceptError(
                     "'_' placeholder cannot be used as evaluateable expression",
                     inputSafe,
@@ -50,8 +53,8 @@ public class PlaceholderExpressionSemantics extends ExpressionSemantics<Primary>
     }
 
     @Override
-    public Maybe<String> compile(Maybe<Primary> input) {
-        return Maybe.of("/*ERROR: placeholder compiled*/null");
+    public ExpressionCompilationResult compile(Maybe<Primary> input, StatementCompilationOutputAcceptor acceptor) {
+        return result("/*ERROR: placeholder compiled*/null");
     }
 
     @Override
@@ -72,8 +75,14 @@ public class PlaceholderExpressionSemantics extends ExpressionSemantics<Primary>
     }
 
     @Override
+    public boolean isPatternEvaluationPure(Maybe<Primary> input) {
+        return true;
+    }
+
+    @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
-            PatternMatchInput<Primary, ?, ?> input
+            PatternMatchInput<Primary, ?, ?> input,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         IJadescriptType solvedPatternType = input.getProvidedInputType();
         return input.createPlaceholderMethodOutput(

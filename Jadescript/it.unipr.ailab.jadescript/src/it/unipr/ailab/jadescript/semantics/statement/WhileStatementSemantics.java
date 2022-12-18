@@ -18,7 +18,6 @@ import java.util.List;
 
 /**
  * Created on 26/04/18.
- *
  */
 @Singleton
 public class WhileStatementSemantics extends StatementSemantics<WhileStatement> {
@@ -28,20 +27,10 @@ public class WhileStatementSemantics extends StatementSemantics<WhileStatement> 
         super(semanticsModule);
     }
 
-    @Override
-    public List<StatementWriter> generateAuxiliaryStatements(Maybe<WhileStatement> input) {
-        module.get(ContextManager.class).pushScope();
-        List<StatementWriter> statementWriters = new ArrayList<>(
-                module.get(RValueExpressionSemantics.class).generateAuxiliaryStatements(input.__(WhileStatement::getCondition))
-        );
-        module.get(ContextManager.class).popScope();
-        return statementWriters;
-    }
 
     @Override
     public void validate(Maybe<WhileStatement> input, ValidationMessageAcceptor acceptor) {
         module.get(ContextManager.class).pushScope();
-        //module.get(RValueExpressionSemantics.class)(condition).generateAuxiliaryStatements();
         module.get(RValueExpressionSemantics.class).validate(input.__(WhileStatement::getCondition), acceptor);
 
         module.get(BlockSemantics.class).validateOptionalBlock(input.__(WhileStatement::getWhileBody), acceptor);
@@ -49,18 +38,21 @@ public class WhileStatementSemantics extends StatementSemantics<WhileStatement> 
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<WhileStatement> input) {
+    public void compileStatement(Maybe<WhileStatement> input, StatementCompilationOutputAcceptor acceptor) {
         module.get(ContextManager.class).pushScope();
 
-        module.get(RValueExpressionSemantics.class).generateAuxiliaryStatements(input.__(WhileStatement::getCondition));
 
-        List<BlockWriterElement> statementWriters = Collections.singletonList(
-                w.whileStmnt(
-                        w.expr(module.get(RValueExpressionSemantics.class).compile(input.__(WhileStatement::getCondition)).orElse("")),
-                        module.get(BlockSemantics.class).compileOptionalBlock(input.__(WhileStatement::getWhileBody)))
-        );
+        final String compiledCondition = module.get(RValueExpressionSemantics.class).compile(
+                input.__(WhileStatement::getCondition),
+                acceptor
+        ).orElse("");
+
+        acceptor.accept(w.whileStmnt(
+                w.expr(compiledCondition),
+                module.get(BlockSemantics.class).compileOptionalBlock(input.__(WhileStatement::getWhileBody))
+        ));
+
         module.get(ContextManager.class).popScope();
-        return statementWriters;
     }
 
     @Override

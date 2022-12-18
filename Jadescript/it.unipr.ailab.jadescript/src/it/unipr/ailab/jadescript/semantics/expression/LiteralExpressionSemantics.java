@@ -11,6 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -23,6 +24,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 
@@ -103,8 +106,8 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
     }
 
     @Override
-    public Maybe<String> compile(Maybe<Literal> input) {
-        if (input == null) return nothing();
+    public ExpressionCompilationResult compile(Maybe<Literal> input, StatementCompilationOutputAcceptor acceptor) {
+        if (input == null) return empty();
 
         final Maybe<StringLiteralSimple> string = input.__(Literal::getString);
         final Maybe<String> number = input.__(Literal::getNumber);
@@ -115,27 +118,27 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
         final boolean isMap = isMap(mapOrSet);
 
         if (string.isPresent()) {
-            return module.get(StringLiteralSemantics.class).compile(string);
+            return module.get(StringLiteralSemantics.class).compile(string, acceptor);
         } else if (number.isPresent()) {
             if (number.isPresent() && number.toNullable().contains(".")) {
-                return Maybe.of(number.toNullable() + "f");
+                return result(number.toNullable() + "f");
             }
-            return number;
+            return result(number);
         } else if (timestamp.isPresent()) {
             if (timestamp.wrappedEquals("today")) {
-                return Maybe.of("jadescript.lang.Timestamp.today()");
+                return result("jadescript.lang.Timestamp.today()");
             } else {
-                return Maybe.of("jadescript.lang.Timestamp.now()");
+                return result("jadescript.lang.Timestamp.now()");
             }
         } else if (bool.isPresent()) {
-            return bool;
+            return result(bool);
         } else if (list.isPresent()) {
-            return module.get(ListLiteralExpressionSemantics.class).compile(list);
+            return module.get(ListLiteralExpressionSemantics.class).compile(list, acceptor);
         } else if (mapOrSet.isPresent()) {
             if (isMap) {
-                return module.get(MapLiteralExpressionSemantics.class).compile(mapOrSet);
+                return module.get(MapLiteralExpressionSemantics.class).compile(mapOrSet, acceptor);
             } else {
-                return module.get(SetLiteralExpressionSemantics.class).compile(mapOrSet);
+                return module.get(SetLiteralExpressionSemantics.class).compile(mapOrSet, acceptor);
             }
         } else {
             throw new UnsupportedNodeType("Literals supported now: text, integer, float, boolean, timestamp, list, " +
@@ -220,10 +223,37 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
 
     }
 
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<Literal> input) {
+        final Maybe<StringLiteralSimple> string = input.__(Literal::getString);
+        final Maybe<ListLiteral> list = input.__(Literal::getList);
+        final Maybe<MapOrSetLiteral> mapOrSet = input.__(Literal::getMap);
+        final Maybe<String> number = input.__(Literal::getNumber);
+        final Maybe<String> bool = input.__(Literal::getBool);
+        final Maybe<String> timestamp = input.__(Literal::getTimestamp);
+        final boolean isMap = isMap(mapOrSet);
+        if (mustTraverse(input)) {
+            if (string.isPresent()) {
+                return module.get(StringLiteralSemantics.class).isPatternEvaluationPure(string);
+            } else if (list.isPresent()) {
+                return module.get(ListLiteralExpressionSemantics.class).isPatternEvaluationPure(list);
+            } else if (number.isPresent() || bool.isPresent() || timestamp.isPresent()) {
+                return true;
+            } else if (mapOrSet.isPresent()) {
+                if (isMap) {
+                    return module.get(MapLiteralExpressionSemantics.class).isPatternEvaluationPure(mapOrSet);
+                } else {
+                    return module.get(SetLiteralExpressionSemantics.class).isPatternEvaluationPure(mapOrSet);
+                }
+            }
+        }
+        return true;
+    }
+
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<Literal, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<Literal, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         final Maybe<StringLiteralSimple> string = input.getPattern().__(Literal::getString);
         final Maybe<ListLiteral> list = input.getPattern().__(Literal::getList);
         final Maybe<MapOrSetLiteral> mapOrSet = input.getPattern().__(Literal::getMap);
@@ -234,24 +264,29 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
         if (mustTraverse(input.getPattern())) {
             if (string.isPresent()) {
                 return module.get(StringLiteralSemantics.class).compilePatternMatchInternal(
-                        input.replacePattern(string)
+                        input.replacePattern(string),
+                        acceptor
                 );
             } else if (list.isPresent()) {
                 return module.get(ListLiteralExpressionSemantics.class).compilePatternMatchInternal(
-                        input.replacePattern(list)
+                        input.replacePattern(list),
+                        acceptor
                 );
             } else if (number.isPresent() || bool.isPresent() || timestamp.isPresent()) {
                 return compileExpressionEqualityPatternMatch(
-                        input
+                        input,
+                        acceptor
                 );
             } else if (mapOrSet.isPresent()) {
                 if (isMap) {
                     return module.get(MapLiteralExpressionSemantics.class).compilePatternMatchInternal(
-                            input.replacePattern(mapOrSet)
+                            input.replacePattern(mapOrSet),
+                            acceptor
                     );
                 } else {
                     return module.get(SetLiteralExpressionSemantics.class).compilePatternMatchInternal(
-                            input.replacePattern(mapOrSet)
+                            input.replacePattern(mapOrSet),
+                            acceptor
                     );
                 }
             }

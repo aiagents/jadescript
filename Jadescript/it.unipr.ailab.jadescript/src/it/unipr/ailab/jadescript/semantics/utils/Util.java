@@ -4,6 +4,7 @@ import it.unipr.ailab.jadescript.jadescript.FeatureContainer;
 import it.unipr.ailab.jadescript.jadescript.NamedFeature;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.EcoreUtil2;
@@ -36,6 +37,17 @@ public class Util implements SemanticsConsts {
 
     public static <T> java.util.function.Predicate<T> falsePredicate() {
         return (__) -> false;
+    }
+
+    public static <T> Maybe<? extends EObject> extractEObject(Maybe<T> object) {
+        final T t = object.toNullable();
+        if(t instanceof ProxyEObject){
+            return of(((ProxyEObject) t).getProxyEObject());
+        }else if(t instanceof EObject){
+            return of(((EObject) t));
+        }else{
+            return nothing();
+        }
     }
 
 

@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Symbol;
+import it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
@@ -15,6 +16,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.jadescript.semantics.utils.Util.Tuple2;
 import it.unipr.ailab.maybe.Maybe;
@@ -27,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
@@ -55,15 +58,16 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
         }
     }
 
-    public String compile(
-            Maybe<MethodCall> input
+    public ExpressionCompilationResult compile(
+            Maybe<MethodCall> input,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
         Maybe<String> name = input.__(MethodCall::getName);
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
 
-        return name.__(nameSafe -> {
+        return name.<ExpressionCompilationResult>__(nameSafe -> {
 
             if (noArgs || simpleArgs.isPresent()) {
                 SimpleArgumentList argumentsNotSafe = simpleArgs.toNullable();
@@ -89,16 +93,17 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                     CallableSymbol method = methodsFound.get();
                     final List<String> compiledRexprs = module.get(CompilationHelper.class).adaptAndCompileRValueList(
                             argumentsSafe,
-                            method.parameterTypes()
+                            method.parameterTypes(),
+                            acceptor
                     );
-                    return method.compileInvokeByArity("", compiledRexprs);
+                    return result(method.compileInvokeByArity("", compiledRexprs));
                 }
                 // Falling back to common invocation
-                return name + "(" + argumentsSafe.stream()
+                return result(name + "(" + argumentsSafe.stream()
                         .map(Maybe::of)
-                        .map(module.get(RValueExpressionSemantics.class)::compile)
-                        .map(x -> x.orElse(""))
-                        .collect(Collectors.joining(", ")) + ")";
+                        .map(input1 -> module.get(RValueExpressionSemantics.class).compile(input1, acceptor))
+                        .map(ExpressionCompilationResult::getGeneratedText)
+                        .collect(Collectors.joining(", ")) + ")");
 
             } else if (namedArgs.isPresent()) {
                 Optional<? extends CallableSymbol> methodsFound = module.get(ContextManager.class).currentContext().searchAs(
@@ -117,30 +122,34 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                         )
                 ).findFirst();
 
+                //noinspection OptionalIsPresent
                 if (methodsFound.isPresent()) {
-                    return methodsFound.get().compileInvokeByName("", compileNamedArgs(
+                    return result(methodsFound.get().compileInvokeByName("", compileNamedArgs(
                             namedArgs.__(NamedArgumentList::getParameterNames).extract(Maybe::nullAsEmptyList),
                             namedArgs.__(NamedArgumentList::getParameterValues).extract(Maybe::nullAsEmptyList),
-                            methodsFound.get().parameterTypesByName()
-                    ));
+                            methodsFound.get().parameterTypesByName(),
+                            acceptor
+                    )));
+                }else {
+                    return result(name + "(" + toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues))
+                            .stream()
+                            .map(input1 -> module.get(RValueExpressionSemantics.class).compile(input1, acceptor))
+                            .map(ExpressionCompilationResult::getGeneratedText)
+                            .collect(Collectors.joining(", ")) + ")");
                 }
-                return name + "(" + toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues))
-                        .stream()
-                        .map(module.get(RValueExpressionSemantics.class)::compile)
-                        .map(s -> s.orElse(""))
-                        .collect(Collectors.joining(", ")) + ")";
             } else {
-                //noinspection ReturnOfNull
-                return null;
+
+                return ExpressionCompilationResult.empty();
             }
-        }).extract(nullAsEmptyString);
+        }).orElseGet(ExpressionCompilationResult::empty);
 
     }
 
     private Map<String, String> compileNamedArgs(
             List<String> argNames,
             List<? extends RValueExpression> argRexprs,
-            Map<String, IJadescriptType> namedParameters
+            Map<String, IJadescriptType> namedParameters,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         Map<String, ? extends RValueExpression> args = Streams.zip(
                 argNames.stream(),
@@ -155,14 +164,14 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
         for (String name : argNames) {
             final Maybe<RValueExpression> expr = of(args.get(name));
             IJadescriptType type = module.get(RValueExpressionSemantics.class).inferType(expr);
-            String compiled = module.get(RValueExpressionSemantics.class).compile(expr).orElse("");
+            ExpressionCompilationResult compiled = module.get(RValueExpressionSemantics.class).compile(expr, acceptor);
             final IJadescriptType destType = namedParameters.get(name);
             if (destType != null) {
-                compiled = module.get(TypeHelper.class).compileWithEventualImplicitConversions(
-                        compiled, type, destType
-                );
+                compiled = result(module.get(TypeHelper.class).compileWithEventualImplicitConversions(
+                        compiled.getGeneratedText(), type, destType
+                ));
             }
-            result.put(name, compiled);
+            result.put(name, compiled.getGeneratedText());
         }
         return result;
 
@@ -526,7 +535,8 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
     }
 
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
-            PatternMatchInput<MethodCall, ?, ?> input
+            PatternMatchInput<MethodCall, ?, ?> input,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         final Maybe<? extends CallableSymbol> method = resolve(input.getPattern());
 
@@ -564,7 +574,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
                                 upperBound,
                                 __ -> term.toNullable(),
                                 "_" + i
-                        ));
+                        ), acceptor);
                 subResults.add(termOutput);
             }
 
@@ -592,6 +602,18 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
         }
     }
 
+    public boolean isAlwaysPure(Maybe<MethodCall> input) {
+        final Maybe<? extends CallableSymbol> resolve = resolve(input);
+        return resolve.__(CallableSymbol::isPure).extract(nullAsTrue);
+    }
+
+    public boolean isPatternEvaluationPure(Maybe<MethodCall> input) {
+        //TODO this assumption (its pure as call, so its pure as pattern evaluation) is not valid when the new pattern
+        // resolution system will be introduced
+        final Maybe<? extends CallableSymbol> resolve = resolve(input);
+        return resolve.__(CallableSymbol::isPure).extract(nullAsTrue);
+    }
+
     private PatternType inferPatternType(Maybe<MethodCall> input, PatternMatchMode mode) {
         if (isPatternGroundForEquality(input, mode)) {
             return PatternType.simple(inferType(input));
@@ -616,7 +638,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
 
     }
 
-    public PatternMatchOutput<PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
+    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<MethodCall, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
@@ -667,6 +689,8 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
             }
             return input.createEmptyValidationOutput();
         } else { // => methods.size() == 1
+            //TODO this should ensure that the resolved method corresponds to a pattern-matchable value
+            // => find a metadata method created for this OR use an actual method
             final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
             CallableSymbol m = methods.get(0);
             List<IJadescriptType> patternTermTypes = m.parameterTypes();
@@ -793,5 +817,9 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
         return paramNames.stream()
                 .map(namedArgs::get)
                 .collect(Collectors.toList());
+    }
+
+    public boolean isValidLexpr(Maybe<MethodCall> input) {
+        return false;
     }
 }

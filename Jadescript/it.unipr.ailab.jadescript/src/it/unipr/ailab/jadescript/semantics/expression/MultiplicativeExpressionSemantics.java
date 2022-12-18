@@ -12,6 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -21,6 +22,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.nothing;
 
 /**
@@ -36,12 +39,17 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
         super(semanticsModule);
     }
 
-    private String associativeCompile(List<Maybe<Matches>> operands, List<Maybe<String>> operators) {
-        if (operands.isEmpty()) return "";
-        String result = module.get(MatchesExpressionSemantics.class).compile(operands.get(0)).orElse("");
+    private ExpressionCompilationResult associativeCompile(
+            List<Maybe<Matches>> operands,
+            List<Maybe<String>> operators,
+            StatementCompilationOutputAcceptor acceptor
+    ) {
+        if (operands.isEmpty()) return empty();
+        ExpressionCompilationResult result = module.get(MatchesExpressionSemantics.class)
+                .compile(operands.get(0), acceptor);
         IJadescriptType t = module.get(MatchesExpressionSemantics.class).inferType(operands.get(0));
         for (int i = 1; i < operands.size() && i - 1 < operators.size(); i++) {
-            result = compilePair(result, t, operators.get(i - 1), operands.get(i));
+            result = compilePair(result, t, operators.get(i - 1), operands.get(i), acceptor);
             t = inferPair(t, operators.get(i - 1), operands.get(i));
         }
         return result;
@@ -56,40 +64,46 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
         return t;
     }
 
-    private String compilePair(String op1c, IJadescriptType t1, Maybe<String> op, Maybe<Matches> op2) {
+    private ExpressionCompilationResult compilePair(
+            ExpressionCompilationResult op1c,
+            IJadescriptType t1,
+            Maybe<String> op,
+            Maybe<Matches> op2,
+            StatementCompilationOutputAcceptor acceptor
+    ) {
         IJadescriptType t2 = module.get(MatchesExpressionSemantics.class).inferType(op2);
-        Maybe<String> op2c = module.get(MatchesExpressionSemantics.class).compile(op2);
+        ExpressionCompilationResult op2c = module.get(MatchesExpressionSemantics.class).compile(op2, acceptor);
         final TypeHelper typeHelper = module.get(TypeHelper.class);
 
         if (t1.typeEquals(typeHelper.DURATION) && t2.typeEquals(typeHelper.DURATION)) {
             if (op.wrappedEquals("/")) {
-                return "(float) jadescript.lang.Duration.divide(" + op1c + ", " + op2c.orElse("") + ")";
+                return result("(float) jadescript.lang.Duration.divide(" + op1c + ", " + op2c + ")");
             }
         } else if ((t1.typeEquals(typeHelper.INTEGER) && t2.typeEquals(typeHelper.DURATION))
                 || (t1.typeEquals(typeHelper.DURATION) && t2.typeEquals(typeHelper.INTEGER))) {
             if (op.wrappedEquals("*")) {
-                return "jadescript.lang.Duration.multiply(" + op1c + ", " + op2c.orElse("") + ")";
+                return result("jadescript.lang.Duration.multiply(" + op1c + ", " + op2c + ")");
             } else if (op.wrappedEquals("/")) {
-                return "jadescript.lang.Duration.divide(" + op1c + ", " + op2c.orElse("") + ")";
+                return result("jadescript.lang.Duration.divide(" + op1c + ", " + op2c + ")");
             }
         } else if ((t1.typeEquals(typeHelper.REAL) && t2.typeEquals(typeHelper.DURATION))
                 || (t1.typeEquals(typeHelper.DURATION) && t2.typeEquals(typeHelper.REAL))) {
             if (op.wrappedEquals("*")) {
-                return "jadescript.lang.Duration.multiply(" + op1c + ", " + op2c.orElse("") + ")";
+                return result("jadescript.lang.Duration.multiply(" + op1c + ", " + op2c + ")");
             } else if (op.wrappedEquals("/")) {
-                return "jadescript.lang.Duration.divide(" + op1c + ", " + op2c.orElse("") + ")";
+                return result("jadescript.lang.Duration.divide(" + op1c + ", " + op2c + ")");
             }
         }
-        String c1 = op1c;
-        String c2 = op2c.orElse("");
+        ExpressionCompilationResult c1 = op1c;
+        ExpressionCompilationResult c2 = op2c;
         if (typeHelper.implicitConversionCanOccur(t1, t2)) {
-            c1 = typeHelper.compileImplicitConversion(c1, t1, t2);
+            c1 = c1.mapText(x -> typeHelper.compileImplicitConversion(x, t1, t2));
         }
 
         if (typeHelper.implicitConversionCanOccur(t2, t1)) {
-            c2 = typeHelper.compileImplicitConversion(c2, t2, t1);
+            c2 = c2.mapText(x -> typeHelper.compileImplicitConversion(x, t2, t1));
         }
-        return c1 + " " + op.orElse("*") + " " + c2;
+        return result(c1 + " " + op.orElse("*") + " " + c2);
 
     }
 
@@ -141,11 +155,11 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     }
 
     @Override
-    public Maybe<String> compile(Maybe<Multiplicative> input) {
-        if (input == null) return nothing();
+    public ExpressionCompilationResult compile(Maybe<Multiplicative> input, StatementCompilationOutputAcceptor acceptor) {
+        if (input == null) return empty();
         final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
         final List<Maybe<String>> multiplicativeOps = Maybe.toListOfMaybes(input.__(Multiplicative::getMultiplicativeOp));
-        return Maybe.of(associativeCompile(matches, multiplicativeOps));
+        return associativeCompile(matches, multiplicativeOps, acceptor);
     }
 
     @Override
@@ -170,6 +184,18 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
             return Optional.of(new SemanticsBoundToExpression<>(module.get(MatchesExpressionSemantics.class), matches.get(0)));
         }
         return Optional.empty();
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<Multiplicative> input) {
+        if (mustTraverse(input)) {
+            return module.get(MatchesExpressionSemantics.class).isPatternEvaluationPure(input
+                    .__(Multiplicative::getMatches)
+                    .__(m -> m.get(0))
+            );
+        }else{
+            return true;
+        }
     }
 
     public void validateAssociative(
@@ -295,12 +321,13 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<Multiplicative, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<Multiplicative, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         final Maybe<Multiplicative> pattern = input.getPattern();
         final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(pattern.__(Multiplicative::getMatches));
         if (mustTraverse(pattern)) {
             return module.get(MatchesExpressionSemantics.class).compilePatternMatchInternal(
-                    input.replacePattern(operands.get(0))
+                    input.replacePattern(operands.get(0)),
+                    acceptor
             );
         } else {
             return input.createEmptyCompileOutput();

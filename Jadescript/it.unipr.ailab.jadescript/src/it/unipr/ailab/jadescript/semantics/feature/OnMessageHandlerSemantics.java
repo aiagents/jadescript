@@ -56,7 +56,10 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
 
     @Override
     public void generateJvmMembers(
-            Maybe<OnMessageHandler> input, Maybe<FeatureContainer> container, EList<JvmMember> members, JvmDeclaredType beingDeclared
+            Maybe<OnMessageHandler> input,
+            Maybe<FeatureContainer> container,
+            EList<JvmMember> members,
+            JvmDeclaredType beingDeclared
     ) {
         final SavedContext savedContext = module.get(ContextManager.class).save();
         input.safeDo(inputSafe -> {
@@ -470,6 +473,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
 
         savedContext.safeDo(it -> module.get(ContextManager.class).restore(it));
 
+
         IJadescriptType computedContentType = inferContentType(input);
         BaseMessageType messageType = module.get(TypeHelper.class).instantiateMessageType(
                 input.__(OnMessageHandler::getPerformative),
@@ -511,7 +515,7 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
                     .compileMatchesExpression(patternMatchRequest)
                     .orElse("");
             String x2 = module.get(RValueExpressionSemantics.class)
-                    .compile(expr)
+                    .compile(expr, )
                     .orElse("");
             if (!x1.isBlank() && !x2.isBlank()) { // Both are present...
                 compiledExpression = "(" + x1 + ") && (" + x2 + ")"; // ...infix &&

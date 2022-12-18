@@ -30,6 +30,8 @@ public interface CallableSymbol extends Symbol {
 
     String compileInvokeByName(String dereferencePrefix, Map<String, String> compiledRexprs);
 
+    boolean isPure();
+
     default int arity() {
         return Math.min(parameterNames().size(), parameterTypesByName().size());
     }

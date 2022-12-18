@@ -12,6 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -21,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 
@@ -64,38 +66,17 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
     }
 
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    @Override
-    public List<String> extractPropertyChain(Maybe<OfNotation> input) {
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                return traversed.get().getSemantics().extractPropertyChain((Maybe) traversed.get().getInput());
-            }
-        }
 
-        final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
-        final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
-
-        List<String> result = new ArrayList<>();
-        properties.stream()
-                .filter(Maybe::isPresent)
-                .map(Maybe::toNullable)
-                .forEach(result::add);
-
-        result.addAll(module.get(AidLiteralExpressionSemantics.class).extractPropertyChain(aidLiteral));
-
-        return result;
-    }
 
     @Override
-    public Maybe<String> compile(Maybe<OfNotation> input) {
-        if (input == null) return nothing();
+    public ExpressionCompilationResult compile(Maybe<OfNotation> input, StatementCompilationOutputAcceptor acceptor) {
+        if (input == null) return ExpressionCompilationResult.empty();
 
 
         final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
         final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
-        String sb = module.get(AidLiteralExpressionSemantics.class).compile(aidLiteral).orElse("");
+        ExpressionCompilationResult r = module.get(AidLiteralExpressionSemantics.class).compile(aidLiteral, acceptor);
+        List<String> propertyChain = new ArrayList<>(r.getPropertyChain());
         IJadescriptType prev = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral);
         for (int i = properties.size() - 1; i >= 0; i--) {
             String propName = properties.get(i).extract(nullAsEmptyString);
@@ -104,27 +85,38 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
                     s -> s.searchName(propName, null, null)
             ).findFirst();
             if (property.isPresent()) {
-                sb = property.get().compileRead(sb + ".");
+                r = result(property.get().compileRead(r + "."));
             } else {
-                //noinspection StringConcatenationInLoop
-                sb = sb + "." + generateMethodName(propName, prev, false) + "()";
+                r = result(r + "." + generateMethodName(propName, prev, false) + "()");
             }
             prev = inferTypeProperty(of(propName), prev);
+            propertyChain.add(0, propName);
         }
-        return of(sb);
+        return r.withPropertyChain(propertyChain);
     }
 
     @Override
-    public Maybe<String> compileAssignment(Maybe<OfNotation> input, String compiledExpression, IJadescriptType exprType) {
-        if (input == null) return nothing();
+    public void compileAssignment(
+            Maybe<OfNotation> input,
+            String compiledExpression,
+            IJadescriptType exprType,
+            StatementCompilationOutputAcceptor acceptor
+    ) {
 
         final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
         final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
         if (properties.isEmpty()) {
-            return module.get(AidLiteralExpressionSemantics.class).compileAssignment(aidLiteral, compiledExpression, exprType);
+            module.get(AidLiteralExpressionSemantics.class).compileAssignment(
+                    aidLiteral,
+                    compiledExpression,
+                    exprType,
+                    acceptor
+            );
+            return;
         }
 
-        StringBuilder sb = new StringBuilder(module.get(AidLiteralExpressionSemantics.class).compile(aidLiteral).orElse(""));
+        StringBuilder sb = new StringBuilder(module.get(AidLiteralExpressionSemantics.class)
+                .compile(aidLiteral, acceptor).toString());
         IJadescriptType prevType = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral);
         for (int i = properties.size() - 1; i >= 0; i--) {
             String propName = properties.get(i).extract(nullAsEmptyString);
@@ -164,7 +156,7 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
 
             prevType = inferTypeProperty(of(propName), prevType);
         }
-        return of(sb.toString());
+        acceptor.accept(w.simpleStmt(sb.toString()));
     }
 
     @Override
@@ -216,13 +208,17 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    public void validateAssignment(Maybe<OfNotation> input, String assignmentOperator, Maybe<RValueExpression> expression, ValidationMessageAcceptor acceptor) {
+    public void validateAssignment(
+            Maybe<OfNotation> input,
+            Maybe<RValueExpression> expression,
+            ValidationMessageAcceptor acceptor
+    ) {
         if (input == null) return;
 
         final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
         final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
         if (mustTraverse(input)) {
-            module.get(AidLiteralExpressionSemantics.class).validateAssignment(aidLiteral, assignmentOperator, expression, acceptor);
+            module.get(AidLiteralExpressionSemantics.class).validateAssignment(aidLiteral, expression, acceptor);
             return;
         }
 
@@ -230,8 +226,6 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
         module.get(RValueExpressionSemantics.class).validate(expression, subValidation);
         if (!subValidation.thereAreErrors()) {
             IJadescriptType typeOfRExpression = module.get(RValueExpressionSemantics.class).inferType(expression);
-
-            validateArithmeticAssignmentRExpression(assignmentOperator, expression, acceptor, typeOfRExpression);
 
             List<Maybe<String>> props = new ArrayList<>(properties);
 
@@ -358,6 +352,26 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
+    public boolean isValidLExpr(Maybe<OfNotation> input) {
+        final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
+        final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
+        if (properties.isEmpty()) {
+            return module.get(AidLiteralExpressionSemantics.class).isValidLExpr(aidLiteral);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<OfNotation> input) {
+        if (mustTraverse(input)) {
+            return module.get(AidLiteralExpressionSemantics.class).isPatternEvaluationPure(
+                    input.__(OfNotation::getAidLiteral)
+            );
+        }
+        return false;
+    }
+
+    @Override
     public void validate(Maybe<OfNotation> input, ValidationMessageAcceptor acceptor) {
         if (input == null) return;
         final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
@@ -390,11 +404,12 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<OfNotation, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<OfNotation, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         final Maybe<OfNotation> pattern = input.getPattern();
         if (mustTraverse(pattern)) {
             return module.get(AidLiteralExpressionSemantics.class).compilePatternMatchInternal(
-                    input.mapPattern(OfNotation::getAidLiteral)
+                    input.mapPattern(OfNotation::getAidLiteral),
+                    acceptor
             );
         } else {
             return input.createEmptyCompileOutput();
@@ -406,7 +421,7 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
         if (mustTraverse(input)) {
             return module.get(AidLiteralExpressionSemantics.class).inferPatternTypeInternal(
                     input.__(OfNotation::getAidLiteral));
-        }else{
+        } else {
             return PatternType.empty(module);
         }
     }

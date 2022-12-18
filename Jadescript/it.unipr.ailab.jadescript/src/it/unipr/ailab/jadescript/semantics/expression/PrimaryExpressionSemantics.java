@@ -22,6 +22,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.TupledExpressions;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.VirtualIdentifier;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -31,6 +32,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
@@ -97,9 +100,9 @@ public class PrimaryExpressionSemantics extends AssignableExpressionSemantics<Pr
     }
 
     @Override
-    public Maybe<String> compile(Maybe<Primary> input) {
+    public ExpressionCompilationResult compile(Maybe<Primary> input, StatementCompilationOutputAcceptor acceptor) {
         if (input == null) {
-            return nothing();
+            return empty();
         }
 
         final boolean isPlaceholder = input.__(Primary::isPlaceholder).extract(nullAsFalse);
@@ -130,45 +133,53 @@ public class PrimaryExpressionSemantics extends AssignableExpressionSemantics<Pr
         final Maybe<InvokeExpression> invoke = input.__(Primary::getInvokeExpression);
 
         if (isPlaceholder) {
-            return module.get(PlaceholderExpressionSemantics.class).compile(input);
+            return module.get(PlaceholderExpressionSemantics.class).compile(input, acceptor);
         }
         if (parenthesizedExpression.isPresent()) {
-            return of("(" + module.get(RValueExpressionSemantics.class).compile(parenthesizedExpression).orElse("") + ")");
+            final ExpressionCompilationResult result = module.get(RValueExpressionSemantics.class).compile(
+                    parenthesizedExpression,
+                    acceptor
+            );
+            return result.mapText(t -> "(" + t + ")");
         } else if (tuple.isPresent()) {
-            return module.get(TupleExpressionSemantics.class).compile(tuple);
+            return module.get(TupleExpressionSemantics.class).compile(tuple, acceptor);
         } else if (literal.isPresent()) {
-            return of(module.get(LiteralExpressionSemantics.class).compile(literal).orElse(""));
+            return module.get(LiteralExpressionSemantics.class).compile(literal, acceptor);
         } else if (identifier.isPresent()) {
-            return of(module.get(SingleIdentifierExpressionSemantics.class).compile(
-                    VirtualIdentifier.virtualIdentifier(identifier, input)).orElse(""));
+            return module.get(SingleIdentifierExpressionSemantics.class).compile(
+                    VirtualIdentifier.virtualIdentifier(identifier, input), acceptor);
         } else if (agent.isPresent()) {
-            return of(THE_AGENT + "()");
+            return result(THE_AGENT + "()")
+                    .withPropertyChain("agent");
         } else if (message.isPresent()) {
             final IJadescriptType messageType = inferType(input);
             if (messageType.isErroneous()) {
-                return of(MESSAGE_VAR_NAME);
+                return result(MESSAGE_VAR_NAME)
+                        .withPropertyChain("message");
             } else {
-                return of(
+                return result(
                         "(" + messageType.compileAsJavaCast() + " " + MESSAGE_VAR_NAME + ")"
-                );
+                ).withPropertyChain("message");
             }
         } else if (exception.isPresent()) {
             final IJadescriptType reasonType = inferType(input);
             if (reasonType.isErroneous()) {
-                return of(EXCEPTION_REASON_VAR_NAME);
+                return result(EXCEPTION_REASON_VAR_NAME)
+                        .withPropertyChain("exception");
             } else {
-                return of(
+                return result(
                         "(" + reasonType.compileAsJavaCast() + " " + EXCEPTION_REASON_VAR_NAME + ")"
-                );
+                ).withPropertyChain("exception");
             }
         } else if (behaviour.isPresent()) {
             final IJadescriptType behaviourType = inferType(input);
             if (behaviourType.isErroneous()) {
-                return of(FAILED_BEHAVIOUR_VAR_NAME);
+                return result(FAILED_BEHAVIOUR_VAR_NAME)
+                        .withPropertyChain("behaviour");
             } else {
-                return of(
+                return result(
                         "(" + behaviourType.compileAsJavaCast() + " " + FAILED_BEHAVIOUR_VAR_NAME + ")"
-                );
+                ).withPropertyChain("behaviour");
             }
         } else if (percept.isPresent()) {
             return module.get(ContextManager.class).currentContext()
@@ -178,11 +189,12 @@ public class PrimaryExpressionSemantics extends AssignableExpressionSemantics<Pr
                             ppc.getPerceptContentStream(n -> n.equals(PERCEPT_CONTENT_VAR_NAME), null, null)
                                     .findAny()
                     )
-                    .map(ns -> of(ns.compileRead("")))
-                    .orElseGet(() -> of(PERCEPT_CONTENT_VAR_NAME));
+                    .map(ns -> result(ns.compileRead("")))
+                    .orElseGet(() -> result(PERCEPT_CONTENT_VAR_NAME))
+                    .withPropertyChain("percept");
         } else if (invoke.isPresent()) {
-            return of(module.get(InvokeExpressionSemantics.class).compile(invoke).orElse(""));
-        } else return nothing();
+            return module.get(InvokeExpressionSemantics.class).compile(invoke, acceptor);
+        } else return empty();
     }
 
     @Override
@@ -267,51 +279,6 @@ public class PrimaryExpressionSemantics extends AssignableExpressionSemantics<Pr
         } else return module.get(TypeHelper.class).ANY;
     }
 
-    @Override
-    public List<String> extractPropertyChain(Maybe<Primary> input) {
-
-        final Maybe<String> agent = input.__(Primary::getAgent);
-        final Maybe<String> message = input.__(Primary::getMessage);
-        final Maybe<String> percept = input.__(Primary::getPercept);
-        final Maybe<String> exception = input.__(Primary::getException);
-        final Maybe<String> behaviour = input.__(Primary::getBehaviour);
-        final List<Maybe<RValueExpression>> exprs = Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
-        final Maybe<RValueExpression> parenthesizedExpression;
-
-        if (exprs.size() == 1) {
-            parenthesizedExpression = exprs.get(0);
-        } else {
-            parenthesizedExpression = nothing();
-        }
-
-        if (parenthesizedExpression.isPresent()) {
-            return module.get(RValueExpressionSemantics.class).extractPropertyChain(parenthesizedExpression);
-        } else if (agent.isPresent()) {
-            List<String> result = new ArrayList<>();
-            result.add("agent");
-            return result;
-        } else if (message.isPresent()) {
-            List<String> result = new ArrayList<>();
-            result.add("message");
-            return result;
-        } else if (percept.isPresent()) {
-            List<String> result = new ArrayList<>();
-            result.add("percept");
-            return result;
-        } else if (exception.isPresent()) {
-            List<String> result = new ArrayList<>();
-            result.add("exception");
-            return result;
-        } else if (behaviour.isPresent()) {
-            List<String> result = new ArrayList<>();
-            result.add("behaviour");
-            return result;
-        } else {
-            return super.extractPropertyChain(input);
-        }
-    }
 
     @Override
     public boolean mustTraverse(Maybe<Primary> input) {
@@ -484,29 +451,30 @@ public class PrimaryExpressionSemantics extends AssignableExpressionSemantics<Pr
     }
 
     @Override
-    public Maybe<String> compileAssignment(
+    public void compileAssignment(
             Maybe<Primary> input,
             String compiledExpression,
-            IJadescriptType exprType
+            IJadescriptType exprType,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         if (input == null) {
-            return nothing();
+            return;
         }
         final Maybe<String> identifier = input.__(Primary::getIdentifier);
         if (identifier.isPresent()) {
-            return module.get(SingleIdentifierExpressionSemantics.class).compileAssignment(
+            module.get(SingleIdentifierExpressionSemantics.class).compileAssignment(
                     VirtualIdentifier.virtualIdentifier(identifier, input),
                     compiledExpression,
-                    exprType
+                    exprType,
+                    acceptor
             );
 
-        } else return nothing();
+        }
     }
 
     @Override
     public void validateAssignment(
             Maybe<Primary> input,
-            String assignmentOperator,
             Maybe<RValueExpression> expression,
             ValidationMessageAcceptor acceptor
     ) {
@@ -515,7 +483,6 @@ public class PrimaryExpressionSemantics extends AssignableExpressionSemantics<Pr
         if (identifier.isPresent()) {
             module.get(SingleIdentifierExpressionSemantics.class).validateAssignment(
                     VirtualIdentifier.virtualIdentifier(identifier, input),
-                    assignmentOperator,
                     expression,
                     acceptor
             );
@@ -533,6 +500,95 @@ public class PrimaryExpressionSemantics extends AssignableExpressionSemantics<Pr
             );
         } else {
             errorNotLvalue(input, acceptor);
+        }
+
+    }
+
+    @Override
+    public boolean isValidLExpr(Maybe<Primary> input) {
+        final boolean isPlaceholder = input.__(Primary::isPlaceholder).extract(nullAsFalse);
+        final List<Maybe<RValueExpression>> exprs = Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
+                .filter(Maybe::isPresent)
+                .collect(Collectors.toList());
+        final Maybe<RValueExpression> parenthesizedExpression;
+        final Maybe<TupledExpressions> tuple;
+
+        if (exprs.isEmpty()) {
+            parenthesizedExpression = nothing();
+            tuple = nothing();
+        } else if (exprs.size() == 1) {
+            parenthesizedExpression = exprs.get(0);
+            tuple = nothing();
+        } else {
+            parenthesizedExpression = nothing();
+            tuple = TupledExpressions.tupledExpressions(input);
+        }
+
+        final Maybe<Literal> literal = input.__(Primary::getLiteral);
+        final Maybe<String> identifier = input.__(Primary::getIdentifier);
+        final Maybe<InvokeExpression> invoke = input.__(Primary::getInvokeExpression);
+        if (isPlaceholder) {
+            return module.get(PlaceholderExpressionSemantics.class).isValidLExpr(input);
+        } else if (parenthesizedExpression.isPresent()) {
+            return module.get(RValueExpressionSemantics.class).isValidLExpr(parenthesizedExpression);
+        } else if (tuple.isPresent()) {
+            return module.get(TupleExpressionSemantics.class).isValidLExpr(tuple);
+        } else if (literal.isPresent()) {
+            return module.get(LiteralExpressionSemantics.class).isValidLExpr(literal);
+        } else if (identifier.isPresent()) {
+            return module.get(SingleIdentifierExpressionSemantics.class).isValidLExpr(
+                    VirtualIdentifier.virtualIdentifier(identifier, input)
+            );
+        } else if (invoke.isPresent()) {
+            return module.get(InvokeExpressionSemantics.class).isValidLExpr(
+                    invoke
+            );
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<Primary> input) {
+        final boolean isPlaceholder = input.__(Primary::isPlaceholder).extract(nullAsFalse);
+        final List<Maybe<RValueExpression>> exprs = Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
+                .filter(Maybe::isPresent)
+                .collect(Collectors.toList());
+        final Maybe<RValueExpression> parenthesizedExpression;
+        final Maybe<TupledExpressions> tuple;
+
+        if (exprs.isEmpty()) {
+            parenthesizedExpression = nothing();
+            tuple = nothing();
+        } else if (exprs.size() == 1) {
+            parenthesizedExpression = exprs.get(0);
+            tuple = nothing();
+        } else {
+            parenthesizedExpression = nothing();
+            tuple = TupledExpressions.tupledExpressions(input);
+        }
+
+        final Maybe<Literal> literal = input.__(Primary::getLiteral);
+        final Maybe<String> identifier = input.__(Primary::getIdentifier);
+        final Maybe<InvokeExpression> invoke = input.__(Primary::getInvokeExpression);
+        if (isPlaceholder) {
+            return module.get(PlaceholderExpressionSemantics.class).isPatternEvaluationPure(input);
+        } else if (parenthesizedExpression.isPresent()) {
+            return module.get(RValueExpressionSemantics.class).isPatternEvaluationPure(parenthesizedExpression);
+        } else if (tuple.isPresent()) {
+            return module.get(TupleExpressionSemantics.class).isPatternEvaluationPure(tuple);
+        } else if (literal.isPresent()) {
+            return module.get(LiteralExpressionSemantics.class).isPatternEvaluationPure(literal);
+        } else if (identifier.isPresent()) {
+            return module.get(SingleIdentifierExpressionSemantics.class).isPatternEvaluationPure(
+                    VirtualIdentifier.virtualIdentifier(identifier, input)
+            );
+        } else if (invoke.isPresent()) {
+            return module.get(InvokeExpressionSemantics.class).isPatternEvaluationPure(
+                    invoke
+            );
+        } else {
+            return false;
         }
 
     }
@@ -686,7 +742,8 @@ public class PrimaryExpressionSemantics extends AssignableExpressionSemantics<Pr
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
-            PatternMatchInput<Primary, ?, ?> input
+            PatternMatchInput<Primary, ?, ?> input,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         final boolean isPlaceholder = input.getPattern().__(Primary::isPlaceholder).extract(nullAsFalse);
         final List<Maybe<RValueExpression>> exprs = Maybe.toListOfMaybes(input.getPattern()
@@ -715,33 +772,39 @@ public class PrimaryExpressionSemantics extends AssignableExpressionSemantics<Pr
         final Maybe<InvokeExpression> invoke = input.getPattern().__(Primary::getInvokeExpression);
         if (isPlaceholder) {
             return module.get(PlaceholderExpressionSemantics.class).compilePatternMatchInternal(
-                    input.replacePattern(input.getPattern())
+                    input.replacePattern(input.getPattern()),
+                    acceptor
             );
         } else if (parenthesizedExpression.isPresent()) {
             return module.get(RValueExpressionSemantics.class).compilePatternMatchInternal(
-                    input.replacePattern(parenthesizedExpression)
+                    input.replacePattern(parenthesizedExpression),
+                    acceptor
             );
         } else if (tuple.isPresent()) {
             return module.get(TupleExpressionSemantics.class).compilePatternMatchInternal(
-                    input.replacePattern(tuple)
+                    input.replacePattern(tuple),
+                    acceptor
             );
         } else if (literal.isPresent()) {
             return module.get(LiteralExpressionSemantics.class).compilePatternMatchInternal(
-                    input.replacePattern(literal)
+                    input.replacePattern(literal),
+                    acceptor
             );
         } else if (identifier.isPresent()) {
             return module.get(SingleIdentifierExpressionSemantics.class).compilePatternMatchInternal(
                     input.replacePattern(VirtualIdentifier.virtualIdentifier(
                             identifier,
                             input.getPattern()
-                    ))
+                    )),
+                    acceptor
             );
         } else if (agent.isPresent() || message.isPresent() || percept.isPresent()
                 || exception.isPresent() || behaviour.isPresent()) {
-            return compileExpressionEqualityPatternMatch(input);
+            return compileExpressionEqualityPatternMatch(input, acceptor);
         } else if (invoke.isPresent()) {
             return module.get(InvokeExpressionSemantics.class).compilePatternMatchInternal(
-                    input.replacePattern(invoke)
+                    input.replacePattern(invoke),
+                    acceptor
             );
         } else {
             return input.createEmptyCompileOutput();

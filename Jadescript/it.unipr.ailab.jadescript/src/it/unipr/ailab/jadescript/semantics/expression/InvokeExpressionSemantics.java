@@ -10,6 +10,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchS
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -17,6 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
@@ -44,18 +47,18 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
     }
 
     @Override
-    public Maybe<String> compileAssignment(
+    public void compileAssignment(
             Maybe<InvokeExpression> input,
             String compiledExpression,
-            IJadescriptType exprType
+            IJadescriptType exprType,
+            StatementCompilationOutputAcceptor acceptor
     ) {
-        return nothing(); //CANNOT ASSIGN TO AN INVOKE EXPRESSION
+        //CANNOT ASSIGN TO AN INVOKE EXPRESSION
     }
 
     @Override
     public void validateAssignment(
             Maybe<InvokeExpression> input,
-            String assignmentOperator,
             Maybe<RValueExpression> expression,
             ValidationMessageAcceptor acceptor
     ) {
@@ -70,9 +73,23 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
     }
 
     @Override
-    public Maybe<String> compile(Maybe<InvokeExpression> input) {
-        if(input == null) {
-            return nothing();
+    public boolean isValidLExpr(Maybe<InvokeExpression> input) {
+        //CANNOT ASSIGN TO AN INVOKE-EXPRESSION
+        return false;
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<InvokeExpression> input) {
+        return false;
+    }
+
+    @Override
+    public ExpressionCompilationResult compile(
+            Maybe<InvokeExpression> input,
+            StatementCompilationOutputAcceptor acceptor
+    ) {
+        if (input == null) {
+            return empty();
         }
         final Maybe<String> name = input.__(InvokeExpression::getName);
         final boolean isStatic = input.__(InvokeExpression::isStatic).extract(nullAsFalse);
@@ -81,16 +98,17 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
         final boolean isArgs = input.__(InvokeExpression::isArgs).extract(nullAsFalse);
         final List<Maybe<RValueExpression>> argValues = toListOfMaybes(input.__(InvokeExpression::getArgumentValues));
         if (name.isNothing()) {
-            return nothing();
+            return empty();
         }
         if (isStatic && className.isNothing()) {
-            return nothing();
+            return empty();
         }
         if (!isStatic && expr.isNothing()) {
-            return nothing();
+            return empty();
         }
-        if (isArgs && argValues.isEmpty())
-            return nothing();
+        if (isArgs && argValues.isEmpty()) {
+            return empty();
+        }
 
         // inside jadescript.core.Agent:
         //public Object invokeStatic(String className, String methodName, List<Class<?>> argsTypes, Object... args)...
@@ -100,7 +118,7 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
         if (isStatic) {
             sb.append("invokeStatic(").append(className);
         } else {
-            sb.append("invokeOnInstance(").append(module.get(RValueExpressionSemantics.class).compile(expr));
+            sb.append("invokeOnInstance(").append(module.get(RValueExpressionSemantics.class).compile(expr, acceptor));
         }
         sb.append(", \"").append(name).append("\", java.util.Arrays.asList(");
         for (int i = 0; i < argValues.size(); i++) {
@@ -108,16 +126,17 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
             if (i != 0) {
                 sb.append(",");
             }
-            sb.append(debox(module.get(RValueExpressionSemantics.class).inferType(argumentValue).compileToJavaTypeReference())).append(".class");
+            sb.append(debox(module.get(RValueExpressionSemantics.class)
+                    .inferType(argumentValue).compileToJavaTypeReference())).append(".class");
         }
         sb.append(")");
         for (Maybe<RValueExpression> argumentValue : argValues) {
-            sb.append(",").append(module.get(RValueExpressionSemantics.class).compile(argumentValue));
+            sb.append(",").append(module.get(RValueExpressionSemantics.class).compile(argumentValue, acceptor));
         }
         sb.append(")");
 
-        
-        return of(sb.toString());
+
+        return result(sb.toString());
     }
 
     @Override
@@ -161,7 +180,7 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<InvokeExpression, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<InvokeExpression, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         return input.createEmptyCompileOutput();
     }
 

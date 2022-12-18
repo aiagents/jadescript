@@ -1,11 +1,12 @@
 package it.unipr.ailab.sonneteer.comment;
 
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MultilineCommentWriter implements CommentWriter {
+public class MultilineCommentWriter implements CommentWriter, BlockWriterElement {
 
     private final List<String> lines = new ArrayList<>();
 

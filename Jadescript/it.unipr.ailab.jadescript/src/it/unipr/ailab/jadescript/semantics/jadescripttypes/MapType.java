@@ -263,7 +263,7 @@ public class MapType extends ParametricType implements EmptyCreatable, DeclaresO
                     ));
                 }));
                 generatedSpecificClasses.put(className, getCategoryName());
-                addSchemaWriters.add(w.simplStmt("add(new jade.content.schema.ConceptSchema(\"" + className + "\"), " +
+                addSchemaWriters.add(w.simpleStmt("add(new jade.content.schema.ConceptSchema(\"" + className + "\"), " +
                         "" + className + ".class);"));
                 describeSchemaWriters.add(new StatementWriter() {
                     @Override

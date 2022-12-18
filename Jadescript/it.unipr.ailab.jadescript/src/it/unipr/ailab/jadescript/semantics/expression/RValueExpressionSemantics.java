@@ -11,6 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchS
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -18,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
 import static it.unipr.ailab.maybe.Maybe.nothing;
 
 /**
@@ -60,14 +62,20 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
     }
 
     @Override
-    public Maybe<String> compile(Maybe<RValueExpression> input) {
-        if (input == null || input.isNothing()) return nothing();
+    public ExpressionCompilationResult compile(Maybe<RValueExpression> input, StatementCompilationOutputAcceptor acceptor) {
+        if (input == null || input.isNothing()) return empty();
         if (input.isInstanceOf(SyntheticExpression.class)) {
-            return module.get(SyntheticExpressionSemantics.class).compile(input.__((i -> (SyntheticExpression) i)));
+            return module.get(SyntheticExpressionSemantics.class).compile(
+                    input.__((i -> (SyntheticExpression) i)),
+                    acceptor
+            );
         }
 
         if (input.isInstanceOf(TernaryConditional.class)) {
-            return module.get(TernaryConditionalExpressionSemantics.class).compile(input.__((i -> (TernaryConditional) i)));
+            return module.get(TernaryConditionalExpressionSemantics.class).compile(
+                    input.__((i -> (TernaryConditional) i)),
+                    acceptor
+            );
         }
 
         throw new UnsupportedNodeType("RExpr can be only a TernaryConditional (or derived) " +
@@ -110,6 +118,21 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
         return Optional.empty();
     }
 
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<RValueExpression> input) {
+        if (input.isInstanceOf(SyntheticExpression.class)) {
+            return module.get(SyntheticExpressionSemantics.class).isPatternEvaluationPure(
+                    input.__((i -> (SyntheticExpression) i))
+            );
+        }else if (input.isInstanceOf(TernaryConditional.class)) {
+            return module.get(TernaryConditionalExpressionSemantics.class).isPatternEvaluationPure(
+                    input.__((i -> (TernaryConditional) i))
+            );
+        }else {
+            return false;
+        }
+    }
+
 
     @Override
     public void validate(Maybe<RValueExpression> input, ValidationMessageAcceptor acceptor) {
@@ -141,18 +164,20 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<RValueExpression, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<RValueExpression, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         final Maybe<RValueExpression> pattern = input.getPattern();
 
         if (mustTraverse(pattern)) {
             if (pattern.isInstanceOf(SyntheticExpression.class)) {
                 return module.get(SyntheticExpressionSemantics.class).compilePatternMatchInternal(
-                        input.mapPattern(x -> (SyntheticExpression) x)
+                        input.mapPattern(x -> (SyntheticExpression) x),
+                        acceptor
                 );
             }
             if (pattern.isInstanceOf(TernaryConditional.class)) {
                 return module.get(TernaryConditionalExpressionSemantics.class).compilePatternMatchInternal(
-                        input.mapPattern(x -> (TernaryConditional) x)
+                        input.mapPattern(x -> (TernaryConditional) x),
+                        acceptor
                 );
             }
 

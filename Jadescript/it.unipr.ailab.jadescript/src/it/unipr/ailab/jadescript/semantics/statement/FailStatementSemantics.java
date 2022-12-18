@@ -1,6 +1,5 @@
 package it.unipr.ailab.jadescript.semantics.statement;
 
-import it.unipr.ailab.jadescript.jadescript.Behaviour;
 import it.unipr.ailab.jadescript.jadescript.FailStatement;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
@@ -13,7 +12,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
-import jadescript.content.JadescriptProposition;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -26,16 +24,15 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<FailStatement> input) {
-        List<BlockWriterElement> result = new ArrayList<>();
+    public void compileStatement(Maybe<FailStatement> input, StatementCompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> target = input.__(FailStatement::getTarget);
         Maybe<RValueExpression> reason = input.__(FailStatement::getReason);
-        result.add(w.callStmnt(
-                module.get(RValueExpressionSemantics.class).compile(target).orElse("") + ".__failBehaviour",
-                w.expr(module.get(RValueExpressionSemantics.class).compile(reason).orElse(""))
+        acceptor.accept(w.callStmnt(
+                module.get(RValueExpressionSemantics.class).compile(target, acceptor).orElse("") + ".__failBehaviour",
+                w.expr(module.get(RValueExpressionSemantics.class).compile(reason, acceptor).orElse(""))
         ));
 
-        return result;
+
     }
 
     @Override

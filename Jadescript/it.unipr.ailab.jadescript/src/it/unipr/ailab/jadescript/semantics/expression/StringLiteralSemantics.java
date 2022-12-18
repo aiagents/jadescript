@@ -8,6 +8,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchS
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
@@ -132,8 +133,13 @@ public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSim
     }
 
     @Override
-    public Maybe<String> compile(Maybe<StringLiteralSimple> input) {
-        return adaptStringConstant(input.__(StringLiteralSimple::getValue));
+    public ExpressionCompilationResult compile(
+            Maybe<StringLiteralSimple> input,
+            StatementCompilationOutputAcceptor acceptor
+    ) {
+        return adaptStringConstant(input.__(StringLiteralSimple::getValue))
+                .__(ExpressionCompilationResult::result)
+                .orElseGet(ExpressionCompilationResult::empty);
     }
 
     @Override
@@ -152,8 +158,13 @@ public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSim
     }
 
     @Override
+    public boolean isPatternEvaluationPure(Maybe<StringLiteralSimple> input) {
+        return true;
+    }
+
+    @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<StringLiteralSimple, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<StringLiteralSimple, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         return input.createEmptyCompileOutput();
     }
 

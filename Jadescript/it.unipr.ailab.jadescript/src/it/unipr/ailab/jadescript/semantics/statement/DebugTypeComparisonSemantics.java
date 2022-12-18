@@ -7,7 +7,6 @@ import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.List;
@@ -56,14 +55,12 @@ public class DebugTypeComparisonSemantics extends StatementSemantics<DebugTypeCo
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<DebugTypeComparison> input) {
+    public void compileStatement(Maybe<DebugTypeComparison> input, StatementCompilationOutputAcceptor acceptor) {
         final Maybe<TypeExpression> typEx1 = input.__(DebugTypeComparison::getType1);
         final Maybe<TypeExpression> typEx2 = input.__(DebugTypeComparison::getType2);
         final IJadescriptType type1 = module.get(TypeExpressionSemantics.class).toJadescriptType(typEx1);
         final IJadescriptType type2 = module.get(TypeExpressionSemantics.class).toJadescriptType(typEx2);
-        return List.of(
-                w.simplStmt("/*"+getComparisonMessage(type1, type2)+"*/")
-        );
+        acceptor.accept(w.simpleStmt("/*"+getComparisonMessage(type1, type2)+"*/"));
     }
 
     @Override

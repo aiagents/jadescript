@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.MethodInvocationSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
@@ -14,6 +15,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchS
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -47,10 +49,9 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
 
 
     @Override
-    public String compile(ReversedTrailerChain rest) {
+    public ExpressionCompilationResult compile(ReversedTrailerChain rest, StatementCompilationOutputAcceptor acceptor) {
         //rest should be empty, so it's ignored
-
-        return subSemantics.compile(generateMethodCall());
+        return subSemantics.compile(generateMethodCall(), acceptor);
     }
 
     private Maybe<MethodCall> generateMethodCall() {
@@ -76,7 +77,6 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     @Override
     public void validateAssignment(
             ReversedTrailerChain rest,
-            String assignmentOperator,
             Maybe<RValueExpression> rValueExpression,
             IJadescriptType typeOfRExpr,
             ValidationMessageAcceptor acceptor
@@ -110,12 +110,13 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public String compileAssignment(
+    public void compileAssignment(
             ReversedTrailerChain rest,
             String compiledExpression,
-            IJadescriptType exprType
+            IJadescriptType exprType,
+            StatementCompilationOutputAcceptor acceptor
     ) {
-        return ""; //CANNOT ASSIGN TO A METHOD CALL
+        acceptor.accept(w.commentStmt("CANNOT ASSIGN TO A METHOD CALL"));
     }
 
     @Override
@@ -145,10 +146,11 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
-            ReversedTrailerChain rest
+            ReversedTrailerChain rest,
+            StatementCompilationOutputAcceptor acceptor
     ) {
         //rest should be empty, so it's ignored
-        return subSemantics.compilePatternMatchInternal(input.replacePattern(generateMethodCall()));
+        return subSemantics.compilePatternMatchInternal(input.replacePattern(generateMethodCall()), acceptor);
     }
 
     @Override
@@ -177,6 +179,16 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     public boolean isTypelyHoled(ReversedTrailerChain rest) {
         //rest should be empty, so it's ignored
         return subSemantics.isTypelyHoled(generateMethodCall());
+    }
+
+    @Override
+    public boolean isValidLexpr(ReversedTrailerChain rest) {
+        return subSemantics.isValidLexpr(input.__(__ -> generateMethodCall().toNullable()));
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(ReversedTrailerChain rest) {
+        return subSemantics.isPatternEvaluationPure(input.__(__ -> generateMethodCall().toNullable()));
     }
 
 }

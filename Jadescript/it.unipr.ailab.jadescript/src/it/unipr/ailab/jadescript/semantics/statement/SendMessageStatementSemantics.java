@@ -83,15 +83,6 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
             );
 
             if (!perfValidation.thereAreErrors()) {
-                /*
-
-
-module.get(CompilationHelper.class).adaptMessageContentDefaults(
-                performative,
-                rves.compile(contentExpr).orElse(""),
-                inputContentType
-        )
-                 */
                 final IJadescriptType inputContentType = module.get(RValueExpressionSemantics.class).inferType(content);
                 final IJadescriptType adaptedContentType = module.get(TypeHelper.class).adaptMessageContentDefaultTypes(
                         performative,
@@ -217,8 +208,7 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<SendMessageStatement> input) {
-        List<BlockWriterElement> result = new ArrayList<>();
+    public void compileStatement(Maybe<SendMessageStatement> input, StatementCompilationOutputAcceptor acceptor) {
         String messageName = hashBasedName("_synthesizedMessage", input.toNullable());
 
 
@@ -227,7 +217,7 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
 
         final Maybe<RValueExpression> contentExpr = input.__(SendMessageStatement::getContent);
 
-        result.add(w.callStmnt(
+        acceptor.accept(w.callStmnt(
                 "jadescript.util.SendMessageUtils.validatePerformative",
                 w.expr("\"" + performative.orElse("null") + "\"")
         ));
@@ -242,12 +232,12 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
         final String adaptedCompiledContent = module.get(TypeHelper.class).adaptMessageContentDefaultCompile(
                 performative,
                 inputContentType,
-                rves.compile(contentExpr).orElse("")
+                rves.compile(contentExpr, acceptor).orElse("")
         );
 
-        result.add(w.variable("java.lang.Object", contentVarName, w.expr(adaptedCompiledContent)));
+        acceptor.accept(w.variable("java.lang.Object", contentVarName, w.expr(adaptedCompiledContent)));
 
-        result.add(w.variable(
+        acceptor.accept(w.variable(
                 "jadescript.core.message.Message",
                 messageName,
                 w.callExpr(
@@ -261,30 +251,29 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
 
 
         // _msg1.setOntology(Onto.getInstance().getName());
-        result.add(w.simplStmt(setOntology(input, contentVarName, adaptedContentType, messageName)));
+        acceptor.accept(w.simpleStmt(setOntology(input, contentVarName, adaptedContentType, messageName)));
 
         // _msg1.setLanguage(_codec1);
-        result.add(w.simplStmt(setLanguage(messageName)));
+        acceptor.accept(w.simpleStmt(setLanguage(messageName)));
 
         // _receiversList = ...
         // for (AID r : _receiversList) _msg1.addReceiver(r);
-        addReceivers(input, receivers, messageName, result);
+        addReceivers(input, receivers, messageName, acceptor);
 
 
         //this.myAgent.getContentManager().fillContent(_msg1, Onto.received(counter));
-        fillContent(input, adaptedContentType, contentVarName, messageName, performative, result);
+        fillContent(input, adaptedContentType, contentVarName, messageName, performative, acceptor);
 
 
         //this.myAgent.send(_msg1);
-        result.add(w.callStmnt(THE_AGENT + "().send", w.expr(messageName)));
-        return result;
+        acceptor.accept(w.callStmnt(THE_AGENT + "().send", w.expr(messageName)));
     }
 
     private void addReceivers(
             Maybe<SendMessageStatement> input,
             Maybe<CommaSeparatedListOfRExpressions> receivers,
             String messageName,
-            List<BlockWriterElement> result
+            StatementCompilationOutputAcceptor acceptor
     ) {
         Maybe<EList<RValueExpression>> rexprs = receivers
                 .__(CommaSeparatedListOfRExpressions::getExpressions);
@@ -301,10 +290,10 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
                         messageName,
                         receiversComponentType.compileToJavaTypeReference(),
                         receiversTypeName,
-                        result
+                        acceptor
                 );
             } else if (module.get(TypeHelper.class).AID.isAssignableFrom(receiversType)) {
-                setReceiver(receiver, messageName, result);
+                setReceiver(receiver, messageName, acceptor);
             }
         }
     }
@@ -316,7 +305,7 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
             String messageName,
             String componentType,
             String receiversTypeName,
-            List<BlockWriterElement> result
+            StatementCompilationOutputAcceptor acceptor
     ) {
         input.safeDo(inputSafe -> {
             String receiversListName = synthesizeReceiverListName(inputSafe);
@@ -324,12 +313,12 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
             boolean doAIDConversion = !Objects.equals(componentType, "jade.core.AID");
 
             if (receiversExpr != null) {
-                result.add(w.variable(
+                acceptor.accept(w.variable(
                         receiversTypeName,
                         receiversListName,
-                        w.expr(module.get(RValueExpressionSemantics.class).compile(receiversExpr).orElse(""))
+                        w.expr(module.get(RValueExpressionSemantics.class).compile(receiversExpr, acceptor).orElse(""))
                 ));
-                result.add(w.foreach(componentType, receiverName, w.expr(receiversListName), doAIDConversion ?
+                acceptor.accept(w.foreach(componentType, receiverName, w.expr(receiversListName), doAIDConversion ?
                                 w.block().addStatement(w.callStmnt(
                                         messageName + ".addReceiver",
                                         w.callExpr(
@@ -351,13 +340,13 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
     private void setReceiver(
             Maybe<RValueExpression> re,
             String messageName,
-            List<BlockWriterElement> result
+            StatementCompilationOutputAcceptor acceptor
     ) {
         IJadescriptType componentType = module.get(RValueExpressionSemantics.class).inferType(re);
-        String argOfAddReceiver = module.get(RValueExpressionSemantics.class).compile(re).orElse("");
+        String argOfAddReceiver = module.get(RValueExpressionSemantics.class).compile(re, acceptor).orElse("");
 
         boolean doAIDConversion = !module.get(TypeHelper.class).AID.typeEquals(componentType);
-        result.add(doAIDConversion ?
+        acceptor.accept(doAIDConversion ?
                 w.callStmnt(
                         messageName + ".addReceiver",
                         w.callExpr(
@@ -416,9 +405,9 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
             String contentVarName,
             String messageName,
             Maybe<String> performative,
-            List<BlockWriterElement> result
+            StatementCompilationOutputAcceptor acceptor
     ) {
-        Maybe<RValueExpression> content = input.__(SendMessageStatement::getContent);
+
         Maybe<UsesOntologyElement> container = input.__(
                 EcoreUtil2::getContainerOfType,
                 UsesOntologyElement.class
@@ -432,7 +421,7 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
         ).safeDo(typeSafe -> {
 
             if (typeSafe.isType(String.class)) {
-                result.add(w.callStmnt(messageName + ".setContent", w.expr(contentVarName)));
+                acceptor.accept(w.callStmnt(messageName + ".setContent", w.expr(contentVarName)));
 
             } else if (typeSafe.isSubtypeOf(Serializable.class)
                     || typeSafe.isSubtypeOf(ContentElement.class)
@@ -459,14 +448,14 @@ module.get(CompilationHelper.class).adaptMessageContentDefaults(
                     tryBranch = w.block();
                 }
 
-                result.add(w.tryCatch(tryBranch)
+                acceptor.accept(w.tryCatch(tryBranch)
                         .addCatchBranch("java.lang.Throwable", "_t",
                                 w.block().addStatement(w.callStmnt("_t.printStackTrace"))
                         )
                 );
 
             } else {
-                result.add(w.callStmnt(
+                acceptor.accept(w.callStmnt(
                         messageName + ".setByteSequenceContent",
                         w.expr(contentVarName)
                 ));

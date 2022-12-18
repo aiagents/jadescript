@@ -266,7 +266,7 @@ public class TupleType extends ParametricType implements EmptyCreatable, Declare
                     ));
                 }));
                 generatedSpecificClasses.put(className, getCategoryName());
-                addSchemaWriters.add(w.simplStmt("add(new jade.content.schema.AgentActionSchema(\"" + className + "\"), " +
+                addSchemaWriters.add(w.simpleStmt("add(new jade.content.schema.AgentActionSchema(\"" + className + "\"), " +
                         "" + className + ".class);"));
                 describeSchemaWriters.add(new StatementWriter() {
                     @Override

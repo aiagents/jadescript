@@ -8,6 +8,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -18,6 +19,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
@@ -48,13 +50,13 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    public Maybe<String> compile(Maybe<MapOrSetLiteral> input) {
+    public ExpressionCompilationResult compile(Maybe<MapOrSetLiteral> input, StatementCompilationOutputAcceptor acceptor) {
         final List<Maybe<RValueExpression>> keys = toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
         final Maybe<TypeExpression> keysTypeParameter = input.__(MapOrSetLiteral::getKeyTypeParameter);
 
 
         if (keys.isEmpty() || keys.stream().allMatch(Maybe::isNothing)) {
-            return Maybe.of(module.get(TypeHelper.class).SET
+            return result(module.get(TypeHelper.class).SET
                     .apply(List.of(
                             module.get(TypeExpressionSemantics.class).toJadescriptType(keysTypeParameter)
                     )).compileNewEmptyInstance());
@@ -68,11 +70,11 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
             if (i != 0) {
                 sb.append(", ");
             }
-            sb.append(module.get(RValueExpressionSemantics.class).compile(keys.get(i)).orElse(""));
+            sb.append(module.get(RValueExpressionSemantics.class).compile(keys.get(i), acceptor));
         }
         sb.append("))");
 
-        return Maybe.of(sb.toString());
+        return result(sb.toString());
     }
 
 
@@ -163,6 +165,14 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
+    public boolean isPatternEvaluationPure(Maybe<MapOrSetLiteral> input) {
+        final List<Maybe<RValueExpression>> keys = toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
+        return keys.stream().allMatch(
+                module.get(RValueExpressionSemantics.class)::isPatternEvaluationPure
+        );
+    }
+
+    @Override
     public boolean isHoled(Maybe<MapOrSetLiteral> input) {
         //NOTE: set patterns cannot have holes before the pipe sign (enforced by validator)
         boolean isWithPipe = input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
@@ -198,7 +208,7 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<MapOrSetLiteral, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<MapOrSetLiteral, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         List<Maybe<RValueExpression>> values = toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
         boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.getPattern().__(MapOrSetLiteral::getRest);
@@ -233,11 +243,11 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
 
                 for (int i = 0; i < prePipeElementCount; i++) {
                     Maybe<RValueExpression> term = values.get(i);
-                    final Maybe<String> compiledTerm = rves.compile(term);
+                    final ExpressionCompilationResult compiledTerm = rves.compile(term, acceptor);
                     final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> elemOutput =
                             input.subPatternGroundTerm(elementType, __ -> term.toNullable(), "_" + i)
                                     .createInlineConditionOutput(
-                                            (ignored) -> "__x.contains(" + compiledTerm.orElse("") + ")",
+                                            (ignored) -> "__x.contains(" + compiledTerm + ")",
                                             () -> PatternMatchOutput.EMPTY_UNIFICATION,
                                             () -> new PatternMatchOutput.WithTypeNarrowing(elementType)
                                     );
@@ -253,7 +263,7 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
                                 solvedPatternType,
                                 __ -> rest.toNullable(),
                                 "_rest"
-                        ));
+                        ), acceptor);
                 subResults.add(restOutput);
             }
 

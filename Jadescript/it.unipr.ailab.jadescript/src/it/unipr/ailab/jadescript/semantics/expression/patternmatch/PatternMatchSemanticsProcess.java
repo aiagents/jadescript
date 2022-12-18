@@ -3,11 +3,13 @@ package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.sonneteer.WriterFactory;
 import it.unipr.ailab.sonneteer.classmember.ClassMemberWriter;
 import it.unipr.ailab.sonneteer.classmember.FieldWriter;
 import it.unipr.ailab.sonneteer.classmember.MethodWriter;
 import it.unipr.ailab.sonneteer.qualifiers.Visibility;
+import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import it.unipr.ailab.sonneteer.statement.ReturnStatementWriter;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import it.unipr.ailab.sonneteer.statement.VariableDeclarationWriter;
@@ -30,6 +32,23 @@ public interface PatternMatchSemanticsProcess {
     abstract class IsCompilation implements PatternMatchSemanticsProcess {
 
 
+        protected final StatementCompilationOutputAcceptor auxiliaryEvaluation
+                = new StatementCompilationOutputAcceptor() {
+            @Override
+            public void accept(BlockWriterElement element) {
+
+            }
+
+            @Override
+            public void acceptBlockInit(BlockWriterElement element) {
+
+            }
+
+            @Override
+            public void acceptBlockCleanup(BlockWriterElement element) {
+
+            }
+        };
         protected final PatternMatchInput<?, ?, ?> patternMatchInput;
         protected final List<PatternMatchOutput<? extends IsCompilation, ?, ?>> subResults = new ArrayList<>();
 
@@ -49,14 +68,14 @@ public interface PatternMatchSemanticsProcess {
         }
 
 
-        public Stream<? extends ClassMemberWriter> getAllWriters() {
+        public Stream<? extends ClassMemberWriter> getAllSubwriters() {
             return subResults.stream()
                     .flatMap(o -> o.getProcessInfo().getWriters());
         }
 
         public abstract Stream<? extends ClassMemberWriter> getWriters();
 
-        public abstract String compileOperationInvocation(String input);
+        public abstract String operationInvocationText(String input);
 
         public static List<StatementWriter> compileAdaptType(SemanticsModule module, String adaptType) {
             final ReturnStatementWriter returnFalse = w.returnStmnt(w.False);
@@ -89,7 +108,7 @@ public interface PatternMatchSemanticsProcess {
             }
 
             @Override
-            public String compileOperationInvocation(String input) {
+            public String operationInvocationText(String input) {
                 return patternMatchInput.getTermID() + "(" + input + ")";
             }
         }
@@ -222,7 +241,7 @@ public interface PatternMatchSemanticsProcess {
                 for (int i = 0; i < subResults.size(); i++) {
                     PatternMatchOutput<? extends IsCompilation, ?, ?> subResult = subResults.get(i);
                     sb.append(" && ");
-                    sb.append(subResult.getProcessInfo().compileOperationInvocation(compiledSubInputs.apply(i)));
+                    sb.append(subResult.getProcessInfo().operationInvocationText(compiledSubInputs.apply(i)));
                 }
                 m.getBody().addStatement(w.returnStmnt(w.expr(sb.toString())));
                 return m;
@@ -275,7 +294,7 @@ public interface PatternMatchSemanticsProcess {
             }
 
             @Override
-            public abstract String compileOperationInvocation(String input);
+            public abstract String operationInvocationText(String input);
         }
 
         public static class AsEmpty extends IsCompilation {
@@ -290,7 +309,7 @@ public interface PatternMatchSemanticsProcess {
             }
 
             @Override
-            public String compileOperationInvocation(String input) {
+            public String operationInvocationText(String input) {
                 return input;
             }
         }

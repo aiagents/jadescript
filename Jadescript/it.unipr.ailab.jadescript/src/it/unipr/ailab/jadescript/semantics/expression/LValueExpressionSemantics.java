@@ -8,6 +8,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchO
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -38,8 +39,8 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
     }
 
     @Override
-    public Maybe<String> compile(Maybe<LValueExpression> input) {
-        return module.get(OfNotationExpressionSemantics.class).compile(input.__(i -> (OfNotation) i));
+    public ExpressionCompilationResult compile(Maybe<LValueExpression> input, StatementCompilationOutputAcceptor acceptor) {
+        return module.get(OfNotationExpressionSemantics.class).compile(input.__(i -> (OfNotation) i), acceptor);
     }
 
     @Override
@@ -67,20 +68,24 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
     }
 
     @Override
-    public Maybe<String> compileAssignment(Maybe<LValueExpression> input, String expression, IJadescriptType exprType) {
-        return module.get(OfNotationExpressionSemantics.class).compileAssignment(input.__(i -> (OfNotation) i), expression, exprType);
+    public void compileAssignment(
+            Maybe<LValueExpression> input,
+            String expression,
+            IJadescriptType exprType,
+            StatementCompilationOutputAcceptor acceptor
+    ) {
+        module.get(OfNotationExpressionSemantics.class)
+                .compileAssignment(input.__(i -> (OfNotation) i), expression, exprType, acceptor);
     }
 
     @Override
     public void validateAssignment(
             Maybe<LValueExpression> input,
-            String assignmentOperator,
             Maybe<RValueExpression> expression,
             ValidationMessageAcceptor acceptor
     ) {
         module.get(OfNotationExpressionSemantics.class).validateAssignment(
                 input.__(i -> (OfNotation) i),
-                assignmentOperator,
                 expression,
                 acceptor
         );
@@ -89,6 +94,16 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
     @Override
     public void syntacticValidateLValue(Maybe<LValueExpression> input, ValidationMessageAcceptor acceptor) {
         module.get(OfNotationExpressionSemantics.class).syntacticValidateLValue(input.__(i -> (OfNotation) i), acceptor);
+    }
+
+    @Override
+    public boolean isValidLExpr(Maybe<LValueExpression> input) {
+        return module.get(OfNotationExpressionSemantics.class).isValidLExpr(input.__(i -> (OfNotation) i));
+    }
+
+    @Override
+    public boolean isPatternEvaluationPure(Maybe<LValueExpression> input) {
+        return module.get(OfNotationExpressionSemantics.class).isPatternEvaluationPure(input.__(i -> (OfNotation) i));
     }
 
     @Override
@@ -104,9 +119,10 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<LValueExpression, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<LValueExpression, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         return module.get(OfNotationExpressionSemantics.class).compilePatternMatchInternal(
-                input.mapPattern(lve -> (OfNotation) lve)
+                input.mapPattern(lve -> (OfNotation) lve),
+                acceptor
         );
     }
 

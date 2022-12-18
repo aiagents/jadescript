@@ -12,6 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchS
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 
@@ -52,26 +54,29 @@ public class ContainmentCheckExpressionSemantics extends ExpressionSemantics<Con
 
 
     @Override
-    public Maybe<String> compile(Maybe<ContainmentCheck> input) {
+    public ExpressionCompilationResult compile(
+            Maybe<ContainmentCheck> input,
+            StatementCompilationOutputAcceptor acceptor
+    ) {
         final Maybe<Additive> collection = input.__(ContainmentCheck::getCollection);
         boolean isAny = input.__(ContainmentCheck::isAny).extract(nullAsFalse);
         boolean isAll = input.__(ContainmentCheck::isAll).extract(nullAsFalse);
         boolean isKey = input.__(ContainmentCheck::isKey).extract(nullAsFalse);
         boolean isValue = input.__(ContainmentCheck::isValue).extract(nullAsFalse);
-        String collectionCompiled = module.get(AdditiveExpressionSemantics.class)
-                .compile(collection).orElse("");
+        ExpressionCompilationResult collectionCompiled = module.get(AdditiveExpressionSemantics.class)
+                .compile(collection, acceptor);
         if (input.__(ContainmentCheck::isContains).extract(Maybe.nullAsFalse)) {
             final Maybe<Additive> element = input.__(ContainmentCheck::getElement);
-            String elementCompiled = module.get(AdditiveExpressionSemantics.class)
-                    .compile(element).orElse("");
+            ExpressionCompilationResult elementCompiled = module.get(AdditiveExpressionSemantics.class)
+                    .compile(element, acceptor);
             if (isAny) {
                 IJadescriptType collectionType = module.get(AdditiveExpressionSemantics.class)
                         .inferType(collection);
                 if (collectionType instanceof ListType || collectionType instanceof SetType) {
-                    return of(elementCompiled + ".stream().anyMatch(__ce->"
+                    return result(elementCompiled + ".stream().anyMatch(__ce->"
                             + collectionCompiled + ".contains(__ce))");
                 } else if (collectionType instanceof MapType) {
-                    return of(elementCompiled + ".entrySet().stream().anyMatch(__ce->" +
+                    return result(elementCompiled + ".entrySet().stream().anyMatch(__ce->" +
                             collectionCompiled + ".get(__ce.getKey())!=null " +
                             "&& java.util.Objects.equals(" +
                             collectionCompiled + ".get(__ce.getKey()), __ce.getValue()))");
@@ -80,23 +85,23 @@ public class ContainmentCheckExpressionSemantics extends ExpressionSemantics<Con
                 IJadescriptType collectionType = module.get(AdditiveExpressionSemantics.class)
                         .inferType(collection);
                 if (collectionType instanceof ListType || collectionType instanceof SetType) {
-                    return of(elementCompiled + ".stream().allMatch(__ce->"
+                    return result(elementCompiled + ".stream().allMatch(__ce->"
                             + collectionCompiled + ".contains(__ce))");
                 } else if (collectionType instanceof MapType) {
-                    return of(elementCompiled + ".entrySet().stream().allMatch(__ce->" +
+                    return result(elementCompiled + ".entrySet().stream().allMatch(__ce->" +
                             collectionCompiled + ".get(__ce.getKey())!=null " +
                             "&& java.util.Objects.equals(" +
                             collectionCompiled + ".get(__ce.getKey()), __ce.getValue()))");
                 }
             } else if (isKey) {
-                return of(collectionCompiled + ".containsKey(" + elementCompiled + ")");
+                return result(collectionCompiled + ".containsKey(" + elementCompiled + ")");
             } else if (isValue) {
-                return of(collectionCompiled + ".containsValue(" + elementCompiled + ")");
+                return result(collectionCompiled + ".containsValue(" + elementCompiled + ")");
             } else {
-                return of(collectionCompiled + ".contains(" + elementCompiled + ")");
+                return result(collectionCompiled + ".contains(" + elementCompiled + ")");
             }
         }
-        return of(collectionCompiled);
+        return collectionCompiled;
     }
 
     @Override
@@ -123,11 +128,23 @@ public class ContainmentCheckExpressionSemantics extends ExpressionSemantics<Con
     }
 
     @Override
+    public boolean isPatternEvaluationPure(Maybe<ContainmentCheck> input) {
+        if(mustTraverse(input)){
+            return module.get(AdditiveExpressionSemantics.class).isPatternEvaluationPure(
+                    input.__(ContainmentCheck::getCollection)
+            );
+        }else{
+            return true;
+        }
+    }
+
+    @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<ContainmentCheck, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<ContainmentCheck, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         if (mustTraverse(input.getPattern())) {
             return module.get(AdditiveExpressionSemantics.class).compilePatternMatchInternal(
-                    input.mapPattern(ContainmentCheck::getCollection)
+                    input.mapPattern(ContainmentCheck::getCollection),
+                    acceptor
             );
         } else {
             return input.createEmptyCompileOutput();

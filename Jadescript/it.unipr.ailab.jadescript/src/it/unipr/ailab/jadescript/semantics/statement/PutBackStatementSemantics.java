@@ -31,20 +31,18 @@ public class PutBackStatementSemantics extends StatementSemantics<PutbackStateme
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<PutbackStatement> input) {
-        List<BlockWriterElement> result = new ArrayList<>();
+    public void compileStatement(Maybe<PutbackStatement> input, StatementCompilationOutputAcceptor acceptor) {
         if(input!=null) {
             input.safeDo(inputSafe -> {
-                result.add(
+                acceptor.accept(
                         w.callStmnt(THE_AGENT + "().__putBackMessage", w.expr(
                                         module.get(RValueExpressionSemantics.class)
-                                                .compile(input.__(PutbackStatement::getMessage)).orElse("")
+                                                .compile(input.__(PutbackStatement::getMessage), acceptor).orElse("")
                                 )
                         )
                 );
             });
         }
-        return result;
     }
 
     @Override

@@ -12,6 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -21,6 +22,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.of;
 
@@ -49,14 +52,20 @@ public class RelationalComparisonExpressionSemantics
         final Maybe<ContainmentCheck> left = input.__(RelationalComparison::getLeft);
         final Maybe<ContainmentCheck> right = input.__(RelationalComparison::getRight);
         return Arrays.asList(
-                left.extract(x -> new SemanticsBoundToExpression<>(module.get(ContainmentCheckExpressionSemantics.class), x)),
-                right.extract(x -> new SemanticsBoundToExpression<>(module.get(ContainmentCheckExpressionSemantics.class), x))
+                left.extract(x -> new SemanticsBoundToExpression<>(
+                        module.get(ContainmentCheckExpressionSemantics.class),
+                        x
+                )),
+                right.extract(x -> new SemanticsBoundToExpression<>(
+                        module.get(ContainmentCheckExpressionSemantics.class),
+                        x
+                ))
         );
     }
 
     @Override
-    public Maybe<String> compile(Maybe<RelationalComparison> input) {
-        if (input == null) return nothing();
+    public ExpressionCompilationResult compile(Maybe<RelationalComparison> input, StatementCompilationOutputAcceptor acceptor) {
+        if (input == null) return empty();
         final Maybe<ContainmentCheck> left = input.__(RelationalComparison::getLeft);
         final Maybe<ContainmentCheck> right = input.__(RelationalComparison::getRight);
         Maybe<String> relationalOp = input.__(RelationalComparison::getRelationalOp);
@@ -65,26 +74,28 @@ public class RelationalComparisonExpressionSemantics
         }else if(relationalOp.wrappedEquals("≤")){
             relationalOp = of("<=");
         }
-        String leftCompiled = module.get(ContainmentCheckExpressionSemantics.class).compile(left).orElse("");
+        ExpressionCompilationResult leftCompiled = module.get(ContainmentCheckExpressionSemantics.class)
+                .compile(left, acceptor);
 
         TypeHelper th = module.get(TypeHelper.class);
 
         if (right.isPresent()) {
-            final String rightCompiled = module.get(ContainmentCheckExpressionSemantics.class).compile(right).orElse("");
+            ExpressionCompilationResult rightCompiled = module.get(ContainmentCheckExpressionSemantics.class)
+                    .compile(right, acceptor);
             IJadescriptType t1 = module.get(ContainmentCheckExpressionSemantics.class).inferType(left);
             IJadescriptType t2 = module.get(ContainmentCheckExpressionSemantics.class).inferType(right);
             if (t1.isAssignableFrom(th.DURATION) && t2.isAssignableFrom(th.DURATION)) {
-                return of("jadescript.lang.Duration.compare(" + leftCompiled
+                return result("jadescript.lang.Duration.compare(" + leftCompiled
                         + ", " + rightCompiled + ") " + relationalOp + " 0");
             } else if (t1.isAssignableFrom(th.TIMESTAMP) && t2.isAssignableFrom(th.TIMESTAMP)) {
-                return of("jadescript.lang.Timestamp.compare(" + leftCompiled
+                return result("jadescript.lang.Timestamp.compare(" + leftCompiled
                         + ", " + rightCompiled + ") " + relationalOp + " 0");
             } else {
-                return of(leftCompiled + " " + relationalOp + " "
+                return result(leftCompiled + " " + relationalOp + " "
                         + rightCompiled);
             }
         }
-        return of(leftCompiled);
+        return leftCompiled;
     }
 
     @Override
@@ -117,12 +128,26 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
+    public boolean isPatternEvaluationPure(Maybe<RelationalComparison> input) {
+        if(mustTraverse(input)){
+            return module.get(ContainmentCheckExpressionSemantics.class).isPatternEvaluationPure(
+                    input.__(RelationalComparison::getLeft)
+            );
+        }
+        return true;
+    }
+
+    @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<RelationalComparison, ?, ?> input) {
+    compilePatternMatchInternal(
+            PatternMatchInput<RelationalComparison, ?, ?> input,
+            StatementCompilationOutputAcceptor acceptor
+    ) {
         final Maybe<RelationalComparison> pattern = input.getPattern();
         if (mustTraverse(pattern)) {
             return module.get(ContainmentCheckExpressionSemantics.class).compilePatternMatchInternal(
-                    input.mapPattern(RelationalComparison::getLeft)
+                    input.mapPattern(RelationalComparison::getLeft),
+                    acceptor
             );
         } else {
             return input.createEmptyCompileOutput();
@@ -184,8 +209,14 @@ public class RelationalComparisonExpressionSemantics
                 );
                 module.get(ValidationHelper.class).assertion(
                         Util.implication(th.NUMBER.isAssignableFrom(typeLeft), th.NUMBER.isAssignableFrom(typeRight))
-                                && Util.implication(th.DURATION.isAssignableFrom(typeLeft), th.DURATION.isAssignableFrom(typeRight))
-                                && Util.implication(th.TIMESTAMP.isAssignableFrom(typeLeft), th.TIMESTAMP.isAssignableFrom(typeRight)),
+                                && Util.implication(
+                                th.DURATION.isAssignableFrom(typeLeft),
+                                th.DURATION.isAssignableFrom(typeRight)
+                        )
+                                && Util.implication(
+                                th.TIMESTAMP.isAssignableFrom(typeLeft),
+                                th.TIMESTAMP.isAssignableFrom(typeRight)
+                        ),
                         "IncongruentOperandTypes",
                         "Incompatible types for comparison: '" + typeLeft.getJadescriptName()
                                 + "', '" + typeRight.getJadescriptName() + "'",

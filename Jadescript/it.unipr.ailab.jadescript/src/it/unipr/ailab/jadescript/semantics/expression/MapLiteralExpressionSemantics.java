@@ -14,6 +14,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.google.common.collect.Streams.zip;
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
@@ -55,7 +57,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    public Maybe<String> compile(Maybe<MapOrSetLiteral> input) {
+    public ExpressionCompilationResult compile(Maybe<MapOrSetLiteral> input, StatementCompilationOutputAcceptor acceptor) {
         final List<Maybe<RValueExpression>> values = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
         final List<Maybe<RValueExpression>> keys = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
         final Maybe<TypeExpression> keysTypeParameter = input.__(MapOrSetLiteral::getKeyTypeParameter);
@@ -65,38 +67,32 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
                 || values.stream().allMatch(Maybe::isNothing)
                 || keys.stream().allMatch(Maybe::isNothing)) {
 
-            return Maybe.of(module.get(TypeHelper.class).MAP
+            return result(module.get(TypeHelper.class).MAP
                     .apply(List.of(
                             module.get(TypeExpressionSemantics.class).toJadescriptType(keysTypeParameter),
                             module.get(TypeExpressionSemantics.class).toJadescriptType(valuesTypeParameter)
                     )).compileNewEmptyInstance());
         }
 
+        final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
 
-        StringBuilder sb = new StringBuilder("jadescript.util.JadescriptCollections.createMap(");
+        int assumedSize = Math.min(keys.size(), values.size());
+        ArrayList<String> compiledKeys = new ArrayList<>(assumedSize);
+        ArrayList<String> compiledValues = new ArrayList<>(assumedSize);
 
-
-        sb.append("java.util.Arrays.asList(");
-        for (int i = 0; i < keys.size(); i++) {
-            if (i != 0) {
-                sb.append(", ");
-            }
-            sb.append(module.get(RValueExpressionSemantics.class).compile(keys.get(i)).orElse(""));
+        for (int i = 0; i < assumedSize; i++) {
+            compiledKeys.add(rves.compile(keys.get(i), acceptor).toString());
+            compiledValues.add(rves.compile(values.get(i), acceptor).toString());
         }
 
 
-        sb.append("), java.util.Arrays.asList(");
-        for (int i = 0; i < values.size(); i++) {
-            if (i != 0) {
-                sb.append(", ");
-            }
-            sb.append(module.get(RValueExpressionSemantics.class).compile(values.get(i)).orElse(""));
-        }
-
-
-        sb.append("))");
-
-        return Maybe.of(sb.toString());
+        return result("jadescript.util.JadescriptCollections.createMap("
+                + "java.util.Arrays.asList("
+                + String.join(" ,", compiledKeys)
+                + "), java.util.Arrays.asList("
+                + String.join(" ,", compiledValues)
+                + "))"
+        );
     }
 
     @Override
@@ -234,6 +230,14 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
+    public boolean isPatternEvaluationPure(Maybe<MapOrSetLiteral> input) {
+        final List<Maybe<RValueExpression>> values = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
+        final List<Maybe<RValueExpression>> keys = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
+        return Stream.concat(values.stream(), keys.stream())
+                .allMatch(module.get(RValueExpressionSemantics.class)::isPatternEvaluationPure);
+    }
+
+    @Override
     public boolean isHoled(Maybe<MapOrSetLiteral> input) {
         //NOTE: map patterns cannot have holes as keys (enforced by validator)
         boolean isWithPipe = input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
@@ -274,7 +278,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<MapOrSetLiteral, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<MapOrSetLiteral, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.getPattern().__(MapOrSetLiteral::getRest);
         final List<Maybe<RValueExpression>> keys = toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
@@ -316,17 +320,18 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
                 }
 
 
+
                 for (int i = 0; i < prePipeElementCount; i++) {
                     Maybe<RValueExpression> kterm = keys.get(i);
                     Maybe<RValueExpression> vterm = values.get(i);
-                    final Maybe<String> compiledKey = rves.compile(kterm);
+                    String compiledKey = rves.compile(kterm, acceptor).toString();
 
                     final String keyReferenceName = "__key" + i;
                     keyReferences.add(keyReferenceName);
                     auxStatements.add(w.variable(
                             keyType.compileToJavaTypeReference(),
                             keyReferenceName,
-                            w.expr(compiledKey.orElse(""))
+                            w.expr(compiledKey)
                     ));
 
                     final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> keyOutput =
@@ -342,7 +347,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
                                     valueType,
                                     __ -> vterm.toNullable(),
                                     "_" + i
-                            ));
+                            ), acceptor);
                     subResults.add(valOutput);
                 }
             }
@@ -353,7 +358,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
                                 solvedPatternType,
                                 __ -> rest.toNullable(),
                                 "_rest"
-                        ));
+                        ), acceptor);
                 subResults.add(restOutput);
             }
 

@@ -6,10 +6,13 @@ import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSemantics;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsDispatchHelper;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsClassState;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import it.unipr.ailab.sonneteer.classmember.ClassMemberWriter;
 import it.unipr.ailab.sonneteer.statement.*;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
@@ -21,8 +24,6 @@ import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
  * Created on 28/12/16.
- *
- * 
  */
 public class BlockSemantics extends Semantics<CodeBlock>
         implements EffectfulOperationSemantics {
@@ -94,14 +95,44 @@ public class BlockSemantics extends Semantics<CodeBlock>
             }
 
             for (Maybe<Statement> statement : iterate(statements)) {
-                List<StatementWriter> auxiliaryStatements = new ArrayList<>();
-                List<BlockWriterElement> statementWriters = new ArrayList<>();
+                List<BlockWriterElement> initStatements = new ArrayList<>();
+                List<BlockWriterElement> compiledStatements = new ArrayList<>();
+                List<BlockWriterElement> deferStatements = new ArrayList<>();
+
                 module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(statement, sem -> {
-                    auxiliaryStatements.addAll(sem.generateAuxiliaryStatements(wrappedSubCast(statement)));
-                    statementWriters.addAll(sem.compileStatement(wrappedSubCast(statement)));
+                    sem.compileStatement(wrappedSubCast(statement), new StatementCompilationOutputAcceptor() {
+                        @Override
+                        public void accept(BlockWriterElement element) {
+                            compiledStatements.add(CompilationHelper.inputStatementComment(
+                                    statement,
+                                    "Execution of source statement"
+                            ));
+                            compiledStatements.add(element);
+                        }
+
+                        @Override
+                        public void acceptBlockInit(BlockWriterElement element) {
+                            initStatements.add(CompilationHelper.inputStatementComment(
+                                    statement,
+                                    "Preparation of execution of source statement"
+                            ));
+                            initStatements.add(element);
+                        }
+
+                        @Override
+                        public void acceptBlockCleanup(BlockWriterElement element) {
+                                                        initStatements.add(CompilationHelper.inputStatementComment(
+                                    statement,
+                                    "Cleanup of execution of source statement"
+                            ));
+                            deferStatements.add(element);
+                        }
+                    });
                 });
-                auxiliaryStatements.forEach(bp::addStatement);
-                statementWriters.forEach(bp::add);
+
+                initStatements.forEach(bp::add);
+                compiledStatements.forEach(bp::add);
+                deferStatements.forEach(bp::add);
             }
 
         } catch (Throwable e) {
@@ -115,7 +146,6 @@ public class BlockSemantics extends Semantics<CodeBlock>
         }
         return bp;
     }
-
 
 
     public void validate(Maybe<CodeBlock> input, ValidationMessageAcceptor acceptor) {
@@ -175,12 +205,13 @@ public class BlockSemantics extends Semantics<CodeBlock>
 
     }
 
-    public void addInjectedStatements(Maybe<CodeBlock> input, List<StatementWriter> injectedStatements) {
-        this.injectedStatements.getOrNew(input).addAll(injectedStatements);
-    }
-
     public void addInjectedStatement(Maybe<CodeBlock> input, StatementWriter injectedStatement) {
         this.injectedStatements.getOrNew(input).add(injectedStatement);
+    }
+
+    //TODO deprecate "injected variables" after the new acceptor system?
+    public void addInjectedStatements(Maybe<CodeBlock> input, List<StatementWriter> injectedStatements) {
+        this.injectedStatements.getOrNew(input).addAll(injectedStatements);
     }
 
     public void addInjectedVariables(Maybe<CodeBlock> input, List<NamedSymbol> injectedVariables) {
@@ -193,10 +224,10 @@ public class BlockSemantics extends Semantics<CodeBlock>
 
     @Override
     public List<Effect> computeEffects(Maybe<? extends EObject> i) {
-        if(!i.isInstanceOf(CodeBlock.class)){
+        if (!i.isInstanceOf(CodeBlock.class)) {
             return Collections.emptyList();
         }
-        Maybe<CodeBlock> input = i.__(x->(CodeBlock)x);
+        Maybe<CodeBlock> input = i.__(x -> (CodeBlock) x);
 
         List<Effect> result = new ArrayList<>();
         module.get(ContextManager.class).pushScope();
@@ -224,8 +255,8 @@ public class BlockSemantics extends Semantics<CodeBlock>
                 for (int i = 0; i < statementsSafe.size(); i++) {
                     Statement statement = statementsSafe.get(i);
                     int finalI = i;
-                    module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(of(statement), (sem) ->{
-                        if(finalI == statementsSafe.size() - 1){
+                    module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(of(statement), (sem) -> {
+                        if (finalI == statementsSafe.size() - 1) {
                             result.addAll(sem.computeEffects(of(statement)));
                         }
                     });

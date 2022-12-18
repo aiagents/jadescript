@@ -12,6 +12,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -20,7 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static it.unipr.ailab.maybe.Maybe.nothing;
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
 
 /**
  * Created on 28/12/16.
@@ -48,18 +49,26 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
     }
 
     @Override
-    public Maybe<String> compile(Maybe<LogicalAnd> input) {
-        if (input == null) return nothing();
-        StringBuilder sb = new StringBuilder();
+    public ExpressionCompilationResult compile(Maybe<LogicalAnd> input, StatementCompilationOutputAcceptor acceptor) {
+        if (input == null) return empty();
+        ExpressionCompilationResult result = empty();
         List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison));
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
         for (int i = 0; i < equs.size(); i++) {
             Maybe<EqualityComparison> equ = equs.get(i);
+            final ExpressionCompilationResult operandCompiled = module.get(EqualityComparisonExpressionSemantics.class)
+                    .compile(equ, acceptor);
             if (i != 0) {
-                sb.append(" && ");
+                result = ExpressionCompilationResult.result(result + " && " + operandCompiled)
+                        .setFTKB(typeHelper.mergeByGLB(
+                                result.getFlowTypingKB(),
+                                operandCompiled.getFlowTypingKB()
+                        ));
+            } else {
+                result = operandCompiled;
             }
-            sb.append(module.get(EqualityComparisonExpressionSemantics.class).compile(equ));
         }
-        return Maybe.of(sb.toString());
+        return result;
     }
 
     @Override
@@ -115,6 +124,17 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
     }
 
     @Override
+    public boolean isPatternEvaluationPure(Maybe<LogicalAnd> input) {
+        List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison));
+        if (equs.size() < 1) {
+            return true;
+        } else {
+            return equs.stream()
+                    .allMatch(module.get(EqualityComparisonExpressionSemantics.class)::isPatternEvaluationPure);
+        }
+    }
+
+    @Override
     public void validate(Maybe<LogicalAnd> input, ValidationMessageAcceptor acceptor) {
         if (input == null) return;
         List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison));
@@ -146,13 +166,14 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<LogicalAnd, ?, ?> input) {
+    compilePatternMatchInternal(PatternMatchInput<LogicalAnd, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
         final Maybe<LogicalAnd> pattern = input.getPattern();
         final List<Maybe<EqualityComparison>> operands = Maybe.toListOfMaybes(
                 pattern.__(LogicalAnd::getEqualityComparison));
         if (mustTraverse(pattern)) {
             return module.get(EqualityComparisonExpressionSemantics.class).compilePatternMatchInternal(
-                    input.replacePattern(operands.get(0))
+                    input.replacePattern(operands.get(0)),
+                    acceptor
             );
         } else {
             return input.createEmptyCompileOutput();

@@ -41,8 +41,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<ForStatement> input) {
-        List<BlockWriterElement> result = new ArrayList<>();
+    public void compileStatement(Maybe<ForStatement> input, StatementCompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> collection = input.__(ForStatement::getCollection);
         Maybe<String> varName = input.__(ForStatement::getVarName);
         Maybe<String> var2Name = input.__(ForStatement::getVar2Name);
@@ -64,18 +63,26 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
 
         module.get(ContextManager.class).pushScope();
-        module.get(ContextManager.class).currentScope().addUserVariable(varName.extract(nullAsEmptyString), firstVarType, true);
+        module.get(ContextManager.class).currentScope().addUserVariable(
+                varName.extract(nullAsEmptyString),
+                firstVarType,
+                true
+        );
 
+        final String compiledCollection = module.get(RValueExpressionSemantics.class)
+                .compile(collection, acceptor).orElse("");
         if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
 
             Maybe<RValueExpression> end = input.__(ForStatement::getEndIndex);
 
+            final String compiledEndIndex = module.get(RValueExpressionSemantics.class)
+                    .compile(end, acceptor).orElse("");
             ExpressionWriter completeCollExpression = w.expr(
-                    "new jadescript.util.IntegerRange(" + module.get(RValueExpressionSemantics.class).compile(collection).orElse("") + ", "
-                            + module.get(RValueExpressionSemantics.class).compile(end).orElse("") + ", true, true)"
+                    "new jadescript.util.IntegerRange(" + compiledCollection + ", "
+                            + compiledEndIndex + ", true, true)"
             );
 
-            result.add(w.foreach(
+            acceptor.accept(w.foreach(
                     firstVarType.compileToJavaTypeReference(),
                     varName.extract(nullAsEmptyString),
                     completeCollExpression,
@@ -88,29 +95,38 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             final MapType mapType = ((MapType) collectionType);
             firstVarType = mapType.getKeyType();
             IJadescriptType secondVarType = mapType.getValueType();
-            module.get(ContextManager.class).currentScope().addUserVariable(var2Name.extract(nullAsEmptyString), secondVarType, true);
+            module.get(ContextManager.class).currentScope().addUserVariable(
+                    var2Name.extract(nullAsEmptyString),
+                    secondVarType,
+                    true
+            );
+            String collectionAuxVar = acceptor.auxiliaryVariable(
+                    collection,
+                    mapType.compileToJavaTypeReference(),
+                    "collection",
+                    compiledCollection
+            );
             BlockWriter block = module.get(BlockSemantics.class).compileOptionalBlock(forBody);
             block.addStatement(0, w.variable(secondVarType.compileToJavaTypeReference(), var2Name.extract(nullAsEmptyString),
-                    w.expr(module.get(RValueExpressionSemantics.class).compile(collection).orElse("") + ".get(" + varName.extract(nullAsEmptyString) + ")")
+                    w.expr(collectionAuxVar + ".get(" + varName.extract(nullAsEmptyString) + ")")
             ));
-            result.add(w.foreach(
+            acceptor.accept(w.foreach(
                     firstVarType.compileToJavaTypeReference(),
                     varName.extract(nullAsEmptyString),
-                    w.expr(module.get(RValueExpressionSemantics.class).compile(collection).orElse("") + ".keySet()"),
+                    w.expr(collectionAuxVar + ".keySet()"),
                     module.get(BlockSemantics.class).compileOptionalBlock(forBody)
             ));
         } else {
-            result.add(w.foreach(
+            acceptor.accept(w.foreach(
                     firstVarType.compileToJavaTypeReference(),
                     varName.extract(nullAsEmptyString),
-                    w.expr(module.get(RValueExpressionSemantics.class).compile(collection).orElse("")),
+                    w.expr(compiledCollection),
                     module.get(BlockSemantics.class).compileOptionalBlock(forBody)
             ));
         }
 
 
         module.get(ContextManager.class).popScope();
-        return result;
     }
 
     @Override

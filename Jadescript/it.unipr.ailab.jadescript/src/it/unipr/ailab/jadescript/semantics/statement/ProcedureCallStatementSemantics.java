@@ -9,7 +9,6 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import it.unipr.ailab.sonneteer.statement.SingleLineStatementCommentWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -29,24 +28,27 @@ public class ProcedureCallStatementSemantics extends StatementSemantics<Procedur
     }
 
     @Override
-    public List<BlockWriterElement> compileStatement(Maybe<ProcedureCallStatement> input) {
+    public void compileStatement(Maybe<ProcedureCallStatement> input, StatementCompilationOutputAcceptor acceptor) {
 
         if (input.__(ProcedureCallStatement::isIsNothing).extract(Maybe.nullAsTrue)) {
-            return Collections.singletonList(new SingleLineStatementCommentWriter("do nothing;"));
+            acceptor.accept(w.commentStmt("do nothing;"));
         } else {
             //writes a java method call statement
             Maybe<String> name = input.__(ProcedureCallStatement::getName);
             Maybe<SimpleArgumentList> simpleArgs = input.__(ProcedureCallStatement::getSimpleArgs);
             Maybe<NamedArgumentList> namedArgs = input.__(ProcedureCallStatement::getNamedArgs);
 
-            return Collections.singletonList(w.simplStmt(
-                    module.get(MethodInvocationSemantics.class).compile(MethodCall.methodCall(
-                            input,
-                            name,
-                            simpleArgs,
-                            namedArgs,
-                            true
-                    ))
+            acceptor.accept(w.simpleStmt(
+                    module.get(MethodInvocationSemantics.class).compile(
+                            MethodCall.methodCall(
+                                    input,
+                                    name,
+                                    simpleArgs,
+                                    namedArgs,
+                                    true
+                            ),
+                            acceptor
+                    )
             ));
         }
     }
