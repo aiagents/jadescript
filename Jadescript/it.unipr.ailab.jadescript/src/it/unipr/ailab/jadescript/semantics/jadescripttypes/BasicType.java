@@ -68,7 +68,7 @@ public class BasicType extends JadescriptType implements EmptyCreatable{
     }
 
     @Override
-    public boolean isManipulable() {
+    public boolean haveProperties() {
         return true;
     }
 

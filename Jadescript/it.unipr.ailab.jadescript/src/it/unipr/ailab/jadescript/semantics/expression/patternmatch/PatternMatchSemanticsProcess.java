@@ -3,7 +3,7 @@ package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.sonneteer.WriterFactory;
 import it.unipr.ailab.sonneteer.classmember.ClassMemberWriter;
 import it.unipr.ailab.sonneteer.classmember.FieldWriter;
@@ -32,22 +32,13 @@ public interface PatternMatchSemanticsProcess {
     abstract class IsCompilation implements PatternMatchSemanticsProcess {
 
 
-        protected final StatementCompilationOutputAcceptor auxiliaryEvaluation
-                = new StatementCompilationOutputAcceptor() {
+        protected final CompilationOutputAcceptor auxiliaryEvaluation
+                = new CompilationOutputAcceptor() {
             @Override
             public void accept(BlockWriterElement element) {
 
             }
 
-            @Override
-            public void acceptBlockInit(BlockWriterElement element) {
-
-            }
-
-            @Override
-            public void acceptBlockCleanup(BlockWriterElement element) {
-
-            }
         };
         protected final PatternMatchInput<?, ?, ?> patternMatchInput;
         protected final List<PatternMatchOutput<? extends IsCompilation, ?, ?>> subResults = new ArrayList<>();

@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.topelement;
 import com.google.common.collect.HashMultimap;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.DroppingAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.feature.MemberBehaviourSemantics;
@@ -148,7 +149,7 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
 
     private void validateForForwardDeclaration(Maybe<FeatureContainer> input, ValidationMessageAcceptor acceptor) {
         List<Maybe<Feature>> maybeFeatures = Maybe.toListOfMaybes((input).__(FeatureContainer::getFeatures));
-
+        final DroppingAcceptor dropping = new DroppingAcceptor();
         Set<String> inCurrentClass = maybeFeatures.stream()
                 .filter(Maybe::isPresent)
                 .map(Maybe::toNullable)
@@ -170,8 +171,9 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                         @SuppressWarnings({"unchecked", "rawtypes"}) List<? extends List<String>> listOfLists =
                                 module.get(RValueExpressionSemantics.class).collectFromAllNodes(
                                 right,
-                                (in, expressionSemantics1) -> (List<String>) expressionSemantics1
-                                        .extractPropertyChain((Maybe) in)
+                                (in, expressionSemantics1) -> expressionSemantics1
+                                        //TODO improve
+                                        .validate((Maybe) in, dropping).getPropertyChain()
                         );
                         List<List<String>> collect = new ArrayList<>();
                         for (List<String> l : listOfLists) {

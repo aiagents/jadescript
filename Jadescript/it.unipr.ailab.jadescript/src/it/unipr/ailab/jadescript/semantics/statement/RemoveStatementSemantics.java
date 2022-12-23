@@ -16,7 +16,6 @@ import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -40,7 +39,7 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
             Maybe<RValueExpression> element,
             Maybe<RValueExpression> index,
             boolean isWithIndex,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
 
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
@@ -48,11 +47,11 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
             return w.callStmnt(
                     collectionCompiled + ".remove",
                     w.expr(
-                            "(int)" + rves.compile(index, acceptor).orElse("")
+                            "(int)" + rves.compile(index, acceptor)
                     )
             );
         } else {
-            String arg = rves.compile(element, acceptor).orElse("");
+            String arg = rves.compile(element, acceptor).getGeneratedText();
             if (module.get(TypeHelper.class).INTEGER.isAssignableFrom(rves.inferType(element))) {
                 arg = "(Integer) " + arg;
             }
@@ -66,11 +65,11 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
     private StatementWriter compileRemoveKeyFromMap(
             String collectionCompiled,
             Maybe<RValueExpression> key,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         return w.callStmnt(
                 collectionCompiled + ".remove",
-                w.expr(module.get(RValueExpressionSemantics.class).compile(key, acceptor).orElse(""))
+                w.expr(module.get(RValueExpressionSemantics.class).compile(key, acceptor).getGeneratedText())
         );
     }
 
@@ -78,20 +77,20 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
             String collectionCompiled,
             Maybe<RValueExpression> argCollection,
             boolean isRetain,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
 
 
         return w.callStmnt(
                 collectionCompiled + "." + (isRetain ? "retain" : "remove") + "All",
-                w.expr(module.get(RValueExpressionSemantics.class).compile(argCollection, acceptor).orElse(""))
+                w.expr(module.get(RValueExpressionSemantics.class).compile(argCollection, acceptor).getGeneratedText())
         );
     }
 
     @Override
-    public void compileStatement(Maybe<RemoveStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<RemoveStatement> input, CompilationOutputAcceptor acceptor) {
         final Maybe<RValueExpression> collection = input.__(RemoveStatement::getCollection);
-        String collectionCompiled = module.get(RValueExpressionSemantics.class).compile(collection, acceptor).orElse("");
+        String collectionCompiled = module.get(RValueExpressionSemantics.class).compile(collection, acceptor).getGeneratedText();
         final boolean isRetain = input.__(RemoveStatement::isRetain).extract(nullAsFalse);
         final boolean isWithIndex = input.__(RemoveStatement::isWithIndex).extract(nullAsFalse);
         final boolean isAll = input.__(RemoveStatement::isAll).extract(nullAsFalse);

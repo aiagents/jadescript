@@ -1,12 +1,9 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.AtomExpr;
-import it.unipr.ailab.jadescript.jadescript.Primary;
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.jadescript.Trailer;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
@@ -14,12 +11,14 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.expression.trailersexprchain.ReversedTrailerChain;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.*;
 
@@ -35,30 +34,39 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
     }
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<AtomExpr> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<AtomExpr> input) {
         return buildChain(input).getSubExpressions();
     }
 
     @Override
-    public ExpressionCompilationResult compile(Maybe<AtomExpr> input, StatementCompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<AtomExpr> input, CompilationOutputAcceptor acceptor) {
         return buildChain(input).compile(acceptor);
     }
 
 
     @Override
-    public IJadescriptType inferType(Maybe<AtomExpr> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<AtomExpr> input) {
         return buildChain(input).inferType();
     }
 
+    @Override
+    protected List<String> propertyChainInternal(Maybe<AtomExpr> input) {
+        return Collections.emptyList();
+    }
 
     @Override
-    public boolean mustTraverse(Maybe<AtomExpr> input) {
+    protected ExpressionTypeKB computeKBInternal(Maybe<AtomExpr> input) {
+        return ExpressionTypeKB.empty();
+    }
+
+    @Override
+    protected boolean mustTraverse(Maybe<AtomExpr> input) {
         List<Maybe<Trailer>> trailers = toListOfMaybes(input.__(AtomExpr::getTrailers));
         return trailers.isEmpty();
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<AtomExpr> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<AtomExpr> input) {
         if (mustTraverse(input)) {
             return Optional.of(new SemanticsBoundToExpression<>(module.get(PrimaryExpressionSemantics.class), input.__(AtomExpr::getAtom)));
         } else {
@@ -67,49 +75,55 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
     }
 
 
+
+
     @Override
-    public void validate(Maybe<AtomExpr> input, ValidationMessageAcceptor acceptor) {
-        buildChain(input).validate(acceptor);
+    protected boolean validateInternal(Maybe<AtomExpr> input, ValidationMessageAcceptor acceptor) {
+        return buildChain(input).validate(acceptor);
     }
 
     @Override
-    public void compileAssignment(
+    public void compileAssignmentInternal(
             Maybe<AtomExpr> input,
             String compiledExpression,
             IJadescriptType exprType,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         buildChain(input).compileAssignment(compiledExpression, exprType, acceptor);
     }
 
     @Override
-    public void validateAssignment(
+    public boolean validateAssignmentInternal(
             Maybe<AtomExpr> input,
             Maybe<RValueExpression> expression,
             ValidationMessageAcceptor acceptor
     ) {
-        if (input == null || expression == null) return;
+        if (input == null || expression == null) return VALID;
 
-        InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
-        module.get(RValueExpressionSemantics.class).validate(expression, subValidation);
 
-        if (!subValidation.thereAreErrors()) {
-            IJadescriptType typeOfRExpression = module.get(RValueExpressionSemantics.class).inferType(expression);
+        boolean rightValidation = module.get(RValueExpressionSemantics.class)
+                .validate(expression, acceptor);
 
-            buildChain(input).validateAssignment(expression, typeOfRExpression, acceptor);
-
+        if (rightValidation == INVALID) {
+            return INVALID;
         }
+        IJadescriptType typeOfRExpression = module.get(RValueExpressionSemantics.class).inferType(expression);
+
+        return buildChain(input).validateAssignment(expression, typeOfRExpression, acceptor);
+
 
     }
 
     @Override
-    public void syntacticValidateLValue(Maybe<AtomExpr> input, ValidationMessageAcceptor acceptor) {
+    public boolean syntacticValidateLValueInternal(Maybe<AtomExpr> input, ValidationMessageAcceptor acceptor) {
         if (input.__(AtomExpr::getTrailers).__(List::isEmpty).extract(nullAsTrue)) {
-
-            module.get(PrimaryExpressionSemantics.class).syntacticValidateLValue(input.__(AtomExpr::getAtom), acceptor);
+            return module.get(PrimaryExpressionSemantics.class).syntacticValidateLValue(
+                    input.__(AtomExpr::getAtom),
+                    acceptor
+            );
         } else {
             List<Maybe<Trailer>> trailers = toListOfMaybes(input.__(AtomExpr::getTrailers));
-            module.get(ValidationHelper.class).assertion(
+            return module.get(ValidationHelper.class).assertion(
                     trailers.get(trailers.size() - 1)
                             .__(Trailer::isIsACall)
                             .__(not),
@@ -122,29 +136,39 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
     }
 
     @Override
-    public boolean isValidLExpr(Maybe<AtomExpr> input) {
+    protected boolean isValidLExprInternal(Maybe<AtomExpr> input) {
         return buildChain(input).isValidLExpr();
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<AtomExpr> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<AtomExpr> input) {
         return buildChain(input).isPatternEvaluationPure();
     }
 
     @Override
-    public boolean isHoled(Maybe<AtomExpr> input) {
+    protected boolean isHoledInternal(Maybe<AtomExpr> input) {
         return buildChain(input).isHoled();
     }
 
     @Override
-    public boolean isUnbound(Maybe<AtomExpr> input) {
+    protected boolean isUnboundInternal(Maybe<AtomExpr> input) {
         return buildChain(input).isUnbounded();
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<AtomExpr> input) {
+        return buildChain(input).canBeHoled();
+    }
+
+    @Override
+    protected boolean containsNotHoledAssignablePartsInternal(Maybe<AtomExpr> input) {
+        return buildChain(input).containsNotHoledAssignableParts();
     }
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         return buildChain(input.getPattern()).compilePatternMatchInternal(input, acceptor);
     }
@@ -184,13 +208,13 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
         return chain;
     }
 
-	@Override
-    public boolean isAlwaysPure(Maybe<AtomExpr> input) {
+    @Override
+    protected boolean isAlwaysPureInternal(Maybe<AtomExpr> input) {
         return buildChain(input).isAlwaysPure();
     }
 
     @Override
-    public boolean isTypelyHoled(Maybe<AtomExpr> input) {
+    protected boolean isTypelyHoledInternal(Maybe<AtomExpr> input) {
         return buildChain(input).isTypelyHoled();
     }
 }

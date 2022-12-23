@@ -1,25 +1,22 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
@@ -41,7 +38,7 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
 
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<MapOrSetLiteral> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<MapOrSetLiteral> input) {
         final List<Maybe<RValueExpression>> keys = toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
         return keys.stream()
                 .map(k -> new SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), k))
@@ -50,16 +47,26 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    public ExpressionCompilationResult compile(Maybe<MapOrSetLiteral> input, StatementCompilationOutputAcceptor acceptor) {
+    protected List<String> propertyChainInternal(Maybe<MapOrSetLiteral> input) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<MapOrSetLiteral> input) {
+        return ExpressionTypeKB.empty();
+    }
+
+    @Override
+    protected String compileInternal(Maybe<MapOrSetLiteral> input, CompilationOutputAcceptor acceptor) {
         final List<Maybe<RValueExpression>> keys = toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
         final Maybe<TypeExpression> keysTypeParameter = input.__(MapOrSetLiteral::getKeyTypeParameter);
 
 
         if (keys.isEmpty() || keys.stream().allMatch(Maybe::isNothing)) {
-            return result(module.get(TypeHelper.class).SET
+            return module.get(TypeHelper.class).SET
                     .apply(List.of(
                             module.get(TypeExpressionSemantics.class).toJadescriptType(keysTypeParameter)
-                    )).compileNewEmptyInstance());
+                    )).compileNewEmptyInstance();
         }
 
 
@@ -74,12 +81,12 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
         }
         sb.append("))");
 
-        return result(sb.toString());
+        return sb.toString();
     }
 
 
     @Override
-    public IJadescriptType inferType(Maybe<MapOrSetLiteral> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<MapOrSetLiteral> input) {
         final List<Maybe<RValueExpression>> keys = toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
         final Maybe<TypeExpression> keysTypeParameter = input.__(MapOrSetLiteral::getKeyTypeParameter);
 
@@ -99,73 +106,80 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    public void validate(Maybe<MapOrSetLiteral> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
+    protected boolean validateInternal(Maybe<MapOrSetLiteral> input, ValidationMessageAcceptor acceptor) {
+        if (input == null) return VALID;
         final List<Maybe<RValueExpression>> keys = toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
         final boolean hasTypeSpecifiers = input.__(MapOrSetLiteral::isWithTypeSpecifiers).extract(nullAsFalse);
         final Maybe<TypeExpression> keysTypeParameter = input.__(MapOrSetLiteral::getKeyTypeParameter);
 
-        InterceptAcceptor stage1Validation = new InterceptAcceptor(acceptor);
+        boolean stage1Validation = VALID;
 
         for (Maybe<RValueExpression> key : keys) {
-            module.get(RValueExpressionSemantics.class).validate(key, stage1Validation);
+            stage1Validation = stage1Validation && module.get(RValueExpressionSemantics.class)
+                    .validate(key, acceptor);
         }
 
 
-        module.get(ValidationHelper.class).assertion(
-                (!keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing))
+        stage1Validation = stage1Validation && module.get(ValidationHelper.class).assertion(
+                !keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing)
                         || hasTypeSpecifiers,
                 "SetLiteralCannotComputeTypes",
                 "Missing type specification for empty set literal",
                 input,
-                stage1Validation
+                acceptor
         );
 
+        if (stage1Validation == INVALID) {
+            return INVALID;
+        }
 
-        if (!stage1Validation.thereAreErrors()) {
-            if (!keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing)) {
-                IJadescriptType keysLub = module.get(RValueExpressionSemantics.class).inferType(keys.get(0));
-                for (int i = 1; i < keys.size(); i++) {
-                    keysLub = module.get(TypeHelper.class)
-                            .getLUB(keysLub, module.get(RValueExpressionSemantics.class).inferType(keys.get(i)));
-                }
+        if (!keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing)) {
+            IJadescriptType keysLub = module.get(RValueExpressionSemantics.class).inferType(keys.get(0));
+            for (int i = 1; i < keys.size(); i++) {
+                keysLub = module.get(TypeHelper.class)
+                        .getLUB(keysLub, module.get(RValueExpressionSemantics.class).inferType(keys.get(i)));
+            }
 
-                InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-                module.get(ValidationHelper.class).assertion(
-                        !keysLub.isErroneous(),
-                        "SetLiteralCannotComputeType",
-                        "Can not find a valid common parent type of the elements in the list literal.",
+            boolean stage2Validation = module.get(ValidationHelper.class).assertion(
+                    !keysLub.isErroneous(),
+                    "SetLiteralCannotComputeType",
+                    "Can not find a valid common parent type of the elements in the list literal.",
+                    input,
+                    acceptor
+            ) && module.get(TypeExpressionSemantics.class).validate(keysTypeParameter, acceptor);
+
+            if (stage2Validation == INVALID) {
+                return INVALID;
+            }
+
+            if (hasTypeSpecifiers) {
+                return module.get(ValidationHelper.class).assertExpectedType(
+                        module.get(TypeExpressionSemantics.class).toJadescriptType(keysTypeParameter),
+                        keysLub,
+                        "SetLiteralTypeMismatch",
                         input,
-                        interceptAcceptor
+                        JadescriptPackage.eINSTANCE.getMapOrSetLiteral_KeyTypeParameter(),
+                        acceptor
                 );
-
-                module.get(TypeExpressionSemantics.class).validate(keysTypeParameter, interceptAcceptor);
-                if (!interceptAcceptor.thereAreErrors() && hasTypeSpecifiers) {
-                    module.get(ValidationHelper.class).assertExpectedType(
-                            module.get(TypeExpressionSemantics.class).toJadescriptType(keysTypeParameter),
-                            keysLub,
-                            "SetLiteralTypeMismatch",
-                            input,
-                            JadescriptPackage.eINSTANCE.getMapOrSetLiteral_KeyTypeParameter(),
-                            acceptor
-                    );
-                }
+            } else {
+                return VALID;
             }
         }
+        return VALID;
     }
 
     @Override
-    public boolean mustTraverse(Maybe<MapOrSetLiteral> input) {
+    protected boolean mustTraverse(Maybe<MapOrSetLiteral> input) {
         return false;
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<MapOrSetLiteral> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<MapOrSetLiteral> input) {
         return Optional.empty();
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<MapOrSetLiteral> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<MapOrSetLiteral> input) {
         final List<Maybe<RValueExpression>> keys = toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
         return keys.stream().allMatch(
                 module.get(RValueExpressionSemantics.class)::isPatternEvaluationPure
@@ -173,7 +187,7 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    public boolean isHoled(Maybe<MapOrSetLiteral> input) {
+    protected boolean isHoledInternal(Maybe<MapOrSetLiteral> input) {
         //NOTE: set patterns cannot have holes before the pipe sign (enforced by validator)
         boolean isWithPipe = input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
@@ -182,7 +196,7 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    public boolean isTypelyHoled(Maybe<MapOrSetLiteral> input) {
+    protected boolean isTypelyHoledInternal(Maybe<MapOrSetLiteral> input) {
         //NOTE: set patterns cannot have holes before the pipe sign (enforced by validator)
         boolean isWithPipe = input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
@@ -198,7 +212,7 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    public boolean isUnbound(Maybe<MapOrSetLiteral> input) {
+    protected boolean isUnboundInternal(Maybe<MapOrSetLiteral> input) {
         //NOTE: set patterns cannot have holes before the pipe sign (enforced by validator)
         boolean isWithPipe = input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
@@ -208,7 +222,7 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<MapOrSetLiteral, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<MapOrSetLiteral, ?, ?> input, CompilationOutputAcceptor acceptor) {
         List<Maybe<RValueExpression>> values = toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
         boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.getPattern().__(MapOrSetLiteral::getRest);
@@ -243,7 +257,7 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
 
                 for (int i = 0; i < prePipeElementCount; i++) {
                     Maybe<RValueExpression> term = values.get(i);
-                    final ExpressionCompilationResult compiledTerm = rves.compile(term, acceptor);
+                    final String compiledTerm = rves.compile(term, acceptor);
                     final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> elemOutput =
                             input.subPatternGroundTerm(elementType, __ -> term.toNullable(), "_" + i)
                                     .createInlineConditionOutput(
@@ -374,8 +388,8 @@ public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
         }
 
         return input.createValidationOutput(
-                ()-> PatternMatchOutput.collectUnificationResults(subResults),
-                ()-> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
+                () -> PatternMatchOutput.collectUnificationResults(subResults),
+                () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
         );
 
 

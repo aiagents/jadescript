@@ -8,11 +8,10 @@ import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsDispatchHelper;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsClassState;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
-import it.unipr.ailab.sonneteer.classmember.ClassMemberWriter;
 import it.unipr.ailab.sonneteer.statement.*;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
@@ -25,7 +24,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
 /**
  * Created on 28/12/16.
  */
-public class BlockSemantics extends Semantics<CodeBlock>
+public class BlockSemantics extends Semantics
         implements EffectfulOperationSemantics {
 
 
@@ -100,7 +99,7 @@ public class BlockSemantics extends Semantics<CodeBlock>
                 List<BlockWriterElement> deferStatements = new ArrayList<>();
 
                 module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(statement, sem -> {
-                    sem.compileStatement(wrappedSubCast(statement), new StatementCompilationOutputAcceptor() {
+                    sem.compileStatement(wrappedSubCast(statement), new CompilationOutputAcceptor() {
                         @Override
                         public void accept(BlockWriterElement element) {
                             compiledStatements.add(CompilationHelper.inputStatementComment(
@@ -110,23 +109,6 @@ public class BlockSemantics extends Semantics<CodeBlock>
                             compiledStatements.add(element);
                         }
 
-                        @Override
-                        public void acceptBlockInit(BlockWriterElement element) {
-                            initStatements.add(CompilationHelper.inputStatementComment(
-                                    statement,
-                                    "Preparation of execution of source statement"
-                            ));
-                            initStatements.add(element);
-                        }
-
-                        @Override
-                        public void acceptBlockCleanup(BlockWriterElement element) {
-                                                        initStatements.add(CompilationHelper.inputStatementComment(
-                                    statement,
-                                    "Cleanup of execution of source statement"
-                            ));
-                            deferStatements.add(element);
-                        }
                     });
                 });
 

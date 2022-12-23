@@ -165,7 +165,7 @@ public class MapType extends ParametricType implements EmptyCreatable, DeclaresO
     }
 
     @Override
-    public boolean isManipulable() {
+    public boolean haveProperties() {
         return true;
     }
 

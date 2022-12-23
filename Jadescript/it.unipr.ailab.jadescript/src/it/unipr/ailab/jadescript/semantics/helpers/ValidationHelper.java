@@ -36,6 +36,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionValidationResult.invalid;
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionValidationResult.valid;
 import static it.unipr.ailab.maybe.Maybe.iterate;
 import static it.unipr.ailab.maybe.Maybe.safeDo;
 
@@ -155,24 +157,23 @@ public class ValidationHelper implements SemanticsConsts {
 
     /**
      * Validator-assertion that checks that the type referred by {@code x} is referrable (i.e., a type reference
-     * to this type is allowed to be created with Jadescript code).
+     * to this type is allowed to be created in Jadescript user code).
      *
      * @param input    {@link EObject} used to link the eventual error marker to the portion of code
      * @param message  custom message for the eventual error marker
      * @param x        type reference
      * @param acceptor acceptor for the eventual error marker
      */
-    public void assertTypeReferable(
+    public boolean assertTypeReferable(
             Maybe<? extends EObject> input,
             String message,
             IJadescriptType x,
             ValidationMessageAcceptor acceptor
     ) {
-        assertion(x.isReferrable(), "InvalidType", message, input, acceptor);
-
+        return assertion(x.isReferrable(), "InvalidType", message, input, acceptor);
     }
 
-    public void assertTypeManipulable(
+    public boolean assertPropertiesOfTypeAccessible(
             Maybe<? extends EObject> input,
             String message,
             IJadescriptType x,
@@ -180,9 +181,9 @@ public class ValidationHelper implements SemanticsConsts {
     ) {
 
         if (x instanceof MapType || x instanceof ListType) {
-            return;
+            return VALID;
         }
-        assertion(x.isManipulable(), "InvalidType", message, input, acceptor);
+        return assertion(x.haveProperties(), "InvalidType", message, input, acceptor);
     }
 
     public void validateDuplicateParameters(
@@ -337,7 +338,7 @@ public class ValidationHelper implements SemanticsConsts {
         }
     }
 
-    public void assertExpectedType(
+    public boolean assertExpectedType(
             IJadescriptType expected,
             IJadescriptType actual,
             String issueCode,
@@ -345,7 +346,7 @@ public class ValidationHelper implements SemanticsConsts {
             ValidationMessageAcceptor acceptor
     ) {
         expected = expected.postResolve();
-        assertion(
+        return assertion(
                 expected.isAssignableFrom(actual),
                 issueCode,
                 "Invalid type; found: '" + actual.getJadescriptName() +
@@ -373,7 +374,7 @@ public class ValidationHelper implements SemanticsConsts {
         return sb.toString();
     }
 
-    public void assertExpectedTypes(
+    public boolean assertExpectedTypes(
             List<IJadescriptType> expected,
             IJadescriptType actual,
             String issueCode,
@@ -381,14 +382,14 @@ public class ValidationHelper implements SemanticsConsts {
             ValidationMessageAcceptor acceptor
     ) {
         if (expected == null || expected.isEmpty()) {
-            return;
+            return VALID;
         }
         boolean b = false;
         for (IJadescriptType e : expected) {
             e = e.postResolve();
             b = b || e.isAssignableFrom(actual);
         }
-        assertion(
+        return assertion(
                 b,
                 issueCode,
                 multiInvalidTypeMessage(expected, actual),
@@ -398,7 +399,7 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
-    public void assertExpectedType(
+    public boolean assertExpectedType(
             IJadescriptType expected,
             IJadescriptType actual,
             String issueCode,
@@ -407,7 +408,7 @@ public class ValidationHelper implements SemanticsConsts {
             ValidationMessageAcceptor acceptor
     ) {
         expected = expected.postResolve();
-        assertion(
+        return assertion(
                 expected.isAssignableFrom(actual),
                 issueCode,
                 "invalid type; found: '" + actual.getJadescriptName() +
@@ -419,7 +420,7 @@ public class ValidationHelper implements SemanticsConsts {
 
     }
 
-    public void assertExpectedType(
+    public boolean assertExpectedType(
             IJadescriptType expected,
             IJadescriptType actual,
             String issueCode,
@@ -429,7 +430,7 @@ public class ValidationHelper implements SemanticsConsts {
             ValidationMessageAcceptor acceptor
     ) {
         expected = expected.postResolve();
-        assertion(
+        return assertion(
                 expected.isAssignableFrom(actual),
                 issueCode,
                 "invalid type; found: '" + actual.getJadescriptName() +
@@ -461,7 +462,7 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
-    public void assertExpectedType(
+    public boolean assertExpectedType(
             Class<?> expected,
             IJadescriptType actual,
             String issueCode,
@@ -471,7 +472,7 @@ public class ValidationHelper implements SemanticsConsts {
     ) {
         Objects.requireNonNull(expected);
         final IJadescriptType expectedDescriptor = module.get(TypeHelper.class).jtFromClass(expected);
-        assertion(
+        return assertion(
                 expectedDescriptor.isAssignableFrom(actual),
                 issueCode,
                 "invalid type; found: '" + actual.getJadescriptName() +
@@ -482,7 +483,7 @@ public class ValidationHelper implements SemanticsConsts {
         );
     }
 
-    public void assertExpectedType(
+    public boolean assertExpectedType(
             Class<?> expected,
             IJadescriptType actual,
             String issueCode,
@@ -493,7 +494,7 @@ public class ValidationHelper implements SemanticsConsts {
     ) {
         Objects.requireNonNull(expected);
         final IJadescriptType expectedDescriptor = module.get(TypeHelper.class).jtFromClass(expected);
-        assertion(
+        return assertion(
                 expectedDescriptor.isAssignableFrom(actual),
                 issueCode,
                 "invalid type; found: '" + actual.getJadescriptName() +
@@ -554,7 +555,7 @@ public class ValidationHelper implements SemanticsConsts {
         }
     }
 
-    public void assertion(
+    public boolean assertion(
             boolean isTrue,
             String issueCode,
             String description,
@@ -582,10 +583,13 @@ public class ValidationHelper implements SemanticsConsts {
                         ISSUE_CODE_PREFIX + issueCode
                 );
             });
+            return INVALID;
         }
+
+        return VALID;
     }
 
-    public void assertion(
+    public boolean assertion(
             boolean isTrue,
             String issueCode,
             String description,
@@ -593,7 +597,7 @@ public class ValidationHelper implements SemanticsConsts {
             EStructuralFeature feature,
             ValidationMessageAcceptor acceptor
     ) {
-        assertion(
+        return assertion(
                 isTrue,
                 issueCode,
                 description,
@@ -604,14 +608,14 @@ public class ValidationHelper implements SemanticsConsts {
         );
     }
 
-    public void assertion(
+    public boolean assertion(
             boolean isTrue,
             String issueCode,
             String description,
             Maybe<? extends EObject> object,
             ValidationMessageAcceptor acceptor
     ) {
-        assertion(
+        return assertion(
                 isTrue,
                 issueCode,
                 description,
@@ -637,7 +641,7 @@ public class ValidationHelper implements SemanticsConsts {
         }
     }
 
-    public void assertion(
+    public boolean assertion(
             Maybe<Boolean> isTrue,
             String issueCode,
             String description,
@@ -650,6 +654,9 @@ public class ValidationHelper implements SemanticsConsts {
 
         if (!isTrue.orElse(true) && eObject.isPresent()) {
             acceptor.acceptError(description, eObject.get(), feature, index, ISSUE_CODE_PREFIX + issueCode);
+            return INVALID;
+        } else {
+            return VALID;
         }
     }
 
@@ -672,14 +679,14 @@ public class ValidationHelper implements SemanticsConsts {
         );
     }
 
-    public void assertion(
+    public boolean assertion(
             Maybe<Boolean> isTrue,
             String issueCode,
             String description,
             Maybe<? extends EObject> object,
             ValidationMessageAcceptor acceptor
     ) {
-        assertion(
+        return assertion(
                 isTrue,
                 issueCode,
                 description,
@@ -797,8 +804,8 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
-    public void assertCanUseAgentReference(Maybe<? extends EObject> obj, ValidationMessageAcceptor acceptor) {
-        assertion(
+    public boolean assertCanUseAgentReference(Maybe<? extends EObject> obj, ValidationMessageAcceptor acceptor) {
+        return assertion(
                 MightUseAgentReference.canUseAgentReference(module.get(ContextManager.class).currentContext()),
                 "AgentNotAccessible",
                 "Agent not accessible from this context.",

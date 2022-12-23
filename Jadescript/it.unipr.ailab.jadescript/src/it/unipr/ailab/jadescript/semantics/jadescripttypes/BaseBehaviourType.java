@@ -127,7 +127,7 @@ public class BaseBehaviourType extends ParametricType implements EmptyCreatable,
     }
 
     @Override
-    public boolean isManipulable() {
+    public boolean haveProperties() {
         return true;
     }
 

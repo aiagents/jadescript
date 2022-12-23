@@ -63,7 +63,7 @@ public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
     }
 
     @Override
-    public boolean isManipulable() {
+    public boolean haveProperties() {
         return false;
     }
 

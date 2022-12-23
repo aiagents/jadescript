@@ -5,126 +5,35 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created on 27/12/16.
  */
 @Singleton
-public abstract class ExpressionSemantics<T> extends Semantics<T> {
+public abstract class ExpressionSemantics<T> extends Semantics {
 
     public ExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
-    }
-
-
-    /**
-     * Auxiliary class used to identify a pair (e, s) where e is an expression and s is its associated semantics
-     * instance.
-     */
-    public static class SemanticsBoundToExpression<T extends EObject> {
-        private final ExpressionSemantics<T> semantics;
-        private final Maybe<T> input;
-
-        public SemanticsBoundToExpression(ExpressionSemantics<T> semantics, Maybe<T> input) {
-            this.semantics = semantics;
-            this.input = input;
-        }
-
-        public ExpressionSemantics<T> getSemantics() {
-            return semantics;
-        }
-
-        public Maybe<T> getInput() {
-            return input;
-        }
-
-        public void doWithBinding(BiConsumer<ExpressionSemantics<T>, Maybe<T>> consumer) {
-            consumer.accept(semantics, input);
-        }
-
-        public <R> R doWithBinding(BiFunction<ExpressionSemantics<T>, Maybe<T>, R> function) {
-            return function.apply(semantics, input);
-        }
-    }
-
-    /**
-     * Given a Maybe(input), it provides a list of pairs (e, s), where e is a subexpression of the input and s the
-     * associated semantics.
-     */
-    public abstract List<ExpressionSemantics.SemanticsBoundToExpression<?>> getSubExpressions(Maybe<T> input);
-
-
-    //TODO the compile method could return more stuff (in one sweep, which is faster). In particular:
-    // - the string of the compiled expression (ECR)
-    // - the flow-typing implications (ECR)
-    // - the auxiliary statements (the acceptor pattern is ok, however)
-    // - a simple effect-analysis (this could maybe use the acceptor pattern too...)
-    // - the context-generation implications (acceptor pattern too?)
-    /**
-     * Produces a String resulting from the direct compilation of the input expression.
-     *
-     * @param input    the input expression
-     * @param acceptor an acceptor that can be used to produce additional statements which will be added as auxiliary
-     *                 statements for the expression evaluation
-     * @return the corresponding Java expression
-     */
-    public abstract ExpressionCompilationResult compile(Maybe<T> input, StatementCompilationOutputAcceptor acceptor);
-
-
-    /**
-     * Computes the type of the input expression.
-     */
-    public abstract IJadescriptType inferType(Maybe<T> input);
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public ExpressionTypeKB extractFlowTypeTruths(Maybe<T> input) {
-        if (mustTraverse(input)) {
-            Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                //noinspection unchecked,rawtypes
-                return traversed.get().getSemantics().extractFlowTypeTruths((Maybe) traversed.get().getInput());
-            }
-        }
-        return ExpressionTypeKB.empty();
-    }
-
-
-
-    /**
-     * This should return true <i>only if</i> the input expression can be evaluated without causing side-effects.
-     * This is used, most importantly, to determine if an expression can be used as condition for handler activation (in
-     * the when-clause, or as part of the content pattern).
-     * Please remember that the evaluation of such conditions should not cause side-effects.
-     */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public boolean isAlwaysPure(Maybe<T> input) {
-        if (mustTraverse(input)) {
-            Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                //noinspection unchecked,rawtypes
-                return traversed.get().getSemantics().isAlwaysPure((Maybe) traversed.get().getInput());
-            }
-        }
-        return true;//expressions are mostly pure
     }
 
     /**
@@ -140,7 +49,7 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
      * but rather in some of the semantics objects for its subexpressions, and therefore, this node should be traversed
      * (see {@link ExpressionSemantics#traverse(Maybe)}).
      */
-    public abstract boolean mustTraverse(Maybe<T> input);
+    protected abstract boolean mustTraverse(Maybe<T> input);
 
     /**
      * Returns a {@link SemanticsBoundToExpression} instance if the input expression is just a node of the AST intended
@@ -155,24 +64,64 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
      * The instance contains a pair (e, s) where e is the sub-expression resulting from the traverse operation, and s is
      * its corresponding semantics.
      */
-    public abstract Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traverse(Maybe<T> input);
+    protected abstract Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traverse(Maybe<T> input);
 
-
-    //TODO move in compile, using visitor/acceptor pattern
     /**
-     * Recursively navigates the AST starting from the input expression, producing a list of {@link StatementWriter}s,
-     * where each writer compiles to a statement that has to be added before the compilation of the evaluation of the
-     * expression.
-     * This is used for those expressions (e.g, pattern matching) that require some preparative steps in generated
-     * Java code in order to be evaluated.
+     * Given a Maybe(input), it provides a list of pairs (e, s), where e is a subexpression of the input and s the
+     * associated semantics.
      */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public final Stream<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().getSubExpressions((Maybe) x.getInput()))
+                .orElseGet(() -> getSubExpressionsInternal(input));
+    }
+
+    protected abstract Stream<SemanticsBoundToExpression<?>>
+    getSubExpressionsInternal(Maybe<T> input);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public final <TT> boolean subExpressionsAllMatch(
+            Maybe<T> input,
+            BiPredicate<ExpressionSemantics<TT>, Maybe<TT>> predicate
+    ) {
+        return getSubExpressions(input)
+                .allMatch(sbte -> ((BiPredicate) predicate).test(sbte.getSemantics(), sbte.getInput()));
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public final <TT> boolean subExpressionsAnyMatch(
+            Maybe<T> input,
+            BiPredicate<ExpressionSemantics<TT>, Maybe<TT>> predicate
+    ) {
+        return getSubExpressions(input)
+                .anyMatch(sbte -> ((BiPredicate) predicate).test(sbte.getSemantics(), sbte.getInput()));
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public final <TT> boolean subExpressionsNoneMatch(
+            Maybe<T> input,
+            BiPredicate<ExpressionSemantics<TT>, Maybe<TT>> predicate
+    ) {
+        return getSubExpressions(input)
+                .noneMatch(sbte -> ((BiPredicate) predicate).test(sbte.getSemantics(), sbte.getInput()));
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public final <TT, R> Stream<R> mapSubExpressions(
+            Maybe<T> input,
+            BiFunction<ExpressionSemantics<TT>, Maybe<TT>, R> function
+    ) {
+        return getSubExpressions(input)
+                .map(sbte -> (R) ((BiFunction) function).apply(sbte.getSemantics(), sbte.getInput()));
+    }
 
     /**
      * Applies a function to the input AST node and to each of its children (ea sunt, the input expression and its
      * sub-expressions) and collects the values resulting from the applications into a List.
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public <R> List<? extends R> collectFromAllNodes(
+    public final <R> List<? extends R> collectFromAllNodes(
             Maybe<T> input,
             BiFunction<Maybe<?>, ExpressionSemantics<?>, R> function
     ) {
@@ -183,7 +132,7 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
                 return traversed.get().getSemantics().collectFromAllNodes((Maybe) traversed.get().getInput(), function);
             }
         }
-        
+
         List<R> result = new ArrayList<>();
         result.add(function.apply(input, this));
 
@@ -196,33 +145,134 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
     }
 
     /**
-     * Validates the input expression ensuring that it can be used as condition for the execution of an event handler.
+     * Produces a String resulting from the direct compilation of the input expression.
+     *
+     * @param input    the input expression
+     * @param acceptor an acceptor that can be used to produce additional statements which will be added as auxiliary
+     *                 statements for the expression evaluation
+     * @return the corresponding Java expression
      */
-    public void validateUsageAsHandlerCondition(
-            Maybe<T> input,
-            Maybe<? extends EObject> refObject,
-            ValidationMessageAcceptor acceptor
-    ) {
-        module.get(ValidationHelper.class).assertion(
-                isAlwaysPure(input),
-                "InvalidHandlerCondition",
-                "Only expressions without side effects can be used as conditions to execute an event handler",
-                refObject,
-                acceptor
-        );
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public final String compile(Maybe<T> input, CompilationOutputAcceptor acceptor) {
+        return traverse(input)
+                .map(x -> x.getSemantics().compile((Maybe) x.getInput(), acceptor))
+                .orElseGet(() -> compileInternal(input, acceptor));
+
     }
+
+
+    //TODO the compile method could return more stuff (in one sweep, which is faster). In particular:
+    // - the string of the compiled expression (ECR)
+    // - the flow-typing implications (ECR)
+    // - the auxiliary statements (acceptor)
+    // - a simple effect-analysis (this could maybe use the acceptor pattern too...)
+    // - the context-generation implications (acceptor pattern too?)
+
+    /**
+     * @see ExpressionSemantics#compile(Maybe, CompilationOutputAcceptor)
+     */
+    protected abstract String compileInternal(Maybe<T> input, CompilationOutputAcceptor acceptor);
+
+    /**
+     * Computes the type of the input expression.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public final IJadescriptType inferType(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().inferType((Maybe) x.getInput()))
+                .orElseGet(() -> inferTypeInternal(input));
+    }
+
+    /**
+     * @see ExpressionSemantics#inferType(Maybe)
+     */
+    protected abstract IJadescriptType inferTypeInternal(Maybe<T> input);
+
+    //TODO Javadoc
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public final boolean validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {
+        return traverse(input)
+                .map(x -> x.getSemantics().validate((Maybe) x.getInput(), acceptor))
+                .orElseGet(() -> validateInternal(input, acceptor));
+    }
+
+    /**
+     * @see ExpressionSemantics#validate(Maybe, ValidationMessageAcceptor)
+     */
+    protected abstract boolean validateInternal(Maybe<T> input, ValidationMessageAcceptor acceptor);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public final List<String> propertyChain(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().propertyChain((Maybe) x.getInput()))
+                .orElseGet(() -> propertyChainInternal(input));
+    }
+
+    protected abstract List<String> propertyChainInternal(Maybe<T> input);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public final ExpressionTypeKB computeKB(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().computeKB((Maybe) x.getInput()))
+                .orElseGet(() -> computeKBInternal(input));
+
+    }
+
+    protected abstract ExpressionTypeKB computeKBInternal(Maybe<T> input);
+
+    /**
+     * This returns true <i>only if</i> the input expression can be evaluated without causing side-effects.
+     * This is used, most importantly, to determine if an expression can be used as condition for handler activation (in
+     * the when-clause, or as part of the content pattern).
+     * Please remember that the evaluation of such conditions should not cause side-effects.
+     * <p></p>
+     * This is usually decided taking into account the purity of sub-expressions.
+     * @see ExpressionSemantics#subExpressionsAllAlwaysPure(Maybe)
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+
+    public final boolean isAlwaysPure(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().isAlwaysPure((Maybe) x.getInput()))
+                .orElseGet(() -> isAlwaysPureInternal(input));
+    }
+
+    protected abstract boolean isAlwaysPureInternal(Maybe<T> input);
+
+    public final boolean subExpressionsAllAlwaysPure(Maybe<T> input){
+        return subExpressionsAllMatch(input, ExpressionSemantics::isAlwaysPure);
+    }
+
 
 
     /**
      * Returns true iff the input expression can be syntactically used as L-Expression, i.e., an assignable expression
      * that when evaluated at the left of an assignment produces a value that represents a writeable cell.
+     * <p></p>
+     * This is usually decided locally.
      */
-    public boolean isValidLExpr(Maybe<T> input) {
-        return false;
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public final boolean isValidLExpr(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().isValidLExpr((Maybe) x.getInput()))
+                .orElseGet(() -> isValidLExprInternal(input));
     }
 
+    protected abstract boolean isValidLExprInternal(Maybe<T> input);
 
-    public abstract boolean isPatternEvaluationPure(Maybe<T> input);
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public final boolean isPatternEvaluationPure(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().isPatternEvaluationPure((Maybe) x.getInput()))
+                .orElseGet(() -> isPatternEvaluationPureInternal(input));
+    }
+
+    protected abstract boolean isPatternEvaluationPureInternal(Maybe<T> input);
+
+    public final boolean subPatternEvaluationsAllPure(Maybe<T> input){
+        return subExpressionsAllMatch(input, ExpressionSemantics::isPatternEvaluationPure);
+    }
 
     /**
      * Returns true if this expression contains holes in it e.g., unbounded identifiers or '_' placeholders.
@@ -232,21 +282,20 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
      * traversing).
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public boolean isHoled(Maybe<T> input) {
-        if (mustTraverse(input)) {
-            final Optional<SemanticsBoundToExpression<?>> traverse = traverse(input);
-            if (traverse.isPresent()) {
-                final ExpressionSemantics<?> semantics = traverse.get().getSemantics();
-                final Maybe traversedInput = traverse.get().getInput();
-                return semantics.isHoled(traversedInput);
-            }
-        }
+    public final boolean isHoled(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().isHoled((Maybe) x.getInput()))
+                .orElseGet(() -> isHoledInternal(input));
+    }
 
-        return false;
+    protected abstract boolean isHoledInternal(Maybe<T> input);
+
+    public final boolean subExpressionsAnyHoled(Maybe<T> input){
+        return subExpressionsAnyMatch(input, ExpressionSemantics::isHoled);
     }
 
     /**
-     * Similar to {@link ExpressionSemantics#isHoled(Maybe)} , but used only by the process of type inferring of
+     * Similar to {@link ExpressionSemantics#isHoled(Maybe)}, but used only by the process of type inferring of
      * patterns.
      * Being "typely holed" is a special case of being "holed".
      * In fact, some holed patterns can still provide complete information about their type at compile time.
@@ -256,85 +305,103 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
      * By design, if this method returns true for a given pattern, then
      * {@link ExpressionSemantics#inferPatternType(Maybe, PatternMatchMode)} should return a
      * {@link PatternType.HoledPatternType}, otherwise a {@link PatternType.SimplePatternType} is expected.
-     * The default implementation attempts to traverse the expression tree, and when this is not possible, it returns
-     * the same value as {@link ExpressionSemantics#isHoled(Maybe)}, but this must be overridden by special cases like
-     * the one in the example mentioned above.
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public boolean isTypelyHoled(Maybe<T> input) {
-        if (mustTraverse(input)) {
-            final Optional<SemanticsBoundToExpression<?>> traverse = traverse(input);
-            if (traverse.isPresent()) {
-                final ExpressionSemantics<?> semantics = traverse.get().getSemantics();
-                final Maybe traversedInput = traverse.get().getInput();
-                return semantics.isTypelyHoled(traversedInput);
-            }
-        }
+    public final boolean isTypelyHoled(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().isTypelyHoled((Maybe) x.getInput()))
+                .orElseGet(() -> isTypelyHoledInternal(input));
+    }
 
-        return isHoled(input);
+    protected abstract boolean isTypelyHoledInternal(Maybe<T> input);
+
+    public final boolean subExpressionsAnyTypelyHoled(Maybe<T> input){
+        return subExpressionsAnyMatch(input, ExpressionSemantics::isTypelyHoled);
     }
 
     /**
      * Returns true if this expression contains unbounded names in it.
-     * In {@link ExpressionSemantics} there is a default implementation that returns false unless a traversing is
-     * required.
-     * Overridden by semantics classes which implement semantics of expressions which can present unbound names (without
-     * traversing).
      */
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public boolean isUnbound(Maybe<T> input) {
-        if (mustTraverse(input)) {
-            final Optional<SemanticsBoundToExpression<?>> traverse = traverse(input);
-            if (traverse.isPresent()) {
-                final ExpressionSemantics<?> semantics = traverse.get().getSemantics();
-                final Maybe traversedInput = traverse.get().getInput();
-                return semantics.isUnbound(traversedInput);
-            }
-        }
+    public final boolean isUnbound(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().isUnbound((Maybe) x.getInput()))
+                .orElseGet(() -> isUnboundInternal(input));
+    }
 
-        return false;
+    protected abstract boolean isUnboundInternal(Maybe<T> input);
+
+    public final boolean subExpressionsAnyUnbound(Maybe<T> input){
+        return subExpressionsAnyMatch(input, ExpressionSemantics::isUnbound);
     }
 
     /**
      * Returns true if this kind of expression can contain holes in order to form a pattern.
      * For example, a subscript operation cannot be holed.
+     * <p></p>
+     * Decided locally.
      */
-    protected boolean canBeHoled(Maybe<T> input) {
-        //TODO ?
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public final boolean canBeHoled(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().canBeHoled((Maybe) x.getInput()))
+                .orElseGet(() -> canBeHoledInternal(input));
     }
+
+    protected abstract boolean canBeHoledInternal(Maybe<T> input);
 
     /**
      * Returns true if this kind of expression contains assignable parts (i.e., parts that are bound/resolved/not-holed
      * but, at the same time, can be at the left of the assignment since they represent a writeable cell).
+     * <p></p>
      */
-    protected boolean containsNotHoledAssignableParts(Maybe<T> input) {
-
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public final boolean containsNotHoledAssignableParts(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().containsNotHoledAssignableParts((Maybe) x.getInput()))
+                .orElseGet(() -> containsNotHoledAssignablePartsInternal(input));
     }
 
+    protected abstract boolean containsNotHoledAssignablePartsInternal(Maybe<T> input);
 
-    protected boolean isSubPatternGroundForEquality(PatternMatchInput<T, ?, ?> patternMatchInput) {
+    public final boolean subExpressionsAnyContainsNotHoledAssignableParts(Maybe<T> input){
+        return subExpressionsAnyMatch(input, ExpressionSemantics::containsNotHoledAssignableParts);
+    }
+
+    private boolean isSubPatternGroundForEquality(PatternMatchInput<T, ?, ?> patternMatchInput) {
         return isSubPatternGroundForEquality(patternMatchInput.getPattern(), patternMatchInput.getMode());
     }
 
-    protected boolean isSubPatternGroundForAssignment(PatternMatchInput<T, ?, ?> patternMatchInput) {
+    private boolean isSubPatternGroundForAssignment(PatternMatchInput<T, ?, ?> patternMatchInput) {
         return patternMatchInput.getMode().getPatternLocation() == PatternMatchMode.PatternLocation.SUB_PATTERN
                 && !isHoled(patternMatchInput.getPattern())
                 && isValidLExpr(patternMatchInput.getPattern());
     }
 
-    protected boolean isSubPatternGroundForEquality(Maybe<T> pattern, PatternMatchMode mode) {
+    private boolean isSubPatternGroundForEquality(Maybe<T> pattern, PatternMatchMode mode) {
         return isSubPatternGroundForEquality(pattern, mode.getPatternLocation());
     }
 
-    protected boolean isSubPatternGroundForEquality(Maybe<T> pattern, PatternMatchMode.PatternLocation location) {
+    private boolean isSubPatternGroundForEquality(Maybe<T> pattern, PatternMatchMode.PatternLocation location) {
         return location == PatternMatchMode.PatternLocation.SUB_PATTERN && !isHoled(pattern);
     }
 
-    @SuppressWarnings("unchecked")
-    public <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public final <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
     PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, U, N> compilePatternMatch(
             PatternMatchInput<T, U, N> input,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
+    ) {
+        return traverse(input.getPattern())
+                .map(x -> x.getSemantics().compilePatternMatch(input.replacePattern((Maybe) x.getInput()), acceptor))
+                .orElseGet(() -> prepareCompilePatternMatch(input, acceptor));
+    }
+
+    @SuppressWarnings({"unchecked"})
+    private <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
+    PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, U, N> prepareCompilePatternMatch(
+            PatternMatchInput<T, U, N> input,
+            CompilationOutputAcceptor acceptor
     ) {
         if (isSubPatternGroundForEquality(input)) {
             return (PatternMatchOutput<PatternMatchSemanticsProcess.IsCompilation, U, N>)
@@ -345,7 +412,20 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
         }
     }
 
-    public PatternType inferPatternType(
+    public abstract PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    compilePatternMatchInternal(PatternMatchInput<T, ?, ?> input, CompilationOutputAcceptor acceptor);
+
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public final PatternType inferPatternType(
+            Maybe<T> input, PatternMatchMode mode
+    ) {
+        return traverse(input)
+                .map(x -> x.getSemantics().inferPatternType((Maybe) x.getInput(), mode))
+                .orElseGet(() -> prepareInferPatternType(input, mode));
+    }
+
+    private PatternType prepareInferPatternType(
             Maybe<T> input, PatternMatchMode mode
     ) {
         if (isSubPatternGroundForEquality(input, mode)) {
@@ -355,7 +435,14 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
         }
     }
 
-    public PatternType inferSubPatternType(Maybe<T> input) {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public final PatternType inferSubPatternType(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().inferSubPatternType((Maybe) x.getInput()))
+                .orElseGet(() -> prepareInferSubPatternType(input));
+    }
+
+    private PatternType prepareInferSubPatternType(Maybe<T> input) {
         if (isSubPatternGroundForEquality(input, PatternMatchMode.PatternLocation.SUB_PATTERN)) {
             return PatternType.simple(inferType(input));
         } else {
@@ -363,10 +450,23 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
         }
     }
 
+    public abstract PatternType inferPatternTypeInternal(Maybe<T> input);
+
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public final <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
+    PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, U, N> validatePatternMatch(
+            PatternMatchInput<T, U, N> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        return traverse(input.getPattern())
+                .map(x -> x.getSemantics().validatePatternMatch(input.replacePattern((Maybe) x.getInput()), acceptor))
+                .orElseGet(() -> prepareValidatePatternMatch(input, acceptor));
+    }
 
     @SuppressWarnings("unchecked")
-    public <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
-    PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, U, N> validatePatternMatch(
+    private <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
+    PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, U, N> prepareValidatePatternMatch(
             PatternMatchInput<T, U, N> input,
             ValidationMessageAcceptor acceptor
     ) {
@@ -509,7 +609,10 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
         }
     }
 
-    protected void validatePatternTypeRelationshipRequirement(
+    public abstract PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>
+    validatePatternMatchInternal(PatternMatchInput<T, ?, ?> input, ValidationMessageAcceptor acceptor);
+
+    private void validatePatternTypeRelationshipRequirement(
             Maybe<T> pattern,
             Class<? extends TypeRelationship> requirement,
             TypeRelationship actualRelationship,
@@ -527,7 +630,7 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
         );
     }
 
-    protected <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
+    private <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
     void validatePatternTypeRelationshipRequirement(
             PatternMatchInput<T, U, N> input,
             IJadescriptType solvedType,
@@ -543,7 +646,7 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
         );
     }
 
-    protected <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
+    private <U extends PatternMatchOutput.Unification, N extends PatternMatchOutput.TypeNarrowing>
     void validatePatternTypeRelationshipRequirement(
             PatternMatchInput<T, U, N> input,
             ValidationMessageAcceptor acceptor
@@ -555,8 +658,7 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
         );
     }
 
-
-    private PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>
+    protected final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>
     validateExpressionEqualityPatternMatch(
             PatternMatchInput.SubPattern<T, ?, ?, ?> input
     ) {
@@ -577,10 +679,10 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
      * @return a pattern matching component that simply checks if the evaluated input expression equals to the evaluated
      * expression given as subpattern.
      */
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    protected final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compileExpressionEqualityPatternMatch(
             PatternMatchInput<T, ?, ?> input,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode())
                 .solve(input.getProvidedInputType());
@@ -592,7 +694,7 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
         );
     }
 
-    protected PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>
+    protected final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>
     validateExpressionEqualityPatternMatch(
             PatternMatchInput<T, ?, ?> input,
             ValidationMessageAcceptor acceptor
@@ -607,17 +709,57 @@ public abstract class ExpressionSemantics<T> extends Semantics<T> {
     }
 
 
-    public abstract PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<T, ?, ?> input, StatementCompilationOutputAcceptor acceptor);
 
-    public abstract PatternType inferPatternTypeInternal(Maybe<T> input);
+    /**
+     * Validates the input expression ensuring that it can be used as condition for the execution of an event handler.
+     */
+    public final boolean validateUsageAsHandlerCondition(
+            Maybe<T> input,
+            Maybe<? extends EObject> refObject,
+            ValidationMessageAcceptor acceptor
+    ) {
+        return module.get(ValidationHelper.class).assertion(
+                isAlwaysPure(input),
+                "InvalidHandlerCondition",
+                "Only expressions without side effects can be used as conditions to execute an event handler",
+                refObject,
+                acceptor
+        );
+    }
 
-    public abstract PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>
-    validatePatternMatchInternal(PatternMatchInput<T, ?, ?> input, ValidationMessageAcceptor acceptor);
+    /**
+     * Auxiliary class used to identify a pair (e, s) where e is an expression and s is its associated semantics
+     * instance.
+     */
+    public static class SemanticsBoundToExpression<T extends EObject> {
+        private final ExpressionSemantics<T> semantics;
+        private final Maybe<T> input;
+
+        public SemanticsBoundToExpression(ExpressionSemantics<T> semantics, Maybe<T> input) {
+            this.semantics = semantics;
+            this.input = input;
+        }
+
+        public ExpressionSemantics<T> getSemantics() {
+            return semantics;
+        }
+
+        public Maybe<T> getInput() {
+            return input;
+        }
+
+        public void doWithBinding(BiConsumer<ExpressionSemantics<T>, Maybe<T>> consumer) {
+            consumer.accept(semantics, input);
+        }
+
+        public <R> R doWithBinding(BiFunction<ExpressionSemantics<T>, Maybe<T>, R> function) {
+            return function.apply(semantics, input);
+        }
+    }
 
 
     //ALSO TODO ensure that each pattern matching is evaluated inside its own subscope
     //          this is because a pattern could introduce variables that are used in the same pattern
     //          - then remember to populate the resulting context with the variables given by the output object
-    //ALSO TODO refactor compile-expression to provide auxiliary statements in one sweep
+
 }

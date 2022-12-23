@@ -11,11 +11,9 @@ import it.unipr.ailab.jadescript.semantics.expression.SingleIdentifierExpression
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class FailStatementSemantics extends StatementSemantics<FailStatement> {
@@ -24,12 +22,12 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
     }
 
     @Override
-    public void compileStatement(Maybe<FailStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<FailStatement> input, CompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> target = input.__(FailStatement::getTarget);
         Maybe<RValueExpression> reason = input.__(FailStatement::getReason);
         acceptor.accept(w.callStmnt(
-                module.get(RValueExpressionSemantics.class).compile(target, acceptor).orElse("") + ".__failBehaviour",
-                w.expr(module.get(RValueExpressionSemantics.class).compile(reason, acceptor).orElse(""))
+                module.get(RValueExpressionSemantics.class).compile(target, acceptor) + ".__failBehaviour",
+                w.expr(module.get(RValueExpressionSemantics.class).compile(reason, acceptor).toString())
         ));
 
 

@@ -40,7 +40,7 @@ public class BaseOntologyType extends JadescriptType implements EmptyCreatable, 
     }
 
     @Override
-    public boolean isManipulable() {
+    public boolean haveProperties() {
         return true;
     }
 

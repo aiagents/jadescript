@@ -240,6 +240,11 @@ public abstract class JvmModelBasedNamespace
         }
 
         @Override
+        public boolean isPure() {
+            //RETURN TRUE FOR PATTERN-MATCHEABLE FACTORY METHODS!
+        }
+
+        @Override
         public List<IJadescriptType> parameterTypes() {
             return jvmOperation.getParameters().stream()
                     .map(p -> typeResolver.apply(p.getParameterType()))
@@ -329,6 +334,11 @@ public abstract class JvmModelBasedNamespace
                             ", ",
                             MethodInvocationSemantics.sortToMatchParamNames(args, argNames, parameterNames())
                     ) + ")";
+        }
+
+        @Override
+        public boolean isPure() {
+            // RETURN TRUE?
         }
 
         @Override

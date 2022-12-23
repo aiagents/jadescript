@@ -17,7 +17,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
 import it.unipr.ailab.maybe.Functional;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import jade.content.ContentElement;
 import jade.content.abs.AbsContentElement;
 import jadescript.lang.Performative;
@@ -28,7 +27,6 @@ import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -208,7 +206,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
     }
 
     @Override
-    public void compileStatement(Maybe<SendMessageStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<SendMessageStatement> input, CompilationOutputAcceptor acceptor) {
         String messageName = hashBasedName("_synthesizedMessage", input.toNullable());
 
 
@@ -232,7 +230,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
         final String adaptedCompiledContent = module.get(TypeHelper.class).adaptMessageContentDefaultCompile(
                 performative,
                 inputContentType,
-                rves.compile(contentExpr, acceptor).orElse("")
+                rves.compile(contentExpr, acceptor).toString()
         );
 
         acceptor.accept(w.variable("java.lang.Object", contentVarName, w.expr(adaptedCompiledContent)));
@@ -273,7 +271,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
             Maybe<SendMessageStatement> input,
             Maybe<CommaSeparatedListOfRExpressions> receivers,
             String messageName,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         Maybe<EList<RValueExpression>> rexprs = receivers
                 .__(CommaSeparatedListOfRExpressions::getExpressions);
@@ -305,7 +303,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
             String messageName,
             String componentType,
             String receiversTypeName,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         input.safeDo(inputSafe -> {
             String receiversListName = synthesizeReceiverListName(inputSafe);
@@ -316,7 +314,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
                 acceptor.accept(w.variable(
                         receiversTypeName,
                         receiversListName,
-                        w.expr(module.get(RValueExpressionSemantics.class).compile(receiversExpr, acceptor).orElse(""))
+                        w.expr(module.get(RValueExpressionSemantics.class).compile(receiversExpr, acceptor).toString())
                 ));
                 acceptor.accept(w.foreach(componentType, receiverName, w.expr(receiversListName), doAIDConversion ?
                                 w.block().addStatement(w.callStmnt(
@@ -340,10 +338,10 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
     private void setReceiver(
             Maybe<RValueExpression> re,
             String messageName,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         IJadescriptType componentType = module.get(RValueExpressionSemantics.class).inferType(re);
-        String argOfAddReceiver = module.get(RValueExpressionSemantics.class).compile(re, acceptor).orElse("");
+        String argOfAddReceiver = module.get(RValueExpressionSemantics.class).compile(re, acceptor).toString();
 
         boolean doAIDConversion = !module.get(TypeHelper.class).AID.typeEquals(componentType);
         acceptor.accept(doAIDConversion ?
@@ -405,7 +403,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
             String contentVarName,
             String messageName,
             Maybe<String> performative,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
 
         Maybe<UsesOntologyElement> container = input.__(

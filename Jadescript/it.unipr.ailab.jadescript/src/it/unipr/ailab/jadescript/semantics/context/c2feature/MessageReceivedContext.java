@@ -4,7 +4,9 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedRefere
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import jadescript.lang.Performative;
 
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -12,6 +14,8 @@ import java.util.stream.Stream;
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
 public interface MessageReceivedContext extends SemanticsConsts {
+    Maybe<Performative> getPerformative();
+
     IJadescriptType getMessageContentType();
 
     IJadescriptType getMessageType();
@@ -49,6 +53,7 @@ public interface MessageReceivedContext extends SemanticsConsts {
 
     default void debugDumpReceivedMessage(SourceCodeBuilder scb) {
         scb.open("--> is MessageReceivedContext {");
+        scb.line("performative = " + getPerformative());
         scb.line("messageContentType = " + getMessageContentType().getDebugPrint());
         scb.line("messageType = " + getMessageType().getDebugPrint());
         scb.close("}");

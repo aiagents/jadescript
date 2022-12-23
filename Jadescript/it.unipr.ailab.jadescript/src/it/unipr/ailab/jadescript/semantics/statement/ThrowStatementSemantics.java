@@ -43,14 +43,14 @@ public class ThrowStatementSemantics extends StatementSemantics<ThrowStatement> 
     }
 
     @Override
-    public void compileStatement(Maybe<ThrowStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<ThrowStatement> input, CompilationOutputAcceptor acceptor) {
 
         acceptor.accept(w.callStmnt(
                 EXCEPTION_THROWER_NAME+".__throw",
                 w.expr(module.get(RValueExpressionSemantics.class).compile(
                         input.__(ThrowStatement::getReason),
                         acceptor
-                ).orElse(""))
+                ).toString())
         ));
     }
 

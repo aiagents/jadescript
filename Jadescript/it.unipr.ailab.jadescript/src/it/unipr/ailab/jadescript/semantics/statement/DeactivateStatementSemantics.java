@@ -13,7 +13,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -32,7 +31,7 @@ public class DeactivateStatementSemantics extends StatementSemantics<DeactivateS
     }
 
     @Override
-    public void compileStatement(Maybe<DeactivateStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<DeactivateStatement> input, CompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> target = input.__(DeactivateStatement::getTarget);
         Maybe<RValueExpression> delay = input.__(DeactivateStatement::getDelay);
         Maybe<RValueExpression> end = input.__(DeactivateStatement::getEndTime);
@@ -40,16 +39,16 @@ public class DeactivateStatementSemantics extends StatementSemantics<DeactivateS
 
         String methodName = "deactivate";
         List<ExpressionWriter> params = new ArrayList<>();
-        final String compiledBehaviour = module.get(RValueExpressionSemantics.class).compile(target, acceptor).orElse("");
+        final String compiledBehaviour = module.get(RValueExpressionSemantics.class).compile(target, acceptor).toString();
 
         if (delay.isPresent()) {
             methodName += "_after";
-            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(delay, acceptor).orElse("")));
+            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(delay, acceptor).toString()));
         }
 
         if (end.isPresent()) {
             methodName += "_at";
-            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(end, acceptor).orElse("")));
+            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(end, acceptor).toString()));
         }
 
 

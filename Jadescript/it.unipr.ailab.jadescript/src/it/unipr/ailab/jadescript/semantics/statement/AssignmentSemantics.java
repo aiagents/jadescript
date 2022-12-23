@@ -33,7 +33,7 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
     }
 
     @Override
-    public void compileStatement(Maybe<Assignment> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<Assignment> input, CompilationOutputAcceptor acceptor) {
         Optional<String> ident = extractIdentifierIfAvailable(input);
         Optional<? extends NamedSymbol> variable;
         if (ident.isPresent()) {
@@ -48,32 +48,30 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
 
 
         Maybe<RValueExpression> rexpr = input.__(Assignment::getRexpr);
-        String compiledRExpression = module.get(RValueExpressionSemantics.class).compile(rexpr, acceptor).orElse("");
+        ExpressionCompilationResult compiledRExpression = module.get(RValueExpressionSemantics.class)
+                .compile(rexpr, acceptor);
 
-        if (true) {//check for inferred declaration
-            if (ident.isPresent() && variable.isEmpty()) {
-                compileVarDeclaration(ident.get(), input.__(Assignment::getRexpr), acceptor);
-            }
+
+
+        if (ident.isPresent() && variable.isEmpty()) {
+            // TODO: can't this be delegated to SingleIdentifierExpressionSemantics?
+            String name = ident.get();
+            Maybe<RValueExpression> expr = input.__(Assignment::getRexpr);
+
+            IJadescriptType type = module.get(RValueExpressionSemantics.class).inferType(expr);
+            final UserVariable userVariable = module.get(ContextManager.class)
+                    .currentScope().addUserVariable(name, type, true);
+            module.get(CompilationHelper.class).lateBindingContext().pushVariable(userVariable);
+            acceptor.accept(w.varDeclPlaceholder(
+                    type.compileToJavaTypeReference(),
+                    name,
+                    w.expr(module.get(RValueExpressionSemantics.class).compile(expr, acceptor).getGeneratedText())
+            ));
+        }else{
+            //TODO?
         }
 
 
-    }
-
-    public void compileVarDeclaration(
-            String name,
-            Maybe<RValueExpression> expr,
-            StatementCompilationOutputAcceptor acceptor
-    ) {
-
-        IJadescriptType type = module.get(RValueExpressionSemantics.class).inferType(expr);
-        final UserVariable userVariable = module.get(ContextManager.class)
-                .currentScope().addUserVariable(name, type, true);
-        module.get(CompilationHelper.class).lateBindingContext().pushVariable(userVariable);
-        acceptor.accept(w.varDeclPlaceholder(
-                type.compileToJavaTypeReference(),
-                name,
-                w.expr(module.get(RValueExpressionSemantics.class).compile(expr, acceptor).orElse(""))
-        ));
     }
 
     @Override

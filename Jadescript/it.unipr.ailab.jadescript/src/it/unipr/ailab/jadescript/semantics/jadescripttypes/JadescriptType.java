@@ -82,8 +82,8 @@ public abstract class JadescriptType implements SemanticsConsts, IJadescriptType
 
 
     @Override
-    public void validateType(Maybe<? extends EObject> input, ValidationMessageAcceptor acceptor) {
-        module.get(ValidationHelper.class).assertion(
+    public boolean validateType(Maybe<? extends EObject> input, ValidationMessageAcceptor acceptor) {
+        return module.get(ValidationHelper.class).assertion(
                 !isErroneous(),
                 "InvalidType",
                 "Invalid type: '" + getJadescriptName() + "'.",

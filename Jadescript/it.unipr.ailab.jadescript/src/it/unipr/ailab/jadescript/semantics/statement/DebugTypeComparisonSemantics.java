@@ -55,7 +55,7 @@ public class DebugTypeComparisonSemantics extends StatementSemantics<DebugTypeCo
     }
 
     @Override
-    public void compileStatement(Maybe<DebugTypeComparison> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<DebugTypeComparison> input, CompilationOutputAcceptor acceptor) {
         final Maybe<TypeExpression> typEx1 = input.__(DebugTypeComparison::getType1);
         final Maybe<TypeExpression> typEx2 = input.__(DebugTypeComparison::getType2);
         final IJadescriptType type1 = module.get(TypeExpressionSemantics.class).toJadescriptType(typEx1);

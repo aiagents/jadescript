@@ -27,19 +27,6 @@ public class PatternMatchOutput<
     }
 
 
-
-    public PatternMatchOutput<P, U, N> mapIfUnifies(Function<DoesUnification, U> func) {
-        if (this.getUnificationInfo() instanceof DoesUnification) {
-            return new PatternMatchOutput<>(
-                    getProcessInfo(),
-                    func.apply(((DoesUnification) this.getUnificationInfo())),
-                    getTypeNarrowingInfo()
-            );
-        } else {
-            return this;
-        }
-    }
-
     public interface Unification {
     }
 

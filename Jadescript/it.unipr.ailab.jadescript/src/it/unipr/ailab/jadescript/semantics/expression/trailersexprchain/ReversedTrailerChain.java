@@ -4,9 +4,7 @@ import it.unipr.ailab.jadescript.jadescript.AtomExpr;
 import it.unipr.ailab.jadescript.jadescript.Primary;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.Trailer;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
@@ -14,17 +12,20 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchS
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
+
+import static it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts.INVALID;
+import static it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts.VALID;
 
 /**
  * Created on 26/08/18.
- *
  */
 public class ReversedTrailerChain {
     private final List<Maybe<TrailersExpressionChainElement>> elements = new ArrayList<>();
@@ -44,10 +45,10 @@ public class ReversedTrailerChain {
     }
 
 
-    public ExpressionCompilationResult compile(StatementCompilationOutputAcceptor acceptor) {
-        if (elements.isEmpty()) return ExpressionCompilationResult.empty();
+    public String compile(CompilationOutputAcceptor acceptor) {
+        if (elements.isEmpty()) return "";
         return elements.get(0)
-                .__(e -> e.compile(withoutFirst(), acceptor)).orElseGet(ExpressionCompilationResult::empty);
+                .__(e -> e.compile(withoutFirst(), acceptor)).orElse("");
     }
 
     public IJadescriptType inferType() {
@@ -57,44 +58,46 @@ public class ReversedTrailerChain {
                 .orElse(module.get(TypeHelper.class).ANY);
     }
 
-    public void validate(ValidationMessageAcceptor acceptor) {
-        if (elements.isEmpty()) return;
-        elements.get(0).safeDo(e->e.validate(withoutFirst(), acceptor));
+    public boolean validate(ValidationMessageAcceptor acceptor) {
+        if (elements.isEmpty()) return VALID;
+        return elements.get(0).__(e -> e.validate(withoutFirst(), acceptor))
+                .orElse(VALID);
     }
 
-    public void validateAssignment(
+    public boolean validateAssignment(
             Maybe<RValueExpression> rValueExpression,
             IJadescriptType typeOfRExpr,
             ValidationMessageAcceptor acceptor
     ) {
-        if (elements.isEmpty()) return;
+        if (elements.isEmpty()) return VALID;
 
-        InterceptAcceptor syntaxLValueSubValidation = new InterceptAcceptor(acceptor);
 
-        elements.get(elements.size() - 1).safeDo(
+
+        boolean syntactic = elements.get(elements.size() - 1).__(
                 TrailersExpressionChainElement::syntacticValidateLValue,
-                syntaxLValueSubValidation
-        );
+                acceptor
+        ).orElse(VALID);
 
-        if (syntaxLValueSubValidation.thereAreErrors()) {
-            return;
+        if (syntactic == INVALID) {
+            return INVALID;
         }
 
-        elements.get(0).safeDo(e->e.validateAssignment(
-                withoutFirst(),
-                rValueExpression,
-                typeOfRExpr,
-                acceptor)
-        );
+        return elements.get(0).__(e -> e.validateAssignment(
+                        withoutFirst(),
+                        rValueExpression,
+                        typeOfRExpr,
+                        acceptor
+                )
+        ).orElse(VALID);
     }
 
     public void compileAssignment(
             String compiledExpression,
             IJadescriptType exprType,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         if (elements.isEmpty()) return;
-        elements.get(0).safeDo(safeElement-> {
+        elements.get(0).safeDo(safeElement -> {
             safeElement.compileAssignment(withoutFirst(), compiledExpression, exprType, acceptor);
         });
     }
@@ -118,8 +121,6 @@ public class ReversedTrailerChain {
     }
 
 
-
-
     public List<Maybe<TrailersExpressionChainElement>> getElements() {
         return elements;
     }
@@ -129,19 +130,15 @@ public class ReversedTrailerChain {
         return elements.get(0).__(TrailersExpressionChainElement::isAlwaysPure, withoutFirst()).extract(Maybe.nullAsTrue);
     }
 
-    public List<SemanticsBoundToExpression<?>> getSubExpressions() {
-        List<SemanticsBoundToExpression<?>> result = new ArrayList<>();
-        if(!elements.isEmpty()) {
+    public Stream<SemanticsBoundToExpression<?>> getSubExpressions() {
+        if (!elements.isEmpty()) {
             ReversedTrailerChain withoutFirst = withoutFirst();
-            for (Maybe<TrailersExpressionChainElement> element : elements) {
-                element.safeDo(elementSafe -> {
-                    result.addAll(elementSafe.getSubExpressions(withoutFirst));
-                });
-            }
-
-            return result;
-        }else{
-            return Collections.emptyList();
+            return elements.stream()
+                    .filter(Maybe::isPresent)
+                    .map(Maybe::toNullable)
+                    .flatMap(e -> e.getSubExpressions(withoutFirst).stream());
+        } else {
+            return Stream.empty();
         }
     }
 
@@ -157,15 +154,15 @@ public class ReversedTrailerChain {
 
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         if (elements.isEmpty()) return input.createEmptyCompileOutput();
         final Maybe<? extends PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>>
                 patternMatchOutputMaybe = elements.get(0)
                 .__(el -> el.compilePatternMatchInternal(input, withoutFirst(), acceptor));
-        if(patternMatchOutputMaybe.isPresent()){
+        if (patternMatchOutputMaybe.isPresent()) {
             return patternMatchOutputMaybe.toNullable();
-        }else{
+        } else {
             return input.createEmptyCompileOutput();
         }
     }
@@ -187,25 +184,35 @@ public class ReversedTrailerChain {
                 patternMatchOutputMaybe = elements.get(0)
                 .__(el -> el.validatePatternMatchInternal(input, withoutFirst(), acceptor));
 
-        if(patternMatchOutputMaybe.isPresent()){
+        if (patternMatchOutputMaybe.isPresent()) {
             return patternMatchOutputMaybe.toNullable();
-        }else{
+        } else {
             return input.createEmptyValidationOutput();
         }
     }
 
     public boolean isTypelyHoled() {
-        if(elements.isEmpty()) return false;
+        if (elements.isEmpty()) return false;
         return elements.get(0).__(el -> el.isTypelyHoled(withoutFirst())).extract(Maybe.nullAsFalse);
     }
 
     public boolean isValidLExpr() {
-        if(elements.isEmpty()) return false;
+        if (elements.isEmpty()) return false;
         return elements.get(0).__(el -> el.isValidLexpr(withoutFirst())).extract(Maybe.nullAsFalse);
     }
 
     public boolean isPatternEvaluationPure() {
-        if(elements.isEmpty()) return true;
+        if (elements.isEmpty()) return true;
         return elements.get(0).__(el -> el.isPatternEvaluationPure(withoutFirst())).extract(Maybe.nullAsTrue);
+    }
+
+    public boolean canBeHoled() {
+        if(elements.isEmpty()) return true;
+        return elements.get(0).__(el -> el.canBeHoled(withoutFirst())).extract(Maybe.nullAsFalse);
+    }
+
+    public boolean containsNotHoledAssignableParts() {
+        if(elements.isEmpty()) return false;
+        return elements.get(0).__(el -> el.containsNotHoledAssignableParts(withoutFirst())).extract(Maybe.nullAsFalse);
     }
 }

@@ -33,7 +33,7 @@ public class WhenMatchesStatementSemantics extends StatementSemantics<WhenMatche
     }
 
     @Override
-    public void compileStatement(Maybe<WhenMatchesStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<WhenMatchesStatement> input, CompilationOutputAcceptor acceptor) {
         final Maybe<RValueExpression> inputExpr = input.__(WhenMatchesStatement::getInputExpr);
         final List<Maybe<LValueExpression>> patterns = toListOfMaybes(input.__(WhenMatchesStatement::getPatterns))
                 .stream()
@@ -49,7 +49,8 @@ public class WhenMatchesStatementSemantics extends StatementSemantics<WhenMatche
 
 
             final Maybe<LValueExpression> pattern = patterns.get(i);
-            final String compiledInputExpr = module.get(RValueExpressionSemantics.class).compile(inputExpr, acceptor).orElse("");
+            final String compiledInputExpr = module.get(RValueExpressionSemantics.class).compile(inputExpr, acceptor)
+                    .toString();
 
             PatternMatchOutput<
                     ? extends PatternMatchSemanticsProcess.IsCompilation,

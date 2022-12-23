@@ -3,20 +3,17 @@ package it.unipr.ailab.jadescript.semantics.helpers;
 import it.unipr.ailab.jadescript.jadescript.LValueExpression;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.UnaryPrefix;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;
 import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
-import it.unipr.ailab.sonneteer.type.ClassDeclarationWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 public class PatternMatchHelper implements SemanticsConsts {
@@ -35,7 +32,7 @@ public class PatternMatchHelper implements SemanticsConsts {
     compileWhenMatchesStatementPatternMatching(
             Maybe<RValueExpression> inputExpr,
             Maybe<LValueExpression> pattern,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         String localClassName = "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
         final String variableName = localClassName + "_obj";
@@ -73,7 +70,7 @@ public class PatternMatchHelper implements SemanticsConsts {
     compileMatchesExpressionPatternMatching(
             Maybe<UnaryPrefix> inputExpr,
             Maybe<LValueExpression> pattern,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         String localClassName = "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
         final String variableName = localClassName + "_obj";
@@ -112,7 +109,7 @@ public class PatternMatchHelper implements SemanticsConsts {
             IJadescriptType contentUpperBound,
             String referenceToContent,
             Maybe<LValueExpression> pattern,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         String localClassName = "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
         final String variableName = localClassName + "_obj";

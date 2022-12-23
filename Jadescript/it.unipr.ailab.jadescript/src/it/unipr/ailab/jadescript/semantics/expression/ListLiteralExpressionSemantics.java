@@ -5,14 +5,14 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.ListLiteral;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -25,7 +25,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
@@ -48,7 +47,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     }
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<ListLiteral> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<ListLiteral> input) {
         Maybe<EList<RValueExpression>> values = input.__(ListLiteral::getValues);
         if (mustTraverse(input)) {
             Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traversed = traverse(input);
@@ -63,13 +62,13 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     }
 
     @Override
-    public ExpressionCompilationResult compile(Maybe<ListLiteral> input, StatementCompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<ListLiteral> input, CompilationOutputAcceptor acceptor) {
         Maybe<EList<RValueExpression>> values = input.__(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter = input.__(ListLiteral::getTypeParameter);
         if (values.__(List::isEmpty).extract(Maybe.nullAsTrue)) {
             final IJadescriptType elementType = module.get(TypeExpressionSemantics.class)
                     .toJadescriptType(typeParameter);
-            return result("new java.util.ArrayList<" + elementType.compileToJavaTypeReference() + ">()");
+            return "new java.util.ArrayList<" + elementType.compileToJavaTypeReference() + ">()";
         }
 
 
@@ -83,11 +82,11 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
         }
         sb.append(")");
 
-        return result("new java.util.ArrayList<>(" + sb + ")");
+        return "new java.util.ArrayList<>(" + sb + ")";
     }
 
     @Override
-    public IJadescriptType inferType(Maybe<ListLiteral> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<ListLiteral> input) {
         Maybe<EList<RValueExpression>> values = input.__(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter = input.__(ListLiteral::getTypeParameter);
         boolean hasTypeSpecifier = input.__(ListLiteral::isWithTypeSpecifier).extract(nullAsFalse);
@@ -117,6 +116,16 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
 
     }
 
+    @Override
+    protected List<String> propertyChainInternal(Maybe<ListLiteral> input) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<ListLiteral> input) {
+        return ExpressionTypeKB.empty();
+    }
+
     private IJadescriptType computeElementsTypeLUB(List<Maybe<RValueExpression>> valuesList) {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         return valuesList.stream()
@@ -129,17 +138,17 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     }
 
     @Override
-    public boolean mustTraverse(Maybe<ListLiteral> input) {
+    protected boolean mustTraverse(Maybe<ListLiteral> input) {
         return false;
     }
 
     @Override
-    public Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traverse(Maybe<ListLiteral> input) {
+    protected Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traverse(Maybe<ListLiteral> input) {
         return Optional.empty();
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<ListLiteral> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<ListLiteral> input) {
         List<Maybe<RValueExpression>> values = toListOfMaybes(input.__(ListLiteral::getValues));
         boolean isWithPipe = input.__(ListLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
@@ -155,7 +164,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     }
 
     @Override
-    public boolean isHoled(Maybe<ListLiteral> input) {
+    protected boolean isHoledInternal(Maybe<ListLiteral> input) {
         List<Maybe<RValueExpression>> values = toListOfMaybes(input.__(ListLiteral::getValues));
         boolean isWithPipe = input.__(ListLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
@@ -171,7 +180,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     }
 
     @Override
-    public boolean isTypelyHoled(Maybe<ListLiteral> input) {
+    protected boolean isTypelyHoledInternal(Maybe<ListLiteral> input) {
         List<Maybe<RValueExpression>> values = toListOfMaybes(input.__(ListLiteral::getValues));
         boolean isWithPipe = input.__(ListLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<TypeExpression> typeParameter = input.__(ListLiteral::getTypeParameter);
@@ -193,7 +202,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     }
 
     @Override
-    public boolean isUnbound(Maybe<ListLiteral> input) {
+    protected boolean isUnboundInternal(Maybe<ListLiteral> input) {
         List<Maybe<RValueExpression>> values = toListOfMaybes(input.__(ListLiteral::getValues));
         boolean isWithPipe = input.__(ListLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
@@ -210,7 +219,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<ListLiteral, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<ListLiteral, ?, ?> input, CompilationOutputAcceptor acceptor) {
         List<Maybe<RValueExpression>> values = toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
         Maybe<RValueExpression> rest = input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe = input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse) && rest.isPresent();
@@ -373,54 +382,68 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
 
 
     @Override
-    public void validate(Maybe<ListLiteral> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
+    protected boolean validateInternal(Maybe<ListLiteral> input, ValidationMessageAcceptor acceptor) {
+        if (input == null) return VALID;
         Maybe<EList<RValueExpression>> values = input.__(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter = input.__(ListLiteral::getTypeParameter);
         boolean hasTypeSpecifier = input.__(ListLiteral::isWithTypeSpecifier).extract(nullAsFalse);
 
-        InterceptAcceptor stage1Validation = new InterceptAcceptor(acceptor);
+        boolean stage1 = VALID;
         for (Maybe<RValueExpression> jadescriptRValueExpression : iterate(values)) {
-            module.get(RValueExpressionSemantics.class).validate(jadescriptRValueExpression, stage1Validation);
+            stage1 = stage1 && module.get(RValueExpressionSemantics.class)
+                    .validate(jadescriptRValueExpression, acceptor);
         }
 
         List<Maybe<RValueExpression>> valuesList = Maybe.toListOfMaybes(values);
-        module.get(ValidationHelper.class).assertion(
-                (!valuesList.isEmpty() && !valuesList.stream().allMatch(Maybe::isNothing))
+        stage1 = stage1 && module.get(ValidationHelper.class).assertion(
+                !valuesList.isEmpty() && !valuesList.stream().allMatch(Maybe::isNothing)
                         || hasTypeSpecifier,
                 "ListLiteralCannotComputeType",
                 "Missing type specification for empty list literal",
                 input,
-                stage1Validation
+                acceptor
         );
 
-        if (!stage1Validation.thereAreErrors()
-                && !valuesList.isEmpty() && !valuesList.stream().allMatch(Maybe::isNothing)) {
+        if (stage1 == VALID && !valuesList.isEmpty() && !valuesList.stream().allMatch(Maybe::isNothing)) {
             IJadescriptType lub = module.get(RValueExpressionSemantics.class).inferType(valuesList.get(0));
             for (int i = 1; i < valuesList.size(); i++) {
-                lub = module.get(TypeHelper.class).getLUB(lub, module.get(RValueExpressionSemantics.class).inferType(valuesList.get(i)));
+                lub = module.get(TypeHelper.class).getLUB(
+                        lub,
+                        module.get(RValueExpressionSemantics.class).inferType(valuesList.get(i))
+                );
             }
 
-            InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-            module.get(ValidationHelper.class).assertion(
+
+            boolean typeValidation = module.get(ValidationHelper.class).assertion(
                     !lub.isErroneous(),
                     "ListLiteralCannotComputeType",
                     "Can not find a valid common parent type of the elements in the list literal.",
                     input,
-                    interceptAcceptor
+                    acceptor
             );
 
-            module.get(TypeExpressionSemantics.class).validate(typeParameter, interceptAcceptor);
 
-            if (!interceptAcceptor.thereAreErrors() && hasTypeSpecifier) {
-                module.get(ValidationHelper.class).assertExpectedType(
+            boolean typeParameterValidation;
+            if(hasTypeSpecifier) {
+                typeParameterValidation = module.get(TypeExpressionSemantics.class)
+                        .validate(typeParameter, acceptor);
+            }else{
+                typeParameterValidation = VALID;
+            }
+
+            if(typeValidation == VALID && typeParameterValidation == VALID && hasTypeSpecifier){
+                return module.get(ValidationHelper.class).assertExpectedType(
                         module.get(TypeExpressionSemantics.class).toJadescriptType(typeParameter),
                         lub,
                         "ListLiteralTypeMismatch",
                         input,
                         acceptor
                 );
+            }else{
+                return typeValidation;
             }
         }
+
+        return stage1;
     }
 }

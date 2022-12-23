@@ -2,7 +2,6 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
@@ -11,7 +10,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -23,9 +22,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
 import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionValidationResult.invalid;
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionValidationResult.valid;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 
@@ -66,7 +68,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
 
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<Literal> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<Literal> input) {
         final Maybe<ListLiteral> list = input.__(Literal::getList);
         final Maybe<MapOrSetLiteral> mapOrSet = input.__(Literal::getMap);
         final boolean isMap = isMap(mapOrSet);
@@ -106,7 +108,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
     }
 
     @Override
-    public ExpressionCompilationResult compile(Maybe<Literal> input, StatementCompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<Literal> input, CompilationOutputAcceptor acceptor) {
         if (input == null) return empty();
 
         final Maybe<StringLiteralSimple> string = input.__(Literal::getString);
@@ -148,7 +150,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
 
 
     @Override
-    public IJadescriptType inferType(Maybe<Literal> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<Literal> input) {
         if (input == null) return module.get(TypeHelper.class).ANY;
 
         final Maybe<StringLiteralSimple> string = input.__(Literal::getString);
@@ -184,7 +186,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
 
 
     @Override
-    public boolean mustTraverse(Maybe<Literal> input) {
+    protected boolean mustTraverse(Maybe<Literal> input) {
         final Maybe<StringLiteralSimple> string = input.__(Literal::getString);
         final Maybe<ListLiteral> list = input.__(Literal::getList);
         final Maybe<MapOrSetLiteral> map = input.__(Literal::getMap);
@@ -193,7 +195,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<Literal> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<Literal> input) {
         final Maybe<StringLiteralSimple> string = input.__(Literal::getString);
         final Maybe<ListLiteral> list = input.__(Literal::getList);
         final Maybe<MapOrSetLiteral> mapOrSet = input.__(Literal::getMap);
@@ -224,7 +226,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<Literal> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<Literal> input) {
         final Maybe<StringLiteralSimple> string = input.__(Literal::getString);
         final Maybe<ListLiteral> list = input.__(Literal::getList);
         final Maybe<MapOrSetLiteral> mapOrSet = input.__(Literal::getMap);
@@ -253,7 +255,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<Literal, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<Literal, ?, ?> input, CompilationOutputAcceptor acceptor) {
         final Maybe<StringLiteralSimple> string = input.getPattern().__(Literal::getString);
         final Maybe<ListLiteral> list = input.getPattern().__(Literal::getList);
         final Maybe<MapOrSetLiteral> mapOrSet = input.getPattern().__(Literal::getMap);
@@ -349,7 +351,8 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
             } else if (number.isPresent() || bool.isPresent() || timestamp.isPresent()) {
                 return validateExpressionEqualityPatternMatch(input, acceptor);
             } else if (mapOrSet.isPresent()) {
-                if (isValidSyntactically(mapOrSet, "pattern", acceptor)) {
+                final ExpressionValidationResult syntaxValidation = syntaxValidation(mapOrSet, "pattern", acceptor);
+                if (syntaxValidation.isGood()) {
                     if (isMap) {
                         return module.get(MapLiteralExpressionSemantics.class).validatePatternMatchInternal(
                                 input.replacePattern(mapOrSet),
@@ -368,8 +371,8 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
     }
 
     @Override
-    public void validate(Maybe<Literal> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
+    protected boolean validateInternal(Maybe<Literal> input, ValidationMessageAcceptor acceptor) {
+        if (input == null) return valid();
 
         final Maybe<StringLiteralSimple> string = input.__(Literal::getString);
         final Maybe<String> number = input.__(Literal::getNumber);
@@ -381,23 +384,27 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
 
 
         if (string.isPresent()) {
-            module.get(StringLiteralSemantics.class).validate(string, acceptor);
+            return module.get(StringLiteralSemantics.class).validate(string, acceptor);
         } else if (list.isPresent()) {
-            module.get(ListLiteralExpressionSemantics.class).validate(list, acceptor);
+            return module.get(ListLiteralExpressionSemantics.class).validate(list, acceptor);
         } else if (number.isPresent()) {
-            input.safeDo(inputSafe -> {
-                validateNumberLiteral(number.toNullable(), inputSafe, acceptor);
-            });
+            return input.__(inputSafe ->
+                validateNumberLiteral(number.toNullable(), inputSafe, acceptor)
+            ).orElseGet(ExpressionValidationResult::valid);
         } else if (bool.isPresent() || timestamp.isPresent()) {
             //nothing to validate
+            return valid();
         } else {
             if (mapOrSet.isPresent()) {
-                if (isValidSyntactically(mapOrSet, "literal", acceptor)) {
+                final ExpressionValidationResult syntaxValidation = syntaxValidation(mapOrSet, "literal", acceptor);
+                if (syntaxValidation.isGood()) {
                     if (isMap) {
-                        module.get(MapLiteralExpressionSemantics.class).validate(mapOrSet, acceptor);
+                        return module.get(MapLiteralExpressionSemantics.class).validate(mapOrSet, acceptor);
                     } else {
-                        module.get(SetLiteralExpressionSemantics.class).validate(mapOrSet, acceptor);
+                        return module.get(SetLiteralExpressionSemantics.class).validate(mapOrSet, acceptor);
                     }
+                }else{
+                    return syntaxValidation;
                 }
             } else {
                 throw new UnsupportedNodeType("Literals supported: text, integer, real, boolean, " +
@@ -406,7 +413,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
         }
     }
 
-    private boolean isValidSyntactically(
+    private ExpressionValidationResult syntaxValidation(
             Maybe<MapOrSetLiteral> input,
             String literalOrPattern,
             ValidationMessageAcceptor acceptor
@@ -417,35 +424,41 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
                 .stream().filter(Maybe::isPresent).collect(Collectors.toList());
         final boolean isMapV = isMapV(input);
         final boolean isMapT = isMapT(input);
-        InterceptAcceptor syntacticValidation = new InterceptAcceptor(acceptor);
+
         final ValidationHelper vh = module.get(ValidationHelper.class);
+        final ExpressionValidationResult valuesCount;
+        final ExpressionValidationResult typeCount;
 
         if (isMapV) {
-            vh.assertion(
+            valuesCount = vh.assertion(
                     values.size() == keys.size(),
                     "InvalidMap" + Strings.toFirstUpper(literalOrPattern),
                     "Non-matching number of keys and values in the map " + literalOrPattern,
                     input,
-                    syntacticValidation
+                    acceptor
             );
+        }else{
+            valuesCount = valid();
         }
 
         if (isMapT) {
-            vh.assertion(
+            typeCount = vh.assertion(
                     isMapV,
                     "InvalidSetOrMap" + Strings.toFirstUpper(literalOrPattern),
                     "Type specifiers of the literal do not match the kind of the " + literalOrPattern +
                             " (is this a set or a map?).",
                     input,
-                    syntacticValidation
+                    acceptor
             );
+        }else{
+            typeCount = valid();
         }
 
 
-        return !syntacticValidation.thereAreErrors();
+        return valuesCount.and(typeCount);
     }
 
-    private void validateNumberLiteral(
+    private ExpressionValidationResult validateNumberLiteral(
             String number,
             Literal inputSafe,
             ValidationMessageAcceptor acceptor
@@ -458,6 +471,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
                     xNumberLiteral,
                     numberLiterals.getJavaType(xNumberLiteral)
             );
+            return valid();
         } catch (Exception e) {
             acceptor.acceptError(
                     "Invalid number format: " + e.getMessage(),
@@ -466,6 +480,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
                     ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
                     "InvalidNumberFormat"
             );
+            return invalid();
         }
     }
 

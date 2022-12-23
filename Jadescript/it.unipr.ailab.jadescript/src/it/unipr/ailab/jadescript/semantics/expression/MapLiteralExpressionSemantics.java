@@ -1,11 +1,8 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
-import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
-import it.unipr.ailab.jadescript.jadescript.MapOrSetLiteral;
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.jadescript.TypeExpression;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
@@ -14,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -25,7 +22,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.google.common.collect.Streams.zip;
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
@@ -45,7 +41,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
                 "narrowed to a valid map type.";
     }
 
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<MapOrSetLiteral> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<MapOrSetLiteral> input) {
         final List<Maybe<RValueExpression>> values = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
         final List<Maybe<RValueExpression>> keys = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
         return zip(keys.stream(), values.stream(), (k, v) -> Stream.of(
@@ -57,7 +53,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    public ExpressionCompilationResult compile(Maybe<MapOrSetLiteral> input, StatementCompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<MapOrSetLiteral> input, CompilationOutputAcceptor acceptor) {
         final List<Maybe<RValueExpression>> values = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
         final List<Maybe<RValueExpression>> keys = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
         final Maybe<TypeExpression> keysTypeParameter = input.__(MapOrSetLiteral::getKeyTypeParameter);
@@ -67,11 +63,11 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
                 || values.stream().allMatch(Maybe::isNothing)
                 || keys.stream().allMatch(Maybe::isNothing)) {
 
-            return result(module.get(TypeHelper.class).MAP
+            return module.get(TypeHelper.class).MAP
                     .apply(List.of(
                             module.get(TypeExpressionSemantics.class).toJadescriptType(keysTypeParameter),
                             module.get(TypeExpressionSemantics.class).toJadescriptType(valuesTypeParameter)
-                    )).compileNewEmptyInstance());
+                    )).compileNewEmptyInstance();
         }
 
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
@@ -81,22 +77,21 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
         ArrayList<String> compiledValues = new ArrayList<>(assumedSize);
 
         for (int i = 0; i < assumedSize; i++) {
-            compiledKeys.add(rves.compile(keys.get(i), acceptor).toString());
-            compiledValues.add(rves.compile(values.get(i), acceptor).toString());
+            compiledKeys.add(rves.compile(keys.get(i), acceptor));
+            compiledValues.add(rves.compile(values.get(i), acceptor));
         }
 
 
-        return result("jadescript.util.JadescriptCollections.createMap("
+        return "jadescript.util.JadescriptCollections.createMap("
                 + "java.util.Arrays.asList("
                 + String.join(" ,", compiledKeys)
                 + "), java.util.Arrays.asList("
                 + String.join(" ,", compiledValues)
-                + "))"
-        );
+                + "))";
     }
 
     @Override
-    public IJadescriptType inferType(Maybe<MapOrSetLiteral> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<MapOrSetLiteral> input) {
         final List<Maybe<RValueExpression>> values = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
         final List<Maybe<RValueExpression>> keys = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
         final Maybe<TypeExpression> keysTypeParameter = input.__(MapOrSetLiteral::getKeyTypeParameter);
@@ -127,110 +122,136 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    public void validate(Maybe<MapOrSetLiteral> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
+    protected boolean validateInternal(Maybe<MapOrSetLiteral> input, ValidationMessageAcceptor acceptor) {
+        if (input == null) return VALID;
         final List<Maybe<RValueExpression>> values = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
         final List<Maybe<RValueExpression>> keys = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
         final boolean hasTypeSpecifiers = input.__(MapOrSetLiteral::isWithTypeSpecifiers).extract(Maybe.nullAsFalse);
         final Maybe<TypeExpression> keysTypeParameter = input.__(MapOrSetLiteral::getKeyTypeParameter);
         final Maybe<TypeExpression> valuesTypeParameter = input.__(MapOrSetLiteral::getValueTypeParameter);
 
-        InterceptAcceptor stage1Validation = new InterceptAcceptor(acceptor);
+        boolean stage1 = VALID;
 
         for (Maybe<RValueExpression> key : keys) {
-            module.get(RValueExpressionSemantics.class).validate(key, stage1Validation);
+            stage1 = stage1 && module.get(RValueExpressionSemantics.class).validate(key, acceptor);
         }
 
         for (Maybe<RValueExpression> value : values) {
-            module.get(RValueExpressionSemantics.class).validate(value, stage1Validation);
+            stage1 = stage1 && module.get(RValueExpressionSemantics.class).validate(value, acceptor);
         }
 
-        module.get(ValidationHelper.class).assertion(
-                (!values.isEmpty() && !values.stream().allMatch(Maybe::isNothing)
-                        && !keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing))
+        stage1 = stage1 && module.get(ValidationHelper.class).assertion(
+                !values.isEmpty() && !values.stream().allMatch(Maybe::isNothing)
+                        && !keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing)
                         || hasTypeSpecifiers,
                 "MapLiteralCannotComputeTypes",
                 "Missing type specifications for empty map literal",
                 input,
-                stage1Validation
+                acceptor
         );
 
-        module.get(ValidationHelper.class).assertion(
+        stage1 = stage1 && module.get(ValidationHelper.class).assertion(
                 values.stream().filter(Maybe::isPresent).count()
                         == keys.stream().filter(Maybe::isPresent).count(),
                 "InvalidMapLiteral",
                 "Non-matching number of keys and values in the map",
                 input,
-                stage1Validation
+                acceptor
         );
 
 
-        if (!stage1Validation.thereAreErrors()) {
-            if (!values.isEmpty() && !values.stream().allMatch(Maybe::isNothing)
-                    && !keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing)) {
-                IJadescriptType keysLub = module.get(RValueExpressionSemantics.class).inferType(keys.get(0));
-                IJadescriptType valuesLub = module.get(RValueExpressionSemantics.class).inferType(values.get(0));
-                for (int i = 1; i < Math.min(keys.size(), values.size()); i++) {
-                    keysLub = module.get(TypeHelper.class).getLUB(keysLub, module.get(RValueExpressionSemantics.class).inferType(keys.get(i)));
-                    valuesLub = module.get(TypeHelper.class).getLUB(valuesLub, module.get(RValueExpressionSemantics.class).inferType(values.get(i)));
-                }
-
-                InterceptAcceptor interceptAcceptorK = new InterceptAcceptor(acceptor);
-                module.get(ValidationHelper.class).assertion(
-                        !keysLub.isErroneous(),
-                        "MapLiteralCannotComputeType",
-                        "Can not find a valid common parent type of the keys in the map.",
-                        input,
-                        interceptAcceptorK
-                );
-
-                module.get(TypeExpressionSemantics.class).validate(keysTypeParameter, interceptAcceptorK);
-                if (!interceptAcceptorK.thereAreErrors() && hasTypeSpecifiers) {
-                    module.get(ValidationHelper.class).assertExpectedType(
-                            module.get(TypeExpressionSemantics.class).toJadescriptType(keysTypeParameter),
-                            keysLub,
-                            "MapLiteralTypeMismatch",
-                            input,
-                            JadescriptPackage.eINSTANCE.getMapOrSetLiteral_KeyTypeParameter(),
-                            acceptor
-                    );
-                }
-                InterceptAcceptor interceptAcceptorV = new InterceptAcceptor(acceptor);
-                module.get(ValidationHelper.class).assertion(
-                        !valuesLub.isErroneous(),
-                        "MapLiteralCannotComputeType",
-                        "Can not find a valid common parent type of the values in the map.",
-                        input,
-                        interceptAcceptorV
-                );
-
-                module.get(TypeExpressionSemantics.class).validate(valuesTypeParameter, interceptAcceptorV);
-                if (!interceptAcceptorV.thereAreErrors() && hasTypeSpecifiers) {
-                    module.get(ValidationHelper.class).assertExpectedType(
-                            module.get(TypeExpressionSemantics.class).toJadescriptType(valuesTypeParameter),
-                            valuesLub,
-                            "MapLiteralTypeMismatch",
-                            input,
-                            JadescriptPackage.eINSTANCE.getMapOrSetLiteral_ValueTypeParameter(),
-                            acceptor
-                    );
-                }
-            }
+        if (stage1 == INVALID) {
+            return INVALID;
         }
+
+
+        if (!values.isEmpty() && !values.stream().allMatch(Maybe::isNothing)
+                && !keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing)) {
+            IJadescriptType keysLub = module.get(RValueExpressionSemantics.class).inferType(keys.get(0));
+            IJadescriptType valuesLub = module.get(RValueExpressionSemantics.class).inferType(values.get(0));
+            for (int i = 1; i < Math.min(keys.size(), values.size()); i++) {
+                keysLub = module.get(TypeHelper.class).getLUB(
+                        keysLub,
+                        module.get(RValueExpressionSemantics.class).inferType(keys.get(i))
+                );
+                valuesLub = module.get(TypeHelper.class).getLUB(
+                        valuesLub,
+                        module.get(RValueExpressionSemantics.class).inferType(values.get(i))
+                );
+            }
+
+            boolean keysValidation = module.get(ValidationHelper.class).assertion(
+                    !keysLub.isErroneous(),
+                    "MapLiteralCannotComputeType",
+                    "Can not find a valid common parent type of the keys in the map.",
+                    input,
+                    acceptor
+            );
+
+            keysValidation = keysValidation && (module.get(TypeExpressionSemantics.class)
+                    .validate(keysTypeParameter, acceptor));
+
+            if (keysValidation == VALID && hasTypeSpecifiers) {
+                keysValidation = module.get(ValidationHelper.class).assertExpectedType(
+                        module.get(TypeExpressionSemantics.class).toJadescriptType(keysTypeParameter),
+                        keysLub,
+                        "MapLiteralTypeMismatch",
+                        input,
+                        JadescriptPackage.eINSTANCE.getMapOrSetLiteral_KeyTypeParameter(),
+                        acceptor
+                );
+            }
+
+            boolean valsValidation = module.get(ValidationHelper.class).assertion(
+                    !valuesLub.isErroneous(),
+                    "MapLiteralCannotComputeType",
+                    "Can not find a valid common parent type of the values in the map.",
+                    input,
+                    acceptor
+            );
+
+            valsValidation = valsValidation && (module.get(TypeExpressionSemantics.class)
+                    .validate(valuesTypeParameter, acceptor));
+
+            if (valsValidation == VALID && hasTypeSpecifiers) {
+                valsValidation = module.get(ValidationHelper.class).assertExpectedType(
+                        module.get(TypeExpressionSemantics.class).toJadescriptType(valuesTypeParameter),
+                        valuesLub,
+                        "MapLiteralTypeMismatch",
+                        input,
+                        JadescriptPackage.eINSTANCE.getMapOrSetLiteral_ValueTypeParameter(),
+                        acceptor
+                );
+            }
+
+            return keysValidation && (valsValidation);
+        }
+
+        return VALID;
     }
 
     @Override
-    public boolean mustTraverse(Maybe<MapOrSetLiteral> input) {
+    protected List<String> propertyChainInternal(Maybe<MapOrSetLiteral> input) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<MapOrSetLiteral> input) {
+        return ExpressionTypeKB.empty();
+    }
+
+    @Override
+    protected boolean mustTraverse(Maybe<MapOrSetLiteral> input) {
         return false;
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<MapOrSetLiteral> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<MapOrSetLiteral> input) {
         return Optional.empty();
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<MapOrSetLiteral> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<MapOrSetLiteral> input) {
         final List<Maybe<RValueExpression>> values = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
         final List<Maybe<RValueExpression>> keys = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
         return Stream.concat(values.stream(), keys.stream())
@@ -238,7 +259,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    public boolean isHoled(Maybe<MapOrSetLiteral> input) {
+    protected boolean isHoledInternal(Maybe<MapOrSetLiteral> input) {
         //NOTE: map patterns cannot have holes as keys (enforced by validator)
         boolean isWithPipe = input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
@@ -249,7 +270,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    public boolean isTypelyHoled(Maybe<MapOrSetLiteral> input) {
+    protected boolean isTypelyHoledInternal(Maybe<MapOrSetLiteral> input) {
         //NOTE: map patterns cannot have holes as keys (enforced by validator)
         boolean isWithPipe = input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
@@ -266,7 +287,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
     }
 
     @Override
-    public boolean isUnbound(Maybe<MapOrSetLiteral> input) {
+    protected boolean isUnboundInternal(Maybe<MapOrSetLiteral> input) {
         //NOTE: map patterns cannot have holes as keys (enforced by validator)
         boolean isWithPipe = input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
@@ -278,7 +299,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<MapOrSetLiteral, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<MapOrSetLiteral, ?, ?> input, CompilationOutputAcceptor acceptor) {
         boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.getPattern().__(MapOrSetLiteral::getRest);
         final List<Maybe<RValueExpression>> keys = toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));

@@ -4,22 +4,23 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.InvokeExpression;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
@@ -34,62 +35,75 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
     }
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> getSubExpressions(Maybe<InvokeExpression> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<InvokeExpression> input) {
         final Maybe<RValueExpression> expr = input.__(InvokeExpression::getExpr);
         final List<Maybe<RValueExpression>> argValues = toListOfMaybes(input.__(InvokeExpression::getArgumentValues));
 
-        List<ExpressionSemantics.SemanticsBoundToExpression<?>> result = new ArrayList<>();
-        result.add(new ExpressionSemantics.SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), expr));
-        argValues.stream()
-                .map(x -> new ExpressionSemantics.SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), x))
-                .forEach(result::add);
-        return result;
+        final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
+        return Stream.concat(
+                Stream.of(new ExpressionSemantics.SemanticsBoundToExpression<>(rves, expr)),
+                argValues.stream().map(x -> new ExpressionSemantics.SemanticsBoundToExpression<>(rves, x))
+        );
+
     }
 
     @Override
-    public void compileAssignment(
+    public void compileAssignmentInternal(
             Maybe<InvokeExpression> input,
             String compiledExpression,
             IJadescriptType exprType,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         //CANNOT ASSIGN TO AN INVOKE EXPRESSION
     }
 
     @Override
-    public void validateAssignment(
+    public boolean validateAssignmentInternal(
             Maybe<InvokeExpression> input,
             Maybe<RValueExpression> expression,
             ValidationMessageAcceptor acceptor
     ) {
         //CANNOT ASSIGN TO AN INVOKE-EXPRESSION
         //this is never called because of prior check via syntacticValidateLValue(...)
-        errorNotLvalue(input, acceptor);
+        return errorNotLvalue(input, acceptor);
     }
 
     @Override
-    public void syntacticValidateLValue(Maybe<InvokeExpression> input, ValidationMessageAcceptor acceptor) {
-        errorNotLvalue(input, acceptor);
+    public boolean syntacticValidateLValueInternal(
+            Maybe<InvokeExpression> input,
+            ValidationMessageAcceptor acceptor
+    ) {
+        return errorNotLvalue(input, acceptor);
     }
 
     @Override
-    public boolean isValidLExpr(Maybe<InvokeExpression> input) {
+    protected boolean isValidLExprInternal(Maybe<InvokeExpression> input) {
         //CANNOT ASSIGN TO AN INVOKE-EXPRESSION
         return false;
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<InvokeExpression> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<InvokeExpression> input) {
         return false;
     }
 
     @Override
-    public ExpressionCompilationResult compile(
+    protected List<String> propertyChainInternal(Maybe<InvokeExpression> input) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<InvokeExpression> input) {
+        return ExpressionTypeKB.empty();
+    }
+
+    @Override
+    protected String compileInternal(
             Maybe<InvokeExpression> input,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         if (input == null) {
-            return empty();
+            return "";
         }
         final Maybe<String> name = input.__(InvokeExpression::getName);
         final boolean isStatic = input.__(InvokeExpression::isStatic).extract(nullAsFalse);
@@ -97,17 +111,11 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
         final Maybe<RValueExpression> expr = input.__(InvokeExpression::getExpr);
         final boolean isArgs = input.__(InvokeExpression::isArgs).extract(nullAsFalse);
         final List<Maybe<RValueExpression>> argValues = toListOfMaybes(input.__(InvokeExpression::getArgumentValues));
-        if (name.isNothing()) {
-            return empty();
-        }
-        if (isStatic && className.isNothing()) {
-            return empty();
-        }
-        if (!isStatic && expr.isNothing()) {
-            return empty();
-        }
-        if (isArgs && argValues.isEmpty()) {
-            return empty();
+        if (name.isNothing()
+                || isStatic && className.isNothing()
+                || !isStatic && expr.isNothing()
+                || isArgs && argValues.isEmpty()) {
+            return "";
         }
 
         // inside jadescript.core.Agent:
@@ -136,11 +144,11 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
         sb.append(")");
 
 
-        return result(sb.toString());
+        return sb.toString();
     }
 
     @Override
-    public IJadescriptType inferType(Maybe<InvokeExpression> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<InvokeExpression> input) {
         return module.get(TypeHelper.class).ANY;
     }
 
@@ -169,18 +177,18 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
     }
 
     @Override
-    public boolean mustTraverse(Maybe<InvokeExpression> input) {
+    protected boolean mustTraverse(Maybe<InvokeExpression> input) {
         return false;
     }
 
     @Override
-    public Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traverse(Maybe<InvokeExpression> input) {
+    protected Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traverse(Maybe<InvokeExpression> input) {
         return Optional.empty();
     }
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<InvokeExpression, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<InvokeExpression, ?, ?> input, CompilationOutputAcceptor acceptor) {
         return input.createEmptyCompileOutput();
     }
 
@@ -198,22 +206,54 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
     }
 
     @Override
-    public void validate(Maybe<InvokeExpression> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<InvokeExpression> input, ValidationMessageAcceptor acceptor) {
         if (input == null) {
-            return;
+            return VALID;
         }
         final boolean isArgs = input.__(InvokeExpression::isArgs).extract(nullAsFalse);
         final List<Maybe<RValueExpression>> argValues = toListOfMaybes(input.__(InvokeExpression::getArgumentValues));
 
+        boolean result = VALID;
         if (isArgs) {
             for (Maybe<RValueExpression> argumentValue : argValues) {
-                module.get(RValueExpressionSemantics.class).validate(argumentValue, acceptor);
+                result = result && module.get(RValueExpressionSemantics.class).validate(argumentValue, acceptor);
             }
         }
+        return result;
     }
 
     @Override
-    public boolean isAlwaysPure(Maybe<InvokeExpression> input) {
-        return false; //procedures are ALWAYS impure by definition
+    protected boolean isAlwaysPureInternal(Maybe<InvokeExpression> input) {
+        //procedures are always IMPURE by definition
+        return false;
+    }
+
+    @Override
+    protected boolean isHoledInternal(Maybe<InvokeExpression> input) {
+        // CANNOT BE HOLED
+        return false;
+    }
+
+    @Override
+    protected boolean isTypelyHoledInternal(Maybe<InvokeExpression> input) {
+        // CANNOT BE HOLED
+        return false;
+    }
+
+    @Override
+    protected boolean isUnboundInternal(Maybe<InvokeExpression> input) {
+        // CANNOT BE HOLED
+        return false;
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<InvokeExpression> input) {
+        // CANNOT BE HOLED
+        return false;
+    }
+
+    @Override
+    protected boolean containsNotHoledAssignablePartsInternal(Maybe<InvokeExpression> input) {
+        return false;
     }
 }

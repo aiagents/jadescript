@@ -72,7 +72,7 @@ public class FieldSemantics extends FeatureSemantics<Field> {
                                 module.get(ContextManager.class).restore(savedContext);
                                 module.get(ContextManager.class).enterProceduralFeature(FieldInitializerContext::new);
 
-                                scb.add(module.get(RValueExpressionSemantics.class).compile(right, ).orElse(""));
+                                scb.add(module.get(RValueExpressionSemantics.class).compile(right, ).toString());
 
                                 module.get(ContextManager.class).exit();
 

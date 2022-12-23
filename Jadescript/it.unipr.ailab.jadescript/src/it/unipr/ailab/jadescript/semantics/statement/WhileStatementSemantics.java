@@ -8,11 +8,8 @@ import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
-import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -38,14 +35,14 @@ public class WhileStatementSemantics extends StatementSemantics<WhileStatement> 
     }
 
     @Override
-    public void compileStatement(Maybe<WhileStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<WhileStatement> input, CompilationOutputAcceptor acceptor) {
         module.get(ContextManager.class).pushScope();
 
 
         final String compiledCondition = module.get(RValueExpressionSemantics.class).compile(
                 input.__(WhileStatement::getCondition),
                 acceptor
-        ).orElse("");
+        ).toString();
 
         acceptor.accept(w.whileStmnt(
                 w.expr(compiledCondition),

@@ -2,13 +2,14 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
@@ -19,6 +20,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
 
 public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSimple> {
     public StringLiteralSemantics(SemanticsModule semanticsModule) {
@@ -53,6 +56,17 @@ public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSim
         });
     }
 
+    @Override
+    protected List<String> propertyChainInternal(Maybe<StringLiteralSimple> input) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<StringLiteralSimple> input) {
+        return ExpressionTypeKB.empty();
+    }
+
+    @SuppressWarnings("SameParameterValue")
     private String removePrefixIfPresent(String prefix, String target) {
         if (target.startsWith(prefix)) {
             return target.substring(prefix.length());
@@ -61,6 +75,7 @@ public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSim
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private String removeSuffixIfPresent(String suffix, String target) {
         if (target.endsWith(suffix)) {
             return target.substring(0, target.length() - suffix.length());
@@ -69,11 +84,12 @@ public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSim
         }
     }
 
-    private void validateEscapes(
+    private boolean validateEscapes(
             String string,
             Maybe<? extends EObject> input,
             ValidationMessageAcceptor acceptor
     ) {
+        boolean result = VALID;
         if (string.length() > 2) {
             String text = string.substring(1, string.length() - 1);
             for (int i = 0; i < text.length(); i++) {
@@ -106,23 +122,25 @@ public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSim
 
                                     );
                                 });
+                                result = INVALID;
                         }
                     }
                 }
             }
         }
+        return result;
     }
 
     @Override
-    public void validate(Maybe<StringLiteralSimple> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<StringLiteralSimple> input, ValidationMessageAcceptor acceptor) {
         //simply validate all parts
-        input.__(StringLiteralSimple::getValue).safeDo(valueSafe -> {
-            validateEscapes(valueSafe, input, acceptor);
-        });
+        return input.__(StringLiteralSimple::getValue).__(valueSafe ->
+            validateEscapes(valueSafe, input, acceptor)
+        ).orElse(VALID);
     }
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<StringLiteralSimple> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<StringLiteralSimple> input) {
         if (mustTraverse(input)) {
             Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
             if (traversed.isPresent()) {
@@ -133,38 +151,36 @@ public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSim
     }
 
     @Override
-    public ExpressionCompilationResult compile(
+    protected String compileInternal(
             Maybe<StringLiteralSimple> input,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
-        return adaptStringConstant(input.__(StringLiteralSimple::getValue))
-                .__(ExpressionCompilationResult::result)
-                .orElseGet(ExpressionCompilationResult::empty);
+        return adaptStringConstant(input.__(StringLiteralSimple::getValue)).orElse("");
     }
 
     @Override
-    public IJadescriptType inferType(Maybe<StringLiteralSimple> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<StringLiteralSimple> input) {
         return module.get(TypeHelper.class).TEXT;
     }
 
     @Override
-    public boolean mustTraverse(Maybe<StringLiteralSimple> input) {
+    protected boolean mustTraverse(Maybe<StringLiteralSimple> input) {
         return false;
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<StringLiteralSimple> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<StringLiteralSimple> input) {
         return Optional.empty();
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<StringLiteralSimple> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<StringLiteralSimple> input) {
         return true;
     }
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<StringLiteralSimple, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<StringLiteralSimple, ?, ?> input, CompilationOutputAcceptor acceptor) {
         return input.createEmptyCompileOutput();
     }
 

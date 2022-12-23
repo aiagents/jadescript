@@ -3,8 +3,8 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.ContainmentCheck;
 import it.unipr.ailab.jadescript.jadescript.RelationalComparison;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -21,10 +21,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
-import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.of;
 
 /**
@@ -42,7 +40,7 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<RelationalComparison> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<RelationalComparison> input) {
         if (mustTraverse(input)) {
             Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
             if (traversed.isPresent()) {
@@ -64,8 +62,8 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
-    public ExpressionCompilationResult compile(Maybe<RelationalComparison> input, StatementCompilationOutputAcceptor acceptor) {
-        if (input == null) return empty();
+    protected String compileInternal(Maybe<RelationalComparison> input, CompilationOutputAcceptor acceptor) {
+        if (input == null) return "";
         final Maybe<ContainmentCheck> left = input.__(RelationalComparison::getLeft);
         final Maybe<ContainmentCheck> right = input.__(RelationalComparison::getRight);
         Maybe<String> relationalOp = input.__(RelationalComparison::getRelationalOp);
@@ -74,32 +72,32 @@ public class RelationalComparisonExpressionSemantics
         }else if(relationalOp.wrappedEquals("≤")){
             relationalOp = of("<=");
         }
-        ExpressionCompilationResult leftCompiled = module.get(ContainmentCheckExpressionSemantics.class)
+        String leftCompiled = module.get(ContainmentCheckExpressionSemantics.class)
                 .compile(left, acceptor);
 
         TypeHelper th = module.get(TypeHelper.class);
 
         if (right.isPresent()) {
-            ExpressionCompilationResult rightCompiled = module.get(ContainmentCheckExpressionSemantics.class)
+            String rightCompiled = module.get(ContainmentCheckExpressionSemantics.class)
                     .compile(right, acceptor);
             IJadescriptType t1 = module.get(ContainmentCheckExpressionSemantics.class).inferType(left);
             IJadescriptType t2 = module.get(ContainmentCheckExpressionSemantics.class).inferType(right);
             if (t1.isAssignableFrom(th.DURATION) && t2.isAssignableFrom(th.DURATION)) {
-                return result("jadescript.lang.Duration.compare(" + leftCompiled
-                        + ", " + rightCompiled + ") " + relationalOp + " 0");
+                return "jadescript.lang.Duration.compare(" + leftCompiled
+                        + ", " + rightCompiled + ") " + relationalOp + " 0";
             } else if (t1.isAssignableFrom(th.TIMESTAMP) && t2.isAssignableFrom(th.TIMESTAMP)) {
-                return result("jadescript.lang.Timestamp.compare(" + leftCompiled
-                        + ", " + rightCompiled + ") " + relationalOp + " 0");
+                return "jadescript.lang.Timestamp.compare(" + leftCompiled
+                        + ", " + rightCompiled + ") " + relationalOp + " 0";
             } else {
-                return result(leftCompiled + " " + relationalOp + " "
-                        + rightCompiled);
+                return leftCompiled + " " + relationalOp + " "
+                        + rightCompiled;
             }
         }
         return leftCompiled;
     }
 
     @Override
-    public IJadescriptType inferType(Maybe<RelationalComparison> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<RelationalComparison> input) {
         if (input == null) return module.get(TypeHelper.class).ANY;
         final Maybe<ContainmentCheck> left = input.__(RelationalComparison::getLeft);
         final Maybe<ContainmentCheck> right = input.__(RelationalComparison::getRight);
@@ -113,13 +111,13 @@ public class RelationalComparisonExpressionSemantics
 
 
     @Override
-    public boolean mustTraverse(Maybe<RelationalComparison> input) {
+    protected boolean mustTraverse(Maybe<RelationalComparison> input) {
         final Maybe<ContainmentCheck> right = input.__(RelationalComparison::getRight);
         return right.isNothing();
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<RelationalComparison> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<RelationalComparison> input) {
         final Maybe<ContainmentCheck> left = input.__(RelationalComparison::getLeft);
         if (mustTraverse(input)) {
             return Optional.of(new SemanticsBoundToExpression<>(module.get(ContainmentCheckExpressionSemantics.class), left));
@@ -128,7 +126,7 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<RelationalComparison> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<RelationalComparison> input) {
         if(mustTraverse(input)){
             return module.get(ContainmentCheckExpressionSemantics.class).isPatternEvaluationPure(
                     input.__(RelationalComparison::getLeft)
@@ -141,7 +139,7 @@ public class RelationalComparisonExpressionSemantics
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(
             PatternMatchInput<RelationalComparison, ?, ?> input,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         final Maybe<RelationalComparison> pattern = input.getPattern();
         if (mustTraverse(pattern)) {
@@ -181,33 +179,35 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
-    public void validate(Maybe<RelationalComparison> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
+    protected boolean validateInternal(Maybe<RelationalComparison> input, ValidationMessageAcceptor acceptor) {
+        if (input == null) return VALID;
         final TypeHelper th = module.get(TypeHelper.class);
         final Maybe<ContainmentCheck> left = input.__(RelationalComparison::getLeft);
         final Maybe<ContainmentCheck> right = input.__(RelationalComparison::getRight);
-        InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
-        module.get(ContainmentCheckExpressionSemantics.class).validate(left, subValidation);
+        boolean subValidation = module.get(ContainmentCheckExpressionSemantics.class)
+                .validate(left, acceptor);
         if (right.isPresent()) {
-            module.get(ContainmentCheckExpressionSemantics.class).validate(right, subValidation);
-            if (!subValidation.thereAreErrors()) {
+            subValidation = subValidation && module.get(ContainmentCheckExpressionSemantics.class)
+                    .validate(right, acceptor);
+            if (subValidation == VALID) {
                 IJadescriptType typeLeft = module.get(ContainmentCheckExpressionSemantics.class).inferType(left);
                 IJadescriptType typeRight = module.get(ContainmentCheckExpressionSemantics.class).inferType(right);
-                module.get(ValidationHelper.class).assertExpectedTypes(
+                boolean ltValidation = module.get(ValidationHelper.class).assertExpectedTypes(
                         Arrays.asList(th.NUMBER, th.TIMESTAMP, th.DURATION),
                         typeLeft,
                         "InvalidOperandType",
                         left,
                         acceptor
                 );
-                module.get(ValidationHelper.class).assertExpectedTypes(
+                boolean rtValidation = module.get(ValidationHelper.class).assertExpectedTypes(
                         Arrays.asList(th.NUMBER, th.TIMESTAMP, th.DURATION),
                         typeRight,
                         "InvalidOperandType",
                         right,
                         acceptor
                 );
-                module.get(ValidationHelper.class).assertion(
+
+                boolean otherValidation = module.get(ValidationHelper.class).assertion(
                         Util.implication(th.NUMBER.isAssignableFrom(typeLeft), th.NUMBER.isAssignableFrom(typeRight))
                                 && Util.implication(
                                 th.DURATION.isAssignableFrom(typeLeft),
@@ -223,9 +223,22 @@ public class RelationalComparisonExpressionSemantics
                         input,
                         acceptor
                 );
+
+                return ltValidation && rtValidation && otherValidation;
             }
 
         }
+        return subValidation;
+    }
+
+    @Override
+    protected List<String> propertyChainInternal(Maybe<RelationalComparison> input) {
+        return List.of();
+    }
+
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<RelationalComparison> input) {
+        return ExpressionTypeKB.empty();
     }
 
 }

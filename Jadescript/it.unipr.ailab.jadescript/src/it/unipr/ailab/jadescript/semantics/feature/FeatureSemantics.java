@@ -21,7 +21,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
  * Created on 26/04/18.
  */
 @Singleton
-public abstract class FeatureSemantics<T extends Feature> extends Semantics<T> {
+public abstract class FeatureSemantics<T extends Feature> extends Semantics {
 
 
     public FeatureSemantics(SemanticsModule semanticsModule) {

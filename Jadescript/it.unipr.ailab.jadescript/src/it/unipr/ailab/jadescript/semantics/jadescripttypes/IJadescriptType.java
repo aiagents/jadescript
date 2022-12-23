@@ -49,9 +49,9 @@ public interface IJadescriptType extends TypeArgument {
     boolean isReferrable();
 
     /**
-     * Whether Jadescript user code can operate on values of this type
+     * Whether Jadescript user code can access the properties of the values of this type
      */
-    boolean isManipulable();
+    boolean haveProperties();
 
     /**
      * Whether this is the type of value resulting from a compilation error
@@ -61,7 +61,7 @@ public interface IJadescriptType extends TypeArgument {
 
     Maybe<OntologyType> getDeclaringOntology();
 
-    void validateType(Maybe<? extends EObject> input, ValidationMessageAcceptor acceptor);
+    boolean validateType(Maybe<? extends EObject> input, ValidationMessageAcceptor acceptor);
 
     @Override
     String getJadescriptName();

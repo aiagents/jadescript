@@ -85,7 +85,7 @@ public class BaseOntoContentType extends JadescriptType implements OntoContentTy
     }
 
     @Override
-    public boolean isManipulable() {
+    public boolean haveProperties() {
         return true;
     }
 

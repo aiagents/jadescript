@@ -118,6 +118,11 @@ public class Operation implements CallableSymbol {
     }
 
     @Override
+    public boolean isPure() {
+        //Set in ctor
+    }
+
+    @Override
     public String compileInvokeByArity(String dereferencePrefix, List<String> compiledRexprs) {
         return this.invokeByArityCustom.apply(dereferencePrefix, compiledRexprs);
     }

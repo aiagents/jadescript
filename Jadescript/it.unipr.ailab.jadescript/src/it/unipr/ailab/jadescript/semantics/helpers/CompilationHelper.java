@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -164,13 +164,13 @@ public class CompilationHelper implements IQualifiedNameProvider {
     public List<String> adaptAndCompileRValueList(
             List<? extends RValueExpression> rvals,
             List<IJadescriptType> destinationTypes,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         List<String> compiledArgs = rvals.stream()
                 .map(Maybe::of)
                 .map(x -> x.__(xx -> (RValueExpression) xx))
                 .map(x -> module.get(RValueExpressionSemantics.class).compile(x, acceptor))
-                .map(x -> x.orElse(""))
+                .map(ExpressionCompilationResult::toString)
                 .collect(Collectors.toList());
         List<IJadescriptType> argTypes = rvals.stream()
                 .map(Maybe::of)
@@ -183,7 +183,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
     public String compileRValueList(
             List<? extends RValueExpression> rvals,
             List<IJadescriptType> destinationTypes,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         if (rvals == null) return "";
         StringBuilder sb = new StringBuilder();
@@ -194,15 +194,15 @@ public class CompilationHelper implements IQualifiedNameProvider {
                 IJadescriptType argType = module.get(RValueExpressionSemantics.class).inferType(expr);
                 if (module.get(TypeHelper.class).implicitConversionCanOccur(argType, destType)) {
                     sb.append(module.get(TypeHelper.class).compileImplicitConversion(
-                            module.get(RValueExpressionSemantics.class).compile(expr, acceptor).orElse(""),
+                            module.get(RValueExpressionSemantics.class).compile(expr, acceptor).toString(),
                             argType,
                             destType
                     ));
                 } else {
-                    sb.append(module.get(RValueExpressionSemantics.class).compile(expr, acceptor).orElse(""));
+                    sb.append(module.get(RValueExpressionSemantics.class).compile(expr, acceptor).toString());
                 }
             } else {
-                sb.append(module.get(RValueExpressionSemantics.class).compile(expr, acceptor).orElse(""));
+                sb.append(module.get(RValueExpressionSemantics.class).compile(expr, acceptor).toString());
             }
             if (i != rvals.size() - 1) {
                 sb.append(",");
@@ -211,7 +211,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
         return sb.toString();
     }
 
-    public String compileRValueList(List<RValueExpression> rvals, StatementCompilationOutputAcceptor acceptor) {
+    public String compileRValueList(List<RValueExpression> rvals, CompilationOutputAcceptor acceptor) {
         return compileRValueList(rvals, null, acceptor);
     }
 

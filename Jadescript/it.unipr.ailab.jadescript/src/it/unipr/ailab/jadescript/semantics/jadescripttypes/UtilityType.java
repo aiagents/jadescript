@@ -46,7 +46,7 @@ public abstract class UtilityType extends JadescriptType{
     }
 
     @Override
-    public boolean isManipulable() {
+    public boolean haveProperties() {
         return false;
     }
 

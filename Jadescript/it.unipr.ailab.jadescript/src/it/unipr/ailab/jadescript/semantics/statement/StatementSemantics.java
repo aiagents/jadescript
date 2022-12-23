@@ -7,9 +7,8 @@ import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSema
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
-import it.unipr.ailab.sonneteer.statement.StatementWriter;
+import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -17,7 +16,7 @@ import java.util.List;
  */
 @Singleton
 public abstract class StatementSemantics<T>
-        extends Semantics<T>
+        extends Semantics
         implements EffectfulOperationSemantics {
 
 
@@ -34,9 +33,11 @@ public abstract class StatementSemantics<T>
      */
     public abstract void compileStatement(
             Maybe<T> input,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     );
 
     public abstract List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<T> input);
+
+    public abstract void validate(Maybe<T> input, ValidationMessageAcceptor acceptor);
 
 }

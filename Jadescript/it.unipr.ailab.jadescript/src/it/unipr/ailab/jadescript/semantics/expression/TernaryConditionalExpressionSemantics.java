@@ -2,8 +2,8 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
@@ -11,8 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -20,16 +19,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
-import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
  * Created on 27/12/16.
- *
- * 
  */
 @Singleton
 public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<TernaryConditional> {
@@ -40,7 +35,7 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
     }
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<TernaryConditional> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<TernaryConditional> input) {
         final Maybe<LogicalOr> condition = input.__(TernaryConditional::getCondition);
         final Maybe<RValueExpression> expression1 = input.__(TernaryConditional::getExpression1);
         final Maybe<RValueExpression> expression2 = input.__(TernaryConditional::getExpression2);
@@ -68,25 +63,42 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
     }
 
     @Override
-    public ExpressionCompilationResult compile(Maybe<TernaryConditional> input, StatementCompilationOutputAcceptor acceptor) {
-        if (input == null) return empty();
+    protected List<String> propertyChainInternal(Maybe<TernaryConditional> input) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<TernaryConditional> input) {
+        if (input == null || input.isNothing()) return ExpressionTypeKB.empty();
         final Maybe<LogicalOr> condition = input.__(TernaryConditional::getCondition);
         final Maybe<RValueExpression> expression1 = input.__(TernaryConditional::getExpression1);
         final Maybe<RValueExpression> expression2 = input.__(TernaryConditional::getExpression2);
         final boolean isConditionalOp = input.__(TernaryConditional::isConditionalOp).extract(nullAsFalse);
-        ExpressionCompilationResult part1 = module.get(LogicalOrExpressionSemantics.class).compile(condition, acceptor);
-        if (!isConditionalOp) return part1;
-        ExpressionCompilationResult part2 = module.get(RValueExpressionSemantics.class).compile(expression1, acceptor);
-        ExpressionCompilationResult part3 = module.get(RValueExpressionSemantics.class).compile(expression2, acceptor);
-        return result("((" + part1 + ") ? (" + part2 + ") : (" + part3 + "))")
-                .setFTKB(module.get(TypeHelper.class).mergeByLUB(
-                        part2.getFlowTypingKB(),
-                        part1.getFlowTypingKB()
-                ));
+        if (!isConditionalOp) {
+            return module.get(LogicalOrExpressionSemantics.class).computeKB(condition);
+        } else {
+            ExpressionTypeKB kb1 = module.get(RValueExpressionSemantics.class).computeKB(expression1);
+            ExpressionTypeKB kb2 = module.get(RValueExpressionSemantics.class).computeKB(expression2);
+            return module.get(TypeHelper.class).mergeByLUB(kb1, kb2);
+        }
     }
 
     @Override
-    public IJadescriptType inferType(Maybe<TernaryConditional> input) {
+    protected String compileInternal(Maybe<TernaryConditional> input, CompilationOutputAcceptor acceptor) {
+        if (input == null) return "";
+        final Maybe<LogicalOr> condition = input.__(TernaryConditional::getCondition);
+        final Maybe<RValueExpression> expression1 = input.__(TernaryConditional::getExpression1);
+        final Maybe<RValueExpression> expression2 = input.__(TernaryConditional::getExpression2);
+        final boolean isConditionalOp = input.__(TernaryConditional::isConditionalOp).extract(nullAsFalse);
+        String part1 = module.get(LogicalOrExpressionSemantics.class).compile(condition, acceptor);
+        if (!isConditionalOp) return part1;
+        String part2 = module.get(RValueExpressionSemantics.class).compile(expression1, acceptor);
+        String part3 = module.get(RValueExpressionSemantics.class).compile(expression2, acceptor);
+        return "((" + part1 + ") ? (" + part2 + ") : (" + part3 + "))";
+    }
+
+    @Override
+    protected IJadescriptType inferTypeInternal(Maybe<TernaryConditional> input) {
         if (input == null) return module.get(TypeHelper.class).ANY;
         final Maybe<LogicalOr> condition = input.__(TernaryConditional::getCondition);
         final Maybe<RValueExpression> expression1 = input.__(TernaryConditional::getExpression1);
@@ -102,31 +114,15 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
 
     }
 
-    @Override
-    public ExpressionTypeKB extractFlowTypeTruths(Maybe<TernaryConditional> input) {
-        if (input == null || input.isNothing()) return ExpressionTypeKB.empty();
-        final Maybe<LogicalOr> condition = input.__(TernaryConditional::getCondition);
-        final Maybe<RValueExpression> expression1 = input.__(TernaryConditional::getExpression1);
-        final Maybe<RValueExpression> expression2 = input.__(TernaryConditional::getExpression2);
-        final boolean isConditionalOp = input.__(TernaryConditional::isConditionalOp).extract(nullAsFalse);
-        if (!isConditionalOp) {
-            return module.get(LogicalOrExpressionSemantics.class).extractFlowTypeTruths(condition);
-        } else {
-            ExpressionTypeKB kb1 = module.get(RValueExpressionSemantics.class).extractFlowTypeTruths(expression1);
-            ExpressionTypeKB kb2 = module.get(RValueExpressionSemantics.class).extractFlowTypeTruths(expression2);
-            return module.get(TypeHelper.class).mergeByLUB(kb1, kb2);
-        }
-
-    }
 
     @Override
-    public boolean mustTraverse(Maybe<TernaryConditional> input) {
+    protected boolean mustTraverse(Maybe<TernaryConditional> input) {
         final boolean isConditionalOp = input.__(TernaryConditional::isConditionalOp).extract(nullAsFalse);
         return !isConditionalOp;
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TernaryConditional> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TernaryConditional> input) {
         final Maybe<LogicalOr> condition = input.__(TernaryConditional::getCondition);
         if (mustTraverse(input)) {
             return Optional.of(new SemanticsBoundToExpression<>(module.get(LogicalOrExpressionSemantics.class), condition));
@@ -135,11 +131,11 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<TernaryConditional> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<TernaryConditional> input) {
         final boolean conditionPure = module.get(LogicalOrExpressionSemantics.class).isPatternEvaluationPure(
                 input.__(TernaryConditional::getCondition)
         );
-        if(mustTraverse(input)){
+        if (mustTraverse(input)) {
             return conditionPure;
         }
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
@@ -151,44 +147,54 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
     }
 
     @Override
-    public void validate(Maybe<TernaryConditional> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
+    protected boolean validateInternal(Maybe<TernaryConditional> input, ValidationMessageAcceptor acceptor) {
+        if (input == null) return VALID;
         final Maybe<LogicalOr> condition = input.__(TernaryConditional::getCondition);
         final Maybe<RValueExpression> expression1 = input.__(TernaryConditional::getExpression1);
         final Maybe<RValueExpression> expression2 = input.__(TernaryConditional::getExpression2);
         final boolean isConditionalOp = input.__(TernaryConditional::isConditionalOp).extract(nullAsFalse);
-        InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
-        module.get(LogicalOrExpressionSemantics.class).validate(condition, subValidation);
-        if (!subValidation.thereAreErrors() && isConditionalOp) {
+        boolean conditionValidation = module.get(LogicalOrExpressionSemantics.class)
+                .validate(condition, acceptor);
+
+        if (!isConditionalOp) {
+            return conditionValidation;
+        }
+
+        if (conditionValidation == VALID) {
             IJadescriptType type = module.get(LogicalOrExpressionSemantics.class).inferType(condition);
-            module.get(ValidationHelper.class).assertExpectedType(Boolean.class, type,
+            final boolean validConditionType = module.get(ValidationHelper.class).assertExpectedType(
+                    Boolean.class,
+                    type,
                     "InvalidCondition",
                     input,
                     JadescriptPackage.eINSTANCE.getTernaryConditional_Condition(),
                     acceptor
             );
+            conditionValidation = conditionValidation && validConditionType;
         }
 
-        InterceptAcceptor expressionsValidation = new InterceptAcceptor(acceptor);
-        module.get(RValueExpressionSemantics.class).validate(expression1, expressionsValidation);
-        module.get(RValueExpressionSemantics.class).validate(expression2, expressionsValidation);
+        final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
+        boolean expr1Validation = rves.validate(expression1, acceptor);
+        boolean expr2Validation = rves.validate(expression2, acceptor);
 
-        if(isConditionalOp && !expressionsValidation.thereAreErrors()){
+        if (expr2Validation && expr1Validation) {
             final IJadescriptType computedType = inferType(input);
-            module.get(ValidationHelper.class).assertion(
+            final boolean commonParentTypeValidation = module.get(ValidationHelper.class).assertion(
                     !computedType.isErroneous(),
                     "TernaryConditionalInvalidType",
                     "Can not find a valid common parent type of the types of the two branches.",
                     input,
                     acceptor
             );
+            return conditionValidation && commonParentTypeValidation;
         }
 
+        return INVALID;
     }
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<TernaryConditional, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<TernaryConditional, ?, ?> input, CompilationOutputAcceptor acceptor) {
         final Maybe<TernaryConditional> pattern = input.getPattern();
         if (mustTraverse(pattern)) {
             return module.get(LogicalOrExpressionSemantics.class).compilePatternMatchInternal(
@@ -205,7 +211,7 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
         if (mustTraverse(input)) {
             return module.get(LogicalOrExpressionSemantics.class).inferPatternTypeInternal(
                     input.__(TernaryConditional::getCondition));
-        }else{
+        } else {
             return PatternType.empty(module);
         }
     }

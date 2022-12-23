@@ -17,7 +17,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedBehaviourT
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import jade.core.behaviours.Behaviour;
 import jadescript.core.behaviours.OneShot;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -51,7 +50,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
     }
 
     @Override
-    public void compileStatement(Maybe<ActivateStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<ActivateStatement> input, CompilationOutputAcceptor acceptor) {
 
 
         Maybe<RValueExpression> expr = input.__(ActivateStatement::getExpression);
@@ -64,7 +63,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
         final String compiledBehaviour = module.get(RValueExpressionSemantics.class).compile(
                 expr,
                 acceptor
-        ).orElse("");
+        ).getGeneratedText();
 
         params.add(w.expr(THE_AGENT + "()"));
         if (delay.isPresent()) {
@@ -72,7 +71,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
             params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
                     delay,
                     acceptor
-            ).orElse("")));
+            ).getGeneratedText()));
         }
 
         if (start.isPresent()) {
@@ -80,7 +79,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
             params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
                     start,
                     acceptor
-            ).orElse("")));
+            ).getGeneratedText()));
         }
 
         if (period.isPresent()) {
@@ -88,7 +87,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
             params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
                     period,
                     acceptor
-            ).orElse("")));
+            ).getGeneratedText()));
         }
 
 

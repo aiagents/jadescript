@@ -16,6 +16,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts.VALID;
+
 /**
  * Created on 01/11/2018.
  *
@@ -32,9 +34,9 @@ public class SyntheticExpression implements RValueExpression {
             return Collections.emptyList();
         }
 
-        public ExpressionCompilationResult compile() {
+        public String compile() {
             // Override if needed
-            return ExpressionCompilationResult.empty();
+            return "";
         }
 
         public IJadescriptType inferType(TypeHelper typeHelper) {
@@ -54,8 +56,9 @@ public class SyntheticExpression implements RValueExpression {
         }
 
         @SuppressWarnings("EmptyMethod")
-        public void validate(ValidationMessageAcceptor acceptor) {
+        public boolean validate(ValidationMessageAcceptor acceptor) {
             // Override if needed
+            return VALID;
         }
 
         public boolean isPatternEvaluationPure() {

@@ -12,10 +12,8 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -39,13 +37,13 @@ public class ClearStatementSemantics extends StatementSemantics<ClearStatement> 
     }
 
     @Override
-    public void compileStatement(Maybe<ClearStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<ClearStatement> input, CompilationOutputAcceptor acceptor) {
         if (input != null) {
             acceptor.accept(w.callStmnt(
                     module.get(RValueExpressionSemantics.class).compile(
                             input.__(ClearStatement::getCollection),
                             acceptor
-                    ).orElse("") + ".clear"
+                    ) + ".clear"
             ));
         }
     }

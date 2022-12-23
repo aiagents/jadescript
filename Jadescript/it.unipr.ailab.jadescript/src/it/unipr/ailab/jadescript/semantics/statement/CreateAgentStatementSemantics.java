@@ -15,7 +15,6 @@ import it.unipr.ailab.jadescript.semantics.namespace.JvmModelBasedNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
-import jade.domain.AMSService;
 import jade.wrapper.ContainerController;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -361,7 +360,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
     }
 
     @Override
-    public void compileStatement(Maybe<CreateAgentStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<CreateAgentStatement> input, CompilationOutputAcceptor acceptor) {
         List<Maybe<RValueExpression>> args;
         if (input.__(CreateAgentStatement::getNamedArgs).isPresent()) {
             args = Maybe.toListOfMaybes(input
@@ -398,7 +397,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         final String compiledNickName = rves
                 .compile(nickName, acceptor)
-                .orElse("");
+                .toString();
 
         acceptor.accept(w.simpleStmt(agentType.compileToJavaTypeReference()
                 + ".create(" + THE_AGENT + "().getContainerController(), "
@@ -406,7 +405,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
                 + (args.isEmpty() || args.stream().allMatch(Maybe::isNothing) ? "" : ", ")
                 + args.stream()
                 .map(input1 -> rves.compile(input1, acceptor))
-                .map(ms -> ms.orElse(""))
+                .map(ExpressionCompilationResult::toString)
                 .collect(Collectors.joining(", "))
                 + ")"
         ));

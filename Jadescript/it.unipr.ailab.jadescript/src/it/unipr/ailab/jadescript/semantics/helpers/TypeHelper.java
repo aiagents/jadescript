@@ -60,7 +60,7 @@ public class TypeHelper implements SemanticsConsts {
 
 
     private final Map<Performative, Function<List<TypeArgument>, MessageSubType>> messageSubTypeMap = new HashMap<>();
-    private final Map<String, Performative> nameToMessageMap = new HashMap<>();
+    private final Map<String, Performative> nameToPerformativeMap = new HashMap<>();
     private final Map<Performative, Supplier<IJadescriptType>> messageContentTypeRequirements = new HashMap<>();
 
     //Associates to some performatives (ACCEPT_PROPOSAL, CFP, etc...) with a set of default elements (mainly TRUE propositions)
@@ -575,7 +575,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(ACTION, PROPOSITION)
         );
-        nameToMessageMap.put("AcceptProposalMessage", ACCEPT_PROPOSAL);
+        nameToPerformativeMap.put("AcceptProposalMessage", ACCEPT_PROPOSAL);
         messageSubTypeMap.put(ACCEPT_PROPOSAL, ACCEPTPROPOSAL_MESSAGE);
         messageContentTypeRequirements.put(ACCEPT_PROPOSAL, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION)
@@ -593,7 +593,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(ACTION, PROPOSITION)
         );
-        nameToMessageMap.put("AgreeMessage", AGREE);
+        nameToPerformativeMap.put("AgreeMessage", AGREE);
         messageSubTypeMap.put(AGREE, AGREE_MESSAGE);
         messageContentTypeRequirements.put(AGREE, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION)
@@ -611,7 +611,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(ACTION)
         );
-        nameToMessageMap.put("CancelMessage", CANCEL);
+        nameToPerformativeMap.put("CancelMessage", CANCEL);
         messageSubTypeMap.put(CANCEL, CANCEL_MESSAGE);
         messageContentTypeRequirements.put(CANCEL, () -> ACTION);
 
@@ -623,7 +623,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(ACTION, PROPOSITION)
         );
-        nameToMessageMap.put("CFPMessage", CFP);
+        nameToPerformativeMap.put("CFPMessage", CFP);
         messageSubTypeMap.put(CFP, CFP_MESSAGE);
         messageContentTypeRequirements.put(CFP, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION)
@@ -641,7 +641,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(PROPOSITION)
         );
-        nameToMessageMap.put("ConfirmMessage", CONFIRM);
+        nameToPerformativeMap.put("ConfirmMessage", CONFIRM);
         messageSubTypeMap.put(CONFIRM, CONFIRM_MESSAGE);
         messageContentTypeRequirements.put(CONFIRM, () -> PROPOSITION);
         defineJVMToGenericDescriptor(ConfirmMessage.class, CONFIRM_MESSAGE, 1);
@@ -652,7 +652,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(PROPOSITION)
         );
-        nameToMessageMap.put("DisconfirmMessage", DISCONFIRM);
+        nameToPerformativeMap.put("DisconfirmMessage", DISCONFIRM);
         messageSubTypeMap.put(DISCONFIRM, DISCONFIRM_MESSAGE);
         messageContentTypeRequirements.put(DISCONFIRM, () -> PROPOSITION);
         defineJVMToGenericDescriptor(DisconfirmMessage.class, DISCONFIRM_MESSAGE, 1);
@@ -663,7 +663,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(ACTION, PROPOSITION)
         );
-        nameToMessageMap.put("FailureMessage", FAILURE);
+        nameToPerformativeMap.put("FailureMessage", FAILURE);
         messageSubTypeMap.put(FAILURE, FAILURE_MESSAGE);
         messageContentTypeRequirements.put(FAILURE, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION)
@@ -681,7 +681,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(PROPOSITION)
         );
-        nameToMessageMap.put("InformMessage", INFORM);
+        nameToPerformativeMap.put("InformMessage", INFORM);
         messageSubTypeMap.put(INFORM, INFORM_MESSAGE);
         messageContentTypeRequirements.put(INFORM, () -> PROPOSITION);
         defineJVMToGenericDescriptor(InformMessage.class, INFORM_MESSAGE, 1);
@@ -692,7 +692,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(PROPOSITION)
         );
-        nameToMessageMap.put("InformIfMessage", INFORM_IF);
+        nameToPerformativeMap.put("InformIfMessage", INFORM_IF);
         messageSubTypeMap.put(INFORM_IF, INFORMIF_MESSAGE);
         messageContentTypeRequirements.put(INFORM_IF, () -> PROPOSITION);
         defineJVMToGenericDescriptor(InformIfMessage.class, INFORMIF_MESSAGE, 1);
@@ -703,7 +703,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(LIST.apply(Arrays.asList(covariant(CONCEPT))))
         );
-        nameToMessageMap.put("InformRefMessage", INFORM_REF);
+        nameToPerformativeMap.put("InformRefMessage", INFORM_REF);
         messageSubTypeMap.put(INFORM_REF, INFORMREF_MESSAGE);
         messageContentTypeRequirements.put(INFORM_REF, () -> LIST.apply(Arrays.asList(covariant(CONCEPT))));
         defineJVMToGenericDescriptor(InformRefMessage.class, INFORMREF_MESSAGE, 1);
@@ -714,7 +714,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(ANYMESSAGE, PROPOSITION)
         );
-        nameToMessageMap.put("NotUnderstoodMessage", NOT_UNDERSTOOD);
+        nameToPerformativeMap.put("NotUnderstoodMessage", NOT_UNDERSTOOD);
         messageSubTypeMap.put(NOT_UNDERSTOOD, NOTUNDERSTOOD_MESSAGE);
         messageContentTypeRequirements.put(NOT_UNDERSTOOD, () -> TUPLE.apply(Arrays.asList(
                 covariant(ANYMESSAGE), covariant(PROPOSITION)
@@ -732,7 +732,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(ACTION, PROPOSITION)
         );
-        nameToMessageMap.put("ProposeMessage", PROPOSE);
+        nameToPerformativeMap.put("ProposeMessage", PROPOSE);
         messageSubTypeMap.put(PROPOSE, PROPOSE_MESSAGE);
         messageContentTypeRequirements.put(PROPOSE, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION)
@@ -750,7 +750,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(PROPOSITION)
         );
-        nameToMessageMap.put("QueryIfMessage", QUERY_IF);
+        nameToPerformativeMap.put("QueryIfMessage", QUERY_IF);
         messageSubTypeMap.put(QUERY_IF, QUERYIF_MESSAGE);
         messageContentTypeRequirements.put(QUERY_IF, () -> PROPOSITION);
         defineJVMToGenericDescriptor(QueryIfMessage.class, QUERYIF_MESSAGE, 1);
@@ -761,7 +761,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(LIST.apply(Arrays.asList(covariant(CONCEPT))))
         );
-        nameToMessageMap.put("QueryRefMessage", QUERY_REF);
+        nameToPerformativeMap.put("QueryRefMessage", QUERY_REF);
         messageSubTypeMap.put(QUERY_REF, QUERYREF_MESSAGE);
         messageContentTypeRequirements.put(QUERY_REF, () -> LIST.apply(Arrays.asList(covariant(CONCEPT))));
         defineJVMToGenericDescriptor(QueryRefMessage.class, QUERYREF_MESSAGE, 1);
@@ -772,7 +772,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(ACTION, PROPOSITION)
         );
-        nameToMessageMap.put("RefuseMessage", REFUSE);
+        nameToPerformativeMap.put("RefuseMessage", REFUSE);
         messageSubTypeMap.put(REFUSE, REFUSE_MESSAGE);
         messageContentTypeRequirements.put(REFUSE, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION)
@@ -790,7 +790,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(ACTION, PROPOSITION, PROPOSITION)
         );
-        nameToMessageMap.put("RejectProposalMessage", REJECT_PROPOSAL);
+        nameToPerformativeMap.put("RejectProposalMessage", REJECT_PROPOSAL);
         messageSubTypeMap.put(REJECT_PROPOSAL, REJECTPROPOSAL_MESSAGE);
         messageContentTypeRequirements.put(REJECT_PROPOSAL, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION), covariant(PROPOSITION)
@@ -812,7 +812,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(ACTION)
         );
-        nameToMessageMap.put("RequestMessage", REQUEST);
+        nameToPerformativeMap.put("RequestMessage", REQUEST);
         messageSubTypeMap.put(REQUEST, REQUEST_MESSAGE);
         messageContentTypeRequirements.put(REQUEST, () -> ACTION);
         defineJVMToGenericDescriptor(RequestMessage.class, REQUEST_MESSAGE, 2);
@@ -823,7 +823,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(ACTION, PROPOSITION)
         );
-        nameToMessageMap.put("RequestWhenMessage", REQUEST_WHEN);
+        nameToPerformativeMap.put("RequestWhenMessage", REQUEST_WHEN);
         messageSubTypeMap.put(REQUEST_WHEN, REQUESTWHEN_MESSAGE);
         messageContentTypeRequirements.put(REQUEST_WHEN, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION)
@@ -836,7 +836,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(ACTION, PROPOSITION)
         );
-        nameToMessageMap.put("RequestWheneverMessage", REQUEST_WHENEVER);
+        nameToPerformativeMap.put("RequestWheneverMessage", REQUEST_WHENEVER);
         messageSubTypeMap.put(REQUEST_WHENEVER, REQUESTWHENEVER_MESSAGE);
         messageContentTypeRequirements.put(REQUEST_WHENEVER, () -> TUPLE.apply(Arrays.asList(
                 covariant(ACTION), covariant(PROPOSITION)
@@ -849,7 +849,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(LIST.apply(Arrays.asList(covariant(CONCEPT))))
         );
-        nameToMessageMap.put("SubscribeMessage", SUBSCRIBE);
+        nameToPerformativeMap.put("SubscribeMessage", SUBSCRIBE);
         messageSubTypeMap.put(SUBSCRIBE, SUBSCRIBE_MESSAGE);
         messageContentTypeRequirements.put(SUBSCRIBE, () -> LIST.apply(Arrays.asList(covariant(CONCEPT))));
         defineJVMToGenericDescriptor(SubscribeMessage.class, SUBSCRIBE_MESSAGE, 1);
@@ -860,7 +860,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(LIST.apply(Arrays.asList(AID)), ANYMESSAGE, PROPOSITION)
         );
-        nameToMessageMap.put("ProxyMessage", PROXY);
+        nameToPerformativeMap.put("ProxyMessage", PROXY);
         messageSubTypeMap.put(PROXY, PROXY_MESSAGE);
         messageContentTypeRequirements.put(PROXY, () -> TUPLE.apply(Arrays.asList(
                 LIST.apply(Arrays.asList(AID)), covariant(ANYMESSAGE), covariant(PROPOSITION))));
@@ -877,7 +877,7 @@ public class TypeHelper implements SemanticsConsts {
                 args,
                 Arrays.asList(LIST.apply(Arrays.asList(AID)), ANYMESSAGE, PROPOSITION)
         );
-        nameToMessageMap.put("PropagateMessage", PROPAGATE);
+        nameToPerformativeMap.put("PropagateMessage", PROPAGATE);
         messageSubTypeMap.put(PROPAGATE, PROPAGATE_MESSAGE);
         messageContentTypeRequirements.put(PROPAGATE, () -> TUPLE.apply(Arrays.asList(
                 LIST.apply(Arrays.asList(AID)), covariant(ANYMESSAGE), covariant(PROPOSITION))));
@@ -900,7 +900,7 @@ public class TypeHelper implements SemanticsConsts {
                 return false;
             }
         };
-        nameToMessageMap.put("UnknownMessage", UNKNOWN);
+        nameToPerformativeMap.put("UnknownMessage", UNKNOWN);
         messageSubTypeMap.put(UNKNOWN, UNKNOWN_MESSAGE);
         messageContentTypeRequirements.put(UNKNOWN, () -> SERIALIZABLE);
         defineJVMToGenericDescriptor(UnknownMessage.class, UNKNOWN_MESSAGE, 1);
@@ -979,9 +979,9 @@ public class TypeHelper implements SemanticsConsts {
     }
 
     public Function<List<TypeArgument>, ? extends BaseMessageType> getMessageType(
-            String name
+            String performative
     ) {
-        return getMessageType(nameToMessageMap.get(name));
+        return getMessageType(nameToPerformativeMap.get(performative));
     }
 
     public List<TypeArgument> getDefaultTypeArguments(
@@ -990,7 +990,7 @@ public class TypeHelper implements SemanticsConsts {
         if (name.equals("Message")) {
             return Collections.singletonList(ANY);
         }
-        final Performative performative = nameToMessageMap.get(name);
+        final Performative performative = nameToPerformativeMap.get(name);
         final Supplier<IJadescriptType> supplyDefaultArg = messageContentTypeRequirements.get(performative);
         if (supplyDefaultArg == null) {
             return Collections.emptyList();
@@ -1410,6 +1410,18 @@ public class TypeHelper implements SemanticsConsts {
                 result = messageContentTupleDefaultElements.compile(i, inputContentType, result);
             }
             return result;
+        }
+    }
+
+    /**
+     * If {@code t} is a Tuple type, it returns the types of its elements. Otherwise, it returns a singleton list
+     * containing {@code t}.
+     */
+    public List<? extends TypeArgument> unpackTuple(TypeArgument t){
+        if (t instanceof TupleType) {
+            return ((TupleType) t).getTypeArguments();
+        }else{
+            return List.of(t);
         }
     }
 
@@ -2142,8 +2154,8 @@ public class TypeHelper implements SemanticsConsts {
 
 
         @Override
-        public void validateType(Maybe<? extends EObject> input, ValidationMessageAcceptor acceptor) {
-            module.get(ValidationHelper.class).assertion(
+        public boolean validateType(Maybe<? extends EObject> input, ValidationMessageAcceptor acceptor) {
+            return module.get(ValidationHelper.class).assertion(
                     false,
                     "InvalidType",
                     description,

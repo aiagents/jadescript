@@ -16,12 +16,9 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
-import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import it.unipr.ailab.sonneteer.statement.controlflow.IfStatementWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -42,7 +39,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
 
     @Override
-    public void compileStatement(Maybe<IfStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<IfStatement> input, CompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> condition = input.__(IfStatement::getCondition);
         Maybe<OptionalBlock> thenBranch = input.__(IfStatement::getThenBranch);
 
@@ -53,7 +50,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
         module.get(ContextManager.class).pushScope();
         String conditionCompiled = module.get(RValueExpressionSemantics.class)
-                .compile(condition, acceptor).orElse("");
+                .compile(condition, acceptor).getGeneratedText();
         BlockWriter thenBranchCompiled = module.get(BlockSemantics.class).compileOptionalBlock(thenBranch);
         IfStatementWriter ifsp = w.ifStmnt(w.expr(conditionCompiled), thenBranchCompiled);
         module.get(ContextManager.class).popScope();
@@ -61,7 +58,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
         for (int i = 0; i < elseIfBranches.size(); ++i) {
             module.get(ContextManager.class).pushScope();
             String elseIfCond = module.get(RValueExpressionSemantics.class)
-                    .compile(elseIfConditions.get(i), acceptor).orElse("");
+                    .compile(elseIfConditions.get(i), acceptor).getGeneratedText();
             BlockWriter elseIfBranch = module.get(BlockSemantics.class).compileOptionalBlock(elseIfBranches.get(i));
             ifsp.addElseIfBranch(w.expr(elseIfCond), elseIfBranch);
             module.get(ContextManager.class).popScope();

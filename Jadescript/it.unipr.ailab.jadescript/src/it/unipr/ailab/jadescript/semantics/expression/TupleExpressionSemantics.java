@@ -1,7 +1,9 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
+
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
@@ -12,18 +14,19 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.TupledExpressions;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 
 /**
  * Semantics for the expression made of a parentheses-delimited list of comma-separated expressions, a.k.a. "tuple".
@@ -49,21 +52,36 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
         super(semanticsModule);
     }
 
+
     @Override
-    public void validate(Maybe<TupledExpressions> input, ValidationMessageAcceptor acceptor) {
-        List<Maybe<RValueExpression>> exprs = input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList);
-        RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
-        if (!exprs.isEmpty()) {
-            validateTupleSize(input, acceptor, exprs.size());
-            for (Maybe<RValueExpression> expr : exprs) {
-                rves.validate(expr, acceptor);
-            }
-        }
+    protected List<String> propertyChainInternal(Maybe<TupledExpressions> input) {
+        return Collections.emptyList();
     }
 
-    private void validateTupleSize(Maybe<TupledExpressions> input, ValidationMessageAcceptor acceptor, int size) {
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<TupledExpressions> input) {
+        return ExpressionTypeKB.empty();
+    }
+
+    @Override
+    protected boolean validateInternal(Maybe<TupledExpressions> input, ValidationMessageAcceptor acceptor) {
+        List<Maybe<RValueExpression>> exprs = input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList);
+        RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
+        boolean result = VALID;
+        if (!exprs.isEmpty()) {
+            final boolean validateTupleSize = validateTupleSize(input, acceptor, exprs.size());
+            result = result && validateTupleSize;
+            for (Maybe<RValueExpression> expr : exprs) {
+                final boolean exprValidation = rves.validate(expr, acceptor);
+                result = result && exprValidation;
+            }
+        }
+        return result;
+    }
+
+    private boolean validateTupleSize(Maybe<TupledExpressions> input, ValidationMessageAcceptor acceptor, int size) {
         final ValidationHelper validationHelper = module.get(ValidationHelper.class);
-        validationHelper.assertion(
+        return validationHelper.assertion(
                 size <= 20,
                 "TupleTooBig",
                 "Tuples with more than 20 elements are not supported.",
@@ -73,53 +91,53 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
     }
 
     @Override
-    public void compileAssignment(
+    public void compileAssignmentInternal(
             Maybe<TupledExpressions> input,
             String compiledExpression,
             IJadescriptType exprType,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         //TODO fast-l-expr compilation?
         // (if all elements are l-exprs, just compile it as multi-assignment? it would be faster than pattern matching)
     }
 
     @Override
-    public void validateAssignment(
+    public boolean validateAssignmentInternal(
             Maybe<TupledExpressions> input,
             Maybe<RValueExpression> expression,
             ValidationMessageAcceptor acceptor
     ) {
-        // Do nothing
+        return VALID;
         //TODO fast-l-expr compilation?
         // (if all elements are l-exprs, just compile it as multi-assignment? it would be faster than pattern matching)
     }
 
     @Override
-    public void syntacticValidateLValue(
+    public boolean syntacticValidateLValueInternal(
             Maybe<TupledExpressions> input,
             ValidationMessageAcceptor acceptor
     ) {
         //TODO fast-l-expr compilation?
         // (if all elements are l-exprs, just compile it as multi-assignment? it would be faster than pattern matching)
-        errorNotLvalue(input, acceptor);
+        return errorNotLvalue(input, acceptor);
     }
 
     @Override
-    public boolean isValidLExpr(Maybe<TupledExpressions> input) {
+    protected boolean isValidLExprInternal(Maybe<TupledExpressions> input) {
         //TODO fast-l-expr compilation?
         // (if all elements are l-exprs, just compile it as multi-assignment? it would be faster than pattern matching)
         return false;
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<TupledExpressions> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<TupledExpressions> input) {
         return input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList)
                 .stream()
                 .allMatch(module.get(RValueExpressionSemantics.class)::isPatternEvaluationPure);
     }
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<TupledExpressions> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<TupledExpressions> input) {
         List<Maybe<RValueExpression>> exprs = input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList);
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         return exprs.stream()
@@ -128,21 +146,21 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
     }
 
     @Override
-    public ExpressionCompilationResult compile(Maybe<TupledExpressions> input, StatementCompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<TupledExpressions> input, CompilationOutputAcceptor acceptor) {
         final Integer initialCapacity = input.__(TupledExpressions::getSize).orElse(2);
         List<Maybe<RValueExpression>> exprs = input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList);
         List<String> elements = new ArrayList<>(initialCapacity);
         List<TypeArgument> types = new ArrayList<>(initialCapacity);
         RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         for (Maybe<RValueExpression> expr : exprs) {
-            elements.add(rves.compile(expr, acceptor).getGeneratedText());
+            elements.add(rves.compile(expr, acceptor));
             types.add(rves.inferType(expr));
         }
-        return result(TupleType.compileNewInstance(elements, types));
+        return TupleType.compileNewInstance(elements, types);
     }
 
     @Override
-    public IJadescriptType inferType(Maybe<TupledExpressions> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<TupledExpressions> input) {
         List<Maybe<RValueExpression>> exprs = input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList);
         RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         return module.get(TypeHelper.class).TUPLE.apply(exprs.stream()
@@ -151,24 +169,24 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
     }
 
     @Override
-    public boolean mustTraverse(Maybe<TupledExpressions> input) {
+    protected boolean mustTraverse(Maybe<TupledExpressions> input) {
         return false;
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TupledExpressions> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TupledExpressions> input) {
         return Optional.empty();
     }
 
     @Override
-    public boolean isHoled(Maybe<TupledExpressions> input) {
+    protected boolean isHoledInternal(Maybe<TupledExpressions> input) {
         List<Maybe<RValueExpression>> exprs = input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList);
         RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         return exprs.stream().anyMatch(rves::isHoled);
     }
 
     @Override
-    public boolean isTypelyHoled(Maybe<TupledExpressions> input) {
+    protected boolean isTypelyHoledInternal(Maybe<TupledExpressions> input) {
         List<Maybe<RValueExpression>> exprs = input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList);
         RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         return exprs.stream().anyMatch(rves::isTypelyHoled);
@@ -176,7 +194,7 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
     }
 
     @Override
-    public boolean isUnbound(Maybe<TupledExpressions> input) {
+    protected boolean isUnboundInternal(Maybe<TupledExpressions> input) {
         List<Maybe<RValueExpression>> exprs = input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList);
         RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         return exprs.stream().anyMatch(rves::isUnbound);
@@ -184,7 +202,7 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<TupledExpressions, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<TupledExpressions, ?, ?> input, CompilationOutputAcceptor acceptor) {
         List<Maybe<RValueExpression>> terms = input.getPattern().__(TupledExpressions::getTuples)
                 .extract(Maybe::nullAsEmptyList);
         PatternType patternType = inferPatternType(input.getPattern(), input.getMode());

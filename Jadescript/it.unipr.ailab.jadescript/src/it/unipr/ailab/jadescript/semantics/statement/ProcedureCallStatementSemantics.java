@@ -9,11 +9,9 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.SingleLineStatementCommentWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -28,7 +26,7 @@ public class ProcedureCallStatementSemantics extends StatementSemantics<Procedur
     }
 
     @Override
-    public void compileStatement(Maybe<ProcedureCallStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<ProcedureCallStatement> input, CompilationOutputAcceptor acceptor) {
 
         if (input.__(ProcedureCallStatement::isIsNothing).extract(Maybe.nullAsTrue)) {
             acceptor.accept(w.commentStmt("do nothing;"));
@@ -48,7 +46,7 @@ public class ProcedureCallStatementSemantics extends StatementSemantics<Procedur
                                     true
                             ),
                             acceptor
-                    )
+                    ).toString()
             ));
         }
     }

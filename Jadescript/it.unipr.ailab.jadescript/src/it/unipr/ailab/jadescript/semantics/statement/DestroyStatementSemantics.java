@@ -31,11 +31,11 @@ public class DestroyStatementSemantics extends StatementSemantics<DestroyStateme
     }
 
     @Override
-    public void compileStatement(Maybe<DestroyStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<DestroyStatement> input, CompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> target = input.__(DestroyStatement::getTarget);
 
         acceptor.accept(w.callStmnt(
-                module.get(RValueExpressionSemantics.class).compile(target, acceptor).orElse("") + ".destroy"
+                module.get(RValueExpressionSemantics.class).compile(target, acceptor) + ".destroy"
         ));
 
 

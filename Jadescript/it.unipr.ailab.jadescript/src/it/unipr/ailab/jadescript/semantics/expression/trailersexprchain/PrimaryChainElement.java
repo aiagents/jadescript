@@ -5,7 +5,6 @@ import it.unipr.ailab.jadescript.jadescript.Primary;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.PrimaryExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
@@ -13,11 +12,11 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchO
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Created on 26/08/18.
@@ -38,7 +37,7 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
 
 
     @Override
-    public ExpressionCompilationResult compile(ReversedTrailerChain rest, StatementCompilationOutputAcceptor acceptor) {
+    public String compile(ReversedTrailerChain rest, CompilationOutputAcceptor acceptor) {
         //rest should be empty, so it's ignored
         return primaryExpressionSemantics.compile(atom, acceptor);
     }
@@ -50,25 +49,25 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public void validate(ReversedTrailerChain rest, ValidationMessageAcceptor acceptor) {
+    public boolean validate(ReversedTrailerChain rest, ValidationMessageAcceptor acceptor) {
         //rest should be empty, so it's ignored
-        primaryExpressionSemantics.validate(atom, acceptor);
+        return primaryExpressionSemantics.validate(atom, acceptor);
     }
 
     @Override
-    public void validateAssignment(
+    public boolean validateAssignment(
             ReversedTrailerChain rest,
             Maybe<RValueExpression> rValueExpression,
             IJadescriptType typeOfRExpr,
             ValidationMessageAcceptor acceptor
     ) {
         //rest should be empty, so it's ignored
-        primaryExpressionSemantics.validateAssignment(atom, rValueExpression, acceptor);
+        return primaryExpressionSemantics.validateAssignment(atom, rValueExpression, acceptor);
     }
 
     @Override
-    public void syntacticValidateLValue(InterceptAcceptor acceptor) {
-        primaryExpressionSemantics.syntacticValidateLValue(atom, acceptor);
+    public boolean syntacticValidateLValue(ValidationMessageAcceptor acceptor) {
+        return primaryExpressionSemantics.syntacticValidateLValue(atom, acceptor);
     }
 
     @Override
@@ -76,7 +75,7 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
             ReversedTrailerChain rest,
             String compiledExpression,
             IJadescriptType exprType,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         //rest should be empty, so it's ignored
         primaryExpressionSemantics.compileAssignment(atom, compiledExpression, exprType, acceptor);
@@ -88,7 +87,7 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> getSubExpressions(ReversedTrailerChain rest) {
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>> getSubExpressions(ReversedTrailerChain rest) {
         //rest should be empty, so it's ignored
         return primaryExpressionSemantics.getSubExpressions(atom);
     }
@@ -109,7 +108,7 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         //rest should be empty, so it's ignored
         return primaryExpressionSemantics.compilePatternMatchInternal(
@@ -152,5 +151,15 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
     public boolean isPatternEvaluationPure(ReversedTrailerChain rest) {
         //rest should be empty, so it's ignored
         return primaryExpressionSemantics.isPatternEvaluationPure(atom);
+    }
+
+    @Override
+    public boolean canBeHoled(ReversedTrailerChain rest) {
+        return primaryExpressionSemantics.canBeHoled(atom);
+    }
+
+    @Override
+    public boolean containsNotHoledAssignableParts(ReversedTrailerChain rest) {
+        return primaryExpressionSemantics.containsNotHoledAssignableParts(atom);
     }
 }

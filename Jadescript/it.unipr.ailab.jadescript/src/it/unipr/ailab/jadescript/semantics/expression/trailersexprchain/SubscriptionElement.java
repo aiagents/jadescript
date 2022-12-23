@@ -6,7 +6,6 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
@@ -16,7 +15,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.XNumberLiteral;
@@ -27,8 +26,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
+import static it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts.INVALID;
+import static it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts.VALID;
 
 
 /**
@@ -52,21 +53,21 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
 
 
     @Override
-    public ExpressionCompilationResult compile(ReversedTrailerChain rest, StatementCompilationOutputAcceptor acceptor) {
-        ExpressionCompilationResult operandCompiled = rest.compile(acceptor);
-        ExpressionCompilationResult keyCompiled = expressionSemantics.compile(key, acceptor);
+    public String compile(ReversedTrailerChain rest, CompilationOutputAcceptor acceptor) {
+        String operandCompiled = rest.compile(acceptor);
+        String keyCompiled = expressionSemantics.compile(key, acceptor);
         final IJadescriptType restType = rest.inferType();
         if (module.get(TypeHelper.class).TEXT.isAssignableFrom(restType)) {
-            return result("(\"\"+" + operandCompiled + ".charAt(" + keyCompiled + "))");
+            return "(\"\"+" + operandCompiled + ".charAt(" + keyCompiled + "))";
         }
         if (restType instanceof TupleType) {
             final Optional<Integer> integer = extractIntegerIfAvailable(key);
             if (integer.isPresent()) {
-                return result(((TupleType) restType).compileGet(operandCompiled.getGeneratedText(), integer.get()));
+                return ((TupleType) restType).compileGet(operandCompiled, integer.get());
             }
         }
 
-        return result(operandCompiled + ".get(" + keyCompiled + ")");
+        return operandCompiled + ".get(" + keyCompiled + ")";
 
     }
 
@@ -113,185 +114,207 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public void validate(ReversedTrailerChain rest, ValidationMessageAcceptor acceptor) {
-        InterceptAcceptor restSubvalidation = new InterceptAcceptor(acceptor);
-        rest.validate(restSubvalidation);
-        if (restSubvalidation.thereAreErrors()) {
-            return;
+    public boolean validate(ReversedTrailerChain rest, ValidationMessageAcceptor acceptor) {
+
+        boolean restSubvalidation = rest.validate(acceptor);
+        if (restSubvalidation == INVALID) {
+            return INVALID;
         }
 
 
         IJadescriptType restType = rest.inferType();
         if (rest.getElements().isEmpty()) {
             // ERROR! however, a [] subscription without nothing before should be syntactically impossible...
-            return;
+            // (it would be recognized as list literal...)
+            return INVALID;
         }
 
 
-        InterceptAcceptor keySubValidation = new InterceptAcceptor(acceptor);
-        expressionSemantics.validate(key, keySubValidation);
-        if (!keySubValidation.thereAreErrors()) {
-            IJadescriptType keyType = expressionSemantics.inferType(key);
+        boolean keySubValidation = expressionSemantics.validate(key, acceptor);
+        if (keySubValidation == INVALID) {
+            return INVALID;
+        }
 
-            if (restType instanceof TupleType) {
-                module.get(ValidationHelper.class).assertExpectedType(
-                        module.get(TypeHelper.class).INTEGER,
-                        module.get(RValueExpressionSemantics.class).inferType(key),
+        IJadescriptType keyType = expressionSemantics.inferType(key);
+        if (restType instanceof TupleType) {
+            boolean indexType = module.get(ValidationHelper.class).assertExpectedType(
+                    module.get(TypeHelper.class).INTEGER,
+                    module.get(RValueExpressionSemantics.class).inferType(key),
+                    "InvalidTupleIndex",
+                    key,
+                    acceptor
+            );
+
+            if (indexType == INVALID) {
+                return INVALID;
+            }
+
+            final Optional<Integer> integer = extractIntegerIfAvailable(key);
+            boolean indexValid = module.get(ValidationHelper.class).assertion(
+                    integer.isPresent(),
+                    "InvalidTupleIndex",
+                    "Invalid index for tuples. To access a tuple element via index number, only" +
+                            " index expressions whose value is trivially known at compile time can be used." +
+                            " Please an integer literal constant.",
+                    key,
+                    acceptor
+            );
+
+            if (integer.isPresent()) {
+                final TupleType tupleType = (TupleType) restType;
+                indexValid = module.get(ValidationHelper.class).assertion(
+                        integer.get() >= 0 && integer.get() < tupleType.getElementTypes().size(),
                         "InvalidTupleIndex",
-                        key,
-                        keySubValidation
-                );
-
-                if (!keySubValidation.thereAreErrors()) {
-                    final Optional<Integer> integer = extractIntegerIfAvailable(key);
-                    module.get(ValidationHelper.class).assertion(
-                            integer.isPresent(),
-                            "InvalidTupleIndex",
-                            "Invalid index for tuples.",
-                            key,
-                            acceptor
-                    );
-
-                    if (integer.isPresent()) {
-                        final TupleType tupleType = (TupleType) restType;
-                        module.get(ValidationHelper.class).assertion(
-                                integer.get() >= 0 && integer.get() < tupleType.getElementTypes().size(),
-                                "InvalidTupleIndex",
-                                "Index out of range. Index: " + integer.get() + "; tuple length: " + tupleType.getElementTypes().size(),
-                                key,
-                                acceptor
-                        );
-                    }
-                }
-
-            } else if (module.get(TypeHelper.class).TEXT.isAssignableFrom(restType)) {
-                module.get(ValidationHelper.class).assertExpectedType(
-                        module.get(TypeHelper.class).INTEGER,
-                        module.get(RValueExpressionSemantics.class).inferType(key),
-                        "InvalidStringSubscription",
+                        "Index out of range. Index: " + integer.get() + "; " +
+                                "tuple length: " + tupleType.getElementTypes().size(),
                         key,
                         acceptor
                 );
-            } else if (restType instanceof MapType || restType instanceof ListType) {
-                final List<? extends CallableSymbol> matchesFound = restType.namespace().searchAs(
-                        CallableSymbol.Searcher.class,
-                        searcher -> searcher.searchCallable(
-                                "get",
-                                null,
-                                (s, n) -> s == 1,
-                                (s, t) -> s == 1 && t.apply(0).isAssignableFrom(keyType)
-                        )
-                ).collect(Collectors.toList());
+            }
 
-                if (matchesFound.size() != 1) {
-                    key.safeDo(keySafe -> {
-                        acceptor.acceptError(
-                                "cannot perform '[]' operator on values of type: " + restType.getJadescriptName(),
-                                keySafe,
-                                null,
-                                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                                "InvalidElementAccessOperation"
-                        );
-                    });
-                }
+            return indexValid;
 
-            } else {
-                //It's neither an array nor a list/map... error!Con
+        } else if (module.get(TypeHelper.class).TEXT.isAssignableFrom(restType)) {
+            return module.get(ValidationHelper.class).assertExpectedType(
+                    module.get(TypeHelper.class).INTEGER,
+                    module.get(RValueExpressionSemantics.class).inferType(key),
+                    "InvalidStringSubscription",
+                    key,
+                    acceptor
+            );
+        } else if (restType instanceof MapType || restType instanceof ListType) {
+            final List<? extends CallableSymbol> matchesFound = restType.namespace().searchAs(
+                    CallableSymbol.Searcher.class,
+                    searcher -> searcher.searchCallable(
+                            "get",
+                            null,
+                            (s, n) -> s == 1,
+                            (s, t) -> s == 1 && t.apply(0).isAssignableFrom(keyType)
+                    )
+            ).collect(Collectors.toList());
+
+            if (matchesFound.size() != 1) {
                 key.safeDo(keySafe -> {
                     acceptor.acceptError(
-                            "[] operator cannot be used on types that are " +
-                                    "not list, map, or text. Type found: " + restType.getJadescriptName(),
+                            "cannot perform '[]' operator on values of type: " + restType.getJadescriptName(),
                             keySafe,
                             null,
                             ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
                             "InvalidElementAccessOperation"
                     );
                 });
+                return INVALID;
+            }else{
+                return VALID;
             }
+
+        } else {
+            //It's neither an array nor a list/map... error!
+            key.safeDo(keySafe -> {
+                acceptor.acceptError(
+                        "[] operator cannot be used on types that are " +
+                                "not list, map, or text. Type found: " + restType.getJadescriptName(),
+                        keySafe,
+                        null,
+                        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+                        "InvalidElementAccessOperation"
+                );
+            });
+
+            return INVALID;
         }
     }
 
     @Override
-    public void validateAssignment(
+    public boolean validateAssignment(
             ReversedTrailerChain rest, Maybe<RValueExpression> rValueExpression,
             IJadescriptType typeOfRExpr, ValidationMessageAcceptor acceptor
     ) {
 
 
-        InterceptAcceptor restSubValidation = new InterceptAcceptor(acceptor);
-        rest.validate(restSubValidation);
-        if (restSubValidation.thereAreErrors()) {
-            return;
+        boolean restSubValidation = rest.validate(acceptor);
+        if (restSubValidation == INVALID) {
+            return INVALID;
         }
         IJadescriptType restType = rest.inferType();
         if (rest.getElements().isEmpty()) {
-            // ERROR! however, a dotted identifier trailer without nothing before should be syntactically impossible... internal error system needed
-            return;
+            // ERROR! however, a [] subscription without nothing before should be syntactically impossible...
+            return INVALID;
         }
 
-        InterceptAcceptor keySubValidation = new InterceptAcceptor(acceptor);
-        expressionSemantics.validate(key, keySubValidation);
+        boolean keySubValidation = expressionSemantics.validate(key, acceptor);
+        if(keySubValidation == INVALID){
+            return INVALID;
+        }
+
         IJadescriptType keyType = expressionSemantics.inferType(key);
-        module.get(ValidationHelper.class).assertion(
+
+        keySubValidation = module.get(ValidationHelper.class).assertion(
                 !module.get(TypeHelper.class).TEXT.isAssignableFrom(restType),
                 "InvalidAssignment",
                 "Invalid assignment; values of 'text' are immutable.",
                 key,
-                keySubValidation
+                acceptor
         );
 
-        if (!keySubValidation.thereAreErrors()) {
+        if(keySubValidation == INVALID){
+            return INVALID;
+        }
 
-            if (restType instanceof ListType || restType instanceof MapType) {
-                String methodName;
+        if (restType instanceof ListType || restType instanceof MapType) {
+            String methodName;
 
-                if (restType instanceof ListType) {
-                    methodName = "set";
-                } else {
-                    methodName = "put";
-                }
-
-                final List<? extends CallableSymbol> matchesFound = restType.namespace().searchAs(
-                        CallableSymbol.Searcher.class,
-                        searcher -> searcher.searchCallable(
-                                methodName,
-                                null,
-                                (s, n) -> s == 2,
-                                (s, t) -> s == 2 && t.apply(0).isAssignableFrom(keyType)
-                                        && t.apply(1).isAssignableFrom(typeOfRExpr)
-                        )
-                ).collect(Collectors.toList());
-
-                if (matchesFound.size() != 1) {
-                    key.safeDo(keySafe -> {
-                        acceptor.acceptError(
-                                "cannot perform '[]' operator on values of type: " + restType.getJadescriptName(),
-                                keySafe,
-                                null,
-                                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                                "InvalidElementAccessOperation"
-                        );
-                    });
-                }
+            if (restType instanceof ListType) {
+                methodName = "set";
             } else {
-                //It's neither an array nor a list/map... error!
+                methodName = "put";
+            }
+
+            final List<? extends CallableSymbol> matchesFound = restType.namespace().searchAs(
+                    CallableSymbol.Searcher.class,
+                    searcher -> searcher.searchCallable(
+                            methodName,
+                            null,
+                            (s, n) -> s == 2,
+                            (s, t) -> s == 2 && t.apply(0).isAssignableFrom(keyType)
+                                    && t.apply(1).isAssignableFrom(typeOfRExpr)
+                    )
+            ).collect(Collectors.toList());
+
+            if (matchesFound.size() != 1) {
                 key.safeDo(keySafe -> {
                     acceptor.acceptError(
-                            "[] operator cannot be used on types that are " +
-                                    "not list, map, or text. Type found: " + restType.getJadescriptName(),
+                            "cannot perform '[]' operator on values of type: " + restType.getJadescriptName(),
                             keySafe,
                             null,
                             ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
                             "InvalidElementAccessOperation"
                     );
                 });
+                return INVALID;
+            }else{
+                return VALID;
             }
+        } else {
+            //It's neither an array nor a list/map... error!
+            key.safeDo(keySafe -> {
+                acceptor.acceptError(
+                        "[] operator cannot be used on types that are " +
+                                "not list, map, or text. Type found: " + restType.getJadescriptName(),
+                        keySafe,
+                        null,
+                        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+                        "InvalidElementAccessOperation"
+                );
+            });
+            return INVALID;
         }
     }
 
     @Override
-    public void syntacticValidateLValue(InterceptAcceptor acceptor) {
-        //a dot notation chain ending with [] operator is always a valid lvalue
+    public boolean syntacticValidateLValue(ValidationMessageAcceptor acceptor) {
+        //a trailer chain ending with [] operator is always a valid lvalue
+        return VALID;
     }
 
     @Override
@@ -299,9 +322,9 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
             ReversedTrailerChain rest,
             String compiledExpression,
             IJadescriptType exprType,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
-        ExpressionCompilationResult restCompiled = rest.compile(acceptor);
+        String restCompiled = rest.compile(acceptor);
         IJadescriptType restType = rest.inferType();
 
 
@@ -331,11 +354,11 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
     }
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(ReversedTrailerChain rest) {
-        List<SemanticsBoundToExpression<?>> result = new ArrayList<>();
-        result.add(new SemanticsBoundToExpression<>(expressionSemantics, key));
-        result.addAll(rest.getSubExpressions());
-        return result;
+    public Stream<SemanticsBoundToExpression<?>> getSubExpressions(ReversedTrailerChain rest) {
+        return Stream.concat(
+                Stream.of(new SemanticsBoundToExpression<>(expressionSemantics, key)),
+                rest.getSubExpressions()
+        );
     }
 
     @Override
@@ -354,7 +377,7 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<AtomExpr, ?, ?> input,
             ReversedTrailerChain rest,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }
@@ -388,6 +411,16 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
 
     @Override
     public boolean isPatternEvaluationPure(ReversedTrailerChain rest) {
+        return true;
+    }
+
+    @Override
+    public boolean canBeHoled(ReversedTrailerChain withoutFirst) {
+        return false;
+    }
+
+    @Override
+    public boolean containsNotHoledAssignableParts(ReversedTrailerChain withoutFirst) {
         return true;
     }
 }

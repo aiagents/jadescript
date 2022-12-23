@@ -64,7 +64,7 @@ public abstract class UserDefinedType<T extends JadescriptType>
     }
 
     @Override
-    public boolean isManipulable() {
+    public boolean haveProperties() {
         return true;
     }
 

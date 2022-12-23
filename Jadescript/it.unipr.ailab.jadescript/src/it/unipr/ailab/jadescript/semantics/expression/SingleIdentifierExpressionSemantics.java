@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.*;
 import it.unipr.ailab.jadescript.semantics.context.Context;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
@@ -16,7 +17,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.VirtualIdentifier;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Either;
 import it.unipr.ailab.maybe.Maybe;
@@ -25,8 +26,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 
@@ -46,6 +45,16 @@ public class SingleIdentifierExpressionSemantics
         return input.__(VirtualIdentifier::getIdent).wrappedEquals(THIS);
     }
 
+
+    @Override
+    protected List<String> propertyChainInternal(Maybe<VirtualIdentifier> input) {
+        return List.of(input.__(VirtualIdentifier::getIdent).orElse(""));
+    }
+
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<VirtualIdentifier> input) {
+        return ExpressionTypeKB.empty();
+    }
 
     public Maybe<Either<NamedSymbol, CallableSymbol>> resolve(Maybe<VirtualIdentifier> input) {
         final Context context = module.get(ContextManager.class).currentContext();
@@ -83,39 +92,35 @@ public class SingleIdentifierExpressionSemantics
     }
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<VirtualIdentifier> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<VirtualIdentifier> input) {
         return Collections.emptyList();
     }
 
-    public ExpressionCompilationResult compile(Maybe<VirtualIdentifier> input, StatementCompilationOutputAcceptor acceptor) {
-        if (input == null) return empty();
+    protected String compileInternal(Maybe<VirtualIdentifier> input, CompilationOutputAcceptor acceptor) {
+        if (input == null) return "";
 
         //TODO use resolve and delegate to MethodInvocation when needed?
         Maybe<String> ident = input.__(VirtualIdentifier::getIdent);
         if (ident.wrappedEquals(THIS)) {
-            return result(Util.getOuterClassThisReference(input.__(ProxyEObject::getProxyEObject)))
-                    .withPropertyChain(THIS);
+            return Util.getOuterClassThisReference(input.__(ProxyEObject::getProxyEObject)).orElse("");
         }
         final Context context = module.get(ContextManager.class).currentContext();
         //first, try to find the named symbol
         if (ident.isPresent()) {
             String identSafe = ident.toNullable();
-            final Optional<? extends NamedSymbol> variable = context
-                    .searchAs(
-                            NamedSymbol.Searcher.class,
-                            s -> s.searchName(identSafe, null, null)
-                    ).findFirst();
+            final Optional<? extends NamedSymbol> variable = context.searchAs(
+                    NamedSymbol.Searcher.class,
+                    s -> s.searchName(identSafe, null, null)
+            ).findFirst();
 
             if (variable.isPresent()) {
                 if (variable.get() instanceof UserVariable) {
                     final UserVariable userVariable = (UserVariable) variable.get();
                     userVariable.notifyReadUsage();
                     module.get(CompilationHelper.class).lateBindingContext().pushVariable(userVariable);
-                    return result(w.varPlaceholder(variable.get().hashCode()))
-                            .withPropertyChain(ident.toNullable());
+                    return w.varPlaceholder(variable.get().hashCode());
                 }
-                return result(variable.get().compileRead(""))
-                        .withPropertyChain(ident.toNullable());
+                return variable.get().compileRead("");
             }
 
         }
@@ -129,24 +134,24 @@ public class SingleIdentifierExpressionSemantics
                 nothing(),
                 false
         ))) {
-            return result(module.get(MethodInvocationSemantics.class).compile(MethodCall.methodCall(
+            return module.get(MethodInvocationSemantics.class).compile(MethodCall.methodCall(
                     input.__(ProxyEObject::getProxyEObject),
                     ident,
                     nothing(),
                     nothing(),
                     false
-            ), acceptor)); //TODO Could add propertyChain if called function is pure
+            ), acceptor); //TODO Could add propertyChain if called function is pure
         }
 
         // nothing worked: just use the identifier
-        return result(ident.toNullable());
+        return ident.toNullable();
     }
 
-    public void compileAssignment(
+    public void compileAssignmentInternal(
             Maybe<VirtualIdentifier> input,
             String compiledExpression,
             IJadescriptType exprType,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         if (input == null) return;
         final Maybe<String> ident = input.__(VirtualIdentifier::getIdent);
@@ -189,7 +194,6 @@ public class SingleIdentifierExpressionSemantics
         }
 
 
-
         // nothing worked: just do a simple assignment
         acceptor.accept(w.assign(
                 ident.orElse("/*Null identifier*/"),
@@ -197,7 +201,7 @@ public class SingleIdentifierExpressionSemantics
         ));
     }
 
-    public IJadescriptType inferType(Maybe<VirtualIdentifier> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<VirtualIdentifier> input) {
         if (input == null) return module.get(TypeHelper.class).ANY;
         final Maybe<String> ident = input.__(VirtualIdentifier::getIdent);
         final Context context = module.get(ContextManager.class).currentContext();
@@ -239,19 +243,18 @@ public class SingleIdentifierExpressionSemantics
     }
 
 
-
     @Override
-    public boolean mustTraverse(Maybe<VirtualIdentifier> input) {
+    protected boolean mustTraverse(Maybe<VirtualIdentifier> input) {
         return false;
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<VirtualIdentifier> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<VirtualIdentifier> input) {
         return Optional.empty();
     }
 
     @Override
-    public boolean isAlwaysPure(Maybe<VirtualIdentifier> input) {
+    protected boolean isAlwaysPureInternal(Maybe<VirtualIdentifier> input) {
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved = resolve(input);
         //Considering it pure if it is not resolved and if it is a named symbol (i.e. not a call to a function without
         // parentheses).
@@ -259,23 +262,23 @@ public class SingleIdentifierExpressionSemantics
     }
 
     @Override
-    public boolean isHoled(Maybe<VirtualIdentifier> input) {
+    protected boolean isHoledInternal(Maybe<VirtualIdentifier> input) {
         return !resolves(input);
     }
 
     @Override
-    public boolean isTypelyHoled(Maybe<VirtualIdentifier> input) {
+    protected boolean isTypelyHoledInternal(Maybe<VirtualIdentifier> input) {
         return !resolves(input);
     }
 
     @Override
-    public boolean isUnbound(Maybe<VirtualIdentifier> input) {
+    protected boolean isUnboundInternal(Maybe<VirtualIdentifier> input) {
         return !resolves(input);
     }
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<VirtualIdentifier, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<VirtualIdentifier, ?, ?> input, CompilationOutputAcceptor acceptor) {
         final String identifier = input.getPattern().__(VirtualIdentifier::getIdent).orElse("");
         if (isUnbound(input.getPattern())) {
 
@@ -306,12 +309,12 @@ public class SingleIdentifierExpressionSemantics
         } else {
 
             IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.getProvidedInputType());
-            ExpressionCompilationResult tempCompile = compile(input.getPattern(), acceptor);
+            String tempCompile = compile(input.getPattern(), acceptor);
             String compiledFinal;
-            if (tempCompile.getGeneratedText().startsWith(input.getRootPatternMatchVariableName())) {
+            if (tempCompile.startsWith(input.getRootPatternMatchVariableName())) {
                 compiledFinal = identifier;
             } else {
-                compiledFinal = tempCompile.getGeneratedText();
+                compiledFinal = tempCompile;
             }
             return input.createSingleConditionMethodOutput(
                     solvedPatternType,
@@ -397,10 +400,10 @@ public class SingleIdentifierExpressionSemantics
     }
 
 
-    public void validate(Maybe<VirtualIdentifier> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<VirtualIdentifier> input, ValidationMessageAcceptor acceptor) {
         final Maybe<String> ident = input.__(VirtualIdentifier::getIdent);
         if (ident.isNothing()) {
-            return;
+            return VALID;
         }
 
         //TODO use resolve and delegate to MethodInvocation when needed?
@@ -409,15 +412,12 @@ public class SingleIdentifierExpressionSemantics
 
         final Context context = module.get(ContextManager.class).currentContext();
 
+        final Stream<? extends NamedSymbol> variable = context.searchAs(
+                NamedSymbol.Searcher.class,
+                s -> s.searchName(identSafe, null, null)
+        );
 
-        final Stream<? extends NamedSymbol> variable = context
-                .searchAs(
-                        NamedSymbol.Searcher.class,
-                        s -> s.searchName(identSafe, null, null)
-                );
-
-
-        module.get(ValidationHelper.class).assertion(
+        return module.get(ValidationHelper.class).assertion(
                 variable.findFirst().isPresent()
                         || module.get(MethodInvocationSemantics.class).resolves(MethodCall.methodCall(
                         input.__(ProxyEObject::getProxyEObject),
@@ -433,20 +433,19 @@ public class SingleIdentifierExpressionSemantics
         );
     }
 
-    public void validateAssignment(
+    public boolean validateAssignmentInternal(
             Maybe<VirtualIdentifier> input,
             Maybe<RValueExpression> expression,
             ValidationMessageAcceptor acceptor
     ) {
         final Maybe<String> ident = input.__(VirtualIdentifier::getIdent);
 
-        InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
-        module.get(RValueExpressionSemantics.class).validate(expression, subValidation);
-        if (ident.isNothing()) {
-            return;
-        }
-        if (subValidation.thereAreErrors()) {
-            return;
+
+        boolean subValidation = module.get(RValueExpressionSemantics.class)
+                .validate(expression, acceptor);
+
+        if (ident.isNothing() || subValidation == INVALID) {
+            return subValidation;
         }
 
         final String identSafe = ident.orElse("");
@@ -455,16 +454,14 @@ public class SingleIdentifierExpressionSemantics
         IJadescriptType typeOfRExpression = module.get(RValueExpressionSemantics.class).inferType(expression);
 
 
-        final Optional<? extends NamedSymbol> variable = context
-                .searchAs(
-                        NamedSymbol.Searcher.class,
-                        s -> s.searchName(identSafe, null, null)
-                ).findFirst();
+        final Optional<? extends NamedSymbol> variable = context.searchAs(
+                NamedSymbol.Searcher.class,
+                s -> s.searchName(identSafe, null, null)
+        ).findFirst();
 
 
         if (variable.isPresent()) {
-
-            module.get(ValidationHelper.class).assertion(
+            boolean result = module.get(ValidationHelper.class).assertion(
                     variable.get().canWrite(),
                     "InvalidAssignment",
                     "'" + identSafe + "' is read-only.",
@@ -474,7 +471,7 @@ public class SingleIdentifierExpressionSemantics
 
 
             final IJadescriptType resolvedNameType = variable.get().writingType();
-            module.get(ValidationHelper.class).assertExpectedType(
+            return result && module.get(ValidationHelper.class).assertExpectedType(
                     resolvedNameType, typeOfRExpression,
                     "InvalidAssignment",
                     input.__(ProxyEObject::getProxyEObject),
@@ -489,33 +486,29 @@ public class SingleIdentifierExpressionSemantics
                     ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
                     "Unresolved symbol"
             ));
+            return INVALID;
         }
-
-
     }
 
     @Override
-    public void syntacticValidateLValue(Maybe<VirtualIdentifier> input, ValidationMessageAcceptor acceptor) {
+    public boolean syntacticValidateLValueInternal(Maybe<VirtualIdentifier> input, ValidationMessageAcceptor acceptor) {
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolve = this.resolve(input);
         if (resolve.isNothing()) {
             //Ok, probably declaring a new local variable.
-            return;
-        }
-
-        final Either<NamedSymbol, CallableSymbol> either = resolve.toNullable();
-        if (either instanceof Either.Right) {
-            errorNotLvalue(
+            return VALID;
+        } else if (resolve.toNullable() instanceof Either.Right) {
+            return errorNotLvalue(
                     input,
                     "Cannot assign a value to a name that resolves to a function with nullary arity.",
                     acceptor
             );
+        } else {
+            return VALID;
         }
-
-
     }
 
     @Override
-    public boolean isValidLExpr(Maybe<VirtualIdentifier> input) {
+    protected boolean isValidLExprInternal(Maybe<VirtualIdentifier> input) {
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolve = this.resolve(input);
         if (resolve.isNothing()) {
             //Yes: probably declaring a new local variable.
@@ -527,7 +520,7 @@ public class SingleIdentifierExpressionSemantics
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<VirtualIdentifier> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<VirtualIdentifier> input) {
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolve = this.resolve(input);
         if (resolve.isNothing()) {
             //Yes: probably declaring a new local variable.

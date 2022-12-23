@@ -104,9 +104,12 @@ public class OnCreateHandlerSemantics extends FeatureSemantics<OnCreateHandler> 
                                     );
                                     w.ifStmnt(w.expr("this.getArguments() != null"), thenBranch).writeSonnet(scb);
 
-                                    extractedParameters.add(new ActualParameter(paramNameSafe, module.get(TypeHelper.class).LIST.apply(
-                                            Collections.singletonList(module.get(TypeHelper.class).TEXT)
-                                    )));
+                                    extractedParameters.add(new ActualParameter(
+                                            paramNameSafe,
+                                            module.get(TypeHelper.class).LIST.apply(
+                                                    Collections.singletonList(module.get(TypeHelper.class).TEXT)
+                                            )
+                                    ));
                                 });
 
                             } else {
@@ -117,8 +120,9 @@ public class OnCreateHandlerSemantics extends FeatureSemantics<OnCreateHandler> 
                                     Maybe<FormalParameter> parameter = parameters.get(i);
                                     Maybe<TypeExpression> parameterType = parameter.__(FormalParameter::getType);
 
-                                    String typeCompiled = module.get(TypeExpressionSemantics.class).compile(parameterType, ).orElse("");
-                                    IJadescriptType type = module.get(TypeExpressionSemantics.class).toJadescriptType(parameterType);
+                                    IJadescriptType type = module.get(TypeExpressionSemantics.class)
+                                            .toJadescriptType(parameterType);
+                                    String typeCompiled = type.compileToJavaTypeReference();
 
                                     Maybe<String> parameterName = parameter.__(FormalParameter::getName);
                                     int finalI = i;
@@ -135,7 +139,8 @@ public class OnCreateHandlerSemantics extends FeatureSemantics<OnCreateHandler> 
                                         ).writeSonnet(scb);
                                         extractedParameters.add(new ActualParameter(
                                                 parameterNameSafe,
-                                                module.get(TypeExpressionSemantics.class).toJadescriptType(parameterType)
+                                                module.get(TypeExpressionSemantics.class)
+                                                        .toJadescriptType(parameterType)
                                         ));
                                     });
                                 }

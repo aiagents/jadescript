@@ -3,8 +3,8 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.Matches;
 import it.unipr.ailab.jadescript.jadescript.Multiplicative;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -21,15 +21,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
-import static it.unipr.ailab.maybe.Maybe.nothing;
 
 /**
  * Created on 28/12/16.
- *
- * 
  */
 @Singleton
 public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multiplicative> {
@@ -39,13 +35,24 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
         super(semanticsModule);
     }
 
-    private ExpressionCompilationResult associativeCompile(
+
+    @Override
+    protected List<String> propertyChainInternal(Maybe<Multiplicative> input) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<Multiplicative> input) {
+        return ExpressionTypeKB.empty();
+    }
+
+    private String associativeCompile(
             List<Maybe<Matches>> operands,
             List<Maybe<String>> operators,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
-        if (operands.isEmpty()) return empty();
-        ExpressionCompilationResult result = module.get(MatchesExpressionSemantics.class)
+        if (operands.isEmpty()) return "";
+        String result = module.get(MatchesExpressionSemantics.class)
                 .compile(operands.get(0), acceptor);
         IJadescriptType t = module.get(MatchesExpressionSemantics.class).inferType(operands.get(0));
         for (int i = 1; i < operands.size() && i - 1 < operators.size(); i++) {
@@ -64,46 +71,46 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
         return t;
     }
 
-    private ExpressionCompilationResult compilePair(
-            ExpressionCompilationResult op1c,
+    private String compilePair(
+            String op1c,
             IJadescriptType t1,
             Maybe<String> op,
             Maybe<Matches> op2,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         IJadescriptType t2 = module.get(MatchesExpressionSemantics.class).inferType(op2);
-        ExpressionCompilationResult op2c = module.get(MatchesExpressionSemantics.class).compile(op2, acceptor);
+        String op2c = module.get(MatchesExpressionSemantics.class).compile(op2, acceptor);
         final TypeHelper typeHelper = module.get(TypeHelper.class);
 
         if (t1.typeEquals(typeHelper.DURATION) && t2.typeEquals(typeHelper.DURATION)) {
             if (op.wrappedEquals("/")) {
-                return result("(float) jadescript.lang.Duration.divide(" + op1c + ", " + op2c + ")");
+                return "(float) jadescript.lang.Duration.divide(" + op1c + ", " + op2c + ")";
             }
         } else if ((t1.typeEquals(typeHelper.INTEGER) && t2.typeEquals(typeHelper.DURATION))
                 || (t1.typeEquals(typeHelper.DURATION) && t2.typeEquals(typeHelper.INTEGER))) {
             if (op.wrappedEquals("*")) {
-                return result("jadescript.lang.Duration.multiply(" + op1c + ", " + op2c + ")");
+                return "jadescript.lang.Duration.multiply(" + op1c + ", " + op2c + ")";
             } else if (op.wrappedEquals("/")) {
-                return result("jadescript.lang.Duration.divide(" + op1c + ", " + op2c + ")");
+                return "jadescript.lang.Duration.divide(" + op1c + ", " + op2c + ")";
             }
         } else if ((t1.typeEquals(typeHelper.REAL) && t2.typeEquals(typeHelper.DURATION))
                 || (t1.typeEquals(typeHelper.DURATION) && t2.typeEquals(typeHelper.REAL))) {
             if (op.wrappedEquals("*")) {
-                return result("jadescript.lang.Duration.multiply(" + op1c + ", " + op2c + ")");
+                return "jadescript.lang.Duration.multiply(" + op1c + ", " + op2c + ")";
             } else if (op.wrappedEquals("/")) {
-                return result("jadescript.lang.Duration.divide(" + op1c + ", " + op2c + ")");
+                return "jadescript.lang.Duration.divide(" + op1c + ", " + op2c + ")";
             }
         }
-        ExpressionCompilationResult c1 = op1c;
-        ExpressionCompilationResult c2 = op2c;
+        String c1 = op1c;
+        String c2 = op2c;
         if (typeHelper.implicitConversionCanOccur(t1, t2)) {
-            c1 = c1.mapText(x -> typeHelper.compileImplicitConversion(x, t1, t2));
+            c1 = typeHelper.compileImplicitConversion(c1, t1, t2);
         }
 
         if (typeHelper.implicitConversionCanOccur(t2, t1)) {
-            c2 = c2.mapText(x -> typeHelper.compileImplicitConversion(x, t2, t1));
+            c2 = typeHelper.compileImplicitConversion(c2, t2, t1);
         }
-        return result(c1 + " " + op.orElse("*") + " " + c2);
+        return c1 + " " + op.orElse("*") + " " + c2;
 
     }
 
@@ -141,7 +148,7 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     }
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<Multiplicative> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<Multiplicative> input) {
         if (mustTraverse(input)) {
             Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
             if (traversed.isPresent()) {
@@ -155,15 +162,15 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     }
 
     @Override
-    public ExpressionCompilationResult compile(Maybe<Multiplicative> input, StatementCompilationOutputAcceptor acceptor) {
-        if (input == null) return empty();
+    protected String compileInternal(Maybe<Multiplicative> input, CompilationOutputAcceptor acceptor) {
+        if (input == null) return "";
         final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
         final List<Maybe<String>> multiplicativeOps = Maybe.toListOfMaybes(input.__(Multiplicative::getMultiplicativeOp));
         return associativeCompile(matches, multiplicativeOps, acceptor);
     }
 
     @Override
-    public IJadescriptType inferType(Maybe<Multiplicative> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<Multiplicative> input) {
         if (input == null) return module.get(TypeHelper.class).ANY;
         final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
         final List<Maybe<String>> multiplicativeOps = Maybe.toListOfMaybes(input.__(Multiplicative::getMultiplicativeOp));
@@ -172,13 +179,13 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
 
 
     @Override
-    public boolean mustTraverse(Maybe<Multiplicative> input) {
+    protected boolean mustTraverse(Maybe<Multiplicative> input) {
         final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
         return matches.size() == 1;
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<Multiplicative> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<Multiplicative> input) {
         if (mustTraverse(input)) {
             final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
             return Optional.of(new SemanticsBoundToExpression<>(module.get(MatchesExpressionSemantics.class), matches.get(0)));
@@ -187,38 +194,39 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<Multiplicative> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<Multiplicative> input) {
         if (mustTraverse(input)) {
             return module.get(MatchesExpressionSemantics.class).isPatternEvaluationPure(input
                     .__(Multiplicative::getMatches)
                     .__(m -> m.get(0))
             );
-        }else{
+        } else {
             return true;
         }
     }
 
-    public void validateAssociative(
+    public boolean validateAssociative(
             List<Maybe<Matches>> operands,
             List<Maybe<String>> operators,
             ValidationMessageAcceptor acceptor
     ) {
-        if (operands.isEmpty()) return;
+        if (operands.isEmpty()) return VALID;
         IJadescriptType t = module.get(MatchesExpressionSemantics.class).inferType(operands.get(0));
         Maybe<Matches> op1 = operands.get(0);
-        InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-        module.get(MatchesExpressionSemantics.class).validate(op1, interceptAcceptor);
-        if (interceptAcceptor.thereAreErrors()) {
-            return;
+        boolean op1Validation = module.get(MatchesExpressionSemantics.class).validate(op1, acceptor);
+        if (op1Validation == INVALID) {
+            return op1Validation;
         }
         for (int i = 1; i < operands.size() && i - 1 < operators.size(); i++) {
             Maybe<Matches> op2 = operands.get(i);
-            if (!validatePair(op1, t, operators.get(i - 1), op2, acceptor)) {
-                return;
+            boolean pairValidation = validatePair(op1, t, operators.get(i - 1), op2, acceptor);
+            if (pairValidation == INVALID) {
+                return pairValidation;
             }
             t = inferPair(t, operators.get(i - 1), operands.get(i));
             op1 = op2;
         }
+        return VALID;
     }
 
     private boolean validatePairTypes(
@@ -231,63 +239,68 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     ) {
         TypeHelper th = module.get(TypeHelper.class);
         ValidationHelper vh = module.get(ValidationHelper.class);
-        InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
+
         List<IJadescriptType> durationIntReal = Arrays.asList(th.INTEGER, th.REAL, th.DURATION);
-        vh.assertExpectedTypes(
+        boolean t1Expected = vh.assertExpectedTypes(
                 durationIntReal,
                 t1,
                 "InvalidMultiplicativeOperation",
                 op1,
-                interceptAcceptor
+                acceptor
         );
-        vh.assertExpectedTypes(
+        boolean t2Expected = vh.assertExpectedTypes(
                 durationIntReal,
                 t2,
                 "InvalidMultiplicativeOperation",
                 op2,
-                interceptAcceptor
+                acceptor
         );
 
-        if (!interceptAcceptor.thereAreErrors()) {
-            List<IJadescriptType> intReal = Arrays.asList(th.INTEGER, th.REAL);
-            if (t1.typeEquals(th.DURATION)) {
-                if (operator.wrappedEquals("*")) {
-                    vh.assertExpectedTypes(
-                            intReal,
-                            t2,
-                            "InvalidMultiplicativeOperation",
-                            op2,
-                            interceptAcceptor
+        if (t1Expected == INVALID || t2Expected == INVALID) {
+            return INVALID;
+        }
+
+        List<IJadescriptType> intReal = Arrays.asList(th.INTEGER, th.REAL);
+        if (t1.typeEquals(th.DURATION)) {
+            if (operator.wrappedEquals("*")) {
+                return vh.assertExpectedTypes(
+                        intReal,
+                        t2,
+                        "InvalidMultiplicativeOperation",
+                        op2,
+                        acceptor
+                );
+            } else if (operator.wrappedEquals("/")) {
+                // always ok
+                return VALID;
+            } else { // assuming '%'
+                op1.safeDo(op1safe -> {
+                    acceptor.acceptError(
+                            "Invalid operation " + operator.orElse("") + " for duration type",
+                            op1safe,
+                            null,
+                            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+                            "InvalidMultiplicativeOperation"
                     );
-                } else if (operator.wrappedEquals("/")) {
-                    // always ok
-                } else { // assuming '%'
-                    op1.safeDo(op1safe -> {
-                        interceptAcceptor.acceptError(
-                                "Invalid operation " + operator.orElse("") + " for duration type",
-                                op1safe,
-                                null,
-                                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                                "InvalidMultiplicativeOperation"
-                        );
-                    });
-                }
-            } else if (t1.typeEquals(th.INTEGER) || t1.typeEquals(th.REAL)) {
-                if (operator.wrappedEquals("*")) {
-                    // always ok
-                } else if (operator.wrappedEquals("/") || operator.wrappedEquals("%")) {
-                    vh.assertExpectedTypes(
-                            intReal,
-                            t2,
-                            "InvalidMultiplicativeOperation",
-                            op2,
-                            interceptAcceptor
-                    );
-                }
+                });
+                return INVALID;
+            }
+        } else if (t1.typeEquals(th.INTEGER) || t1.typeEquals(th.REAL)) {
+            if (operator.wrappedEquals("*")) {
+                // always ok
+                return VALID;
+            } else if (operator.wrappedEquals("/") || operator.wrappedEquals("%")) {
+                return vh.assertExpectedTypes(
+                        intReal,
+                        t2,
+                        "InvalidMultiplicativeOperation",
+                        op2,
+                        acceptor
+                );
             }
         }
 
-        return !interceptAcceptor.thereAreErrors();
+        return VALID;
     }
 
     public boolean validatePair(
@@ -297,31 +310,28 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
             Maybe<Matches> op2,
             ValidationMessageAcceptor acceptor
     ) {
-        InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-        module.get(MatchesExpressionSemantics.class).validate(op2, interceptAcceptor);
-        if (interceptAcceptor.thereAreErrors()) {
-            return false;
+        boolean op2Validation = module.get(MatchesExpressionSemantics.class)
+                .validate(op2, acceptor);
+        if (op2Validation == INVALID) {
+            return INVALID;
         }
 
         IJadescriptType t2 = module.get(MatchesExpressionSemantics.class).inferType(op2);
 
-        if (!interceptAcceptor.thereAreErrors()) {
-            validatePairTypes(op1, t1, op2, t2, op, interceptAcceptor);
-        }
 
-        return !interceptAcceptor.thereAreErrors();
+        return validatePairTypes(op1, t1, op2, t2, op, acceptor);
     }
 
     @Override
-    public void validate(Maybe<Multiplicative> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<Multiplicative> input, ValidationMessageAcceptor acceptor) {
         final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
         final List<Maybe<String>> operators = Maybe.toListOfMaybes(input.__(Multiplicative::getMultiplicativeOp));
-        validateAssociative(operands, operators, acceptor);
+        return validateAssociative(operands, operators, acceptor);
     }
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<Multiplicative, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<Multiplicative, ?, ?> input, CompilationOutputAcceptor acceptor) {
         final Maybe<Multiplicative> pattern = input.getPattern();
         final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(pattern.__(Multiplicative::getMatches));
         if (mustTraverse(pattern)) {
@@ -340,7 +350,7 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
         if (mustTraverse(input)) {
             return module.get(MatchesExpressionSemantics.class).inferPatternTypeInternal(
                     operands.get(0));
-        }else{
+        } else {
             return PatternType.empty(module);
         }
     }

@@ -4,6 +4,7 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TernaryConditional;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
@@ -11,16 +12,15 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchS
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
-import static it.unipr.ailab.maybe.Maybe.nothing;
 
 /**
  * Created on 27/12/16.
@@ -35,7 +35,7 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
     }
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<RValueExpression> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<RValueExpression> input) {
         if (mustTraverse(input)) {
             Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
             if (traversed.isPresent()) {
@@ -62,8 +62,8 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
     }
 
     @Override
-    public ExpressionCompilationResult compile(Maybe<RValueExpression> input, StatementCompilationOutputAcceptor acceptor) {
-        if (input == null || input.isNothing()) return empty();
+    protected String compileInternal(Maybe<RValueExpression> input, CompilationOutputAcceptor acceptor) {
+        if (input == null || input.isNothing()) return "";
         if (input.isInstanceOf(SyntheticExpression.class)) {
             return module.get(SyntheticExpressionSemantics.class).compile(
                     input.__((i -> (SyntheticExpression) i)),
@@ -83,7 +83,7 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
     }
 
     @Override
-    public IJadescriptType inferType(Maybe<RValueExpression> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<RValueExpression> input) {
         if (input == null || input.isNothing()) return module.get(TypeHelper.class).ANY;
         if (input.isInstanceOf(SyntheticExpression.class)) {
             return module.get(SyntheticExpressionSemantics.class).inferType(input.__((i -> (SyntheticExpression) i)));
@@ -93,12 +93,12 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
 
 
     @Override
-    public boolean mustTraverse(Maybe<RValueExpression> input) {
+    protected boolean mustTraverse(Maybe<RValueExpression> input) {
         return input.isInstanceOf(SyntheticExpression.class) || input.isInstanceOf(TernaryConditional.class);
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<RValueExpression> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<RValueExpression> input) {
         if (mustTraverse(input)) {
             if (input.isInstanceOf(SyntheticExpression.class)) {
                 return Optional.of(
@@ -119,7 +119,7 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<RValueExpression> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<RValueExpression> input) {
         if (input.isInstanceOf(SyntheticExpression.class)) {
             return module.get(SyntheticExpressionSemantics.class).isPatternEvaluationPure(
                     input.__((i -> (SyntheticExpression) i))
@@ -135,18 +135,27 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
 
 
     @Override
-    public void validate(Maybe<RValueExpression> input, ValidationMessageAcceptor acceptor) {
-        if (input == null || input.isNothing()) return;
+    protected boolean validateInternal(Maybe<RValueExpression> input, ValidationMessageAcceptor acceptor) {
+        if (input == null || input.isNothing()) return VALID;
         if (input.isInstanceOf(SyntheticExpression.class)) {
-            module.get(SyntheticExpressionSemantics.class).validate(input.__((i -> (SyntheticExpression) i)), acceptor);
-            return;
+            return module.get(SyntheticExpressionSemantics.class).validate(input.__((i -> (SyntheticExpression) i)), acceptor);
         }
         if (input.isInstanceOf(TernaryConditional.class)) {
-            module.get(TernaryConditionalExpressionSemantics.class).validate(input.__((i -> (TernaryConditional) i)), acceptor);
-            return;
+            return module.get(TernaryConditionalExpressionSemantics.class)
+                    .validate(input.__((i -> (TernaryConditional) i)), acceptor);
         }
         throw new UnsupportedNodeType("RExpr can be only a TernaryConditional (or derived) " +
                 "- type found: " + input.getClass().getName());
+    }
+
+    @Override
+    protected List<String> propertyChainInternal(Maybe<RValueExpression> input) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<RValueExpression> input) {
+        return ExpressionTypeKB.empty();
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -164,7 +173,7 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<RValueExpression, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<RValueExpression, ?, ?> input, CompilationOutputAcceptor acceptor) {
         final Maybe<RValueExpression> pattern = input.getPattern();
 
         if (mustTraverse(pattern)) {

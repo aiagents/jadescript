@@ -178,10 +178,10 @@ public class TupleType extends ParametricType implements EmptyCreatable, Declare
     }
 
     @Override
-    public boolean isManipulable() {
+    public boolean haveProperties() {
         return getTypeArguments().stream()
                 .map(TypeArgument::ignoreBound)
-                .allMatch(IJadescriptType::isManipulable);
+                .allMatch(IJadescriptType::haveProperties);
     }
 
     @Override

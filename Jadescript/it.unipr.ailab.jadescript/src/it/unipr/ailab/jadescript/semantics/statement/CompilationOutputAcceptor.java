@@ -1,17 +1,17 @@
 package it.unipr.ailab.jadescript.semantics.statement;
 
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;
-import it.unipr.ailab.sonneteer.classmember.ClassMemberWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.emf.ecore.EObject;
 
 import java.util.List;
 
-public interface StatementCompilationOutputAcceptor {
+public interface CompilationOutputAcceptor {
 
-    static WriterFactory w = WriterFactory.getInstance();
+    static final WriterFactory w = WriterFactory.getInstance();
 
     void accept(BlockWriterElement element);
 
@@ -19,10 +19,7 @@ public interface StatementCompilationOutputAcceptor {
         elements.forEach(this::accept);
     }
 
-    void acceptBlockInit(BlockWriterElement element);
-
-    void acceptBlockCleanup(BlockWriterElement element);
-
+    //TODO Consider block init/cleanup compilation points
     //TODO Consider root block (i.e. method) init/cleanup compilation points
     //TODO Consider additional features acceptor...
 

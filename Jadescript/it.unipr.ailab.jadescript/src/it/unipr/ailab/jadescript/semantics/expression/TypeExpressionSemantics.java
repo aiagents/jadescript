@@ -8,6 +8,7 @@ import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
@@ -16,7 +17,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import jadescript.content.JadescriptOntoElement;
 import org.eclipse.xtext.common.types.JvmTypeReference;
@@ -28,15 +29,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
  * Created on 28/12/16.
- *
- * 
  */
 @Singleton
 public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression> {
@@ -47,42 +45,42 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
 
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<TypeExpression> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<TypeExpression> input) {
         return Collections.emptyList();
     }
 
     @Override
-    public ExpressionCompilationResult compile(Maybe<TypeExpression> input, StatementCompilationOutputAcceptor acceptor) {
-        if (input == null) return empty();
-        return result(toJadescriptType(input).compileToJavaTypeReference());
+    protected String compileInternal(Maybe<TypeExpression> input, CompilationOutputAcceptor acceptor) {
+        if (input == null) return "";
+        return toJadescriptType(input).compileToJavaTypeReference();
     }
 
 
     @Override
-    public IJadescriptType inferType(Maybe<TypeExpression> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<TypeExpression> input) {
         if (input == null)
             return module.get(TypeHelper.class).ANY;
         return module.get(TypeHelper.class).jtFromClass(Class.class);
     }
 
     @Override
-    public boolean mustTraverse(Maybe<TypeExpression> input) {
+    protected boolean mustTraverse(Maybe<TypeExpression> input) {
         return false;
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TypeExpression> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TypeExpression> input) {
         return Optional.empty();
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<TypeExpression> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<TypeExpression> input) {
         return true;
     }
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<TypeExpression, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<TypeExpression, ?, ?> input, CompilationOutputAcceptor acceptor) {
         return input.createEmptyCompileOutput();
     }
 
@@ -101,9 +99,9 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
 
 
     @Override
-    public void validate(Maybe<TypeExpression> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<TypeExpression> input, ValidationMessageAcceptor acceptor) {
         if (input == null) {
-            return;
+            return VALID;
         }
         final Maybe<JvmTypeReference> jvmtype = input.__(TypeExpression::getJvmType);
         final Maybe<CollectionTypeExpression> collectionType = input.__(TypeExpression::getCollectionTypeExpression);
@@ -113,20 +111,17 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
                 .collect(Collectors.toList());
         final Maybe<BuiltinHierarchicType> builtinHierarchicType = input.__(TypeExpression::getBuiltinHiearchic);
 
-        //it is always valid (by grammar constraints) except not valid JvmTypeReferences
         if (jvmtype.isPresent()) {
-            final IJadescriptType correspondingJDtype = module.get(TypeHelper.class).jtFromJvmTypeRef(jvmtype.toNullable());
-            module.get(ValidationHelper.class).assertTypeReferable(
+            final IJadescriptType correspondingJDtype =
+                    module.get(TypeHelper.class).jtFromJvmTypeRef(jvmtype.toNullable());
+            boolean result = module.get(ValidationHelper.class).assertTypeReferable(
                     input,
                     "Invalid type reference",
                     correspondingJDtype,
                     acceptor
             );
 
-            if (module.get(TypeHelper.class).isAssignable(
-                    JadescriptOntoElement.class,
-                    correspondingJDtype
-            )) {
+            if (module.get(TypeHelper.class).isAssignable(JadescriptOntoElement.class, correspondingJDtype)) {
                 Optional<IJadescriptType> declaringOntology = correspondingJDtype.namespace()
                         //local search:
                         .searchCallable(
@@ -137,8 +132,9 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
                         ).findFirst()
                         .map(CallableSymbol::returnType);
 
-                declaringOntology.ifPresent(jadescriptType -> {
-                    module.get(ValidationHelper.class).assertion(
+                if (declaringOntology.isPresent()) {
+                    IJadescriptType jadescriptType = declaringOntology.get();
+                    final boolean ontologyAccessible = module.get(ValidationHelper.class).assertion(
                             module.get(ContextManager.class).currentContext()
                                     .actAs(OntologyAssociationComputer.class)
                                     .findFirst().orElse(OntologyAssociationComputer.EMPTY_ONTOLOGY_ASSOCIATIONS)
@@ -150,11 +146,13 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
                             input,
                             acceptor
                     );
-                });
+                    result = result && ontologyAccessible;
+                }
             }
 
-
+            return result;
         } else if (collectionType.isPresent()) {
+            boolean result = VALID;
             switch (collectionType.__(CollectionTypeExpression::getCollectionType).extract(nullAsEmptyString)) {
                 case "map":
                 case "list":
@@ -162,13 +160,14 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
                     for (Maybe<TypeExpression> typeParameter : iterate(
                             collectionType.__(CollectionTypeExpression::getTypeParameters)
                     )) {
-                        validate(typeParameter, acceptor);
+                        final boolean typeParameterValidation = validate(typeParameter, acceptor);
+                        result = result && typeParameterValidation;
                     }
-                    break;
                 }
             }
+            return result;
         } else if (!subExprs.isEmpty()) {
-            module.get(ValidationHelper.class).assertion(
+            boolean result = module.get(ValidationHelper.class).assertion(
                     subExprs.size() <= 20,
                     "TooBigTuple",
                     "Tuples with more than 20 elements are not supported.",
@@ -176,14 +175,28 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
                     acceptor
             );
             for (Maybe<TypeExpression> subExpr : subExprs) {
-                validate(subExpr, acceptor);
+                final boolean subExprValidation = validate(subExpr, acceptor);
+                result = result && subExprValidation;
             }
+            return result;
         } else if (builtinHierarchicType.isPresent()) {
-            validateBuiltinHierarchic(builtinHierarchicType, acceptor);
+            return validateBuiltinHierarchic(builtinHierarchicType, acceptor);
+        } else {
+            return VALID;
         }
     }
 
-    private void validateBuiltinHierarchic(
+    @Override
+    protected List<String> propertyChainInternal(Maybe<TypeExpression> input) {
+        return List.of();
+    }
+
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<TypeExpression> input) {
+        return ExpressionTypeKB.empty();
+    }
+
+    private boolean validateBuiltinHierarchic(
             Maybe<BuiltinHierarchicType> builtinHierarchicType,
             ValidationMessageAcceptor acceptor
     ) {
@@ -195,20 +208,23 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
 
         if (behaviourTypeFunction != null) {
             IJadescriptType agentType = getAgentArgumentType(builtinHierarchicType);
-            module.get(ValidationHelper.class).assertExpectedType(
+            final boolean expectedTypeValidation = module.get(ValidationHelper.class).assertExpectedType(
                     typeHelper.AGENT,
                     agentType,
                     "InvalidBehaviourTypeArgument",
                     builtinHierarchicType.__(BuiltinHierarchicType::getArgumentAgentRef),
                     acceptor
             );
-            behaviourTypeFunction.apply(Arrays.asList(agentType)).validateType(builtinHierarchicType, acceptor);
+            final boolean agentTypeValidation = behaviourTypeFunction.apply(Arrays.asList(agentType))
+                    .validateType(builtinHierarchicType, acceptor);
+            return expectedTypeValidation && agentTypeValidation;
         } else {
             final Maybe<MessageType> messageTypeMaybe = builtinHierarchicType.__(BuiltinHierarchicType::getMessageType);
             if (messageTypeMaybe.isPresent()) {
-                getMessageType(messageTypeMaybe).validateType(messageTypeMaybe, acceptor);
+                return getMessageType(messageTypeMaybe).validateType(messageTypeMaybe, acceptor);
             }
         }
+        return VALID;
     }
 
     private IJadescriptType getMessageType(Maybe<MessageType> messageTypeMaybe) {
@@ -338,7 +354,6 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
             }
         }
 
-        
 
         return input
                 .__(TypeExpression::getJvmType)

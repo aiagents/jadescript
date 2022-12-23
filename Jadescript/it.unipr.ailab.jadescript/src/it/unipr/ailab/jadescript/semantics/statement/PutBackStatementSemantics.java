@@ -10,10 +10,8 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -31,13 +29,13 @@ public class PutBackStatementSemantics extends StatementSemantics<PutbackStateme
     }
 
     @Override
-    public void compileStatement(Maybe<PutbackStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<PutbackStatement> input, CompilationOutputAcceptor acceptor) {
         if(input!=null) {
             input.safeDo(inputSafe -> {
                 acceptor.accept(
                         w.callStmnt(THE_AGENT + "().__putBackMessage", w.expr(
                                         module.get(RValueExpressionSemantics.class)
-                                                .compile(input.__(PutbackStatement::getMessage), acceptor).orElse("")
+                                                .compile(input.__(PutbackStatement::getMessage), acceptor).toString()
                                 )
                         )
                 );

@@ -29,9 +29,9 @@ public class AtomWithTrailersStatementSemantics extends StatementSemantics<AtomE
     }
 
     @Override
-    public void compileStatement(Maybe<AtomExpr> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<AtomExpr> input, CompilationOutputAcceptor acceptor) {
         acceptor.accept(w.simpleStmt(
-                module.get(AtomWithTrailersExpressionSemantics.class).compile(input, acceptor).orElse("")
+                module.get(AtomWithTrailersExpressionSemantics.class).compile(input, acceptor).toString()
         ));
     }
 

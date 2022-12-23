@@ -8,7 +8,6 @@ import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collections;
@@ -32,7 +31,7 @@ public class LogStatementSemantics extends StatementSemantics<LogStatement> {
     }
 
     @Override
-    public void compileStatement(Maybe<LogStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<LogStatement> input, CompilationOutputAcceptor acceptor) {
 //        String logger =  "jade.util.Logger.getMyLogger(this.getClass().getName())";
         String logger = "jadescript.core.Agent.doLog";
 
@@ -42,7 +41,7 @@ public class LogStatementSemantics extends StatementSemantics<LogStatement> {
             content = module.get(RValueExpressionSemantics.class).compile(
                     input.__(LogStatement::getExpr),
                     acceptor
-            ).orElse("");
+            ).toString();
         } else {
             content = "\"\"";
         }

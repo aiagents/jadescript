@@ -13,6 +13,7 @@ import org.eclipse.xtext.util.ITextRegionWithLineInformation;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -50,6 +51,41 @@ public class Util implements SemanticsConsts {
         }
     }
 
+    public static <T, R> boolean allElementsMatch(List<T> a, List<R> b, BiPredicate<? super T, ? super R> predicate) {
+        if(a.size()!=b.size()){
+            return false;
+        }
+        for (int i = 0; i < a.size(); i++){
+            if(!predicate.test(a.get(i), b.get(i))){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static <T, R> boolean listEquals(List<T> a, List<R> b) {
+        return allElementsMatch(a, b, Objects::equals);
+    }
+
+    public static <T, R> boolean endsWith(List<T> a, List<R> b){
+        if(b.isEmpty()){
+            return true;
+        }
+        return listEquals(
+                a.subList(a.size() - 1 - b.size(), a.size()),
+                b
+        );
+    }
+
+    public static <T, R> boolean startsWith(List<T> a, List<R> b){
+        if(b.isEmpty()){
+            return true;
+        }
+        return listEquals(
+                a.subList(0, b.size()),
+                b
+        );
+    }
 
     @SuppressWarnings("unused")
 	private <T> Stream<T> safeFilter(Stream<T> stream, Predicate<T> predicate) {

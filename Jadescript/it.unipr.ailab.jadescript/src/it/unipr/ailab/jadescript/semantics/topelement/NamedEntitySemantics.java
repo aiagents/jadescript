@@ -22,7 +22,7 @@ import java.util.Optional;
  * Created on 26/04/18.
  */
 @Singleton
-public abstract class NamedEntitySemantics<T extends NamedElement> extends Semantics<T> {
+public abstract class NamedEntitySemantics<T extends NamedElement> extends Semantics {
 
     public NamedEntitySemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);

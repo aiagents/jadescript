@@ -15,7 +15,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.ReturnStatementWriter;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -100,10 +99,10 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
     }
 
     @Override
-    public void compileStatement(Maybe<ReturnStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<ReturnStatement> input, CompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> expr = input.__(ReturnStatement::getExpr);
 
-        String compiledExpression = module.get(RValueExpressionSemantics.class).compile(expr, acceptor).orElse("");
+        String compiledExpression = module.get(RValueExpressionSemantics.class).compile(expr, acceptor).toString();
         if(expr.isPresent()){
             final Optional<IJadescriptType> expectedReturn = module.get(ContextManager.class)
                     .currentContext()

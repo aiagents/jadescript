@@ -33,13 +33,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
  * Created on 27/04/18.
  */
 @Singleton
-public class OntologyElementSemantics extends Semantics<ExtendingFeature> {
+public class OntologyElementSemantics extends Semantics {
 
 
     public OntologyElementSemantics(SemanticsModule semanticsModule) {
@@ -644,8 +645,8 @@ public class OntologyElementSemantics extends Semantics<ExtendingFeature> {
                     if (slotTypeSet.containsKey(propName)) {//redeclared
                         ctorArgs.add(new SyntheticExpression(new SyntheticExpression.SemanticsMethods() {
                             @Override
-                            public Maybe<String> compile() {
-                                return of(propName);
+                            public ExpressionCompilationResult compile() {
+                                return result(propName);
                             }
                         }));
                     } else if (isWithSuperSlots && superSlotTypeSet.containsKey(propName)) {//initialized
@@ -872,9 +873,15 @@ public class OntologyElementSemantics extends Semantics<ExtendingFeature> {
                         module.get(CompilationHelper.class).createAndSetBody(it, scb -> {
                             String superArgumentsCompiled;
                             if (!superDestTypes.isEmpty()) {
-                                superArgumentsCompiled = module.get(CompilationHelper.class).compileRValueList(superArguments, superDestTypes);
+                                superArgumentsCompiled = module.get(CompilationHelper.class).compileRValueList(
+                                        superArguments,
+                                        superDestTypes,
+
+                                );
                             } else {
-                                superArgumentsCompiled = module.get(CompilationHelper.class).compileRValueList(superArguments);
+                                superArgumentsCompiled = module.get(CompilationHelper.class).compileRValueList(
+                                        superArguments
+                                );
                             }
 
                             w.simpleStmt("super(" + superArgumentsCompiled + ")")

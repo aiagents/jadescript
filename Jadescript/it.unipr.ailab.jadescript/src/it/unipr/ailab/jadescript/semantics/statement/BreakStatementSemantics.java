@@ -9,7 +9,6 @@ import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.SingleLineStatementCommentWriter;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.EcoreUtil2;
@@ -29,7 +28,7 @@ public class BreakStatementSemantics extends StatementSemantics<BreakStatement> 
     }
 
     @Override
-    public void compileStatement(Maybe<BreakStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<BreakStatement> input, CompilationOutputAcceptor acceptor) {
 
         StatementWriter result;
 

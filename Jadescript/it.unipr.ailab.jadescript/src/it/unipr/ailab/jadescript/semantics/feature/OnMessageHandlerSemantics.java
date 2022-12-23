@@ -373,13 +373,12 @@ public class OnMessageHandlerSemantics extends FeatureSemantics<OnMessageHandler
                             computedContentType,
                             /*normalizeToUpperBounds=*/ true
                     );
+
                     module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
                             new MessageHandlerWhenExpressionContext(
                                     mod,
-                                    out,
-                                    messageType,
-                                    computedContentType
-                            )
+                                    out
+                            ).setPerformative(performative.__(Performative.performativeByName::get))
                     );
 
                     if (patternMatchRequest.isPresent()) {

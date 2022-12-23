@@ -138,7 +138,7 @@ public class SetType extends ParametricType implements EmptyCreatable, DeclaresO
     }
 
     @Override
-    public boolean isManipulable() {
+    public boolean haveProperties() {
         return true;
     }
 

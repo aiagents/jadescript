@@ -6,7 +6,6 @@ import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Symbol;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
@@ -16,7 +15,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.jadescript.semantics.utils.Util.Tuple2;
 import it.unipr.ailab.maybe.Maybe;
@@ -28,18 +27,44 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
  * Created on 28/02/2020.
  */
 @Singleton
-public class MethodInvocationSemantics extends Semantics<MethodCall> {
+public class MethodInvocationSemantics extends Semantics {
 
     public MethodInvocationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
+    }
+
+    public static <T> List<T> sortToMatchParamNames(
+            List<T> args,
+            List<String> argNames,
+            List<String> paramNames
+    ) {
+        List<HashMap.SimpleEntry<Integer, T>> tmp = new ArrayList<>();
+        for (int i = 0; i < args.size(); i++) {
+            T arg = args.get(i);
+            Integer x = paramNames.indexOf(argNames.get(i));
+            tmp.add(new HashMap.SimpleEntry<>(x, arg));
+        }
+        return tmp.stream()
+                .sorted(Comparator.comparingInt(AbstractMap.SimpleEntry::getKey))
+                .map(AbstractMap.SimpleEntry::getValue)
+                .collect(Collectors.toList());
+    }
+
+    public static <T> List<T> sortToMatchParamNames(
+            Map<String, T> namedArgs,
+            List<String> paramNames
+    ) {
+        return paramNames.stream()
+                .map(namedArgs::get)
+                .collect(Collectors.toList());
     }
 
     private Maybe<SimpleArgumentList> extractSimpleArgs(Maybe<MethodCall> input) {
@@ -58,90 +83,90 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
         }
     }
 
-    public ExpressionCompilationResult compile(
+    public String compile(
             Maybe<MethodCall> input,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
         Maybe<String> name = input.__(MethodCall::getName);
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
 
-        return name.<ExpressionCompilationResult>__(nameSafe -> {
+        if (name.isNothing()) {
+            return "";
+        }
+        String nameSafe = name.toNullable();
 
-            if (noArgs || simpleArgs.isPresent()) {
-                SimpleArgumentList argumentsNotSafe = simpleArgs.toNullable();
-                final List<RValueExpression> argumentsSafe;
-                if (argumentsNotSafe != null && argumentsNotSafe.getExpressions() != null) {
-                    argumentsSafe = argumentsNotSafe.getExpressions();
-                } else {
-                    argumentsSafe = List.of();
-                }
-
-                int argsize = noArgs ? 0 : argumentsSafe.size();
-                Optional<? extends CallableSymbol> methodsFound = module.get(ContextManager.class).currentContext().searchAs(
-                        CallableSymbol.Searcher.class,
-                        searcher -> searcher.searchCallable(
-                                nameSafe,
-                                null,
-                                (s, n) -> s == argsize,
-                                (s, t) -> s == argsize
-                        )
-                ).findFirst();
-
-                if (methodsFound.isPresent()) {
-                    CallableSymbol method = methodsFound.get();
-                    final List<String> compiledRexprs = module.get(CompilationHelper.class).adaptAndCompileRValueList(
-                            argumentsSafe,
-                            method.parameterTypes(),
-                            acceptor
-                    );
-                    return result(method.compileInvokeByArity("", compiledRexprs));
-                }
-                // Falling back to common invocation
-                return result(name + "(" + argumentsSafe.stream()
-                        .map(Maybe::of)
-                        .map(input1 -> module.get(RValueExpressionSemantics.class).compile(input1, acceptor))
-                        .map(ExpressionCompilationResult::getGeneratedText)
-                        .collect(Collectors.joining(", ")) + ")");
-
-            } else if (namedArgs.isPresent()) {
-                Optional<? extends CallableSymbol> methodsFound = module.get(ContextManager.class).currentContext().searchAs(
-                        CallableSymbol.Searcher.class,
-                        searcher -> searcher.searchCallable(
-                                nameSafe,
-                                null,
-                                (s, n) -> namedArgs
-                                        .__(NamedArgumentList::getParameterNames)
-                                        .__(List::size)
-                                        .wrappedEquals(s),
-                                (s, t) -> namedArgs
-                                        .__(NamedArgumentList::getParameterValues)
-                                        .__(List::size)
-                                        .wrappedEquals(s)
-                        )
-                ).findFirst();
-
-                //noinspection OptionalIsPresent
-                if (methodsFound.isPresent()) {
-                    return result(methodsFound.get().compileInvokeByName("", compileNamedArgs(
-                            namedArgs.__(NamedArgumentList::getParameterNames).extract(Maybe::nullAsEmptyList),
-                            namedArgs.__(NamedArgumentList::getParameterValues).extract(Maybe::nullAsEmptyList),
-                            methodsFound.get().parameterTypesByName(),
-                            acceptor
-                    )));
-                }else {
-                    return result(name + "(" + toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues))
-                            .stream()
-                            .map(input1 -> module.get(RValueExpressionSemantics.class).compile(input1, acceptor))
-                            .map(ExpressionCompilationResult::getGeneratedText)
-                            .collect(Collectors.joining(", ")) + ")");
-                }
+        if (noArgs || simpleArgs.isPresent()) {
+            SimpleArgumentList argumentsNotSafe = simpleArgs.toNullable();
+            final List<RValueExpression> argumentsSafe;
+            if (argumentsNotSafe != null && argumentsNotSafe.getExpressions() != null) {
+                argumentsSafe = argumentsNotSafe.getExpressions();
             } else {
-
-                return ExpressionCompilationResult.empty();
+                argumentsSafe = List.of();
             }
-        }).orElseGet(ExpressionCompilationResult::empty);
+
+            int argsize = noArgs ? 0 : argumentsSafe.size();
+            Optional<? extends CallableSymbol> methodsFound = module.get(ContextManager.class).currentContext().searchAs(
+                    CallableSymbol.Searcher.class,
+                    searcher -> searcher.searchCallable(
+                            nameSafe,
+                            null,
+                            (s, n) -> s == argsize,
+                            (s, t) -> s == argsize
+                    )
+            ).findFirst();
+
+            if (methodsFound.isPresent()) {
+                CallableSymbol method = methodsFound.get();
+                final List<String> compiledRexprs = module.get(CompilationHelper.class).adaptAndCompileRValueList(
+                        argumentsSafe,
+                        method.parameterTypes(),
+                        acceptor
+                );
+                return method.compileInvokeByArity("", compiledRexprs);
+            }
+            // Falling back to common invocation
+            return name + "(" + argumentsSafe.stream()
+                    .map(Maybe::of)
+                    .map(input1 -> module.get(RValueExpressionSemantics.class).compile(input1, acceptor))
+                    .collect(Collectors.joining(", ")) + ")";
+
+        } else if (namedArgs.isPresent()) {
+            Optional<? extends CallableSymbol> methodsFound = module.get(ContextManager.class).currentContext().searchAs(
+                    CallableSymbol.Searcher.class,
+                    searcher -> searcher.searchCallable(
+                            nameSafe,
+                            null,
+                            (s, n) -> namedArgs
+                                    .__(NamedArgumentList::getParameterNames)
+                                    .__(List::size)
+                                    .wrappedEquals(s),
+                            (s, t) -> namedArgs
+                                    .__(NamedArgumentList::getParameterValues)
+                                    .__(List::size)
+                                    .wrappedEquals(s)
+                    )
+            ).findFirst();
+
+            //noinspection OptionalIsPresent
+            if (methodsFound.isPresent()) {
+                return methodsFound.get().compileInvokeByName("", compileNamedArgs(
+                        namedArgs.__(NamedArgumentList::getParameterNames).extract(Maybe::nullAsEmptyList),
+                        namedArgs.__(NamedArgumentList::getParameterValues).extract(Maybe::nullAsEmptyList),
+                        methodsFound.get().parameterTypesByName(),
+                        acceptor
+                ));
+            } else {
+                return name + "(" + toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues))
+                        .stream()
+                        .map(input1 -> module.get(RValueExpressionSemantics.class).compile(input1, acceptor))
+                        .collect(Collectors.joining(", ")) + ")";
+            }
+        } else {
+
+            return "";
+        }
 
     }
 
@@ -149,7 +174,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
             List<String> argNames,
             List<? extends RValueExpression> argRexprs,
             Map<String, IJadescriptType> namedParameters,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         Map<String, ? extends RValueExpression> args = Streams.zip(
                 argNames.stream(),
@@ -164,19 +189,18 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
         for (String name : argNames) {
             final Maybe<RValueExpression> expr = of(args.get(name));
             IJadescriptType type = module.get(RValueExpressionSemantics.class).inferType(expr);
-            ExpressionCompilationResult compiled = module.get(RValueExpressionSemantics.class).compile(expr, acceptor);
+            String compiled = module.get(RValueExpressionSemantics.class).compile(expr, acceptor);
             final IJadescriptType destType = namedParameters.get(name);
             if (destType != null) {
-                compiled = result(module.get(TypeHelper.class).compileWithEventualImplicitConversions(
-                        compiled.getGeneratedText(), type, destType
-                ));
+                compiled = module.get(TypeHelper.class).compileWithEventualImplicitConversions(
+                        compiled, type, destType
+                );
             }
-            result.put(name, compiled.getGeneratedText());
+            result.put(name, compiled);
         }
         return result;
 
     }
-
 
     public IJadescriptType inferType(
             Maybe<MethodCall> input
@@ -260,8 +284,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
 
     }
 
-
-    public void validate(Maybe<MethodCall> input, ValidationMessageAcceptor acceptor) {
+    public boolean validate(Maybe<MethodCall> input, ValidationMessageAcceptor acceptor) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
         Maybe<String> name = input.__(MethodCall::getName);
@@ -471,8 +494,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
 
     }
 
-
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(
+    public Stream<SemanticsBoundToExpression<?>> getSubExpressions(
             Maybe<MethodCall> input
     ) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
@@ -536,7 +558,7 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
 
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<MethodCall, ?, ?> input,
-            StatementCompilationOutputAcceptor acceptor
+            CompilationOutputAcceptor acceptor
     ) {
         final Maybe<? extends CallableSymbol> method = resolve(input.getPattern());
 
@@ -793,33 +815,17 @@ public class MethodInvocationSemantics extends Semantics<MethodCall> {
         return resolve(input).isPresent();
     }
 
-    public static <T> List<T> sortToMatchParamNames(
-            List<T> args,
-            List<String> argNames,
-            List<String> paramNames
-    ) {
-        List<HashMap.SimpleEntry<Integer, T>> tmp = new ArrayList<>();
-        for (int i = 0; i < args.size(); i++) {
-            T arg = args.get(i);
-            Integer x = paramNames.indexOf(argNames.get(i));
-            tmp.add(new HashMap.SimpleEntry<>(x, arg));
-        }
-        return tmp.stream()
-                .sorted(Comparator.comparingInt(AbstractMap.SimpleEntry::getKey))
-                .map(AbstractMap.SimpleEntry::getValue)
-                .collect(Collectors.toList());
-    }
-
-    public static <T> List<T> sortToMatchParamNames(
-            Map<String, T> namedArgs,
-            List<String> paramNames
-    ) {
-        return paramNames.stream()
-                .map(namedArgs::get)
-                .collect(Collectors.toList());
-    }
-
     public boolean isValidLexpr(Maybe<MethodCall> input) {
         return false;
+    }
+
+    public boolean canBeHoled(Maybe<MethodCall> input) {
+        return true;
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public boolean containsNotHoledAssignableParts(Maybe<MethodCall> input) {
+        return getSubExpressions(input).anyMatch(sbte ->
+                sbte.getSemantics().containsNotHoledAssignableParts((Maybe) sbte.getInput()));
     }
 }

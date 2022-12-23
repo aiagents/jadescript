@@ -2,7 +2,6 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
@@ -12,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.FlowTypeInferringTerm;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -20,10 +19,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
-import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
@@ -38,7 +35,7 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<TypeComparison> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<TypeComparison> input) {
         if (mustTraverse(input)) {
             Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
             if (traversed.isPresent()) {
@@ -61,45 +58,54 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    public ExpressionCompilationResult compile(Maybe<TypeComparison> input, StatementCompilationOutputAcceptor acceptor) {
-        if (input == null) return empty();
+    protected List<String> propertyChainInternal(Maybe<TypeComparison> input) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<TypeComparison> input) {
+        final Maybe<RelationalComparison> left = input.__(TypeComparison::getRelationalComparison);
+        final Maybe<TypeExpression> type = input.__(TypeComparison::getType);
+
+        ExpressionTypeKB subKb = module.get(RelationalComparisonExpressionSemantics.class).computeKB(left);
+        List<String> strings = module.get(RelationalComparisonExpressionSemantics.class).propertyChain(left);
+        subKb.add(
+                FlowTypeInferringTerm.of(module.get(TypeExpressionSemantics.class).toJadescriptType(type)),
+                strings
+        );
+        return subKb;
+    }
+
+    @Override
+    protected String compileInternal(Maybe<TypeComparison> input, CompilationOutputAcceptor acceptor) {
+        if (input == null) return "";
 
         final Maybe<RelationalComparison> left = input.__(TypeComparison::getRelationalComparison);
         final boolean isOp = input.__(TypeComparison::isIsOp).extract(nullAsFalse);
         final Maybe<TypeExpression> type = input.__(TypeComparison::getType);
 
-        ExpressionCompilationResult result = module.get(RelationalComparisonExpressionSemantics.class)
-                .compile(left, acceptor);
+        String result = module.get(RelationalComparisonExpressionSemantics.class).compile(left, acceptor);
         if (isOp) {
-            ExpressionTypeKB subKb = result.getFlowTypingKB()
-                    .copy();
-            List<String> propChain = result.getPropertyChain();
-            IJadescriptType typeDesc = module.get(TypeExpressionSemantics.class).toJadescriptType(type);
-            String compiledTypeExpression = typeDesc.compileToJavaTypeReference();
-            if (module.get(TypeHelper.class).ONTOLOGY.isAssignableFrom(typeDesc)) {
-                result = result(THE_AGENTCLASS + ".__checkOntology(" + result + ", " +
+            IJadescriptType jadescriptType = module.get(TypeExpressionSemantics.class).toJadescriptType(type);
+            String compiledTypeExpression = jadescriptType.compileToJavaTypeReference();
+            if (module.get(TypeHelper.class).ONTOLOGY.isAssignableFrom(jadescriptType)) {
+                result = THE_AGENTCLASS + ".__checkOntology(" + result + ", " +
                         compiledTypeExpression + ".class, " +
-                        compiledTypeExpression + ".getInstance())");
+                        compiledTypeExpression + ".getInstance())";
             } else {
                 //attempt to do the "safest" version if possible (safest === no compiler errors in java generated code)
                 if (!compiledTypeExpression.contains("<")) {
-                    result = result(compiledTypeExpression + ".class.isInstance(" + result + ")");
+                    result = compiledTypeExpression + ".class.isInstance(" + result + ")";
                 } else {
-                    result = result(result + " instanceof " + compiledTypeExpression);
+                    result = result + " instanceof " + compiledTypeExpression;
                 }
             }
-            subKb.add(
-                    FlowTypeInferringTerm.of(module.get(TypeExpressionSemantics.class).toJadescriptType(type)),
-                    propChain
-            );
-            return result.setFTKB(subKb);
-        } else {
-            return result;
         }
+        return result;
     }
 
     @Override
-    public IJadescriptType inferType(Maybe<TypeComparison> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<TypeComparison> input) {
         if (input == null) return module.get(TypeHelper.class).ANY;
         final Maybe<RelationalComparison> left = input.__(TypeComparison::getRelationalComparison);
         final boolean isOp = input.__(TypeComparison::isIsOp).extract(nullAsFalse);
@@ -111,13 +117,13 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    public boolean mustTraverse(Maybe<TypeComparison> input) {
+    protected boolean mustTraverse(Maybe<TypeComparison> input) {
         final boolean isOp = input.__(TypeComparison::isIsOp).extract(nullAsFalse);
         return !isOp;
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TypeComparison> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TypeComparison> input) {
         if (mustTraverse(input)) {
             final Maybe<RelationalComparison> left = input.__(TypeComparison::getRelationalComparison);
 
@@ -127,7 +133,7 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<TypeComparison> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<TypeComparison> input) {
         if (mustTraverse(input)) {
             final Maybe<RelationalComparison> left = input.__(TypeComparison::getRelationalComparison);
 
@@ -137,36 +143,24 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    public void validate(Maybe<TypeComparison> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
-        InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
+    protected boolean validateInternal(Maybe<TypeComparison> input, ValidationMessageAcceptor acceptor) {
+        if (input == null) return VALID;
         final Maybe<RelationalComparison> left = input.__(TypeComparison::getRelationalComparison);
-        module.get(RelationalComparisonExpressionSemantics.class).validate(left, subValidation);
+        boolean subResult = module.get(RelationalComparisonExpressionSemantics.class)
+                .validate(left, acceptor);
+        final Maybe<TypeExpression> typeExpr = input.__(TypeComparison::getType);
+        IJadescriptType type = module.get(TypeExpressionSemantics.class)
+                .toJadescriptType(typeExpr);
+
+        type.validateType(typeExpr, acceptor);
+
+        return subResult;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @Override
-    public ExpressionTypeKB extractFlowTypeTruths(Maybe<TypeComparison> input) {
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                //noinspection unchecked,rawtypes
-                return traversed.get().getSemantics().extractFlowTypeTruths((Maybe) traversed.get().getInput());
-            }
-        }
-
-        final Maybe<RelationalComparison> left = input.__(TypeComparison::getRelationalComparison);
-        final Maybe<TypeExpression> type = input.__(TypeComparison::getType);
-
-        ExpressionTypeKB subKb = module.get(RelationalComparisonExpressionSemantics.class).extractFlowTypeTruths(left);
-        List<String> strings = module.get(RelationalComparisonExpressionSemantics.class).extractPropertyChain(left);
-        subKb.add(FlowTypeInferringTerm.of(module.get(TypeExpressionSemantics.class).toJadescriptType(type)), strings);
-        return subKb;
-    }
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<TypeComparison, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<TypeComparison, ?, ?> input, CompilationOutputAcceptor acceptor) {
         final Maybe<TypeComparison> pattern = input.getPattern();
         if (mustTraverse(pattern)) {
             return module.get(RelationalComparisonExpressionSemantics.class).compilePatternMatchInternal(

@@ -2,7 +2,6 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociationComputer;
@@ -18,7 +17,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.statement.StatementCompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -31,8 +30,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.empty;
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
@@ -47,7 +44,7 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
     }
 
     @Override
-    public List<SemanticsBoundToExpression<?>> getSubExpressions(Maybe<UnaryPrefix> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<UnaryPrefix> input) {
         if (mustTraverse(input)) {
             Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
             if (traversed.isPresent()) {
@@ -70,8 +67,8 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
     }
 
     @Override
-    public ExpressionCompilationResult compile(Maybe<UnaryPrefix> input, StatementCompilationOutputAcceptor acceptor) {
-        if (input == null) return empty();
+    protected String compileInternal(Maybe<UnaryPrefix> input, CompilationOutputAcceptor acceptor) {
+        if (input == null) return "";
         final Maybe<OfNotation> ofNotation = input.__(UnaryPrefix::getOfNotation);
         final Maybe<String> unaryPrefixOp = input.__(UnaryPrefix::getUnaryPrefixOp);
         final Maybe<String> firstOrLast = input.__(UnaryPrefix::getFirstOrLast);
@@ -82,42 +79,42 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
         final boolean isDebugSearchCall = input.__(UnaryPrefix::isDebugSearchCall).extract(nullAsFalse);
         final Maybe<String> performativeConst = input.__(UnaryPrefix::getPerformativeConst)
                 .__(PerformativeExpression::getPerformativeValue);
-        final ExpressionCompilationResult indexCompiled = module.get(OfNotationExpressionSemantics.class).compile(
+        final String indexCompiled = module.get(OfNotationExpressionSemantics.class).compile(
                 index,
                 acceptor
         );
-        final ExpressionCompilationResult afterOp = module.get(OfNotationExpressionSemantics.class)
+        final String afterOp = module.get(OfNotationExpressionSemantics.class)
                 .compile(ofNotation, acceptor);
 
         if (isIndexOfElemOperation) {
             if (firstOrLast.wrappedEquals("last")) {
-                return result(afterOp + ".lastIndexOf(" + indexCompiled + ")");
+                return afterOp + ".lastIndexOf(" + indexCompiled + ")";
             } else { // assumes "first"
-                return result(afterOp + ".indexOf(" + indexCompiled + ")");
+                return afterOp + ".indexOf(" + indexCompiled + ")";
             }
         } else if (unaryPrefixOp.isPresent()) {
-            return result(" " + unaryPrefixOp.__(op -> {
+            return " " + unaryPrefixOp.__(op -> {
                 if (op.equals("not")) {
                     return "!";
                 } else {
                     return op;
                 }
-            }) + " " + afterOp).setFTKB(ExpressionTypeKB.not(afterOp.getFlowTypingKB()));
+            }) + " " + afterOp;
         } else {
 
             if (performativeConst.isPresent()) {
-                return result("jadescript.lang.Performative."
-                        + performativeConst.__(String::toUpperCase));
+                return "jadescript.lang.Performative."
+                        + performativeConst.__(String::toUpperCase);
             }
             if (isDebugSearchName) {
                 final String searchNameMessage = getSearchNameMessage(input.__(UnaryPrefix::getSearchName));
                 System.out.println(searchNameMessage);
-                return result("/*" + searchNameMessage + "*/ null");
+                return "/*" + searchNameMessage + "*/ null";
             }
             if (isDebugSearchCall) {
                 final String searchCallMessage = getSearchCallMessage(input.__(UnaryPrefix::getSearchName));
                 System.out.println(searchCallMessage);
-                return result("/*" + searchCallMessage + "*/ null");
+                return "/*" + searchCallMessage + "*/ null";
             }
 
             if (isDebugScope) {
@@ -212,7 +209,7 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
     }
 
     @Override
-    public IJadescriptType inferType(Maybe<UnaryPrefix> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<UnaryPrefix> input) {
         if (input == null) return module.get(TypeHelper.class).ANY;
         final Maybe<OfNotation> ofNotation = input.__(UnaryPrefix::getOfNotation);
         final Maybe<String> unaryPrefixOp = input.__(UnaryPrefix::getUnaryPrefixOp);
@@ -251,14 +248,14 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
     }
 
     @Override
-    public boolean mustTraverse(Maybe<UnaryPrefix> input) {
+    protected boolean mustTraverse(Maybe<UnaryPrefix> input) {
         final Maybe<String> unaryPrefixOp = input.__(UnaryPrefix::getUnaryPrefixOp);
         final boolean isIndexOfElemOperation = input.__(UnaryPrefix::isIndexOfElemOperation).extract(nullAsFalse);
         return unaryPrefixOp.isNothing() && !isIndexOfElemOperation;
     }
 
     @Override
-    public Optional<SemanticsBoundToExpression<?>> traverse(Maybe<UnaryPrefix> input) {
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<UnaryPrefix> input) {
         if (mustTraverse(input)) {
             final Maybe<OfNotation> ofNotation = input.__(UnaryPrefix::getOfNotation);
             return Optional.of(new SemanticsBoundToExpression<>(
@@ -270,7 +267,7 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
     }
 
     @Override
-    public boolean isPatternEvaluationPure(Maybe<UnaryPrefix> input) {
+    protected boolean isPatternEvaluationPureInternal(Maybe<UnaryPrefix> input) {
         final Maybe<OfNotation> ofNotation = input.__(UnaryPrefix::getOfNotation);
         final Maybe<String> unaryPrefixOp = input.__(UnaryPrefix::getUnaryPrefixOp);
         final boolean isIndexOfElemOperation = input.__(UnaryPrefix::isIndexOfElemOperation).extract(nullAsFalse);
@@ -287,8 +284,8 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
     }
 
     @Override
-    public void validate(Maybe<UnaryPrefix> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
+    protected boolean validateInternal(Maybe<UnaryPrefix> input, ValidationMessageAcceptor acceptor) {
+        if (input == null) return VALID;
         final Maybe<OfNotation> ofNotation = input.__(UnaryPrefix::getOfNotation);
         final Maybe<String> unaryPrefixOp = input.__(UnaryPrefix::getUnaryPrefixOp);
         final boolean isDebugType = input.__(UnaryPrefix::isDebugType).extract(nullAsFalse);
@@ -300,63 +297,68 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
         IJadescriptType inferredType = module.get(OfNotationExpressionSemantics.class).inferType(ofNotation);
 
         if (isIndexOfElemOperation) {
-            InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-            module.get(ValidationHelper.class).assertion(
+            boolean evr = module.get(ValidationHelper.class).assertion(
                     inferredType instanceof ListType,
                     "InvalidIndexExpression",
                     "Invalid type; expected: 'list', provided: " + inferredType.getJadescriptName(),
                     ofNotation,
-                    interceptAcceptor
+                    acceptor
             );
 
-            if (interceptAcceptor.thereAreErrors() && inferredType instanceof ListType) {
+            if (evr == INVALID) {
+                return INVALID;
+            }
+
+            if (inferredType instanceof ListType) {
                 IJadescriptType inferredIndexType = module.get(OfNotationExpressionSemantics.class).inferType(index);
-                module.get(ValidationHelper.class).assertExpectedType(
+                return module.get(ValidationHelper.class).assertExpectedType(
                         ((ListType) inferredType).getElementType(),
                         inferredIndexType,
                         "InvalidIndexExpression",
                         index,
-                        interceptAcceptor
+                        acceptor
                 );
             }
         } else if (unaryPrefixOp.isPresent()) {
             String op = unaryPrefixOp.extract(nullAsEmptyString);
-            InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
 
             switch (op) {
                 case "+":
                 case "-": {
-                    module.get(OfNotationExpressionSemantics.class).validate(ofNotation, subValidation);
-                    if (!subValidation.thereAreErrors()) {
-                        module.get(ValidationHelper.class).assertExpectedType(Number.class, inferredType,
+                    boolean subValidation = module.get(OfNotationExpressionSemantics.class)
+                            .validate(ofNotation, acceptor);
+                    if (subValidation == VALID) {
+                        return module.get(ValidationHelper.class).assertExpectedType(Number.class, inferredType,
                                 "InvalidUnaryPrefix",
                                 input,
                                 JadescriptPackage.eINSTANCE.getUnaryPrefix_OfNotation(),
                                 acceptor
                         );
-
                     }
                     break;
                 }
 
                 case "not": {
-                    module.get(OfNotationExpressionSemantics.class).validate(ofNotation, subValidation);
-                    if (!subValidation.thereAreErrors()) {
-                        module.get(ValidationHelper.class).assertExpectedType(Boolean.class, inferredType,
+                    boolean subValidation = module.get(OfNotationExpressionSemantics.class)
+                            .validate(ofNotation, acceptor);
+                    if (subValidation == VALID) {
+                        return module.get(ValidationHelper.class).assertExpectedType(Boolean.class, inferredType,
                                 "InvalidUnaryPrefix",
                                 input,
                                 JadescriptPackage.eINSTANCE.getUnaryPrefix_OfNotation(),
                                 acceptor
                         );
+                    }else{
+                        return subValidation;
                     }
-                    break;
                 }
 
             }
         } else {
             if (isDebugType) {
                 input.safeDo(inputsafe -> {
-                    IJadescriptType jadescriptType = module.get(OfNotationExpressionSemantics.class).inferType(ofNotation);
+                    IJadescriptType jadescriptType = module.get(OfNotationExpressionSemantics.class)
+                            .inferType(ofNotation);
                     acceptor.acceptInfo(jadescriptType.getDebugPrint(), inputsafe, null, -1, "DEBUG");
                 });
             }
@@ -383,21 +385,18 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
                 });
             }
 
-            module.get(OfNotationExpressionSemantics.class).validate(ofNotation, acceptor);
+            return module.get(OfNotationExpressionSemantics.class).validate(ofNotation, acceptor);
         }
+        return VALID;
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
-    public ExpressionTypeKB extractFlowTypeTruths(Maybe<UnaryPrefix> input) {
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                //noinspection unchecked,rawtypes
-                return traversed.get().getSemantics().extractFlowTypeTruths((Maybe) traversed.get().getInput());
-            }
-        }
+    protected List<String> propertyChainInternal(Maybe<UnaryPrefix> input) {
+        return List.of();
+    }
 
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<UnaryPrefix> input) {
         final Maybe<OfNotation> ofNotation = input.__(UnaryPrefix::getOfNotation);
         final Maybe<String> unaryPrefixOp = input.__(UnaryPrefix::getUnaryPrefixOp);
         if (unaryPrefixOp.isNothing()) {
@@ -406,7 +405,7 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
         String op = unaryPrefixOp.toNullable();
         switch (op) {
             case "not": {
-                ExpressionTypeKB subKb = module.get(OfNotationExpressionSemantics.class).extractFlowTypeTruths(ofNotation);
+                ExpressionTypeKB subKb = module.get(OfNotationExpressionSemantics.class).computeKB(ofNotation);
                 return ExpressionTypeKB.not(subKb);
             }
             case "+":
@@ -414,13 +413,12 @@ public class UnaryPrefixExpressionSemantics extends ExpressionSemantics<UnaryPre
             default:
                 return ExpressionTypeKB.empty();
         }
-
-
     }
+
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<UnaryPrefix, ?, ?> input, StatementCompilationOutputAcceptor acceptor) {
+    compilePatternMatchInternal(PatternMatchInput<UnaryPrefix, ?, ?> input, CompilationOutputAcceptor acceptor) {
         final Maybe<UnaryPrefix> pattern = input.getPattern();
         if (mustTraverse(pattern)) {
             return module.get(OfNotationExpressionSemantics.class).compilePatternMatchInternal(

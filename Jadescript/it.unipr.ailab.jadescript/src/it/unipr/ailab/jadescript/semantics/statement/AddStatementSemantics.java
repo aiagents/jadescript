@@ -13,10 +13,8 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,14 +36,14 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
 
 
     @Override
-    public void compileStatement(Maybe<AddStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<AddStatement> input, CompilationOutputAcceptor acceptor) {
 
         boolean isSetCollection = module.get(RValueExpressionSemantics.class)
                 .inferType(input.__(AddStatement::getCollection)) instanceof SetType;
         String element = module.get(RValueExpressionSemantics.class)
-                .compile(input.__(AddStatement::getElement), acceptor).orElse("");
+                .compile(input.__(AddStatement::getElement), acceptor).getGeneratedText();
         String collection = module.get(RValueExpressionSemantics.class)
-                .compile(input.__(AddStatement::getCollection), acceptor).orElse("");
+                .compile(input.__(AddStatement::getCollection), acceptor).getGeneratedText();
         String putOrAdd = input.__(AddStatement::getPutOrAdd).extract(Maybe.nullAsEmptyString);
         if(isSetCollection){
             putOrAdd = "add"; //overrides "put" if it's a set
@@ -58,7 +56,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
             String index = module.get(RValueExpressionSemantics.class).compile(
                     input.__(AddStatement::getIndex),
                     acceptor
-            ).orElse("");
+            ).getGeneratedText();
             acceptor.accept(w.callStmnt(methodName, w.expr(index), w.expr(element)));
         }
     }

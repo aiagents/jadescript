@@ -19,10 +19,8 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,7 +39,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
     }
 
     @Override
-    public void compileStatement(Maybe<ForStatement> input, StatementCompilationOutputAcceptor acceptor) {
+    public void compileStatement(Maybe<ForStatement> input, CompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> collection = input.__(ForStatement::getCollection);
         Maybe<String> varName = input.__(ForStatement::getVarName);
         Maybe<String> var2Name = input.__(ForStatement::getVar2Name);
@@ -70,13 +68,14 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         );
 
         final String compiledCollection = module.get(RValueExpressionSemantics.class)
-                .compile(collection, acceptor).orElse("");
+                .compile(collection, acceptor).getGeneratedText();
         if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
 
             Maybe<RValueExpression> end = input.__(ForStatement::getEndIndex);
 
             final String compiledEndIndex = module.get(RValueExpressionSemantics.class)
-                    .compile(end, acceptor).orElse("");
+                    .compile(end, acceptor).getGeneratedText();
+
             ExpressionWriter completeCollExpression = w.expr(
                     "new jadescript.util.IntegerRange(" + compiledCollection + ", "
                             + compiledEndIndex + ", true, true)"

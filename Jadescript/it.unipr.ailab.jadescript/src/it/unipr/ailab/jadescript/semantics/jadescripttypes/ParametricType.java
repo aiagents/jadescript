@@ -170,9 +170,12 @@ public abstract class ParametricType extends JadescriptType {
 
 
     @Override
-    public void validateType(Maybe<? extends EObject> input, ValidationMessageAcceptor acceptor) {
+    public boolean validateType(Maybe<? extends EObject> input, ValidationMessageAcceptor acceptor) {
+        boolean v1 = VALID;
+        boolean v2 = VALID;
+        boolean v3 = VALID;
         if (upperBounds != null) {
-            module.get(ValidationHelper.class).assertion(
+            v1 = module.get(ValidationHelper.class).assertion(
                     upperBounds.size() == typeArguments.size(),
                     "InvalidParametricType",
                     "Invalid number of type arguments; expected: " +
@@ -184,19 +187,20 @@ public abstract class ParametricType extends JadescriptType {
             for (int i = 0; i < Math.min(upperBounds.size(), typeArguments.size()); i++) {
                 IJadescriptType upperBound = upperBounds.get(i);
                 IJadescriptType typeArgument = typeArguments.get(i).ignoreBound();
-                module.get(ValidationHelper.class).assertExpectedType(
+                final boolean vtemp = module.get(ValidationHelper.class).assertExpectedType(
                         upperBound,
                         typeArgument,
                         "InvalidParametricType",
                         input,
                         acceptor
                 );
+                v2 = v2 && vtemp;
             }
         }
 
 
         for (TypeArgument typeArgument : typeArguments) {
-            module.get(ValidationHelper.class).assertion(
+            v3 = module.get(ValidationHelper.class).assertion(
                     !typeArgument.ignoreBound().isErroneous(),
                     "InvalidParametricType",
                     "Invalid parametric type type: '" + typeArgument.getJadescriptName() + "'.",
@@ -204,6 +208,8 @@ public abstract class ParametricType extends JadescriptType {
                     acceptor
             );
         }
+
+        return v1 && v2 && v3;
     }
 
     @Override
