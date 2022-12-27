@@ -173,7 +173,6 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
             List<StatementWriter> addAdHocSchemaWriters = new ArrayList<>();
             List<StatementWriter> descriptionAdHocSchemaWriters = new ArrayList<>();
             for (Maybe<? extends Feature> feature : iterate(input.__(FeatureContainer::getFeatures))) {
-
                 addElementFactoryMethod(input, members, (Maybe<ExtendingFeature>) feature);
                 addSpecificMapOrSetClasses(
                         members,
@@ -541,6 +540,7 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
             } else {
                 returnType = module.get(TypeHelper.class).typeRef(ontologyElementNameSafe);
             }
+
             members.add(module.get(JvmTypesBuilder.class).toMethod(
                     ontologyElementSafe,
                     ontologyElementNameSafe,

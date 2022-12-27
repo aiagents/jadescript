@@ -94,12 +94,14 @@ public class MapType extends ParametricType implements EmptyCreatable, DeclaresO
                             .setCompileByCustomJVMMethod("keySet", "keySet")
             );
             operations.add(new Operation(
+                    true, // assuming no exceptions are thrown
                     "get",
                     getValueType(),
                     List.of(new Tuple2<>("key", getKeyType())),
                     getLocation()
             ));
             operations.add(new Operation(
+                    false,
                     "put",
                     getValueType(),
                     List.of(
@@ -109,30 +111,35 @@ public class MapType extends ParametricType implements EmptyCreatable, DeclaresO
                     getLocation()
             ));
             operations.add(new Operation(
+                    true,
                     "containsKey",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("k", getKeyType())),
                     getLocation()
             ));
             operations.add(new Operation(
+                    true,
                     "containsValue",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("v", getValueType())),
                     getLocation()
             ));
             operations.add(new Operation(
+                    true,
                     "containsAll",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("m", this)),
                     getLocation()
             ));
             operations.add(new Operation(
+                    true,
                     "containsAny",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("m", this)),
                     getLocation()
             ));
             operations.add(new Operation(
+                    false,
                     "clear",
                     module.get(TypeHelper.class).VOID,
                     List.of(),

@@ -4,8 +4,10 @@ import com.google.common.collect.Streams;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
+import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Symbol;
+import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
@@ -19,6 +21,8 @@ import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.jadescript.semantics.utils.Util.Tuple2;
 import it.unipr.ailab.maybe.Maybe;
+import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -34,8 +38,10 @@ import static it.unipr.ailab.maybe.Maybe.*;
 /**
  * Created on 28/02/2020.
  */
+//TODO rename to MethodCallSemantics
 @Singleton
-public class MethodInvocationSemantics extends Semantics {
+public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
+
 
     public MethodInvocationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -67,6 +73,16 @@ public class MethodInvocationSemantics extends Semantics {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    protected boolean mustTraverse(Maybe<MethodCall> input) {
+        return false;
+    }
+
+    @Override
+    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<MethodCall> input) {
+        return Optional.empty();
+    }
+
     private Maybe<SimpleArgumentList> extractSimpleArgs(Maybe<MethodCall> input) {
         if (input.isPresent()) {
             return input.toNullable().getSimpleArgs();
@@ -83,7 +99,8 @@ public class MethodInvocationSemantics extends Semantics {
         }
     }
 
-    public String compile(
+    @Override
+    protected String compileInternal(
             Maybe<MethodCall> input,
             CompilationOutputAcceptor acceptor
     ) {
@@ -202,7 +219,8 @@ public class MethodInvocationSemantics extends Semantics {
 
     }
 
-    public IJadescriptType inferType(
+    @Override
+    protected IJadescriptType inferTypeInternal(
             Maybe<MethodCall> input
     ) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
@@ -284,7 +302,8 @@ public class MethodInvocationSemantics extends Semantics {
 
     }
 
-    public boolean validate(Maybe<MethodCall> input, ValidationMessageAcceptor acceptor) {
+    @Override
+    protected boolean validateInternal(Maybe<MethodCall> input, ValidationMessageAcceptor acceptor) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
         Maybe<String> name = input.__(MethodCall::getName);
@@ -295,267 +314,235 @@ public class MethodInvocationSemantics extends Semantics {
         String procOrFuncCaps = isProcedure ? "Procedure" : "Function";
         String errorCode = "Invalid" + procOrFuncCaps + "Call";
 
-        safeDo(name, input.__(ProxyEObject::getProxyEObject),
-                /*NULLSAFE REGION*/(nameSafe, inputSafe) -> {
-                    //this portion of code is done  only if name and input
-                    // are != null (and everything in the dotchains that generated them is !=null too)
-                    InterceptAcceptor argumentsValidationResult = new InterceptAcceptor(acceptor);
-                    if (!noArgs) {
-                        eitherDo(simpleArgs, namedArgs,
-                                //case simpleArgs!=null
-                                simpleArgsSafe -> {
-                                    for (RValueExpression rvalexpr : simpleArgsSafe.getExpressions()) {
-                                        module.get(RValueExpressionSemantics.class).validate(Maybe.of(rvalexpr), argumentsValidationResult);
-                                    }
-                                },
-                                //case namedArgs!=null
-                                namedArgsSafe -> {
-                                    for (RValueExpression rvalexpr : namedArgsSafe.getParameterValues()) {
-                                        module.get(RValueExpressionSemantics.class).validate(Maybe.of(rvalexpr), argumentsValidationResult);
-                                    }
-                                }
-                        );
-                    }
+        final Maybe<? extends EObject> extractedEObject = Util.extractEObject(input);
+        if (name.isNothing() || extractedEObject.isNothing()) {
+            return VALID;
+        }
+        String nameSafe = name.toNullable();
+        EObject inputSafe = extractedEObject.toNullable();
 
+        boolean argumentsValidationResult = VALID;
 
-                    if (argumentsValidationResult.thereAreErrors()) {
-                        return;
-                    }
-
-                    List<CallableSymbol> methodsFound = new ArrayList<>();
-                    AtomicReference<String> signature = new AtomicReference<>("");
-                    if (noArgs) {
-                        //case no args
-                        methodsFound.addAll(module.get(ContextManager.class).currentContext().searchAs(
-                                        CallableSymbol.Searcher.class,
-                                        searcher -> searcher.searchCallable(
-                                                nameSafe,
-                                                null,
-                                                (s, n) -> s == 0,
-                                                (s, t) -> s == 0
-                                        )
-                                ).filter(Util.dinstinctBy(Symbol::sourceLocation))
-                                .collect(Collectors.toList()));
-
-
-                        signature.set(Util.getSignature(nameSafe, 0));
-                    } else {
-                        eitherDo(simpleArgs, namedArgs,
-                                //case simpleArgs!=null
-                                simpleArgsSafe -> {
-                                    int argsize = simpleArgsSafe.getExpressions().size();
-                                    methodsFound.addAll(module.get(ContextManager.class).currentContext().searchAs(
-                                                    CallableSymbol.Searcher.class,
-                                                    searcher -> searcher.searchCallable(
-                                                            nameSafe,
-                                                            null,
-                                                            (s, n) -> s == argsize,
-                                                            (s, t) -> s == argsize
-                                                    )
-                                            ).filter(Util.dinstinctBy(Symbol::sourceLocation))
-                                            .collect(Collectors.toList()));
-
-                                    signature.set(Util.getSignature(nameSafe, simpleArgsSafe.getExpressions().size()));
-                                },
-                                //case namedArgs!=null
-                                namedArgsSafe -> {
-                                    methodsFound.addAll(module.get(ContextManager.class).currentContext().searchAs(
-                                                    CallableSymbol.Searcher.class,
-                                                    searcher -> searcher.searchCallable(
-                                                            nameSafe,
-                                                            null,
-                                                            (s, n) -> namedArgs
-                                                                    .__(NamedArgumentList::getParameterNames)
-                                                                    .__(List::size)
-                                                                    .wrappedEquals(s),
-                                                            (s, t) -> namedArgs
-                                                                    .__(NamedArgumentList::getParameterValues)
-                                                                    .__(List::size)
-                                                                    .wrappedEquals(s)
-                                                    )
-                                            ).filter(Util.dinstinctBy(Symbol::sourceLocation))
-                                            .collect(Collectors.toList()));
-
-                                    List<Maybe<RValueExpression>> args = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues));
-                                    List<Maybe<String>> argNames = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterNames));
-
-                                    signature.set(Util.getSignature(
-                                            nameSafe,
-                                            args.stream()
-                                                    .map(module.get(RValueExpressionSemantics.class)::inferType)
-                                                    .collect(Collectors.toList()),
-                                            argNames.stream()
-                                                    .flatMap(Maybe::filterNulls)
-                                                    .collect(Collectors.toList())
-                                    ));
-                                }
-                        );
-                    }
-
-
-                    if (methodsFound.isEmpty()) {
-                        acceptor.acceptError(
-                                "cannot resolve " + procOrFunc + ": " + signature,
-                                inputSafe,
-                                null,
-                                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                                errorCode
-                        );
-
-                    } else if (methodsFound.size() > 1) {
-                        List<String> candidatesMessages = new ArrayList<>();
-                        for (CallableSymbol match : methodsFound) {
-                            candidatesMessages.add(Util.getSignature(
-                                    nameSafe,
-                                    match.parameterTypes(),
-                                    match.parameterNames()
-                            ) + " in " + match.sourceLocation() + ";");
-                        }
-
-                        acceptor.acceptError(
-                                "Ambiguous " + procOrFunc + " call: " + signature + ". Candidates:" +
-                                        "\n• " +
-                                        String.join("\n• ", candidatesMessages),
-                                inputSafe,
-                                null,
-                                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                                errorCode
-                        );
-                    } else {
-                        CallableSymbol match = methodsFound.get(0);
-
-                        InterceptAcceptor isCorrectOperationKindCheck = new InterceptAcceptor(acceptor);
-
-                        boolean isCorrectOperationKind = isProcedure == module.get(TypeHelper.class).VOID
-                                .typeEquals(match.returnType());
-                        module.get(ValidationHelper.class).assertion(
-                                isCorrectOperationKind,
-                                errorCode,
-                                "'" + nameSafe + "' is not a " + procOrFunc,
-                                input,
-                                isCorrectOperationKindCheck
-                        );
-
-                        if (!isCorrectOperationKindCheck.thereAreErrors() && !noArgs) {
-
-                            List<RValueExpression> argExpressions = eitherCall(simpleArgs, namedArgs,
-                                    SimpleArgumentList::getExpressions,
-                                    namedArgsSafe -> sortToMatchParamNames(
-                                            namedArgsSafe.getParameterValues(),
-                                            namedArgsSafe.getParameterNames(),
-                                            match.parameterNames()
-                                    )
-                            ).extract(Maybe::nullAsEmptyList);
-
-                            HashMap<String, Integer> callNamesMap = new HashMap<>();
-                            if (namedArgs.isPresent()) {
-                                NamedArgumentList namedArgsSafe = namedArgs.toNullable();
-                                for (int i = 0; i < namedArgsSafe.getParameterNames().size(); i++) {
-                                    callNamesMap.put(namedArgsSafe.getParameterNames().get(i), i);
-                                }
-                            }
-
-                            // function that defines the change in position from old index to new index,
-                            //      after the eventual sorting for named argument invocation
-                            Function<Integer, Integer> rearrangementFunction = eitherCall(simpleArgs, namedArgs,
-                                    s -> i -> i, // identity for call by arity
-                                    namedArgsSafe -> (Function<Integer, Integer>) integer -> {
-                                        return callNamesMap.get(match.parameterNames().get(integer));
-                                    }
-                            ).orElse(i -> i);
-
-                            EReference metaObject = eitherCall(simpleArgs, namedArgs,
-                                    j -> JadescriptPackage.eINSTANCE.getSimpleArgumentList_Expressions(),
-                                    j -> JadescriptPackage.eINSTANCE.getNamedArgumentList_ParameterValues()
-                            ).toNullable();
-
-                            for (int i = 0; i < argExpressions.size(); i++) {
-                                IJadescriptType argType = module.get(RValueExpressionSemantics.class).inferType(Maybe.of(argExpressions.get(i)));
-                                IJadescriptType paramType = match.parameterTypes().get(i);
-
-                                module.get(ValidationHelper.class).assertExpectedType(
-                                        paramType,
-                                        argType,
-                                        "InvalidArgumentType",
-                                        eitherGet(simpleArgs, namedArgs),
-                                        metaObject,
-                                        rearrangementFunction.apply(i),
-                                        acceptor
-                                );
-                            }
-                        }
-
-
-                    }
-
-
-                }/*END NULLSAFE REGION - (nameSafe, inputSafe)*/
-        );
-
-    }
-
-    public Stream<SemanticsBoundToExpression<?>> getSubExpressions(
-            Maybe<MethodCall> input
-    ) {
-        Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
-        Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
-        //only arguments can be sub-expressions
-        return Maybe.toListOfMaybes(
-                        eitherCall(
-                                simpleArgs, namedArgs,
-                                SimpleArgumentList::getExpressions, NamedArgumentList::getParameterValues
-                        )
-                ).stream()
-                .map(x -> new SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), x))
-                .collect(Collectors.toList());
-    }
-
-    public boolean isHoled(Maybe<MethodCall> input) {
-        Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
-        Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
-
-        if (simpleArgs.isNothing() && namedArgs.isNothing()) return false;
-
-
-        List<Maybe<RValueExpression>> args;
-
+        final Maybe<EList<RValueExpression>> exprs;
         if (simpleArgs.isPresent()) {
-            args = toListOfMaybes(simpleArgs.__(SimpleArgumentList::getExpressions));
-        } else {// => namedArgs.isPresent()
-            args = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues));
+            exprs = simpleArgs.__(SimpleArgumentList::getExpressions);
+        } else if (namedArgs.isPresent()) {
+            exprs = namedArgs.__(NamedArgumentList::getParameterValues);
+        } else {
+            exprs = Maybe.nothing();
+        }
+
+        for (Maybe<RValueExpression> rvalExpr : Maybe.toListOfMaybes(exprs)) {
+            argumentsValidationResult = argumentsValidationResult &&
+                    module.get(RValueExpressionSemantics.class).validate(
+                            rvalExpr,
+                            acceptor
+                    );
         }
 
 
-        return args.stream().anyMatch(module.get(RValueExpressionSemantics.class)::isHoled);
+        if (argumentsValidationResult == INVALID) {
+            return INVALID;
+        }
+
+        List<CallableSymbol> methodsFound = new ArrayList<>();
+        String signature;
+        if (simpleArgs.isPresent()) {
+            int argsize = Maybe.toListOfMaybes(simpleArgs.__(SimpleArgumentList::getExpressions)).size();
+            methodsFound.addAll(module.get(ContextManager.class).currentContext().searchAs(
+                            CallableSymbol.Searcher.class,
+                            searcher -> searcher.searchCallable(
+                                    nameSafe,
+                                    null,
+                                    (s, n) -> s == argsize,
+                                    (s, t) -> s == argsize
+                            )
+                    ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                    .collect(Collectors.toList()));
+
+            signature = Util.getSignature(nameSafe, argsize);
+        } else if (namedArgs.isPresent()) {
+            methodsFound.addAll(module.get(ContextManager.class).currentContext().searchAs(
+                            CallableSymbol.Searcher.class,
+                            searcher -> searcher.searchCallable(
+                                    nameSafe,
+                                    null,
+                                    (s, n) -> namedArgs
+                                            .__(NamedArgumentList::getParameterNames)
+                                            .__(List::size)
+                                            .wrappedEquals(s),
+                                    (s, t) -> namedArgs
+                                            .__(NamedArgumentList::getParameterValues)
+                                            .__(List::size)
+                                            .wrappedEquals(s)
+                            )
+                    ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                    .collect(Collectors.toList()));
+
+            List<Maybe<RValueExpression>> args = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues));
+            List<Maybe<String>> argNames = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterNames));
+
+            signature = Util.getSignature(
+                    nameSafe,
+                    args.stream()
+                            .map(module.get(RValueExpressionSemantics.class)::inferType)
+                            .collect(Collectors.toList()),
+                    argNames.stream()
+                            .flatMap(Maybe::filterNulls)
+                            .collect(Collectors.toList())
+            );
+        } else {
+            //case no args
+            methodsFound.addAll(module.get(ContextManager.class).currentContext().searchAs(
+                            CallableSymbol.Searcher.class,
+                            searcher -> searcher.searchCallable(
+                                    nameSafe,
+                                    null,
+                                    (s, n) -> s == 0,
+                                    (s, t) -> s == 0
+                            )
+                    ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                    .collect(Collectors.toList()));
+
+
+            signature = Util.getSignature(nameSafe, 0);
+        }
+
+
+        if (methodsFound.isEmpty()) {
+            return module.get(ValidationHelper.class).emitError(
+                    errorCode,
+                    "Cannot resolve " + procOrFunc + ": " + signature,
+                    input,
+                    acceptor
+            );
+        } else if (methodsFound.size() > 1) {
+            List<String> candidatesMessages = new ArrayList<>();
+            for (CallableSymbol match : methodsFound) {
+                candidatesMessages.add(Util.getSignature(
+                        nameSafe,
+                        match.parameterTypes(),
+                        match.parameterNames()
+                ) + " in " + match.sourceLocation() + ";");
+            }
+
+            return module.get(ValidationHelper.class).emitError(
+                    errorCode,
+                    "Ambiguous " + procOrFunc + " call: " + signature + ". Candidates:" +
+                            "\n• " +
+                            String.join("\n• ", candidatesMessages),
+                    input,
+                    acceptor
+            );
+        } else {
+            CallableSymbol match = methodsFound.get(0);
+
+            boolean isCorrectOperationKind = module.get(ValidationHelper.class).assertion(
+                    isProcedure == module.get(TypeHelper.class).VOID.typeEquals(match.returnType()),
+                    errorCode,
+                    "'" + nameSafe + "' is not a " + procOrFunc,
+                    input,
+                    acceptor
+            );
+
+            if (isCorrectOperationKind == VALID && !noArgs) {
+                List<RValueExpression> argExpressions = eitherCall(simpleArgs, namedArgs,
+                        SimpleArgumentList::getExpressions,
+                        namedArgsSafe -> sortToMatchParamNames(
+                                namedArgsSafe.getParameterValues(),
+                                namedArgsSafe.getParameterNames(),
+                                match.parameterNames()
+                        )
+                ).extract(Maybe::nullAsEmptyList);
+
+                HashMap<String, Integer> callNamesMap = new HashMap<>();
+                if (namedArgs.isPresent()) {
+                    NamedArgumentList namedArgsSafe = namedArgs.toNullable();
+                    for (int i = 0; i < namedArgsSafe.getParameterNames().size(); i++) {
+                        callNamesMap.put(namedArgsSafe.getParameterNames().get(i), i);
+                    }
+                }
+
+                // function that defines the change in position from old index to new index,
+                //      after the eventual sorting for named argument invocation
+                // (given an index of the called method parameter, returns the position of the corresponding
+                //    expression EObject given as argument)
+                Function<Integer, Integer> rearrangementFunction = eitherCall(simpleArgs, namedArgs,
+                        s -> i -> i, // identity for call by arity
+                        namedArgsSafe -> (Function<Integer, Integer>) i -> {
+                            return callNamesMap.get(match.parameterNames().get(i));
+                        }
+                ).orElse(i -> i);
+
+                EReference metaObject = eitherCall(simpleArgs, namedArgs,
+                        j -> JadescriptPackage.eINSTANCE.getSimpleArgumentList_Expressions(),
+                        j -> JadescriptPackage.eINSTANCE.getNamedArgumentList_ParameterValues()
+                ).toNullable();
+
+
+                boolean paramTypeCheck = VALID;
+                for (int i = 0; i < argExpressions.size(); i++) {
+                    IJadescriptType argType = module.get(RValueExpressionSemantics.class)
+                            .inferType(Maybe.of(argExpressions.get(i)));
+                    IJadescriptType paramType = match.parameterTypes().get(i);
+
+                    final boolean argCheck = module.get(ValidationHelper.class).assertExpectedType(
+                            paramType,
+                            argType,
+                            "InvalidArgumentType",
+                            eitherGet(simpleArgs, namedArgs),
+                            metaObject,
+                            rearrangementFunction.apply(i),
+                            acceptor
+                    );
+                    paramTypeCheck = paramTypeCheck && argCheck;
+                }
+
+                return paramTypeCheck;
+            }
+
+            return isCorrectOperationKind;
+        }
+
     }
 
-    public boolean isTypelyHoled(Maybe<MethodCall> input) {
+
+    @Override
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
+            Maybe<MethodCall> input
+    ) {
+        //only arguments can be sub-expressions
+        return Maybe.toListOfMaybes(eitherCall(
+                        extractSimpleArgs(input), extractNamedArgs(input),
+                        SimpleArgumentList::getExpressions, NamedArgumentList::getParameterValues
+                )).stream()
+                .map(x -> new SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), x));
+    }
+
+
+    @Override
+    protected boolean isHoledInternal(Maybe<MethodCall> input) {
+        return subExpressionsAnyHoled(input);
+    }
+
+
+    @Override
+    protected boolean isTypelyHoledInternal(Maybe<MethodCall> input) {
         /*
         Functional-notation patterns are identified by name and number of arguments, and, when resolved, have always
-         a compile-time-known non-holed type. Therefore, they are never typely-holed, even when their arguments are/have
-         holes.
+         a compile-time-known non-holed type. Therefore, they are never typely-holed, even when their arguments
+         are/have holes.
         */
         return false;
     }
 
-    public boolean isUnbounded(Maybe<MethodCall> input) {
-        Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
-        Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
 
-        if (simpleArgs.isNothing() && namedArgs.isNothing()) return false;
-
-
-        List<Maybe<RValueExpression>> args;
-
-        if (simpleArgs.isPresent()) {
-            args = toListOfMaybes(simpleArgs.__(SimpleArgumentList::getExpressions));
-        } else {// => namedArgs.isPresent()
-            args = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues));
-        }
-
-        return args.stream().anyMatch(module.get(RValueExpressionSemantics.class)::isUnbound);
+    @Override
+    protected boolean isUnboundInternal(Maybe<MethodCall> input) {
+        return subExpressionsAnyUnbound(input);
     }
 
+    @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
             PatternMatchInput<MethodCall, ?, ?> input,
             CompilationOutputAcceptor acceptor
@@ -572,7 +559,6 @@ public class MethodInvocationSemantics extends Semantics {
             argExpressions = toListOfMaybes(simpleArgs.__(SimpleArgumentList::getExpressions));
         } else /*(namedArgs.isPresent())*/ {
             argExpressions = toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues));
-
         }
 
 
@@ -624,30 +610,24 @@ public class MethodInvocationSemantics extends Semantics {
         }
     }
 
-    public boolean isAlwaysPure(Maybe<MethodCall> input) {
+
+    @Override
+    public boolean isAlwaysPureInternal(Maybe<MethodCall> input) {
         final Maybe<? extends CallableSymbol> resolve = resolve(input);
-        return resolve.__(CallableSymbol::isPure).extract(nullAsTrue);
+        return resolve.__(CallableSymbol::isPure).extract(nullAsTrue)
+                && subExpressionsAllAlwaysPure(input);
     }
 
-    public boolean isPatternEvaluationPure(Maybe<MethodCall> input) {
-        //TODO this assumption (its pure as call, so its pure as pattern evaluation) is not valid when the new pattern
-        // resolution system will be introduced
+    @Override
+    public boolean isPatternEvaluationPureInternal(Maybe<MethodCall> input) {
+        //TODO this assumption (if its pure as call, then its pure as pattern evaluation) is not valid when the new
+        // pattern resolution system will be introduced
         final Maybe<? extends CallableSymbol> resolve = resolve(input);
-        return resolve.__(CallableSymbol::isPure).extract(nullAsTrue);
+        return resolve.__(CallableSymbol::isPure).extract(nullAsTrue)
+                && subPatternEvaluationsAllPure(input);
     }
 
-    private PatternType inferPatternType(Maybe<MethodCall> input, PatternMatchMode mode) {
-        if (isPatternGroundForEquality(input, mode)) {
-            return PatternType.simple(inferType(input));
-        } else {
-            return inferPatternTypeInternal(input);
-        }
-    }
-
-    private boolean isPatternGroundForEquality(Maybe<MethodCall> input, PatternMatchMode mode) {
-        return mode.getPatternLocation() == PatternMatchMode.PatternLocation.SUB_PATTERN && !isHoled(input);
-    }
-
+    @Override
     public PatternType inferPatternTypeInternal(
             Maybe<MethodCall> input
     ) {
@@ -660,6 +640,7 @@ public class MethodInvocationSemantics extends Semantics {
 
     }
 
+    @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
             PatternMatchInput<MethodCall, ?, ?> input,
             ValidationMessageAcceptor acceptor
@@ -815,17 +796,30 @@ public class MethodInvocationSemantics extends Semantics {
         return resolve(input).isPresent();
     }
 
-    public boolean isValidLexpr(Maybe<MethodCall> input) {
+    @Override
+    public boolean isValidLExprInternal(Maybe<MethodCall> input) {
         return false;
     }
 
-    public boolean canBeHoled(Maybe<MethodCall> input) {
+    @Override
+    public boolean canBeHoledInternal(Maybe<MethodCall> input) {
         return true;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public boolean containsNotHoledAssignableParts(Maybe<MethodCall> input) {
-        return getSubExpressions(input).anyMatch(sbte ->
-                sbte.getSemantics().containsNotHoledAssignableParts((Maybe) sbte.getInput()));
+    @Override
+    protected List<String> propertyChainInternal(Maybe<MethodCall> input) {
+        Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
+        Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
+        Maybe<String> name = input.__(MethodCall::getName);
+        boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
+        if (noArgs && isAlwaysPure(input) && name.isPresent() && !name.toNullable().isBlank()) {
+            return List.of(name.toNullable());
+        }
+        return List.of();
+    }
+
+    @Override
+    protected ExpressionTypeKB computeKBInternal(Maybe<MethodCall> input) {
+        return ExpressionTypeKB.empty();
     }
 }

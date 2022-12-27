@@ -6,17 +6,20 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementConstructorSymbol;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmModelBasedNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
@@ -24,6 +27,7 @@ import static it.unipr.ailab.maybe.Maybe.of;
 
 public interface OntologyType extends IJadescriptType {
     SearchLocation getLocation();
+
     boolean isSuperOrEqualOntology(OntologyType other);
 
     @Override
@@ -57,9 +61,9 @@ public interface OntologyType extends IJadescriptType {
                 BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
         ) {
             return jvmNamespace.get().searchCallable(
-                    name, returnType, parameterNames, parameterTypes
-            ).filter(f -> f instanceof JvmModelBasedNamespace.JvmOperationSymbol
-                    && ((JvmModelBasedNamespace.JvmOperationSymbol) f).isStatic());
+                            name, returnType, parameterNames, parameterTypes
+                    ).filter(f -> f instanceof JvmModelBasedNamespace.JvmOperationSymbol
+                            && ((JvmModelBasedNamespace.JvmOperationSymbol) f).isStatic());
         }
 
         @Override

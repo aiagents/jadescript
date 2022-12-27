@@ -63,7 +63,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
         final String compiledBehaviour = module.get(RValueExpressionSemantics.class).compile(
                 expr,
                 acceptor
-        ).getGeneratedText();
+        );
 
         params.add(w.expr(THE_AGENT + "()"));
         if (delay.isPresent()) {
@@ -71,7 +71,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
             params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
                     delay,
                     acceptor
-            ).getGeneratedText()));
+            )));
         }
 
         if (start.isPresent()) {
@@ -79,7 +79,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
             params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
                     start,
                     acceptor
-            ).getGeneratedText()));
+            )));
         }
 
         if (period.isPresent()) {
@@ -87,7 +87,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
             params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
                     period,
                     acceptor
-            ).getGeneratedText()));
+            )));
         }
 
 

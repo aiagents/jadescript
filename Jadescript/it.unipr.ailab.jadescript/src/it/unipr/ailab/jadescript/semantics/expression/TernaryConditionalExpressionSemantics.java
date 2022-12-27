@@ -4,6 +4,7 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
@@ -83,7 +84,6 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
 
     @Override
     protected IJadescriptType inferTypeInternal(Maybe<TernaryConditional> input) {
-        final Maybe<LogicalOr> condition = input.__(TernaryConditional::getCondition);
         final Maybe<RValueExpression> expression1 = input.__(TernaryConditional::getExpression1);
         final Maybe<RValueExpression> expression2 = input.__(TernaryConditional::getExpression2);
         IJadescriptType type1 = module.get(RValueExpressionSemantics.class).inferType(expression1);
@@ -179,4 +179,33 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
     }
 
 
+    @Override
+    protected boolean isAlwaysPureInternal(Maybe<TernaryConditional> input) {
+        return subPatternEvaluationsAllPure(input);
+    }
+
+    @Override
+    protected boolean isValidLExprInternal(Maybe<TernaryConditional> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isHoledInternal(Maybe<TernaryConditional> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isTypelyHoledInternal(Maybe<TernaryConditional> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isUnboundInternal(Maybe<TernaryConditional> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<TernaryConditional> input) {
+        return false;
+    }
 }

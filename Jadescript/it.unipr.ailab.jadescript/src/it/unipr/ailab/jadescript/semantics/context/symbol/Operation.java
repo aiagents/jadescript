@@ -22,12 +22,16 @@ public class Operation implements CallableSymbol {
     protected final BiFunction<String, Map<String, String>, String> invokeByNameCustom;
     protected final BiFunction<String, List<String>, String> invokeByArityCustom;
 
+    private final boolean pure;
+
     public Operation(
+            boolean pure,
             String name,
             IJadescriptType returnType,
             List<Util.Tuple2<String, IJadescriptType>> params,
             SearchLocation location
     ) {
+        this.pure = pure;
         this.name = name;
         this.returnType = returnType;
         this.location = location;
@@ -42,13 +46,16 @@ public class Operation implements CallableSymbol {
     }
 
     public Operation(
+            boolean pure,
             String name,
             IJadescriptType returnType,
             List<Util.Tuple2<String, IJadescriptType>> params,
             SearchLocation location,
             BiFunction<String, Map<String, String>, String> invokeByNameCustom,
             BiFunction<String, List<String>, String> invokeByArityCustom
+
     ) {
+        this.pure = pure;
         this.name = name;
         this.returnType = returnType;
         this.location = location;
@@ -119,7 +126,7 @@ public class Operation implements CallableSymbol {
 
     @Override
     public boolean isPure() {
-        //Set in ctor
+        return pure;
     }
 
     @Override

@@ -33,7 +33,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionCompilationResult.result;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
@@ -47,7 +46,7 @@ public class OntologyElementSemantics extends Semantics {
         super(semanticsModule);
     }
 
-    @Override
+
     public void validate(Maybe<ExtendingFeature> input, ValidationMessageAcceptor acceptor) {
         if (input == null) return;
         module.get(ContextManager.class).enterOntologyElementDeclaration();

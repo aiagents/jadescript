@@ -172,6 +172,7 @@ public interface FoPSemantics {
             name.safeDo(nameSafe -> {
                 module.get(ValidationHelper.class).validateMethodCompatibility(
                         new Operation(
+                                false,
                                 nameSafe,
                                 returnType,
                                 Streams.zip(

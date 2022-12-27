@@ -80,36 +80,42 @@ public class SetType extends ParametricType implements EmptyCreatable, DeclaresO
                             .setCompileByCustomJVMMethod("size", "size")
             );
             operations.add(new Operation(
+                    true,
                     "contains",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("o", getElementType())),
                     getLocation()
             ));
             operations.add(new Operation(
+                    true,
                     "containsAll",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("o", this)),
                     getLocation()
             ));
             operations.add(new Operation(
+                    true,
                     "containsAll",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("o", module.get(TypeHelper.class).LIST.apply(Arrays.asList(getElementType())))),
                     getLocation()
             ));
             operations.add(new Operation(
+                    true,
                     "containsAny",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("o", this)),
                     getLocation()
             ));
             operations.add(new Operation(
+                    true,
                     "containsAny",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("o", module.get(TypeHelper.class).LIST.apply(Arrays.asList(getElementType())))),
                     getLocation()
             ));
             operations.add(new Operation(
+                    false,
                     "clear",
                     module.get(TypeHelper.class).VOID,
                     List.of(),

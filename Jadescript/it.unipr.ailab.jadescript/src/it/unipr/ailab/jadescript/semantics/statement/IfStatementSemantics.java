@@ -50,7 +50,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
         module.get(ContextManager.class).pushScope();
         String conditionCompiled = module.get(RValueExpressionSemantics.class)
-                .compile(condition, acceptor).getGeneratedText();
+                .compile(condition, acceptor);
         BlockWriter thenBranchCompiled = module.get(BlockSemantics.class).compileOptionalBlock(thenBranch);
         IfStatementWriter ifsp = w.ifStmnt(w.expr(conditionCompiled), thenBranchCompiled);
         module.get(ContextManager.class).popScope();
@@ -58,7 +58,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
         for (int i = 0; i < elseIfBranches.size(); ++i) {
             module.get(ContextManager.class).pushScope();
             String elseIfCond = module.get(RValueExpressionSemantics.class)
-                    .compile(elseIfConditions.get(i), acceptor).getGeneratedText();
+                    .compile(elseIfConditions.get(i), acceptor);
             BlockWriter elseIfBranch = module.get(BlockSemantics.class).compileOptionalBlock(elseIfBranches.get(i));
             ifsp.addElseIfBranch(w.expr(elseIfCond), elseIfBranch);
             module.get(ContextManager.class).popScope();

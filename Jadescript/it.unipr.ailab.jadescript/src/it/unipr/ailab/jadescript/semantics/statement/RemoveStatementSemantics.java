@@ -46,19 +46,14 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
         if (isWithIndex) {
             return w.callStmnt(
                     collectionCompiled + ".remove",
-                    w.expr(
-                            "(int)" + rves.compile(index, acceptor)
-                    )
+                    w.expr("(int)" + rves.compile(index, acceptor))
             );
         } else {
-            String arg = rves.compile(element, acceptor).getGeneratedText();
+            String arg = rves.compile(element, acceptor);
             if (module.get(TypeHelper.class).INTEGER.isAssignableFrom(rves.inferType(element))) {
                 arg = "(Integer) " + arg;
             }
-            return w.callStmnt(
-                    collectionCompiled + ".remove",
-                    w.expr(arg)
-            );
+            return w.callStmnt(collectionCompiled + ".remove", w.expr(arg));
         }
     }
 
@@ -69,7 +64,7 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
     ) {
         return w.callStmnt(
                 collectionCompiled + ".remove",
-                w.expr(module.get(RValueExpressionSemantics.class).compile(key, acceptor).getGeneratedText())
+                w.expr(module.get(RValueExpressionSemantics.class).compile(key, acceptor))
         );
     }
 
@@ -83,14 +78,14 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
 
         return w.callStmnt(
                 collectionCompiled + "." + (isRetain ? "retain" : "remove") + "All",
-                w.expr(module.get(RValueExpressionSemantics.class).compile(argCollection, acceptor).getGeneratedText())
+                w.expr(module.get(RValueExpressionSemantics.class).compile(argCollection, acceptor))
         );
     }
 
     @Override
     public void compileStatement(Maybe<RemoveStatement> input, CompilationOutputAcceptor acceptor) {
         final Maybe<RValueExpression> collection = input.__(RemoveStatement::getCollection);
-        String collectionCompiled = module.get(RValueExpressionSemantics.class).compile(collection, acceptor).getGeneratedText();
+        String collectionCompiled = module.get(RValueExpressionSemantics.class).compile(collection, acceptor);
         final boolean isRetain = input.__(RemoveStatement::isRetain).extract(nullAsFalse);
         final boolean isWithIndex = input.__(RemoveStatement::isWithIndex).extract(nullAsFalse);
         final boolean isAll = input.__(RemoveStatement::isAll).extract(nullAsFalse);

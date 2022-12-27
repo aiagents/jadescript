@@ -34,44 +34,13 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
 
     @Override
     public void compileStatement(Maybe<Assignment> input, CompilationOutputAcceptor acceptor) {
-        Optional<String> ident = extractIdentifierIfAvailable(input);
-        Optional<? extends NamedSymbol> variable;
-        if (ident.isPresent()) {
-            variable = module.get(ContextManager.class)
-                    .currentContext().searchAs(
-                            NamedSymbol.Searcher.class,
-                            (s) -> s.searchName(n -> ident.get().equals(n), null, null)
-                    ).findFirst();
-        } else {
-            variable = Optional.empty();
-        }
+        final Maybe<LValueExpression> left = input.__(Assignment::getLexpr);
+        final Maybe<RValueExpression> right = input.__(Assignment::getRexpr);
 
-
-        Maybe<RValueExpression> rexpr = input.__(Assignment::getRexpr);
-        ExpressionCompilationResult compiledRExpression = module.get(RValueExpressionSemantics.class)
-                .compile(rexpr, acceptor);
-
-
-
-        if (ident.isPresent() && variable.isEmpty()) {
-            // TODO: can't this be delegated to SingleIdentifierExpressionSemantics?
-            String name = ident.get();
-            Maybe<RValueExpression> expr = input.__(Assignment::getRexpr);
-
-            IJadescriptType type = module.get(RValueExpressionSemantics.class).inferType(expr);
-            final UserVariable userVariable = module.get(ContextManager.class)
-                    .currentScope().addUserVariable(name, type, true);
-            module.get(CompilationHelper.class).lateBindingContext().pushVariable(userVariable);
-            acceptor.accept(w.varDeclPlaceholder(
-                    type.compileToJavaTypeReference(),
-                    name,
-                    w.expr(module.get(RValueExpressionSemantics.class).compile(expr, acceptor).getGeneratedText())
-            ));
-        }else{
-            //TODO?
-        }
-
-
+        //TODO determine if left is pattern
+        final String rightCompiled = module.get(RValueExpressionSemantics.class).compile(right, acceptor);
+        final IJadescriptType rightType = module.get(RValueExpressionSemantics.class).inferType(right);
+        module.get(LValueExpressionSemantics.class).compileAssignment(left, rightCompiled, rightType, acceptor);
     }
 
     @Override
@@ -85,96 +54,18 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
 
     @Override
     public void validate(Maybe<Assignment> input, ValidationMessageAcceptor acceptor) {
-        Maybe<RValueExpression> rexpr = input.__(Assignment::getRexpr);
-        InterceptAcceptor syntacticSubValidation = new InterceptAcceptor(acceptor);
-        module.get(LValueExpressionSemantics.class).syntacticValidateLValue(
+        final Maybe<RValueExpression> right = input.__(Assignment::getRexpr);
+        final Maybe<LValueExpression> left = input.__(Assignment::getLexpr);
+        boolean syntacticSubValidation = module.get(LValueExpressionSemantics.class).syntacticValidateLValue(
                 input.__(Assignment::getLexpr),
-                syntacticSubValidation
+                acceptor
         );
 
-        if (!syntacticSubValidation.thereAreErrors()) {
-
-            Optional<String> ident = extractIdentifierIfAvailable(input);
-            if (ident.isPresent()) {
-                Optional<? extends NamedSymbol> variable = module.get(ContextManager.class)
-                        .currentContext().searchAs(
-                                NamedSymbol.Searcher.class,
-                                (s) -> s.searchName(n -> ident.get().equals(n), null, null)
-                        ).findFirst();
-
-                if (variable.isEmpty()) {
-                    //validate inferred declaration
-                    InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-                    module.get(ValidationHelper.class).assertNotReservedName(
-                            Maybe.of(ident.get()),
-                            input,
-                            JadescriptPackage.eINSTANCE.getAssignment_Lexpr(),
-                            interceptAcceptor
-                    );
-
-                    module.get(RValueExpressionSemantics.class).validate(rexpr, interceptAcceptor);
-
-
-                    if (interceptAcceptor.thereAreErrors()) {
-                        return;
-                    }
-
-
-                    IJadescriptType type = module.get(RValueExpressionSemantics.class).inferType(rexpr);
-                    type.validateType(rexpr, acceptor);
-                    module.get(ContextManager.class).currentScope().addUserVariable(ident.get(), type, true);
-                    input.safeDo(inputSafe -> {
-                        if (GenerationParameters.VALIDATOR__SHOW_INFO_MARKERS) {
-                            acceptor.acceptInfo(
-                                    "Inferred declaration; type: " + type.getJadescriptName(),
-                                    inputSafe,
-                                    JadescriptPackage.eINSTANCE.getAssignment_Lexpr(),
-                                    ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                                    ISSUE_CODE_PREFIX + "Info"
-                            );
-                        }
-                    });
-
-
-                    return;//dont validate assignment : it is a declaration
-                } else {
-                    NamedSymbol variab = variable.get();
-                    if (variab instanceof UserVariable) {
-                        module.get(ValidationHelper.class).assertion(
-                                !((UserVariable) variab).isCapturedInAClosure(),
-                                "AssigningToCapturedReference",
-                                "This local variable is internally captured in a closure, " +
-                                        "and it can not be modified in this context.",
-                                input.__(Assignment::getLexpr),
-                                acceptor
-                        );
-                    }
-                }
-            }
-
-            module.get(LValueExpressionSemantics.class).validateAssignment(
-                    input.__(Assignment::getLexpr),
-                    rexpr,
-                    acceptor
-            );
+        if (syntacticSubValidation == VALID) {
+            //TODO determine if left is pattern
+            module.get(LValueExpressionSemantics.class).validateAssignment(left, right, acceptor);
         }
     }
 
 
-    private Optional<String> extractIdentifierIfAvailable(Maybe<Assignment> input) {
-        return input
-                .__(Assignment::getLexpr)
-                .require(x -> x instanceof OfNotation)
-                .__(x -> (OfNotation) x)
-                .require(x -> x.getProperties() == null || x.getProperties().isEmpty())
-                .__(OfNotation::getAidLiteral)
-                .require(x -> !x.isIsAidExpr())
-                .__(AidLiteral::getTypeCast)
-                .require(x -> x.getTypeCasts() == null || x.getTypeCasts().isEmpty())
-                .__(TypeCast::getAtomExpr)
-                .require(x -> x.getTrailers() == null || x.getTrailers().isEmpty())
-                .__(AtomExpr::getAtom)
-                .__(Primary::getIdentifier)
-                .toOpt();
-    }
 }

@@ -241,7 +241,7 @@ public abstract class JvmModelBasedNamespace
 
         @Override
         public boolean isPure() {
-            //RETURN TRUE FOR PATTERN-MATCHEABLE FACTORY METHODS!
+            return false;
         }
 
         @Override
@@ -338,7 +338,7 @@ public abstract class JvmModelBasedNamespace
 
         @Override
         public boolean isPure() {
-            // RETURN TRUE?
+            return false;
         }
 
         @Override

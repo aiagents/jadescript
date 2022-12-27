@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import jadescript.lang.Performative;
 
 import java.util.List;
 
@@ -28,6 +29,11 @@ public class MessageHandlerContext
         this.performative = performative;
         this.messageContentType = messageContentType;
         this.messageType = messageType;
+    }
+
+    @Override
+    public Maybe<Performative> getPerformative() {
+        return performative.__(Performative.performativeByName::get);
     }
 
     @Override

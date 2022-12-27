@@ -396,8 +396,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
 
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         final String compiledNickName = rves
-                .compile(nickName, acceptor)
-                .toString();
+                .compile(nickName, acceptor);
 
         acceptor.accept(w.simpleStmt(agentType.compileToJavaTypeReference()
                 + ".create(" + THE_AGENT + "().getContainerController(), "
@@ -405,7 +404,6 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
                 + (args.isEmpty() || args.stream().allMatch(Maybe::isNothing) ? "" : ", ")
                 + args.stream()
                 .map(input1 -> rves.compile(input1, acceptor))
-                .map(ExpressionCompilationResult::toString)
                 .collect(Collectors.joining(", "))
                 + ")"
         ));

@@ -65,12 +65,14 @@ public class ListType extends ParametricType implements EmptyCreatable {
                     )
             );
             operations.add(new Operation(
+                    true,
                     "get",
                     getElementType(),
                     List.of(new Tuple2<>("index", module.get(TypeHelper.class).INTEGER)),
                     getLocation()
             ));
             operations.add(new Operation(
+                    false,
                     "set",
                     module.get(TypeHelper.class).VOID,
                     List.of(
@@ -80,36 +82,42 @@ public class ListType extends ParametricType implements EmptyCreatable {
                     getLocation()
             ));
             operations.add(new Operation(
+                    true,
                     "contains",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("o", getElementType())),
                     getLocation()
             ));
             operations.add(new Operation(
+                    true,
                     "containsAll",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("o", this)),
                     getLocation()
             ));
             operations.add(new Operation(
+                    true,
                     "containsAll",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("o", module.get(TypeHelper.class).SET.apply(Arrays.asList(getElementType())))),
                     getLocation()
             ));
             operations.add(new Operation(
+                    true,
                     "containsAny",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("o", this)),
                     getLocation()
             ));
             operations.add(new Operation(
+                    true,
                     "containsAny",
                     module.get(TypeHelper.class).BOOLEAN,
                     List.of(new Tuple2<>("o", module.get(TypeHelper.class).SET.apply(Arrays.asList(getElementType())))),
                     getLocation()
             ));
             operations.add(new Operation(
+                    false,
                     "clear",
                     module.get(TypeHelper.class).VOID,
                     List.of(),

@@ -170,7 +170,6 @@ public class CompilationHelper implements IQualifiedNameProvider {
                 .map(Maybe::of)
                 .map(x -> x.__(xx -> (RValueExpression) xx))
                 .map(x -> module.get(RValueExpressionSemantics.class).compile(x, acceptor))
-                .map(ExpressionCompilationResult::toString)
                 .collect(Collectors.toList());
         List<IJadescriptType> argTypes = rvals.stream()
                 .map(Maybe::of)

@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.feature;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.DroppingAcceptor;
 import it.unipr.ailab.jadescript.semantics.GenerationParameters;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -72,7 +73,10 @@ public class FieldSemantics extends FeatureSemantics<Field> {
                                 module.get(ContextManager.class).restore(savedContext);
                                 module.get(ContextManager.class).enterProceduralFeature(FieldInitializerContext::new);
 
-                                scb.add(module.get(RValueExpressionSemantics.class).compile(right, ).toString());
+                                scb.add(module.get(RValueExpressionSemantics.class).compile(right,
+                                        //TODO TODO TODO!!
+                                        // Create acceptor and collector of initialization stuff for fields
+                                        new DroppingAcceptor()));
 
                                 module.get(ContextManager.class).exit();
 

@@ -1,6 +1,8 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
+import it.unipr.ailab.jadescript.jadescript.Assignment;
+import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.*;
 import it.unipr.ailab.jadescript.semantics.context.Context;
@@ -27,6 +29,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.*;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
 
 /**
@@ -49,9 +52,15 @@ public class SingleIdentifierExpressionSemantics
 
     @Override
     protected List<String> propertyChainInternal(Maybe<VirtualIdentifier> input) {
-        //TODO if the single identifiers represents a nullary function call, check if the function is pure:
-        // only if it is this constitutes a property chain.
-        return List.of(input.__(VirtualIdentifier::getIdent).orElse(""));
+        final Maybe<Either<NamedSymbol, CallableSymbol>> resolved = resolve(input);
+        final String ident = input.__(VirtualIdentifier::getIdent).extract(nullAsEmptyString);
+        if(resolved.isNothing() || ident.isBlank()){
+            return List.of();
+        }else if(resolved.toNullable() instanceof Either.Left){
+            return List.of(ident);
+        }else /*if(resolved.toNullable() instanceof Either.Right)*/{
+            return module.get(MethodInvocationSemantics.class).propertyChain(MethodCall.methodCall(input));
+        }
     }
 
     @Override
@@ -148,12 +157,19 @@ public class SingleIdentifierExpressionSemantics
                         w.varPlaceholder(variable.toNullable().hashCode()),
                         w.expr(adaptedExpression)
                 ));
+            } else {
+                acceptor.accept(w.simpleStmt(variable.toNullable().compileWrite("", adaptedExpression)));
             }
         } else {
-            // nothing worked: just do a simple assignment
-            //TODO move here declaration semantics?
-            acceptor.accept(w.assign(
-                    "/*UNRESOLVED NAME*/" + ident.toNullable(),
+
+            String name = ident.orElse("");
+
+            final UserVariable userVariable = module.get(ContextManager.class).currentScope()
+                    .addUserVariable(name, exprType, true);
+            module.get(CompilationHelper.class).lateBindingContext().pushVariable(userVariable);
+            acceptor.accept(w.varDeclPlaceholder(
+                    exprType.compileToJavaTypeReference(),
+                    name,
                     w.expr(compiledExpression)
             ));
         }
@@ -190,7 +206,7 @@ public class SingleIdentifierExpressionSemantics
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved = resolve(input);
         //Considering it pure if it is not resolved and if it is a named symbol (i.e. not a call to a function without
         // parentheses).
-        //TODO - important - start considering some calls as pure (e.g., non-user defined constructors)
+        //TODO - important - start considering some calls as pure (e.g., builtin & simple generated constructors)
         return resolved.isNothing() || resolved.toNullable() instanceof Either.Left;
     }
 
@@ -366,7 +382,44 @@ public class SingleIdentifierExpressionSemantics
 
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolve = resolve(input);
         if (resolve.isNothing()) {
-            // TODO move here declaration semantics
+            //validate inferred declaration
+
+            boolean reservedNameValidation = module.get(ValidationHelper.class).assertNotReservedName(
+                    ident,
+                    input,
+                    JadescriptPackage.eINSTANCE.getAssignment_Lexpr(),
+                    acceptor
+            );
+
+            boolean rightValidation = module.get(RValueExpressionSemantics.class).validate(expression, acceptor);
+
+
+            if (reservedNameValidation == INVALID || rightValidation == INVALID) {
+                return INVALID;
+            }
+
+            IJadescriptType type = module.get(RValueExpressionSemantics.class).inferType(expression);
+            boolean typeValidation = type.validateType(expression, acceptor);
+            if (typeValidation == INVALID || ident.isNothing() || ident.toNullable().isBlank()) {
+                return INVALID;
+            }
+
+            String identSafe = ident.toNullable();
+
+            module.get(ContextManager.class).currentScope().addUserVariable(identSafe, type, true);
+
+            input.safeDo(inputSafe -> {
+                if (GenerationParameters.VALIDATOR__SHOW_INFO_MARKERS) {
+                    acceptor.acceptInfo(
+                            "Inferred declaration; type: " + type.getJadescriptName(),
+                            inputSafe,
+                            JadescriptPackage.eINSTANCE.getAssignment_Lexpr(),
+                            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+                            ISSUE_CODE_PREFIX + "Info"
+                    );
+                }
+            });
+
             return VALID;
         } else if (resolve.toNullable() instanceof Either.Left) {
             NamedSymbol variable = ((Either.Left<NamedSymbol, CallableSymbol>) resolve.toNullable()).getLeft();
@@ -374,9 +427,23 @@ public class SingleIdentifierExpressionSemantics
                     variable.canWrite(),
                     "InvalidAssignment",
                     "'" + ident.orElse("[empty]") + "' is read-only.",
-                    input.__(ProxyEObject::getProxyEObject),
+                    input,
                     acceptor
             );
+
+
+            if (canWrite && variable instanceof UserVariable) {
+                canWrite = module.get(ValidationHelper.class).assertion(
+                        !((UserVariable) variable).isCapturedInAClosure(),
+                        "AssigningToCapturedReference",
+                        "This local variable is internally captured in a closure, " +
+                                "and it can not be modified in this context.",
+                        input,
+                        acceptor
+                );
+            }
+
+
             final IJadescriptType resolvedNameType = variable.writingType();
             final boolean typeConformance = module.get(ValidationHelper.class).assertExpectedType(
                     resolvedNameType, typeOfRExpression,
@@ -448,10 +515,10 @@ public class SingleIdentifierExpressionSemantics
 
     public boolean syntacticValidateStatement(Maybe<VirtualIdentifier> input, ValidationMessageAcceptor acceptor) {
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved = resolve(input);
-        if(resolved.isPresent() && resolved.toNullable() instanceof Either.Right){
+        if (resolved.isPresent() && resolved.toNullable() instanceof Either.Right) {
             // nullary function call: ok as statement
             return VALID;
-        }else {
+        } else {
             input.safeDo(inputSafe -> {
                 acceptor.acceptError(
                         "not a statement",

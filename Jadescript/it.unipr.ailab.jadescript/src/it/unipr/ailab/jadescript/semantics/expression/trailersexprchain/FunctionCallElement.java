@@ -142,7 +142,7 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     @Override
     public boolean isUnbounded(ReversedTrailerChain rest) {
         //rest should be empty, so it's ignored
-        return subSemantics.isUnbounded(generateMethodCall());
+        return subSemantics.isUnbound(generateMethodCall());
     }
 
     @Override
@@ -185,7 +185,7 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
 
     @Override
     public boolean isValidLexpr(ReversedTrailerChain rest) {
-        return subSemantics.isValidLexpr(input.__(__ -> generateMethodCall().toNullable()));
+        return subSemantics.isValidLExpr(input.__(__ -> generateMethodCall().toNullable()));
     }
 
     @Override

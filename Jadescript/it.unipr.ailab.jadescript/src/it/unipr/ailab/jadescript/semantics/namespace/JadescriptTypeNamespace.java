@@ -48,7 +48,10 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
                             parameterNames,
                             parameterTypes
                     )
-            ).map(cs -> new Operation(cs.name(), cs.returnType(),
+            ).map(cs -> new Operation(
+                    false,
+                    cs.name(),
+                    cs.returnType(),
                     Streams.zip(
                             cs.parameterNames().stream(),
                             cs.parameterTypes().stream(),
@@ -75,7 +78,10 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
                             parameterNames,
                             parameterTypes
                     )
-            ).map(cs -> new Operation(cs.name(), cs.returnType(),
+            ).map(cs -> new Operation(
+                    false,
+                    cs.name(),
+                    cs.returnType(),
                     Streams.zip(
                             cs.parameterNames().stream(),
                             cs.parameterTypes().stream(),

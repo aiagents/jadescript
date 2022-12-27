@@ -36,8 +36,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionValidationResult.invalid;
-import static it.unipr.ailab.jadescript.semantics.expression.ExpressionValidationResult.valid;
 import static it.unipr.ailab.maybe.Maybe.iterate;
 import static it.unipr.ailab.maybe.Maybe.safeDo;
 
@@ -522,13 +520,13 @@ public class ValidationHelper implements SemanticsConsts {
         );
     }
 
-    public void assertNotReservedName(
+    public boolean assertNotReservedName(
             Maybe<String> name,
             Maybe<? extends EObject> input,
             EStructuralFeature feature,
             ValidationMessageAcceptor acceptor
     ) {
-        assertNotReservedName(
+        return assertNotReservedName(
                 name,
                 input,
                 feature,
@@ -537,7 +535,7 @@ public class ValidationHelper implements SemanticsConsts {
         );
     }
 
-    public void assertNotReservedName(
+    public boolean assertNotReservedName(
             Maybe<String> name,
             Maybe<? extends EObject> input,
             EStructuralFeature feature,
@@ -545,7 +543,7 @@ public class ValidationHelper implements SemanticsConsts {
             ValidationMessageAcceptor acceptor
     ) {
         if (name != null && name.isPresent()) {
-            assertion(!isReservedName(name), "ReservedName",
+            return assertion(!isReservedName(name), "ReservedName",
                     name + " is a reserved Jadescript name. Please use another one.",
                     input,
                     feature,
@@ -553,6 +551,7 @@ public class ValidationHelper implements SemanticsConsts {
                     acceptor
             );
         }
+        return VALID;
     }
 
     public boolean emitError(

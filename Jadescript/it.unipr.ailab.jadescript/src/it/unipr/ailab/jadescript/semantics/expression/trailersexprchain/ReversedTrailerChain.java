@@ -136,7 +136,7 @@ public class ReversedTrailerChain {
             return elements.stream()
                     .filter(Maybe::isPresent)
                     .map(Maybe::toNullable)
-                    .flatMap(e -> e.getSubExpressions(withoutFirst).stream());
+                    .flatMap(e -> e.getSubExpressions(withoutFirst));
         } else {
             return Stream.empty();
         }

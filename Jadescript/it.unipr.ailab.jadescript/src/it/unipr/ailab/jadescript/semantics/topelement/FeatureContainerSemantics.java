@@ -43,6 +43,14 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
         super(semanticsModule);
     }
 
+    private static boolean repeateableHandler(Feature feature) {
+        return feature instanceof OnMessageHandler
+                || feature instanceof OnPerceptHandler
+                || feature instanceof OnExecuteHandler
+                || feature instanceof OnExceptionHandler
+                || feature instanceof OnBehaviourFailureHandler;
+    }
+
     protected abstract void prepareAndEnterContext(Maybe<T> input, JvmDeclaredType jvmDeclaredType);
 
     protected abstract void exitContext(Maybe<T> input);
@@ -132,14 +140,6 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
         }
     }
 
-    private static boolean repeateableHandler(Feature feature) {
-        return feature instanceof OnMessageHandler
-                || feature instanceof OnPerceptHandler
-                || feature instanceof OnExecuteHandler
-                || feature instanceof OnExceptionHandler
-                || feature instanceof OnBehaviourFailureHandler;
-    }
-
     protected void validateAdditionalContextualizedAspects(
             Maybe<T> input,
             ValidationMessageAcceptor acceptor
@@ -149,7 +149,6 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
 
     private void validateForForwardDeclaration(Maybe<FeatureContainer> input, ValidationMessageAcceptor acceptor) {
         List<Maybe<Feature>> maybeFeatures = Maybe.toListOfMaybes((input).__(FeatureContainer::getFeatures));
-        final DroppingAcceptor dropping = new DroppingAcceptor();
         Set<String> inCurrentClass = maybeFeatures.stream()
                 .filter(Maybe::isPresent)
                 .map(Maybe::toNullable)
@@ -168,13 +167,15 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                     Maybe<String> name = f.__(Field::getName);
                     right.safeDo(rightSafe -> {
 
-                        @SuppressWarnings({"unchecked", "rawtypes"}) List<? extends List<String>> listOfLists =
+                        List<? extends List<String>> listOfLists =
                                 module.get(RValueExpressionSemantics.class).collectFromAllNodes(
-                                right,
-                                (in, expressionSemantics1) -> expressionSemantics1
-                                        //TODO improve
-                                        .validate((Maybe) in, dropping).getPropertyChain()
-                        );
+                                        right,
+                                        (in, expressionSemantics1) -> {
+                                            @SuppressWarnings({"unchecked", "rawtypes"}) final List<String> list =
+                                                    expressionSemantics1.propertyChain((Maybe) in);
+                                            return list;
+                                        }
+                                );
                         List<List<String>> collect = new ArrayList<>();
                         for (List<String> l : listOfLists) {
                             if (!l.isEmpty()) {

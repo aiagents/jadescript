@@ -59,7 +59,6 @@ public abstract class FeatureSemantics<T extends Feature> extends Semantics {
 
 
 
-    @Override
     public void validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {
         validateFeature(input, Maybe.nothing(), acceptor);
     }

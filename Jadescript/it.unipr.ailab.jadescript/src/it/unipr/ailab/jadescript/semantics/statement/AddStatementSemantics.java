@@ -41,9 +41,9 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
         boolean isSetCollection = module.get(RValueExpressionSemantics.class)
                 .inferType(input.__(AddStatement::getCollection)) instanceof SetType;
         String element = module.get(RValueExpressionSemantics.class)
-                .compile(input.__(AddStatement::getElement), acceptor).getGeneratedText();
+                .compile(input.__(AddStatement::getElement), acceptor);
         String collection = module.get(RValueExpressionSemantics.class)
-                .compile(input.__(AddStatement::getCollection), acceptor).getGeneratedText();
+                .compile(input.__(AddStatement::getCollection), acceptor);
         String putOrAdd = input.__(AddStatement::getPutOrAdd).extract(Maybe.nullAsEmptyString);
         if(isSetCollection){
             putOrAdd = "add"; //overrides "put" if it's a set
@@ -56,7 +56,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
             String index = module.get(RValueExpressionSemantics.class).compile(
                     input.__(AddStatement::getIndex),
                     acceptor
-            ).getGeneratedText();
+            );
             acceptor.accept(w.callStmnt(methodName, w.expr(index), w.expr(element)));
         }
     }

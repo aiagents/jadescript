@@ -97,7 +97,10 @@ public class GlobalMethodSemantics extends UsesOntologyEntitySemantics<GlobalFun
     }
 
     @Override
-    protected void validateAdditionalContextualizedAspects(Maybe<GlobalFunctionOrProcedure> input, ValidationMessageAcceptor acceptor) {
+    protected void validateAdditionalContextualizedAspects(
+            Maybe<GlobalFunctionOrProcedure> input,
+            ValidationMessageAcceptor acceptor
+    ) {
         super.validateAdditionalContextualizedAspects(input, acceptor);
         final String name = input.__(NamedElement::getName).extract(nullAsEmptyString);
         Boolean mustBeFunction = input.__(GlobalFunctionOrProcedure::isFunction).extract(nullAsFalse);

@@ -68,13 +68,13 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         );
 
         final String compiledCollection = module.get(RValueExpressionSemantics.class)
-                .compile(collection, acceptor).getGeneratedText();
+                .compile(collection, acceptor);
         if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
 
             Maybe<RValueExpression> end = input.__(ForStatement::getEndIndex);
 
             final String compiledEndIndex = module.get(RValueExpressionSemantics.class)
-                    .compile(end, acceptor).getGeneratedText();
+                    .compile(end, acceptor);
 
             ExpressionWriter completeCollExpression = w.expr(
                     "new jadescript.util.IntegerRange(" + compiledCollection + ", "

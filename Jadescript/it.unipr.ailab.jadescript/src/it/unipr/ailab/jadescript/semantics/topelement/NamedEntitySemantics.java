@@ -28,7 +28,7 @@ public abstract class NamedEntitySemantics<T extends NamedElement> extends Seman
         super(semanticsModule);
     }
 
-    @Override
+
     public void validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {
         if (input == null) return;
         Maybe<String> name = input.__(NamedElement::getName).nullIf(String::isBlank);
