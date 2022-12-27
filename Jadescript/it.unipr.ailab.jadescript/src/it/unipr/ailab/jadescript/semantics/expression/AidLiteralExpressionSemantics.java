@@ -126,10 +126,6 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
         return subExpressionsAnyMatch(input, ExpressionSemantics::isUnbound);
     }
 
-    @Override
-    protected boolean containsNotHoledAssignablePartsInternal(Maybe<AidLiteral> input) {
-        return subExpressionsAnyMatch(input, ExpressionSemantics::containsNotHoledAssignableParts);
-    }
 
 
     @Override

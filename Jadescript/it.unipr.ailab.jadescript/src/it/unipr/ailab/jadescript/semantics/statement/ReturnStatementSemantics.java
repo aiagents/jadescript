@@ -15,7 +15,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collections;
@@ -134,7 +133,7 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
     }
 
     @Override
-    public List<Effect> computeEffects(Maybe<? extends EObject> input) {
+    public List<Effect> computeEffectsInternal(Maybe<ReturnStatement> input) {
         return Collections.singletonList(Effect.JumpsAwayFromOperation.INSTANCE);
     }
 }

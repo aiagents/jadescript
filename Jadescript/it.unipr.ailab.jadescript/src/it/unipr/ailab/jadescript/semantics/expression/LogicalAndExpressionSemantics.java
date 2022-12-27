@@ -18,7 +18,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
@@ -35,16 +34,9 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<LogicalAnd> input) {
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                return Collections.singletonList(traversed.get());
-            }
-        }
-
-        return Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison)).stream()
-                .map(x -> new SemanticsBoundToExpression<>(module.get(EqualityComparisonExpressionSemantics.class), x))
-                .collect(Collectors.toList());
+        return Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison))
+                .stream()
+                .map(x -> new SemanticsBoundToExpression<>(module.get(EqualityComparisonExpressionSemantics.class), x));
     }
 
     @Override
@@ -66,7 +58,6 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
     }
 
 
-
     @Override
     protected List<String> propertyChainInternal(Maybe<LogicalAnd> input) {
         return Collections.emptyList();
@@ -74,46 +65,19 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
 
     @Override
     protected ExpressionTypeKB computeKBInternal(Maybe<LogicalAnd> input) {
-        List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison));
-        if (equs.size() < 1) {
-            return ExpressionTypeKB.empty();
-        } else {
-            final EqualityComparisonExpressionSemantics eces = module.get(EqualityComparisonExpressionSemantics.class);
-            if (equs.size() == 1) {
-                return eces.computeKB(equs.get(0));
-            } else {
-                ExpressionTypeKB t = eces
-                        .computeKB(equs.get(0));
-                final TypeHelper typeHelper = module.get(TypeHelper.class);
-                for (int i = 1; i < equs.size(); i++) {
-                    ExpressionTypeKB t2 = eces
-                            .computeKB(equs.get(i));
-                    t = typeHelper.mergeByGLB(t, t2);
-                }
-                return t;
-            }
-        }
-
+        return mapSubExpressions(input, ExpressionSemantics::computeKB)
+                .reduce(ExpressionTypeKB.empty(), module.get(TypeHelper.class)::mergeByGLB);
     }
 
     @Override
     protected IJadescriptType inferTypeInternal(Maybe<LogicalAnd> input) {
-        if (input == null) return module.get(TypeHelper.class).ANY;
-        List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison));
-        if (equs.size() < 1) {
-            return module.get(TypeHelper.class).ANY;
-        } else if (equs.size() == 1) {
-            return module.get(EqualityComparisonExpressionSemantics.class).inferType(equs.get(0));
-        } else {
-            return module.get(TypeHelper.class).BOOLEAN;
-        }
+        return module.get(TypeHelper.class).BOOLEAN;
     }
 
 
     @Override
     protected boolean mustTraverse(Maybe<LogicalAnd> input) {
         List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison));
-
         return equs.size() == 1;
     }
 
@@ -131,23 +95,14 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
 
     @Override
     protected boolean isPatternEvaluationPureInternal(Maybe<LogicalAnd> input) {
-        List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison));
-        if (equs.size() < 1) {
-            return true;
-        } else {
-            return equs.stream()
-                    .allMatch(module.get(EqualityComparisonExpressionSemantics.class)::isPatternEvaluationPure);
-        }
+        return subExpressionsAllMatch(input, ExpressionSemantics::isPatternEvaluationPure);
     }
 
     @Override
     protected boolean validateInternal(Maybe<LogicalAnd> input, ValidationMessageAcceptor acceptor) {
         if (input == null) return VALID;
         List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison));
-        if (equs.size() == 1) {
-            return module.get(EqualityComparisonExpressionSemantics.class).validate(equs.get(0), acceptor);
-        } else if (equs.size() > 1) {
-            final TypeHelper typeHelper = module.get(TypeHelper.class);
+        if (equs.size() > 1) {
             boolean result = VALID;
             for (int i = 0; i < equs.size(); i++) {
                 Maybe<EqualityComparison> equ = equs.get(i);
@@ -155,7 +110,7 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
                         .validate(equ, acceptor);
                 if (equValidation == VALID) {
                     IJadescriptType type = module.get(EqualityComparisonExpressionSemantics.class).inferType(equ);
-                    result = result && module.get(ValidationHelper.class).assertExpectedType(
+                    final boolean operandType = module.get(ValidationHelper.class).assertExpectedType(
                             Boolean.class,
                             type,
                             "InvalidOperandType",
@@ -164,8 +119,9 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
                             i,
                             acceptor
                     );
+                    result = result && operandType;
                 } else {
-                    result = result && equValidation;
+                    result = INVALID;
                 }
             }
             return result;
@@ -178,29 +134,12 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<LogicalAnd, ?, ?> input, CompilationOutputAcceptor acceptor) {
-        final Maybe<LogicalAnd> pattern = input.getPattern();
-        final List<Maybe<EqualityComparison>> operands = Maybe.toListOfMaybes(
-                pattern.__(LogicalAnd::getEqualityComparison));
-        if (mustTraverse(pattern)) {
-            return module.get(EqualityComparisonExpressionSemantics.class).compilePatternMatchInternal(
-                    input.replacePattern(operands.get(0)),
-                    acceptor
-            );
-        } else {
-            return input.createEmptyCompileOutput();
-        }
+        return input.createEmptyCompileOutput();
     }
 
     @Override
     public PatternType inferPatternTypeInternal(Maybe<LogicalAnd> input) {
-
-        final List<Maybe<EqualityComparison>> operands = Maybe.toListOfMaybes(
-                input.__(LogicalAnd::getEqualityComparison));
-        if (mustTraverse(input)) {
-            return module.get(EqualityComparisonExpressionSemantics.class).inferPatternTypeInternal(operands.get(0));
-        } else {
-            return PatternType.empty(module);
-        }
+        return PatternType.empty(module);
     }
 
     @Override
@@ -221,6 +160,37 @@ public class LogicalAndExpressionSemantics extends ExpressionSemantics<LogicalAn
         } else {
             return input.createEmptyValidationOutput();
         }
+    }
+
+
+    @Override
+    protected boolean isAlwaysPureInternal(Maybe<LogicalAnd> input) {
+        return subExpressionsAllAlwaysPure(input);
+    }
+
+    @Override
+    protected boolean isValidLExprInternal(Maybe<LogicalAnd> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isHoledInternal(Maybe<LogicalAnd> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isTypelyHoledInternal(Maybe<LogicalAnd> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isUnboundInternal(Maybe<LogicalAnd> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<LogicalAnd> input) {
+        return false;
     }
 
 

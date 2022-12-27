@@ -29,15 +29,9 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
         super(semanticsModule);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<LValueExpression> input) {
-        Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-        if (traversed.isPresent()) {
-            return traversed.get().getSemantics().getSubExpressions((Maybe) traversed.get().getInput());
-        }
-
-        return Collections.emptyList();
+        return Stream.empty();
     }
 
     @Override
@@ -157,6 +151,22 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
                 input.mapPattern(lve -> (OfNotation) lve),
                 acceptor
         );
+    }
+
+
+    @Override
+    protected boolean isAlwaysPureInternal(Maybe<LValueExpression> input) {
+        return module.get(OfNotationExpressionSemantics.class).isAlwaysPureInternal(input.__(lve-> (OfNotation) lve));
+    }
+
+    @Override
+    protected boolean isTypelyHoledInternal(Maybe<LValueExpression> input) {
+        return module.get(OfNotationExpressionSemantics.class).isTypelyHoledInternal(input.__(lve-> (OfNotation) lve));
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<LValueExpression> input) {
+        return module.get(OfNotationExpressionSemantics.class).canBeHoledInternal(input.__(lve-> (OfNotation) lve));
     }
 
 

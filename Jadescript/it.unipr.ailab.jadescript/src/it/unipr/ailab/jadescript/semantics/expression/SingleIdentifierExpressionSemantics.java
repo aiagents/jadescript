@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
+import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -26,12 +27,12 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.*;
 
 
 /**
  * Created on 26/08/18.
  */
+//TODO consider redesigning this as traversing toward MethodInvocationSemantics for nullary function calls
 @Singleton
 public class SingleIdentifierExpressionSemantics
         extends AssignableExpressionSemantics<VirtualIdentifier> {
@@ -48,6 +49,8 @@ public class SingleIdentifierExpressionSemantics
 
     @Override
     protected List<String> propertyChainInternal(Maybe<VirtualIdentifier> input) {
+        //TODO if the single identifiers represents a nullary function call, check if the function is pure:
+        // only if it is this constitutes a property chain.
         return List.of(input.__(VirtualIdentifier::getIdent).orElse(""));
     }
 
@@ -56,95 +59,63 @@ public class SingleIdentifierExpressionSemantics
         return ExpressionTypeKB.empty();
     }
 
-    public Maybe<Either<NamedSymbol, CallableSymbol>> resolve(Maybe<VirtualIdentifier> input) {
-        final Context context = module.get(ContextManager.class).currentContext();
-
-        Maybe<NamedSymbol> named = input.__(VirtualIdentifier::getIdent).__(identSafe ->
-                context.searchAs(
-                        NamedSymbol.Searcher.class,
-                        s -> s.searchName(identSafe, null, null)
-                ).findAny().orElse(null));
-        if (named.isPresent()) {
-            return Maybe.of(new Either.Left<>(named.toNullable()));
-        }
-
-        Maybe<? extends CallableSymbol> callable = module.get(MethodInvocationSemantics.class).resolve(
-                MethodCall.methodCall(input)
-        );
-
-        return callable.__(Either.Right::new);
-    }
-
-    public boolean resolves(Maybe<VirtualIdentifier> input) {
+    public Maybe<NamedSymbol> resolveAsNamedSymbol(Maybe<VirtualIdentifier> input) {
+        //TODO cached resolution?
         final Context context = module.get(ContextManager.class).currentContext();
         return input.__(VirtualIdentifier::getIdent).__(identSafe ->
                 context.searchAs(
                         NamedSymbol.Searcher.class,
                         s -> s.searchName(identSafe, null, null)
-                ).findAny().isPresent()
-        ).extract(nullAsFalse) || module.get(MethodInvocationSemantics.class).resolves(MethodCall.methodCall(
-                input.__(ProxyEObject::getProxyEObject),
-                input.__(VirtualIdentifier::getIdent),
-                nothing(),
-                nothing(),
-                false
-        ));
+                ).findAny().orElse(null));
+    }
+
+    public Maybe<Either<NamedSymbol, CallableSymbol>> resolve(Maybe<VirtualIdentifier> input) {
+        //TODO cached resolution?
+        Maybe<NamedSymbol> named = resolveAsNamedSymbol(input);
+        if (named.isPresent()) {
+            return Maybe.of(new Either.Left<>(named.toNullable()));
+        }
+        Maybe<? extends CallableSymbol> callable = module.get(MethodInvocationSemantics.class).resolve(
+                MethodCall.methodCall(input)
+        );
+        return callable.__(Either.Right::new);
+    }
+
+    public boolean resolves(Maybe<VirtualIdentifier> input) {
+        //TODO cached resolution?
+        return resolve(input).isPresent();
     }
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<VirtualIdentifier> input) {
-        return Collections.emptyList();
+        return Stream.empty();
     }
 
+    @Override
     protected String compileInternal(Maybe<VirtualIdentifier> input, CompilationOutputAcceptor acceptor) {
         if (input == null) return "";
-
-        //TODO use resolve and delegate to MethodInvocation when needed?
         Maybe<String> ident = input.__(VirtualIdentifier::getIdent);
         if (ident.wrappedEquals(THIS)) {
             return Util.getOuterClassThisReference(input.__(ProxyEObject::getProxyEObject)).orElse("");
         }
-        final Context context = module.get(ContextManager.class).currentContext();
-        //first, try to find the named symbol
-        if (ident.isPresent()) {
-            String identSafe = ident.toNullable();
-            final Optional<? extends NamedSymbol> variable = context.searchAs(
-                    NamedSymbol.Searcher.class,
-                    s -> s.searchName(identSafe, null, null)
-            ).findFirst();
 
-            if (variable.isPresent()) {
-                if (variable.get() instanceof UserVariable) {
-                    final UserVariable userVariable = (UserVariable) variable.get();
-                    userVariable.notifyReadUsage();
-                    module.get(CompilationHelper.class).lateBindingContext().pushVariable(userVariable);
-                    return w.varPlaceholder(variable.get().hashCode());
-                }
-                return variable.get().compileRead("");
+        //TODO move here all special identifiers from Primary?
+        final Maybe<Either<NamedSymbol, CallableSymbol>> resolved = resolve(input);
+        if (resolved.isNothing()) {
+            return "/*UNRESOLVED NAME*/" + ident.toNullable();
+        } else if (resolved.toNullable() instanceof Either.Left) {
+            final NamedSymbol variable = ((Either.Left<NamedSymbol, CallableSymbol>) resolved.toNullable()).getLeft();
+            if (variable instanceof UserVariable) {
+                UserVariable userVariable = (UserVariable) variable;
+                userVariable.notifyReadUsage();
+                module.get(CompilationHelper.class).lateBindingContext().pushVariable(userVariable);
+                return w.varPlaceholder(variable.hashCode());
+            } else {
+                return variable.compileRead("");
             }
-
+        } else /*if (resolved.toNullable() instanceof Either.Right)*/ {
+            return module.get(MethodInvocationSemantics.class).compile(MethodCall.methodCall(input), acceptor);
         }
-
-
-        // second attempt: find a function with arity 0 and invoke it (delegating to MethodInvocationSemantics)
-        if (module.get(MethodInvocationSemantics.class).resolves(MethodCall.methodCall(
-                input.__(ProxyEObject::getProxyEObject),
-                ident,
-                nothing(),
-                nothing(),
-                false
-        ))) {
-            return module.get(MethodInvocationSemantics.class).compile(MethodCall.methodCall(
-                    input.__(ProxyEObject::getProxyEObject),
-                    ident,
-                    nothing(),
-                    nothing(),
-                    false
-            ), acceptor); //TODO Could add propertyChain if called function is pure
-        }
-
-        // nothing worked: just use the identifier
-        return ident.toNullable();
     }
 
     public void compileAssignmentInternal(
@@ -155,91 +126,52 @@ public class SingleIdentifierExpressionSemantics
     ) {
         if (input == null) return;
         final Maybe<String> ident = input.__(VirtualIdentifier::getIdent);
-        final Context context = module.get(ContextManager.class).currentContext();
-        //first, try to find the named symbol
-        if (ident.isPresent()) {
-            String identSafe = ident.toNullable();
-            final Optional<? extends NamedSymbol> variable = context
-                    .searchAs(
-                            NamedSymbol.Searcher.class,
-                            s -> s.searchName(identSafe, null, canWrite -> canWrite)
-                    ).findFirst();
 
-            if (variable.isPresent()) {
-                var adaptedExpression = compiledExpression;
-                if (module.get(TypeHelper.class).implicitConversionCanOccur(exprType, variable.get().writingType())) {
-                    adaptedExpression = module.get(TypeHelper.class).compileImplicitConversion(
-                            compiledExpression,
-                            exprType,
-                            variable.get().writingType()
-                    );
-                }
-
-
-                if (variable.get() instanceof UserVariable) {
-                    final UserVariable userVariable = (UserVariable) variable.get();
-                    userVariable.notifyWriteUsage();
-                    module.get(CompilationHelper.class).lateBindingContext().pushVariable(userVariable);
-                    //TODO ? :
-//                     acceptor.accept(w.varAssPlaceholder(userVariable.name(), w.expr(adaptedExpression)));
-                    acceptor.accept(w.assign(
-                            w.varPlaceholder(variable.get().hashCode()),
-                            w.expr(adaptedExpression)
-                    ));
-                } else {
-                    acceptor.accept(w.simpleStmt(variable.get().compileWrite("", adaptedExpression)));
-                }
-                return;
+        final Maybe<NamedSymbol> variable = resolveAsNamedSymbol(input);
+        if (variable.isPresent()) {
+            String adaptedExpression = compiledExpression;
+            if (module.get(TypeHelper.class).implicitConversionCanOccur(exprType, variable.toNullable().writingType())) {
+                adaptedExpression = module.get(TypeHelper.class).compileImplicitConversion(
+                        compiledExpression,
+                        exprType,
+                        variable.toNullable().writingType()
+                );
             }
+
+            if (variable.toNullable() instanceof UserVariable) {
+                final UserVariable userVariable = (UserVariable) variable.toNullable();
+                userVariable.notifyWriteUsage();
+                module.get(CompilationHelper.class).lateBindingContext().pushVariable(userVariable);
+                //TODO ? :
+//                     acceptor.accept(w.varAssPlaceholder(userVariable.name(), w.expr(adaptedExpression)));
+                acceptor.accept(w.assign(
+                        w.varPlaceholder(variable.toNullable().hashCode()),
+                        w.expr(adaptedExpression)
+                ));
+            }
+        } else {
+            // nothing worked: just do a simple assignment
+            //TODO move here declaration semantics?
+            acceptor.accept(w.assign(
+                    "/*UNRESOLVED NAME*/" + ident.toNullable(),
+                    w.expr(compiledExpression)
+            ));
         }
-
-
-        // nothing worked: just do a simple assignment
-        acceptor.accept(w.assign(
-                ident.orElse("/*Null identifier*/"),
-                w.expr(compiledExpression)
-        ));
     }
 
     protected IJadescriptType inferTypeInternal(Maybe<VirtualIdentifier> input) {
         if (input == null) return module.get(TypeHelper.class).ANY;
         final Maybe<String> ident = input.__(VirtualIdentifier::getIdent);
-        final Context context = module.get(ContextManager.class).currentContext();
-
-        //TODO use resolve and delegate to MethodInvocation when needed?
-
-        //first, try to find the named symbol
-        if (ident.isPresent()) {
-            String identSafe = ident.toNullable();
-            final Optional<? extends NamedSymbol> variable = context
-                    .searchAs(
-                            NamedSymbol.Searcher.class,
-                            s -> s.searchName(identSafe, null, null)
-                    ).findFirst();
-            if (variable.isPresent()) {
-                return variable.get().readingType();
-            }
+        final Maybe<Either<NamedSymbol, CallableSymbol>> resolved = resolve(input);
+        if (resolved.isNothing()) {
+            return module.get(TypeHelper.class).BOTTOM.apply(
+                    "Cannot infer the type of the expression. Reason: cannot resolve name '" + ident.toNullable() + "'"
+            );
+        } else if (resolved.toNullable() instanceof Either.Left) {
+            return ((Either.Left<NamedSymbol, CallableSymbol>) resolved.toNullable()).getLeft().readingType();
+        } else /*if(resolved.toNullable() instanceof Either.Right)*/ {
+            return module.get(MethodInvocationSemantics.class).inferType(MethodCall.methodCall(input));
         }
-
-        // second attempt: find a function with arity 0 and invoke it (delegating to MethodInvocationSemantics)
-        if (module.get(MethodInvocationSemantics.class).resolves(MethodCall.methodCall(
-                input.__(ProxyEObject::getProxyEObject),
-                ident,
-                nothing(),
-                nothing(),
-                false
-        ))) {
-            return module.get(MethodInvocationSemantics.class).inferType(MethodCall.methodCall(
-                    input.__(ProxyEObject::getProxyEObject),
-                    ident,
-                    nothing(),
-                    nothing(),
-                    false
-            ));
-        }
-
-        // unable to compute the type
-        return module.get(TypeHelper.class).NOTHING;
     }
 
 
@@ -258,6 +190,7 @@ public class SingleIdentifierExpressionSemantics
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved = resolve(input);
         //Considering it pure if it is not resolved and if it is a named symbol (i.e. not a call to a function without
         // parentheses).
+        //TODO - important - start considering some calls as pure (e.g., non-user defined constructors)
         return resolved.isNothing() || resolved.toNullable() instanceof Either.Left;
     }
 
@@ -405,30 +338,12 @@ public class SingleIdentifierExpressionSemantics
         if (ident.isNothing()) {
             return VALID;
         }
-
-        //TODO use resolve and delegate to MethodInvocation when needed?
-
-        String identSafe = ident.orElse("");
-
-        final Context context = module.get(ContextManager.class).currentContext();
-
-        final Stream<? extends NamedSymbol> variable = context.searchAs(
-                NamedSymbol.Searcher.class,
-                s -> s.searchName(identSafe, null, null)
-        );
-
+        final Maybe<Either<NamedSymbol, CallableSymbol>> resolved = resolve(input);
         return module.get(ValidationHelper.class).assertion(
-                variable.findFirst().isPresent()
-                        || module.get(MethodInvocationSemantics.class).resolves(MethodCall.methodCall(
-                        input.__(ProxyEObject::getProxyEObject),
-                        ident,
-                        nothing(),
-                        nothing(),
-                        false
-                )),
+                resolved.isPresent(),
                 "UnresolvedSymbol",
-                "Unresolved symbol: " + identSafe,
-                input.__(ProxyEObject::getProxyEObject),
+                "Unresolved symbol: " + ident.orElse("[empty]"),
+                input,
                 acceptor
         );
     }
@@ -445,48 +360,37 @@ public class SingleIdentifierExpressionSemantics
                 .validate(expression, acceptor);
 
         if (ident.isNothing() || subValidation == INVALID) {
-            return subValidation;
+            return INVALID;
         }
-
-        final String identSafe = ident.orElse("");
-        final Context context = module.get(ContextManager.class).currentContext();
-
         IJadescriptType typeOfRExpression = module.get(RValueExpressionSemantics.class).inferType(expression);
 
-
-        final Optional<? extends NamedSymbol> variable = context.searchAs(
-                NamedSymbol.Searcher.class,
-                s -> s.searchName(identSafe, null, null)
-        ).findFirst();
-
-
-        if (variable.isPresent()) {
-            boolean result = module.get(ValidationHelper.class).assertion(
-                    variable.get().canWrite(),
+        final Maybe<Either<NamedSymbol, CallableSymbol>> resolve = resolve(input);
+        if (resolve.isNothing()) {
+            // TODO move here declaration semantics
+            return VALID;
+        } else if (resolve.toNullable() instanceof Either.Left) {
+            NamedSymbol variable = ((Either.Left<NamedSymbol, CallableSymbol>) resolve.toNullable()).getLeft();
+            boolean canWrite = module.get(ValidationHelper.class).assertion(
+                    variable.canWrite(),
                     "InvalidAssignment",
-                    "'" + identSafe + "' is read-only.",
+                    "'" + ident.orElse("[empty]") + "' is read-only.",
                     input.__(ProxyEObject::getProxyEObject),
                     acceptor
             );
-
-
-            final IJadescriptType resolvedNameType = variable.get().writingType();
-            return result && module.get(ValidationHelper.class).assertExpectedType(
+            final IJadescriptType resolvedNameType = variable.writingType();
+            final boolean typeConformance = module.get(ValidationHelper.class).assertExpectedType(
                     resolvedNameType, typeOfRExpression,
                     "InvalidAssignment",
                     input.__(ProxyEObject::getProxyEObject),
                     acceptor
             );
-
-        } else {
-            input.safeDo(inputSafe -> acceptor.acceptError(
-                    "Unresolved symbol: " + identSafe,
-                    inputSafe.getProxyEObject(),
-                    null,
-                    ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                    "Unresolved symbol"
-            ));
-            return INVALID;
+            return canWrite && typeConformance;
+        } else /*if(resolve.toNullable() instanceof Either.Right)*/ {
+            return errorNotLvalue(
+                    input,
+                    "Cannot assign a value to a name that resolves to a function with nullary arity.",
+                    acceptor
+            );
         }
     }
 
@@ -542,19 +446,29 @@ public class SingleIdentifierExpressionSemantics
 
     }
 
-    public void syntacticValidateStatement(Maybe<VirtualIdentifier> input, ValidationMessageAcceptor acceptor) {
-        //always NOT ok
-        input.safeDo(inputSafe -> {
-            acceptor.acceptError(
-                    "not a statement",
-                    inputSafe.getProxyEObject(),
-                    null,
-                    ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                    "InvalidStatement"
-            );
+    public boolean syntacticValidateStatement(Maybe<VirtualIdentifier> input, ValidationMessageAcceptor acceptor) {
+        final Maybe<Either<NamedSymbol, CallableSymbol>> resolved = resolve(input);
+        if(resolved.isPresent() && resolved.toNullable() instanceof Either.Right){
+            // nullary function call: ok as statement
+            return VALID;
+        }else {
+            input.safeDo(inputSafe -> {
+                acceptor.acceptError(
+                        "not a statement",
+                        inputSafe.getProxyEObject(),
+                        null,
+                        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+                        "InvalidStatement"
+                );
 
-        });
+            });
+            return INVALID;
+        }
     }
 
 
+    @Override
+    protected boolean canBeHoledInternal(Maybe<VirtualIdentifier> input) {
+        return true;
+    }
 }

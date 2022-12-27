@@ -645,8 +645,8 @@ public class OntologyElementSemantics extends Semantics {
                     if (slotTypeSet.containsKey(propName)) {//redeclared
                         ctorArgs.add(new SyntheticExpression(new SyntheticExpression.SemanticsMethods() {
                             @Override
-                            public ExpressionCompilationResult compile() {
-                                return result(propName);
+                            public String compile() {
+                                return propName;
                             }
                         }));
                     } else if (isWithSuperSlots && superSlotTypeSet.containsKey(propName)) {//initialized

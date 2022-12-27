@@ -14,7 +14,6 @@ import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.*;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.*;
@@ -25,7 +24,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
  * Created on 28/12/16.
  */
 public class BlockSemantics extends Semantics
-        implements EffectfulOperationSemantics {
+        implements EffectfulOperationSemantics<CodeBlock> {
 
 
     public static final BlockSemantics EMPTY_BLOCK = new BlockSemantics(null) {
@@ -151,7 +150,7 @@ public class BlockSemantics extends Semantics
                             final int finalI = i;
                             module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(statement, (sem) -> {
                                 sem.validate(wrappedSubCast(statement), interceptAcceptor);
-                                List<Effect> effects = sem.computeEffects(statement);
+                                List<Effect> effects = sem.computeEffects(wrappedSubCast(statement));
                                 if (effects.stream().anyMatch(e -> e instanceof Effect.JumpsAwayFromIteration)) {
                                     if (!interceptAcceptor.thereAreErrors() && finalI < statementsSafe.size() - 1) {
                                         acceptor.acceptError(
@@ -204,46 +203,40 @@ public class BlockSemantics extends Semantics
         this.injectedVariables.getOrNew(input).add(injectedVariable);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
-    public List<Effect> computeEffects(Maybe<? extends EObject> i) {
+    public List<Effect> computeEffectsInternal(Maybe<CodeBlock> i) {
         if (!i.isInstanceOf(CodeBlock.class)) {
             return Collections.emptyList();
         }
-        Maybe<CodeBlock> input = i.__(x -> (CodeBlock) x);
 
         List<Effect> result = new ArrayList<>();
         module.get(ContextManager.class).pushScope();
         try {
-            Maybe<EList<Statement>> statements = input.__(CodeBlock::getStatements);
-            statements.safeDo(statementsSafe -> {
-                for (Statement statement : statementsSafe) {
-                    module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(of(statement), (sem) -> {
-                        result.addAll(sem.computeEffects(of(statement)));
-                    });
-                }
-            });
+            for (Maybe<Statement> statement : Maybe.toListOfMaybes(i.__(CodeBlock::getStatements))) {
+                module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(statement, (sem) -> {
+                    result.addAll(sem.computeEffects(wrappedSubCast(statement)));
+                });
+            }
         } finally {
             module.get(ContextManager.class).popScope();
         }
         return result;
     }
 
+    //TODO why never called?
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public List<Effect> computeLastStatementEffects(Maybe<CodeBlock> input) {
         List<Effect> result = new ArrayList<>();
         module.get(ContextManager.class).pushScope();
         try {
-            Maybe<EList<Statement>> statements = input.__(CodeBlock::getStatements);
-            statements.safeDo(statementsSafe -> {
-                for (int i = 0; i < statementsSafe.size(); i++) {
-                    Statement statement = statementsSafe.get(i);
-                    int finalI = i;
-                    module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(of(statement), (sem) -> {
-                        if (finalI == statementsSafe.size() - 1) {
-                            result.addAll(sem.computeEffects(of(statement)));
-                        }
-                    });
-                }
-            });
+            final List<Maybe<Statement>> statements = toListOfMaybes(input.__(CodeBlock::getStatements));
+            if(!statements.isEmpty()){
+                Maybe<Statement> last = statements.get(statements.size() - 1);
+                module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(last, (sem) -> {
+                        result.addAll(sem.computeEffects(wrappedSubCast(last)));
+                });
+            }
         } finally {
             module.get(ContextManager.class).popScope();
         }

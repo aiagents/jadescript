@@ -40,27 +40,16 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<Matches> input) {
         final Maybe<UnaryPrefix> unary = input.__(Matches::getUnaryExpr);
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                return Collections.singletonList(traversed.get());
-            }
-        }
-
-        return Collections.singletonList(
-                unary.extract(x -> new SemanticsBoundToExpression<>(module.get(UnaryPrefixExpressionSemantics.class), x)));
+        return Stream.of(unary.<SemanticsBoundToExpression<?>>extract(x -> new SemanticsBoundToExpression<>(
+                module.get(UnaryPrefixExpressionSemantics.class),
+                x
+        )));
+        //TODO should include patterns?
+        //TODO should include whole subpatterns (since they are likely evaluated as expressions)?
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     protected String compileInternal(Maybe<Matches> input, CompilationOutputAcceptor acceptor) {
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                //noinspection rawtypes
-                return traversed.get().getSemantics().compile((Maybe) traversed.get().getInput(), acceptor);
-            }
-        }
         final Maybe<UnaryPrefix> inputExpr = input.__(Matches::getUnaryExpr);
         final Maybe<LValueExpression> pattern = input.__(Matches::getPattern).__(i -> (LValueExpression) i);
         final String compiledInputExpr = module.get(UnaryPrefixExpressionSemantics.class).compile(
@@ -128,33 +117,18 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
         ExpressionTypeKB subKb = module.get(UnaryPrefixExpressionSemantics.class).computeKB(unary);
         List<String> strings = module.get(UnaryPrefixExpressionSemantics.class).propertyChain(unary);
 
-        final PatternMatchOutput<
-                ? extends PatternMatchSemanticsProcess.IsValidation,
-                PatternMatchOutput.NoUnification,
-                PatternMatchOutput.WithTypeNarrowing> output = module.get(PatternMatchHelper.class)
-                .validateMatchesExpressionPatternMatching( //TODO should not re-validate.
-                        unary,
-                        pattern,
-                        new DroppingAcceptor()
-                );
+        IJadescriptType narrowedType = module.get(PatternMatchHelper.class)
+                .inferMatchesExpressionPatternType(pattern, unary);
 
         pattern.safeDo(patternSafe -> {
-            subKb.add(FlowTypeInferringTerm.of(output.getTypeNarrowingInfo().getNarrowedType()), strings);
+            subKb.add(FlowTypeInferringTerm.of(narrowedType), strings);
         });
         return subKb;
     }
 
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     protected IJadescriptType inferTypeInternal(Maybe<Matches> input) {
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                return traversed.get().getSemantics().inferType((Maybe) traversed.get().getInput());
-            }
-        }
-
         return module.get(TypeHelper.class).BOOLEAN;
     }
 
@@ -173,25 +147,12 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
 
     @Override
     protected boolean isPatternEvaluationPureInternal(Maybe<Matches> input) {
-        if (mustTraverse(input)) {
-            return module.get(UnaryPrefixExpressionSemantics.class).isPatternEvaluationPure(
-                    input.__(Matches::getUnaryExpr)
-            );
-        } else {
-            return true;
-        }
+        // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
+        return true;
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     protected boolean validateInternal(Maybe<Matches> input, ValidationMessageAcceptor acceptor) {
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                return traversed.get().getSemantics().validate((Maybe) traversed.get().getInput(), acceptor);
-            }
-        }
-
         final Maybe<UnaryPrefix> inputExpr = input.__(Matches::getUnaryExpr);
         final Maybe<LValueExpression> pattern = input.__(Matches::getPattern).__(i -> (LValueExpression) i);
         final boolean validatedInputExpr = module.get(UnaryPrefixExpressionSemantics.class)
@@ -249,26 +210,14 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<Matches, ?, ?> input, CompilationOutputAcceptor acceptor) {
-        final Maybe<Matches> pattern = input.getPattern();
-        if (mustTraverse(pattern)) {
-            return module.get(UnaryPrefixExpressionSemantics.class).compilePatternMatchInternal(
-                    input.mapPattern(Matches::getUnaryExpr),
-                    acceptor
-            );
-        } else {
-            return input.createEmptyCompileOutput();
-        }
+        // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
+        return input.createEmptyCompileOutput();
     }
 
     @Override
     public PatternType inferPatternTypeInternal(Maybe<Matches> input) {
-        if (mustTraverse(input)) {
-            return module.get(UnaryPrefixExpressionSemantics.class).inferPatternTypeInternal(
-                    input.__(Matches::getUnaryExpr)
-            );
-        } else {
-            return PatternType.empty(module);
-        }
+        // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
+        return PatternType.empty(module);
     }
 
     @Override
@@ -276,15 +225,43 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
             PatternMatchInput<Matches, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
-        final Maybe<Matches> pattern = input.getPattern();
-        if (mustTraverse(pattern)) {
-            return module.get(UnaryPrefixExpressionSemantics.class).validatePatternMatchInternal(
-                    input.mapPattern(Matches::getUnaryExpr),
-                    acceptor
-            );
-        } else {
-            return input.createEmptyValidationOutput();
-        }
+        // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
+        return input.createEmptyValidationOutput();
     }
 
+
+    @Override
+    protected boolean isAlwaysPureInternal(Maybe<Matches> input) {
+        final Maybe<LValueExpression> pattern = input.__(Matches::getPattern).__(i -> (LValueExpression) i);
+        return module.get(LValueExpressionSemantics.class).isPatternEvaluationPure(pattern);
+    }
+
+    @Override
+    protected boolean isValidLExprInternal(Maybe<Matches> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isHoledInternal(Maybe<Matches> input) {
+        // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
+        return false;
+    }
+
+    @Override
+    protected boolean isTypelyHoledInternal(Maybe<Matches> input) {
+        // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
+        return false;
+    }
+
+    @Override
+    protected boolean isUnboundInternal(Maybe<Matches> input) {
+        // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
+        return false;
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<Matches> input) {
+        // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
+        return false;
+    }
 }

@@ -170,10 +170,7 @@ public class ContainmentCheckExpressionSemantics extends ExpressionSemantics<Con
         return false;
     }
 
-    @Override
-    protected boolean containsNotHoledAssignablePartsInternal(Maybe<ContainmentCheck> input) {
-        return false;
-    }
+
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>

@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
@@ -112,7 +113,7 @@ public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSim
                                 break;
                             default:
                                 int finalI = i;
-                                input.safeDo(inputSafe -> {
+                                Util.extractEObject(input).safeDo(inputSafe -> {
                                     acceptor.acceptError(
                                             "Invalid escape sequence '" + c + nextC + "'.",
                                             inputSafe,
@@ -141,13 +142,7 @@ public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSim
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<StringLiteralSimple> input) {
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                return Collections.singletonList(traversed.get());
-            }
-        }
-        return Collections.emptyList();
+        return Stream.empty();
     }
 
     @Override
@@ -195,4 +190,33 @@ public class StringLiteralSemantics extends ExpressionSemantics<StringLiteralSim
     }
 
 
+    @Override
+    protected boolean isAlwaysPureInternal(Maybe<StringLiteralSimple> input) {
+        return true;
+    }
+
+    @Override
+    protected boolean isValidLExprInternal(Maybe<StringLiteralSimple> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isHoledInternal(Maybe<StringLiteralSimple> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isTypelyHoledInternal(Maybe<StringLiteralSimple> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isUnboundInternal(Maybe<StringLiteralSimple> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<StringLiteralSimple> input) {
+        return false;
+    }
 }

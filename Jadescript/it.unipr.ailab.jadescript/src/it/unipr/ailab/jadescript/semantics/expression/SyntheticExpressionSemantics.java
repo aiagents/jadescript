@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
@@ -31,7 +32,7 @@ public class SyntheticExpressionSemantics extends ExpressionSemantics<SyntheticE
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<SyntheticExpression> input) {
-        return Collections.emptyList();
+        return Stream.empty();
     }
 
     @Override
@@ -127,5 +128,38 @@ public class SyntheticExpressionSemantics extends ExpressionSemantics<SyntheticE
             ValidationMessageAcceptor acceptor
     ) {
         return input.createEmptyValidationOutput();
+    }
+
+
+
+
+    @Override
+    protected boolean isAlwaysPureInternal(Maybe<SyntheticExpression> input) {
+        return true;
+    }
+
+    @Override
+    protected boolean isValidLExprInternal(Maybe<SyntheticExpression> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isHoledInternal(Maybe<SyntheticExpression> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isTypelyHoledInternal(Maybe<SyntheticExpression> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isUnboundInternal(Maybe<SyntheticExpression> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<SyntheticExpression> input) {
+        return false;
     }
 }

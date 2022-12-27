@@ -299,8 +299,5 @@ public class EqualityComparisonExpressionSemantics extends ExpressionSemantics<E
         return true;
     }
 
-    @Override
-    protected boolean containsNotHoledAssignablePartsInternal(Maybe<EqualityComparison> input) {
-        return false;
-    }
+
 }

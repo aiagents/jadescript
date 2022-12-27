@@ -555,6 +555,26 @@ public class ValidationHelper implements SemanticsConsts {
         }
     }
 
+    public boolean emitError(
+            String issueCode,
+            String description,
+            Maybe<? extends EObject> object,
+            ValidationMessageAcceptor acceptor
+    ) {
+        return emitError(issueCode, description, object, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, acceptor);
+    }
+
+    public boolean emitError(
+            String issueCode,
+            String description,
+            Maybe<? extends EObject> object,
+            EStructuralFeature feature,
+            int index,
+            ValidationMessageAcceptor acceptor
+    ){
+        return assertion(false, issueCode, description, object, feature, index, acceptor);
+    }
+
     public boolean assertion(
             boolean isTrue,
             String issueCode,
@@ -566,15 +586,8 @@ public class ValidationHelper implements SemanticsConsts {
     ) {
 
         if (!isTrue) {
-            Optional<? extends EObject> eObject = object.toOpt();
 
-            if (eObject.isPresent()) {
-                if (eObject.get() instanceof ProxyEObject) {
-                    eObject = Optional.of(((ProxyEObject) eObject.get()).getProxyEObject());
-                }
-            }
-
-            eObject.ifPresent(value -> {
+            Util.extractEObject(object).safeDo(value -> {
                 acceptor.acceptError(
                         description,
                         value,

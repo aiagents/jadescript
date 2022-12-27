@@ -2,10 +2,13 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 
 import com.google.inject.Singleton;
+import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
+import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -23,14 +26,14 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
  * Created on 27/12/16.
  */
 @Singleton
-public abstract class ExpressionSemantics<T> extends Semantics {
+public abstract class ExpressionSemantics<T> extends Semantics
+        implements EffectfulOperationSemantics<T> {
 
     public ExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -79,6 +82,19 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
     protected abstract Stream<SemanticsBoundToExpression<?>>
     getSubExpressionsInternal(Maybe<T> input);
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public final SemanticsBoundToExpression<?> deepTraverse(Maybe<RValueExpression> input) {
+        Optional<SemanticsBoundToExpression> x = Optional.of(
+                new SemanticsBoundToExpression(this, input)
+        );
+        Optional<SemanticsBoundToExpression> lastPresent = x;
+        while (x.isPresent()) {
+            lastPresent = x;
+            x = x.get().getSemantics().traverse(x.get().getInput());
+        }
+        return lastPresent.get();
+    }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public final <TT> boolean subExpressionsAllMatch(
@@ -220,6 +236,14 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
     protected abstract ExpressionTypeKB computeKBInternal(Maybe<T> input);
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    @Override
+    public List<Effect> computeEffects(Maybe<T> input) {
+        return traverse(input)
+                .map(x -> x.getSemantics().computeEffects((Maybe) x.getInput()))
+                .orElseGet(() -> computeEffectsInternal(input));
+    }
+
     /**
      * This returns true <i>only if</i> the input expression can be evaluated without causing side-effects.
      * This is used, most importantly, to determine if an expression can be used as condition for handler activation (in
@@ -230,7 +254,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
      * @see ExpressionSemantics#subExpressionsAllAlwaysPure(Maybe)
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-
     public final boolean isAlwaysPure(Maybe<T> input) {
         return traverse(input)
                 .map(x -> x.getSemantics().isAlwaysPure((Maybe) x.getInput()))
@@ -266,7 +289,10 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         return traverse(input)
                 .map(x -> x.getSemantics().isPatternEvaluationPure((Maybe) x.getInput()))
                 .orElseGet(() -> isPatternEvaluationPureInternal(input));
+        //TODO introduce "prepare" -> checks if any of the subpatterns that can be directly evaluated is pure
     }
+
+
 
     protected abstract boolean isPatternEvaluationPureInternal(Maybe<T> input);
 
@@ -359,13 +385,9 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     public final boolean containsNotHoledAssignableParts(Maybe<T> input) {
         return traverse(input)
                 .map(x -> x.getSemantics().containsNotHoledAssignableParts((Maybe) x.getInput()))
-                .orElseGet(() -> containsNotHoledAssignablePartsInternal(input));
-    }
-
-    protected abstract boolean containsNotHoledAssignablePartsInternal(Maybe<T> input);
-
-    public final boolean subExpressionsAnyContainsNotHoledAssignableParts(Maybe<T> input){
-        return subExpressionsAnyMatch(input, ExpressionSemantics::containsNotHoledAssignableParts);
+                .orElseGet(() -> isValidLExpr(input)
+                        ? (!canBeHoled(input) || !isHoled(input))
+                        : subExpressionsAnyMatch(input, ExpressionSemantics::containsNotHoledAssignableParts));
     }
 
     private boolean isSubPatternGroundForEquality(PatternMatchInput<T, ?, ?> patternMatchInput) {
@@ -411,6 +433,8 @@ public abstract class ExpressionSemantics<T> extends Semantics {
                     compilePatternMatchInternal(input, acceptor);
         }
     }
+
+
 
     public abstract PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<T, ?, ?> input, CompilationOutputAcceptor acceptor);
@@ -756,6 +780,8 @@ public abstract class ExpressionSemantics<T> extends Semantics {
             return function.apply(semantics, input);
         }
     }
+
+
 
 
     //ALSO TODO ensure that each pattern matching is evaluated inside its own subscope

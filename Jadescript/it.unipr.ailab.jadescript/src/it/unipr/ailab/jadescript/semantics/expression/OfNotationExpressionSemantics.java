@@ -51,17 +51,9 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<OfNotation> input) {
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                return Collections.singletonList(traversed.get());
-            }
-        }
-
-        final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
-        return Collections.singletonList(new SemanticsBoundToExpression<>(
+        return Stream.of(new SemanticsBoundToExpression<>(
                 module.get(AidLiteralExpressionSemantics.class),
-                aidLiteral
+                input.__(OfNotation::getAidLiteral)
         ));
     }
 
@@ -185,17 +177,12 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
         final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
 
         List<Maybe<String>> props = new ArrayList<>(properties);
-        IJadescriptType afterLastOf = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral);
-        if (mustTraverse(input)) {
-            return afterLastOf;
-        } else {
-            IJadescriptType prevType = afterLastOf;
-            for (int i = props.size() - 1; i >= 0; i--) {
-                Maybe<String> prop = props.get(i);
-                prevType = inferTypeProperty(prop, prevType);
-            }
-            return prevType;
+        IJadescriptType prevType = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral);
+        for (int i = props.size() - 1; i >= 0; i--) {
+            Maybe<String> prop = props.get(i);
+            prevType = inferTypeProperty(prop, prevType);
         }
+        return prevType;
     }
 
     @Override
@@ -208,7 +195,10 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
     protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<OfNotation> input) {
         final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
         if (mustTraverse(input)) {
-            return Optional.of(new SemanticsBoundToExpression<>(module.get(AidLiteralExpressionSemantics.class), aidLiteral));
+            return Optional.of(new SemanticsBoundToExpression<>(
+                    module.get(AidLiteralExpressionSemantics.class),
+                    aidLiteral
+            ));
         }
         return Optional.empty();
     }
@@ -221,8 +211,11 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
                         s -> s.searchName(propSafe, null, null)
                 ).findFirst()
                 .map(NamedSymbol::readingType)
-                .orElse(
-                        module.get(TypeHelper.class).NOTHING
+                .orElseGet(() ->
+                        module.get(TypeHelper.class).BOTTOM.apply(
+                                "Could not resolve property '" + propSafe + "' of value of type "
+                                        + prevType.getJadescriptName()
+                        )
                 );
     }
 
@@ -242,7 +235,7 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
 
         boolean subValidation = module.get(RValueExpressionSemantics.class)
                 .validate(expression, acceptor);
-        if(subValidation == INVALID){
+        if (subValidation == INVALID) {
             return subValidation;
         }
 
@@ -294,7 +287,7 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
                         s -> s.searchName(prop, null, null)
                 ).findFirst().isPresent(),
                 "InvalidOfNotation",
-                "Can not find property '" + prop + "' in type " + prevType.getJadescriptName() + ".",
+                "Cannot find property '" + prop + "' in type " + prevType.getJadescriptName() + ".",
                 input,
                 JadescriptPackage.eINSTANCE.getOfNotation_Properties(),
                 index,
@@ -371,29 +364,17 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
         if (properties.isEmpty()) {
             return module.get(AidLiteralExpressionSemantics.class).syntacticValidateLValue(aidLiteral, acceptor);
         }
-
         return VALID;
-        //else: IS VALID
     }
 
     @Override
     protected boolean isValidLExprInternal(Maybe<OfNotation> input) {
-        final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
-        final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
-        if (properties.isEmpty()) {
-            return module.get(AidLiteralExpressionSemantics.class).isValidLExpr(aidLiteral);
-        }
-        return false;
+        return true; //TODO check last property is writeable
     }
 
     @Override
     protected boolean isPatternEvaluationPureInternal(Maybe<OfNotation> input) {
-        if (mustTraverse(input)) {
-            return module.get(AidLiteralExpressionSemantics.class).isPatternEvaluationPure(
-                    input.__(OfNotation::getAidLiteral)
-            );
-        }
-        return false;
+        return true;
     }
 
     @Override
@@ -440,25 +421,12 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<OfNotation, ?, ?> input, CompilationOutputAcceptor acceptor) {
-        final Maybe<OfNotation> pattern = input.getPattern();
-        if (mustTraverse(pattern)) {
-            return module.get(AidLiteralExpressionSemantics.class).compilePatternMatchInternal(
-                    input.mapPattern(OfNotation::getAidLiteral),
-                    acceptor
-            );
-        } else {
-            return input.createEmptyCompileOutput();
-        }
+        return input.createEmptyCompileOutput();
     }
 
     @Override
     public PatternType inferPatternTypeInternal(Maybe<OfNotation> input) {
-        if (mustTraverse(input)) {
-            return module.get(AidLiteralExpressionSemantics.class).inferPatternTypeInternal(
-                    input.__(OfNotation::getAidLiteral));
-        } else {
-            return PatternType.empty(module);
-        }
+        return PatternType.empty(module);
     }
 
     @Override
@@ -466,16 +434,31 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
             PatternMatchInput<OfNotation, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
-        final Maybe<OfNotation> pattern = input.getPattern();
-        if (mustTraverse(pattern)) {
-            return module.get(AidLiteralExpressionSemantics.class).validatePatternMatchInternal(
-                    input.mapPattern(OfNotation::getAidLiteral),
-                    acceptor
-            );
-        } else {
-            return input.createEmptyValidationOutput();
-        }
+        return input.createEmptyValidationOutput();
     }
 
+    @Override
+    protected boolean isAlwaysPureInternal(Maybe<OfNotation> input) {
+        return true;
+    }
 
+    @Override
+    protected boolean isHoledInternal(Maybe<OfNotation> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isTypelyHoledInternal(Maybe<OfNotation> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isUnboundInternal(Maybe<OfNotation> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<OfNotation> input) {
+        return false;
+    }
 }

@@ -161,7 +161,7 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
     /**
      * Produces an error validator message that notifies that the input expression cannot be used as statement.
      */
-    protected final void errorNotStatement(
+    protected final boolean errorNotStatement(
             Maybe<T> input,
             ValidationMessageAcceptor acceptor
     ) {
@@ -173,8 +173,8 @@ public abstract class AssignableExpressionSemantics<T extends EObject>
                     ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
                     "InvalidStatement"
             );
-
         });
+        return INVALID;
     }
 
 

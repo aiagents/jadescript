@@ -13,7 +13,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.maybe.Maybe;
 
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 
@@ -68,7 +67,7 @@ public class DestroyStatementSemantics extends StatementSemantics<DestroyStateme
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-    public List<Effect> computeEffects(Maybe<? extends EObject> input) {
+    public List<Effect> computeEffectsInternal(Maybe<DestroyStatement> input) {
         Maybe<RValueExpression> target = input.__(x->(DestroyStatement)x).__(DestroyStatement::getTarget);
 
         final SemanticsBoundToExpression<?> deepSemantics = module.get(RValueExpressionSemantics.class).deepTraverse(target);

@@ -61,7 +61,7 @@ public class PlaceholderExpressionSemantics extends ExpressionSemantics<Primary>
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<Primary> input) {
-        return List.of();
+        return Stream.empty();
     }
 
     @Override
@@ -135,5 +135,20 @@ public class PlaceholderExpressionSemantics extends ExpressionSemantics<Primary>
     @Override
     protected boolean isUnboundInternal(Maybe<Primary> input) {
         return false;
+    }
+
+    @Override
+    protected boolean isAlwaysPureInternal(Maybe<Primary> input) {
+        return true;
+    }
+
+    @Override
+    protected boolean isValidLExprInternal(Maybe<Primary> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<Primary> input) {
+        return true;
     }
 }

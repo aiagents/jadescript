@@ -11,7 +11,6 @@ import it.unipr.ailab.jadescript.semantics.expression.SingleIdentifierExpression
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.maybe.Maybe;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.List;
@@ -69,7 +68,7 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
     }
 
     @Override
-    public List<Effect> computeEffects(Maybe<? extends EObject> input) {
+    public List<Effect> computeEffectsInternal(Maybe<FailStatement> input) {
         Maybe<RValueExpression> target = input.__(x -> (FailStatement) x).__(FailStatement::getTarget);
 
         final ExpressionSemantics.SemanticsBoundToExpression<?> deepSemantics = module.get(RValueExpressionSemantics.class)

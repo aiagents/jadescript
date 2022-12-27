@@ -17,7 +17,7 @@ import java.util.List;
 @Singleton
 public abstract class StatementSemantics<T>
         extends Semantics
-        implements EffectfulOperationSemantics {
+        implements EffectfulOperationSemantics<T> {
 
 
     public StatementSemantics(SemanticsModule semanticsModule) {

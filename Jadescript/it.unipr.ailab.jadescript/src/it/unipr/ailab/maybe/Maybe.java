@@ -396,6 +396,11 @@ public class Maybe<OfType> {
         return of((R) input.toNullable());
     }
 
+    @SuppressWarnings("unchecked")
+    public <R extends OfType> Maybe<R> wrappedSubCast(){
+        return of((R) this.toNullable());
+    }
+
 
     public boolean isInstanceOf(Class<?> c) {
         Objects.requireNonNull(c);

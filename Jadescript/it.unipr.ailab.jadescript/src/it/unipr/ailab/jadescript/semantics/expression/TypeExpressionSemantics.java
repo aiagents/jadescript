@@ -10,6 +10,7 @@ import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
+import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
@@ -46,12 +47,11 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<TypeExpression> input) {
-        return Collections.emptyList();
+        return Stream.empty();
     }
 
     @Override
     protected String compileInternal(Maybe<TypeExpression> input, CompilationOutputAcceptor acceptor) {
-        if (input == null) return "";
         return toJadescriptType(input).compileToJavaTypeReference();
     }
 
@@ -362,4 +362,34 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
     }
 
 
+
+    @Override
+    protected boolean isAlwaysPureInternal(Maybe<TypeExpression> input) {
+        return true;
+    }
+
+    @Override
+    protected boolean isValidLExprInternal(Maybe<TypeExpression> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isHoledInternal(Maybe<TypeExpression> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isTypelyHoledInternal(Maybe<TypeExpression> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isUnboundInternal(Maybe<TypeExpression> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<TypeExpression> input) {
+        return false;
+    }
 }

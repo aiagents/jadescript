@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
@@ -149,16 +148,8 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<Multiplicative> input) {
-        if (mustTraverse(input)) {
-            Optional<SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                return Collections.singletonList(traversed.get());
-            }
-        }
-        final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
-        return matches.stream()
-                .map(x -> new SemanticsBoundToExpression<>(module.get(MatchesExpressionSemantics.class), x))
-                .collect(Collectors.toList());
+        return Maybe.toListOfMaybes(input.__(Multiplicative::getMatches)).stream()
+                .map(x -> new SemanticsBoundToExpression<>(module.get(MatchesExpressionSemantics.class), x));
     }
 
     @Override
@@ -195,14 +186,7 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
 
     @Override
     protected boolean isPatternEvaluationPureInternal(Maybe<Multiplicative> input) {
-        if (mustTraverse(input)) {
-            return module.get(MatchesExpressionSemantics.class).isPatternEvaluationPure(input
-                    .__(Multiplicative::getMatches)
-                    .__(m -> m.get(0))
-            );
-        } else {
-            return true;
-        }
+        return true;
     }
 
     public boolean validateAssociative(
@@ -332,27 +316,12 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
     compilePatternMatchInternal(PatternMatchInput<Multiplicative, ?, ?> input, CompilationOutputAcceptor acceptor) {
-        final Maybe<Multiplicative> pattern = input.getPattern();
-        final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(pattern.__(Multiplicative::getMatches));
-        if (mustTraverse(pattern)) {
-            return module.get(MatchesExpressionSemantics.class).compilePatternMatchInternal(
-                    input.replacePattern(operands.get(0)),
-                    acceptor
-            );
-        } else {
-            return input.createEmptyCompileOutput();
-        }
+        return input.createEmptyCompileOutput();
     }
 
     @Override
     public PatternType inferPatternTypeInternal(Maybe<Multiplicative> input) {
-        final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
-        if (mustTraverse(input)) {
-            return module.get(MatchesExpressionSemantics.class).inferPatternTypeInternal(
-                    operands.get(0));
-        } else {
-            return PatternType.empty(module);
-        }
+        return PatternType.empty(module);
     }
 
     @Override
@@ -360,16 +329,36 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
             PatternMatchInput<Multiplicative, ?, ?> input,
             ValidationMessageAcceptor acceptor
     ) {
-        final Maybe<Multiplicative> pattern = input.getPattern();
-        final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(pattern.__(Multiplicative::getMatches));
-        if (mustTraverse(pattern)) {
-            return module.get(MatchesExpressionSemantics.class).validatePatternMatchInternal(
-                    input.replacePattern(operands.get(0)),
-                    acceptor
-            );
-        } else {
-            return input.createEmptyValidationOutput();
-        }
+        return input.createEmptyValidationOutput();
     }
 
+    @Override
+    protected boolean isAlwaysPureInternal(Maybe<Multiplicative> input) {
+        return true;
+    }
+
+    @Override
+    protected boolean isValidLExprInternal(Maybe<Multiplicative> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isHoledInternal(Maybe<Multiplicative> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isTypelyHoledInternal(Maybe<Multiplicative> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean isUnboundInternal(Maybe<Multiplicative> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<Multiplicative> input) {
+        return false;
+    }
 }

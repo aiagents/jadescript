@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.UnaryPrefix;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.UnaryPrefixExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
@@ -227,4 +228,13 @@ public class PatternMatchHelper implements SemanticsConsts {
     }
 
 
+    public IJadescriptType inferMatchesExpressionPatternType(
+            Maybe<LValueExpression> pattern,
+            Maybe<UnaryPrefix> unary
+    ) {
+        return module.get(LValueExpressionSemantics.class).inferPatternType(
+                pattern,
+                PatternMatchInput.MatchesExpression.MODE
+        ).solve(module.get(UnaryPrefixExpressionSemantics.class).inferType(unary));
+    }
 }

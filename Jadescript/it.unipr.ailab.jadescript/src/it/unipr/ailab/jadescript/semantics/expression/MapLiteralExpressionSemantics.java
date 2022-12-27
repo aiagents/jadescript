@@ -14,6 +14,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
+import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.*;
@@ -47,8 +48,8 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
         return zip(keys.stream(), values.stream(), (k, v) -> Stream.of(
                 new SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), k),
                 new SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), v)
-        )).flatMap(x -> x)
-                .collect(Collectors.toList());
+        )).flatMap(x -> x);
+        //TODO Add pipe-rest
 
     }
 
@@ -129,6 +130,11 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
         final boolean hasTypeSpecifiers = input.__(MapOrSetLiteral::isWithTypeSpecifiers).extract(Maybe.nullAsFalse);
         final Maybe<TypeExpression> keysTypeParameter = input.__(MapOrSetLiteral::getKeyTypeParameter);
         final Maybe<TypeExpression> valuesTypeParameter = input.__(MapOrSetLiteral::getValueTypeParameter);
+
+        boolean syntax = syntaxValidation(input, "literal", acceptor);
+        if(syntax == INVALID){
+            return INVALID;
+        }
 
         boolean stage1 = VALID;
 
@@ -252,10 +258,7 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
 
     @Override
     protected boolean isPatternEvaluationPureInternal(Maybe<MapOrSetLiteral> input) {
-        final List<Maybe<RValueExpression>> values = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
-        final List<Maybe<RValueExpression>> keys = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
-        return Stream.concat(values.stream(), keys.stream())
-                .allMatch(module.get(RValueExpressionSemantics.class)::isPatternEvaluationPure);
+        return subExpressionsAllMatch(input, ExpressionSemantics::isPatternEvaluationPure);
     }
 
     @Override
@@ -472,6 +475,11 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
 
         RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
 
+        boolean syntax = syntaxValidation(input.getPattern(), "pattern", acceptor);
+        if(syntax == INVALID){
+            return input.createEmptyValidationOutput();
+        }
+
         if (isWithPipe) {
             subResults.add(rves.validatePatternMatch(input.subPattern(
                     solvedPatternType,
@@ -517,4 +525,91 @@ public class MapLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetL
         );
 
     }
+
+
+    private boolean syntaxValidation(
+            Maybe<MapOrSetLiteral> input,
+            String literalOrPattern,
+            ValidationMessageAcceptor acceptor
+    ) {
+        final List<Maybe<RValueExpression>> values = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues))
+                .stream().filter(Maybe::isPresent).collect(Collectors.toList());
+        final List<Maybe<RValueExpression>> keys = Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys))
+                .stream().filter(Maybe::isPresent).collect(Collectors.toList());
+        final boolean isMapV = isMapV(input);
+        final boolean isMapT = isMapT(input);
+
+        final ValidationHelper vh = module.get(ValidationHelper.class);
+        final boolean valuesCount;
+        final boolean typeCount;
+
+         if (isMapT) {
+            typeCount = vh.assertion(
+                    isMapV,
+                    "InvalidSetOrMap" + Strings.toFirstUpper(literalOrPattern),
+                    "Type specifiers of the literal do not match the kind of the " + literalOrPattern +
+                            " (is this a set or a map?).",
+                    input,
+                    acceptor
+            );
+        } else {
+            typeCount = VALID;
+        }
+
+        if (typeCount && isMapV) {
+            valuesCount = vh.assertion(
+                    values.size() == keys.size(),
+                    "InvalidMap" + Strings.toFirstUpper(literalOrPattern),
+                    "Non-matching number of keys and values in the map " + literalOrPattern,
+                    input,
+                    acceptor
+            );
+        } else {
+            valuesCount = VALID;
+        }
+
+
+
+
+        return typeCount && valuesCount;
+    }
+
+    public boolean isMap(Maybe<MapOrSetLiteral> input) {
+        return isMapT(input) || isMapV(input);
+    }
+
+    /**
+     * When true, the input is a map because the literal type specification says so.
+     * Please note that it could be still a map if this returns false; this happens when there is no type specification.
+     */
+    private boolean isMapT(Maybe<MapOrSetLiteral> input) {
+        return input.__(MapOrSetLiteral::isIsMapT).extract(nullAsFalse)
+                || input.__(MapOrSetLiteral::getValueTypeParameter).isPresent();
+    }
+
+    /**
+     * When true, the input is a map because at least one of the 'things' between commas is a key:value pair or because
+     * its an empty ('{:}') map literal.
+     */
+    private boolean isMapV(Maybe<MapOrSetLiteral> input) {
+        return input.__(MapOrSetLiteral::isIsMap).extract(nullAsFalse);
+    }
+
+
+    @Override
+    protected boolean isAlwaysPureInternal(Maybe<MapOrSetLiteral> input) {
+        return subExpressionsAllAlwaysPure(input);
+    }
+
+    @Override
+    protected boolean isValidLExprInternal(Maybe<MapOrSetLiteral> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<MapOrSetLiteral> input) {
+        return true;
+    }
+
+
 }

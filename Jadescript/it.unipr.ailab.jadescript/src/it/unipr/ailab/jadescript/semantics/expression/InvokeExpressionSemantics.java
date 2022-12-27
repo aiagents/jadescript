@@ -252,8 +252,5 @@ public class InvokeExpressionSemantics extends AssignableExpressionSemantics<Inv
         return false;
     }
 
-    @Override
-    protected boolean containsNotHoledAssignablePartsInternal(Maybe<InvokeExpression> input) {
-        return false;
-    }
+
 }

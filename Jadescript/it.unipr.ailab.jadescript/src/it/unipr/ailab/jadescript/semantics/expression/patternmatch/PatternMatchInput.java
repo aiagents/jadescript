@@ -392,6 +392,16 @@ public abstract class PatternMatchInput<
 
     public static class WhenMatchesStatement<T>
             extends PatternMatchInput<T, PatternMatchOutput.DoesUnification, PatternMatchOutput.WithTypeNarrowing> {
+        public static final PatternMatchMode MODE = new PatternMatchMode(
+                PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
+                TypeRelationship.Related.class,
+                PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
+                PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+                PatternMatchMode.Reassignment.CHECK_EQUALITY,
+                PatternMatchMode.Unification.WITH_VAR_DECLARATION,
+                PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
+                PatternMatchMode.PatternLocation.STATEMENT_GUARD
+        );
         private final Maybe<RValueExpression> inputExpr;
 
         public WhenMatchesStatement(
@@ -401,16 +411,7 @@ public abstract class PatternMatchInput<
                 String termID,
                 String rootPatternMatchVariableName
         ) {
-            super(module, new PatternMatchMode(
-                    PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
-                    TypeRelationship.Related.class,
-                    PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
-                    PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
-                    PatternMatchMode.Reassignment.CHECK_EQUALITY,
-                    PatternMatchMode.Unification.WITH_VAR_DECLARATION,
-                    PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
-                    PatternMatchMode.PatternLocation.STATEMENT_GUARD
-            ), pattern, termID, rootPatternMatchVariableName);
+            super(module, MODE, pattern, termID, rootPatternMatchVariableName);
             this.inputExpr = inputExpr;
         }
 
@@ -436,6 +437,16 @@ public abstract class PatternMatchInput<
 
     public static class HandlerHeader<T>
             extends PatternMatchInput<T, PatternMatchOutput.DoesUnification, PatternMatchOutput.WithTypeNarrowing> {
+        public static final PatternMatchMode MODE = new PatternMatchMode(
+                PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
+                TypeRelationship.SubtypeOrEqual.class,
+                PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
+                PatternMatchMode.PatternApplicationPurity.HAS_TO_BE_PURE,
+                PatternMatchMode.Reassignment.CHECK_EQUALITY,
+                PatternMatchMode.Unification.WITH_VAR_DECLARATION,
+                PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
+                PatternMatchMode.PatternLocation.FEATURE_HEADER
+        );
         private final IJadescriptType contentUpperBound;
         private final String referenceToContent;
 
@@ -447,16 +458,7 @@ public abstract class PatternMatchInput<
                 String termID,
                 String rootPatternMatchVariableName
         ) {
-            super(module, new PatternMatchMode(
-                    PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
-                    TypeRelationship.SubtypeOrEqual.class,
-                    PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
-                    PatternMatchMode.PatternApplicationPurity.HAS_TO_BE_PURE,
-                    PatternMatchMode.Reassignment.CHECK_EQUALITY,
-                    PatternMatchMode.Unification.WITH_VAR_DECLARATION,
-                    PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
-                    PatternMatchMode.PatternLocation.FEATURE_HEADER
-            ), pattern, termID, rootPatternMatchVariableName);
+            super(module, MODE, pattern, termID, rootPatternMatchVariableName);
             this.referenceToContent = referenceToContent;
             this.contentUpperBound = contentUpperBound;
         }
@@ -483,6 +485,16 @@ public abstract class PatternMatchInput<
 
     public static class MatchesExpression<T>
             extends PatternMatchInput<T, PatternMatchOutput.NoUnification, PatternMatchOutput.WithTypeNarrowing> {
+        public static final PatternMatchMode MODE = new PatternMatchMode(
+                PatternMatchMode.HolesAndGroundness.ACCEPTS_NONVAR_HOLES_ONLY,
+                TypeRelationship.Related.class,
+                PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
+                PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+                PatternMatchMode.Reassignment.CHECK_EQUALITY,
+                PatternMatchMode.Unification.WITHOUT_VAR_DECLARATION,
+                PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
+                PatternMatchMode.PatternLocation.BOOLEAN_EXPRESSION
+        );
         private final Maybe<UnaryPrefix> inputExpr;
 
         public MatchesExpression(
@@ -492,16 +504,7 @@ public abstract class PatternMatchInput<
                 String termID,
                 String rootPatternMatchVariableName
         ) {
-            super(module, new PatternMatchMode(
-                    PatternMatchMode.HolesAndGroundness.ACCEPTS_NONVAR_HOLES_ONLY,
-                    TypeRelationship.Related.class,
-                    PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
-                    PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
-                    PatternMatchMode.Reassignment.CHECK_EQUALITY,
-                    PatternMatchMode.Unification.WITHOUT_VAR_DECLARATION,
-                    PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
-                    PatternMatchMode.PatternLocation.BOOLEAN_EXPRESSION
-            ), pattern, termID, rootPatternMatchVariableName);
+            super(module, MODE, pattern, termID, rootPatternMatchVariableName);
             this.inputExpr = inputExpr;
         }
 
@@ -526,6 +529,16 @@ public abstract class PatternMatchInput<
 
     public static class AssignmentDeconstruction<T>
             extends PatternMatchInput<T, PatternMatchOutput.DoesUnification, PatternMatchOutput.NoNarrowing> {
+        public static final PatternMatchMode MODE = new PatternMatchMode(
+                PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_OR_ASSIGNABLE_VARS,
+                TypeRelationship.SupertypeOrEqual.class,
+                PatternMatchMode.RequiresSuccessfulMatch.REQUIRES_SUCCESSFUL_MATCH,
+                PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+                PatternMatchMode.Reassignment.REQUIRE_REASSIGN,
+                PatternMatchMode.Unification.WITH_VAR_DECLARATION,
+                PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
+                PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
+        );
         private final Maybe<RValueExpression> inputExpr;
 
         public AssignmentDeconstruction(
@@ -535,16 +548,7 @@ public abstract class PatternMatchInput<
                 String termID,
                 String rootPatternMatchVariableName
         ) {
-            super(module, new PatternMatchMode(
-                    PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_OR_ASSIGNABLE_VARS,
-                    TypeRelationship.SupertypeOrEqual.class,
-                    PatternMatchMode.RequiresSuccessfulMatch.REQUIRES_SUCCESSFUL_MATCH,
-                    PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
-                    PatternMatchMode.Reassignment.REQUIRE_REASSIGN,
-                    PatternMatchMode.Unification.WITH_VAR_DECLARATION,
-                    PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
-                    PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
-            ), pattern, termID, rootPatternMatchVariableName);
+            super(module, MODE, pattern, termID, rootPatternMatchVariableName);
             this.inputExpr = inputExpr;
         }
 

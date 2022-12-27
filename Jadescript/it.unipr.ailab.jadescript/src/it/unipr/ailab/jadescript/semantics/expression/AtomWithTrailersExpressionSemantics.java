@@ -160,10 +160,7 @@ public class AtomWithTrailersExpressionSemantics extends AssignableExpressionSem
         return buildChain(input).canBeHoled();
     }
 
-    @Override
-    protected boolean containsNotHoledAssignablePartsInternal(Maybe<AtomExpr> input) {
-        return buildChain(input).containsNotHoledAssignableParts();
-    }
+
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(

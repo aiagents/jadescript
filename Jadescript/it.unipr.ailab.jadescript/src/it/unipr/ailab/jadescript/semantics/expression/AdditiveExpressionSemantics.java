@@ -213,10 +213,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         return true;
     }
 
-    @Override
-    protected boolean containsNotHoledAssignablePartsInternal(Maybe<Additive> input) {
-        return subExpressionsAnyMatch(input, ExpressionSemantics::containsNotHoledAssignableParts);
-    }
+
 
     @Override
     public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>

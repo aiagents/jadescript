@@ -33,7 +33,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
 @Singleton
 public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLiteral> {
 
-    //TODO pipe-literal
+
     private static final String PROVIDED_TYPE_TO_PATTERN_IS_NOT_LIST_MESSAGE
             = "Cannot infer the type of the elements in the pattern - the list pattern has no " +
             "explicit element type specification, the pattern contains unbound terms, " +
@@ -49,20 +49,14 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<ListLiteral> input) {
         Maybe<EList<RValueExpression>> values = input.__(ListLiteral::getValues);
-        if (mustTraverse(input)) {
-            Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traversed = traverse(input);
-            if (traversed.isPresent()) {
-                return Collections.singletonList(traversed.get());
-            }
-        }
 
         return Streams.concat(Stream.of(input.__(ListLiteral::getRest)), Maybe.toListOfMaybes(values).stream())
-                .map(x -> new SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), x))
-                .collect(Collectors.toList());
+                .map(x -> new SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), x));
     }
 
     @Override
     protected String compileInternal(Maybe<ListLiteral> input, CompilationOutputAcceptor acceptor) {
+        //TODO pipe-literal
         Maybe<EList<RValueExpression>> values = input.__(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter = input.__(ListLiteral::getTypeParameter);
         if (values.__(List::isEmpty).extract(Maybe.nullAsTrue)) {
@@ -149,72 +143,29 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
 
     @Override
     protected boolean isPatternEvaluationPureInternal(Maybe<ListLiteral> input) {
-        List<Maybe<RValueExpression>> values = toListOfMaybes(input.__(ListLiteral::getValues));
-        boolean isWithPipe = input.__(ListLiteral::isWithPipe).extract(nullAsFalse);
-        Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
-        final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
-        final boolean valuesAllMatch = values.stream()
-                .filter(Maybe::isPresent)
-                .allMatch(rves::isPatternEvaluationPure);
-        if(isWithPipe){
-            return rves.isPatternEvaluationPure(rest) && valuesAllMatch;
-        }else{
-            return valuesAllMatch;
-        }
+        return subExpressionsAllAlwaysPure(input);
     }
+
 
     @Override
     protected boolean isHoledInternal(Maybe<ListLiteral> input) {
-        List<Maybe<RValueExpression>> values = toListOfMaybes(input.__(ListLiteral::getValues));
-        boolean isWithPipe = input.__(ListLiteral::isWithPipe).extract(nullAsFalse);
-        Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
-        final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
-        final boolean valuesAnyMatch = values.stream()
-                .filter(Maybe::isPresent)
-                .anyMatch(rves::isHoled);
-        if (isWithPipe) {
-            return rves.isHoled(rest) || valuesAnyMatch;
-        } else {
-            return valuesAnyMatch;
-        }
+        return subExpressionsAnyHoled(input);
     }
 
     @Override
     protected boolean isTypelyHoledInternal(Maybe<ListLiteral> input) {
-        List<Maybe<RValueExpression>> values = toListOfMaybes(input.__(ListLiteral::getValues));
-        boolean isWithPipe = input.__(ListLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<TypeExpression> typeParameter = input.__(ListLiteral::getTypeParameter);
         boolean hasTypeSpecifier = input.__(ListLiteral::isWithTypeSpecifier).extract(nullAsFalse);
-        Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
-        final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
-        if (hasTypeSpecifier && typeParameter.isPresent()) {
+        if(hasTypeSpecifier && typeParameter.isPresent()){
             return false;
-        } else {
-            final boolean valuesAnyMatch = values.stream()
-                    .filter(Maybe::isPresent)
-                    .anyMatch(rves::isTypelyHoled);
-            if (isWithPipe) {
-                return rves.isTypelyHoled(rest) || valuesAnyMatch;
-            } else {
-                return valuesAnyMatch;
-            }
+        }else {
+            return subExpressionsAnyTypelyHoled(input);
         }
     }
 
     @Override
     protected boolean isUnboundInternal(Maybe<ListLiteral> input) {
-        List<Maybe<RValueExpression>> values = toListOfMaybes(input.__(ListLiteral::getValues));
-        boolean isWithPipe = input.__(ListLiteral::isWithPipe).extract(nullAsFalse);
-        Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
-        final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
-        final boolean valuesAnyMatch = values.stream()
-                .filter(Maybe::isPresent)
-                .anyMatch(rves::isUnbound);
-        if (isWithPipe) {
-            return rves.isUnbound(rest) || valuesAnyMatch;
-        } else {
-            return valuesAnyMatch;
-        }
+        return subExpressionsAnyUnbound(input);
     }
 
     @Override
@@ -388,6 +339,7 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
         Maybe<TypeExpression> typeParameter = input.__(ListLiteral::getTypeParameter);
         boolean hasTypeSpecifier = input.__(ListLiteral::isWithTypeSpecifier).extract(nullAsFalse);
 
+        //TODO pipe-literal
         boolean stage1 = VALID;
         for (Maybe<RValueExpression> jadescriptRValueExpression : iterate(values)) {
             stage1 = stage1 && module.get(RValueExpressionSemantics.class)
@@ -424,14 +376,14 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
 
 
             boolean typeParameterValidation;
-            if(hasTypeSpecifier) {
+            if (hasTypeSpecifier) {
                 typeParameterValidation = module.get(TypeExpressionSemantics.class)
                         .validate(typeParameter, acceptor);
-            }else{
+            } else {
                 typeParameterValidation = VALID;
             }
 
-            if(typeValidation == VALID && typeParameterValidation == VALID && hasTypeSpecifier){
+            if (typeValidation == VALID && typeParameterValidation == VALID && hasTypeSpecifier) {
                 return module.get(ValidationHelper.class).assertExpectedType(
                         module.get(TypeExpressionSemantics.class).toJadescriptType(typeParameter),
                         lub,
@@ -439,11 +391,28 @@ public class ListLiteralExpressionSemantics extends ExpressionSemantics<ListLite
                         input,
                         acceptor
                 );
-            }else{
+            } else {
                 return typeValidation;
             }
         }
 
         return stage1;
     }
+
+    @Override
+    protected boolean isAlwaysPureInternal(Maybe<ListLiteral> input) {
+        return subExpressionsAllAlwaysPure(input);
+    }
+
+    @Override
+    protected boolean isValidLExprInternal(Maybe<ListLiteral> input) {
+        return false;
+    }
+
+    @Override
+    protected boolean canBeHoledInternal(Maybe<ListLiteral> input) {
+        return true;
+    }
+
+
 }
