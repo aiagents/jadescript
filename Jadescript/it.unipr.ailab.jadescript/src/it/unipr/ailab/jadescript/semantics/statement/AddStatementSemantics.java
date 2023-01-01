@@ -39,11 +39,11 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
     public void compileStatement(Maybe<AddStatement> input, CompilationOutputAcceptor acceptor) {
 
         boolean isSetCollection = module.get(RValueExpressionSemantics.class)
-                .inferType(input.__(AddStatement::getCollection)) instanceof SetType;
+                .inferType(input.__(AddStatement::getCollection), ) instanceof SetType;
         String element = module.get(RValueExpressionSemantics.class)
-                .compile(input.__(AddStatement::getElement), acceptor);
+                .compile(input.__(AddStatement::getElement), , acceptor);
         String collection = module.get(RValueExpressionSemantics.class)
-                .compile(input.__(AddStatement::getCollection), acceptor);
+                .compile(input.__(AddStatement::getCollection), , acceptor);
         String putOrAdd = input.__(AddStatement::getPutOrAdd).extract(Maybe.nullAsEmptyString);
         if(isSetCollection){
             putOrAdd = "add"; //overrides "put" if it's a set
@@ -54,7 +54,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
             acceptor.accept(w.callStmnt(methodName, w.expr(element)));
         } else {
             String index = module.get(RValueExpressionSemantics.class).compile(
-                    input.__(AddStatement::getIndex),
+                    input.__(AddStatement::getIndex), ,
                     acceptor
             );
             acceptor.accept(w.callStmnt(methodName, w.expr(index), w.expr(element)));
@@ -66,9 +66,9 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
         if (input == null) return;
         InterceptAcceptor subValidations = new InterceptAcceptor(acceptor);
         Maybe<RValueExpression> collection = input.__(AddStatement::getCollection);
-        module.get(RValueExpressionSemantics.class).validate(collection, subValidations);
-        module.get(RValueExpressionSemantics.class).validate(input.__(AddStatement::getElement), subValidations);
-        module.get(RValueExpressionSemantics.class).validate(input.__(AddStatement::getIndex), subValidations);
+        module.get(RValueExpressionSemantics.class).validate(collection, , subValidations);
+        module.get(RValueExpressionSemantics.class).validate(input.__(AddStatement::getElement), , subValidations);
+        module.get(RValueExpressionSemantics.class).validate(input.__(AddStatement::getIndex), , subValidations);
 
         String putOrAdd = input.__(AddStatement::getPutOrAdd).extract(Maybe.nullAsEmptyString);
         boolean isWithIndex = input.__(AddStatement::isWithIndex).extract(nullAsFalse);
@@ -93,7 +93,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
 
         if (!subValidations.thereAreErrors()) {
 
-            IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection);
+            IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection, );
 
             //TODO instead of checking the type, check the availability of the operation
             module.get(ValidationHelper.class).assertion(
@@ -110,7 +110,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
             IJadescriptType expectedElementType = collectionType.getElementTypeIfCollection()
                     .orElse(module.get(TypeHelper.class).NOTHING);
             Maybe<RValueExpression> element = input.__(AddStatement::getElement);
-            final IJadescriptType elementType = module.get(RValueExpressionSemantics.class).inferType(element);
+            final IJadescriptType elementType = module.get(RValueExpressionSemantics.class).inferType(element, );
 
             module.get(ValidationHelper.class).assertion(
                     Util.implication(collectionType instanceof SetType, !isWithIndex),
@@ -157,7 +157,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
                 );
                 if (isWithIndex) {
                     module.get(ValidationHelper.class).validateIndexType(
-                            module.get(RValueExpressionSemantics.class).inferType(collection),
+                            module.get(RValueExpressionSemantics.class).inferType(collection, ),
                             input.__(AddStatement::getIndex),
                             subValidations
                     );

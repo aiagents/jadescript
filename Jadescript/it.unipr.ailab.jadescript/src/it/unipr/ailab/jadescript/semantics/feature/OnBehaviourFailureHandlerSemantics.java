@@ -224,7 +224,7 @@ public class OnBehaviourFailureHandlerSemantics
                     .compileMatchesExpression(patternMatchRequest)
                     .orElse("");
             String x2 = module.get(RValueExpressionSemantics.class)
-                    .compile(expr, )
+                    .compile(expr, , )
                     .orElse("");
             if (!x1.isBlank() && !x2.isBlank()) {
                 compiledExpression = "(" + x1 + ") && (" + x2 + ")";
@@ -370,7 +370,7 @@ public class OnBehaviourFailureHandlerSemantics
             );
 
             InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-            module.get(RValueExpressionSemantics.class).validateUsageAsHandlerCondition(expr, expr, interceptAcceptor);
+            module.get(RValueExpressionSemantics.class).validateUsageAsHandlerCondition(expr, expr, , interceptAcceptor);
             if (!interceptAcceptor.thereAreErrors()) {
                 Maybe<PatternMatchRequest> patternMatchRequest = createPatternMatchRequest(reasonPattern, input);
                 if (expr.isPresent() || patternMatchRequest.isPresent()) {
@@ -388,7 +388,7 @@ public class OnBehaviourFailureHandlerSemantics
                     }
 
                     if (expr.isPresent()) {
-                        module.get(RValueExpressionSemantics.class).validate(expr, acceptor);
+                        module.get(RValueExpressionSemantics.class).validate(expr, , acceptor);
                     }
 
                     module.get(ContextManager.class).exit();

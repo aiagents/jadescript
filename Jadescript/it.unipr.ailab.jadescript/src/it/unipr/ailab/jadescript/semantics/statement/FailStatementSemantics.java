@@ -4,6 +4,7 @@ import it.unipr.ailab.jadescript.jadescript.FailStatement;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
@@ -25,8 +26,8 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
         Maybe<RValueExpression> target = input.__(FailStatement::getTarget);
         Maybe<RValueExpression> reason = input.__(FailStatement::getReason);
         acceptor.accept(w.callStmnt(
-                module.get(RValueExpressionSemantics.class).compile(target, acceptor) + ".__failBehaviour",
-                w.expr(module.get(RValueExpressionSemantics.class).compile(reason, acceptor).toString())
+                module.get(RValueExpressionSemantics.class).compile(target, , acceptor) + ".__failBehaviour",
+                w.expr(module.get(RValueExpressionSemantics.class).compile(reason, , acceptor).toString())
         ));
 
 
@@ -37,19 +38,19 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
         Maybe<RValueExpression> target = input.__(FailStatement::getTarget);
         Maybe<RValueExpression> reason = input.__(FailStatement::getReason);
         InterceptAcceptor exprValidations = new InterceptAcceptor(acceptor);
-        module.get(RValueExpressionSemantics.class).validate(target, exprValidations);
-        module.get(RValueExpressionSemantics.class).validate(reason, exprValidations);
+        module.get(RValueExpressionSemantics.class).validate(target, , exprValidations);
+        module.get(RValueExpressionSemantics.class).validate(reason, , exprValidations);
         if (!exprValidations.thereAreErrors()) {
             module.get(ValidationHelper.class).assertExpectedType(
                     module.get(TypeHelper.class).ANYBEHAVIOUR,
-                    module.get(RValueExpressionSemantics.class).inferType(target),
+                    module.get(RValueExpressionSemantics.class).inferType(target, ),
                     "InvalidFailStatement",
                     target,
                     acceptor
             );
             module.get(ValidationHelper.class).assertExpectedType(
                     module.get(TypeHelper.class).PROPOSITION,
-                    module.get(RValueExpressionSemantics.class).inferType(reason),
+                    module.get(RValueExpressionSemantics.class).inferType(reason, ),
                     "InvalidFailStatement",
                     reason,
                     acceptor
@@ -68,7 +69,8 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
     }
 
     @Override
-    public List<Effect> computeEffectsInternal(Maybe<FailStatement> input) {
+    public List<Effect> computeEffectsInternal(Maybe<FailStatement> input,
+                                               StaticState state) {
         Maybe<RValueExpression> target = input.__(x -> (FailStatement) x).__(FailStatement::getTarget);
 
         final ExpressionSemantics.SemanticsBoundToExpression<?> deepSemantics = module.get(RValueExpressionSemantics.class)
@@ -79,7 +81,7 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
                 .isThisReference((Maybe) deepSemantics.getInput())) {
             return Effect.JumpsAwayFromOperation.INSTANCE.toList();
         } else {
-            return super.computeEffects(input);
+            return super.computeEffects(input, );
         }
     }
 }

@@ -19,7 +19,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;
@@ -221,7 +220,7 @@ public class ValidationHelper implements SemanticsConsts {
             Maybe<RValueExpression> indexExpression,
             InterceptAcceptor subValidations
     ) {
-        module.get(RValueExpressionSemantics.class).validate(indexExpression, subValidations);
+        module.get(RValueExpressionSemantics.class).validate(indexExpression, , subValidations);
 
         assertion(
                 !(collectionType instanceof SetType),
@@ -236,7 +235,7 @@ public class ValidationHelper implements SemanticsConsts {
             if (collectionType instanceof MapType) {
                 assertExpectedType(
                         ((MapType) collectionType).getKeyType(),
-                        module.get(RValueExpressionSemantics.class).inferType(indexExpression),
+                        module.get(RValueExpressionSemantics.class).inferType(indexExpression, ),
                         "InvalidKeyType",
                         indexExpression,
                         subValidations
@@ -244,7 +243,7 @@ public class ValidationHelper implements SemanticsConsts {
             } else {
                 assertExpectedType(
                         Integer.class,
-                        module.get(RValueExpressionSemantics.class).inferType(indexExpression),
+                        module.get(RValueExpressionSemantics.class).inferType(indexExpression, ),
                         "InvalidIndexType",
                         indexExpression,
                         subValidations
@@ -312,14 +311,14 @@ public class ValidationHelper implements SemanticsConsts {
         });
     }
 
-    public void assertSupportedPerformative(
+    public boolean assertSupportedPerformative(
             Maybe<String> performative,
             Maybe<? extends EObject> eobject,
             ValidationMessageAcceptor acceptor
     ) {
         if (performative.isPresent()) {
             String perf = performative.toNullable();
-            assertion(
+            return assertion(
                     Stream.of(
                                     Performative.INFORM_REF,
                                     Performative.PROPAGATE,
@@ -334,6 +333,7 @@ public class ValidationHelper implements SemanticsConsts {
                     acceptor
             );
         }
+        return VALID;
     }
 
     public boolean assertExpectedType(

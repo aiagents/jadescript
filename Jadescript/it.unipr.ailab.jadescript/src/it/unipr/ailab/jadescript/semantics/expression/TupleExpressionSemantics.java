@@ -4,11 +4,9 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -55,24 +53,25 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
 
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<TupledExpressions> input) {
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<TupledExpressions> input, StaticState state) {
         return Collections.emptyList();
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<TupledExpressions> input) {
+    protected StaticState advanceInternal(Maybe<TupledExpressions> input,
+                                          StaticState state) {
         return ExpressionTypeKB.empty();
     }
 
     @Override
-    protected boolean validateInternal(Maybe<TupledExpressions> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<TupledExpressions> input, StaticState state, ValidationMessageAcceptor acceptor) {
         List<Maybe<RValueExpression>> exprs = input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList);
         RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         boolean result = VALID;
         final boolean validateTupleSize = validateTupleSize(input, acceptor, exprs.size());
         result = result && validateTupleSize;
         for (Maybe<RValueExpression> expr : exprs) {
-            final boolean exprValidation = rves.validate(expr, acceptor);
+            final boolean exprValidation = rves.validate(expr, , acceptor);
             result = result && exprValidation;
         }
         return result;
@@ -90,10 +89,10 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
 
     @Override
     public void compileAssignmentInternal(
-            Maybe<TupledExpressions> input,
-            String compiledExpression,
-            IJadescriptType exprType,
-            CompilationOutputAcceptor acceptor
+        Maybe<TupledExpressions> input,
+        String compiledExpression,
+        IJadescriptType exprType,
+        StaticState state, CompilationOutputAcceptor acceptor
     ) {
         //TODO fast-l-expr compilation?
         // (if all elements are l-exprs, just compile it as multi-assignment? it would be faster than pattern matching)
@@ -101,9 +100,9 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
 
     @Override
     public boolean validateAssignmentInternal(
-            Maybe<TupledExpressions> input,
-            Maybe<RValueExpression> expression,
-            ValidationMessageAcceptor acceptor
+        Maybe<TupledExpressions> input,
+        Maybe<RValueExpression> expression,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
         return VALID;
         //TODO fast-l-expr compilation?
@@ -128,8 +127,8 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<TupledExpressions> input) {
-        return subPatternEvaluationsAllPure(input);
+    protected boolean isPatternEvaluationPureInternal(PatternMatchInput<TupledExpressions> input, StaticState state) {
+        return subPatternEvaluationsAllPure(input, state);
     }
 
     @Override
@@ -141,25 +140,26 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
     }
 
     @Override
-    protected String compileInternal(Maybe<TupledExpressions> input, CompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<TupledExpressions> input,
+                                     StaticState state, CompilationOutputAcceptor acceptor) {
         final Integer initialCapacity = input.__(TupledExpressions::getSize).orElse(2);
         List<Maybe<RValueExpression>> exprs = input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList);
         List<String> elements = new ArrayList<>(initialCapacity);
         List<TypeArgument> types = new ArrayList<>(initialCapacity);
         RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         for (Maybe<RValueExpression> expr : exprs) {
-            elements.add(rves.compile(expr, acceptor));
-            types.add(rves.inferType(expr));
+            elements.add(rves.compile(expr, , acceptor));
+            types.add(rves.inferType(expr, ));
         }
         return TupleType.compileNewInstance(elements, types);
     }
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<TupledExpressions> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<TupledExpressions> input, StaticState state) {
         List<Maybe<RValueExpression>> exprs = input.__(TupledExpressions::getTuples).extract(Maybe::nullAsEmptyList);
         RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         return module.get(TypeHelper.class).TUPLE.apply(exprs.stream()
-                .map(rves::inferType)
+                .map(input1 -> rves.inferType(input1, ))
                 .collect(Collectors.toList()));
     }
 
@@ -169,38 +169,40 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TupledExpressions> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<TupledExpressions> input) {
         return Optional.empty();
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<TupledExpressions> input) {
-        return subExpressionsAnyHoled(input);
+    protected boolean isHoledInternal(Maybe<TupledExpressions> input,
+                                      StaticState state) {
+        return subExpressionsAnyHoled(input, );
     }
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<TupledExpressions> input) {
-        return subExpressionsAnyTypelyHoled(input);
+    protected boolean isTypelyHoledInternal(Maybe<TupledExpressions> input,
+                                            StaticState state) {
+        return subExpressionsAnyTypelyHoled(input, );
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<TupledExpressions> input) {
-        return subExpressionsAnyUnbound(input);
+    protected boolean isUnboundInternal(Maybe<TupledExpressions> input,
+                                        StaticState state) {
+        return subExpressionsAnyUnbound(input, );
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<TupledExpressions, ?, ?> input, CompilationOutputAcceptor acceptor) {
+    public PatternMatcher
+    compilePatternMatchInternal(PatternMatchInput<TupledExpressions> input, StaticState state, CompilationOutputAcceptor acceptor) {
         List<Maybe<RValueExpression>> terms = input.getPattern().__(TupledExpressions::getTuples)
                 .extract(Maybe::nullAsEmptyList);
-        PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
+        PatternType patternType = inferPatternType(input.getPattern(), input.getMode(), );
         IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
         int elementCount = terms.size();
 
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-        final List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults
-                = new ArrayList<>(elementCount);
+        final List<PatternMatcher> subResults = new ArrayList<>(elementCount);
 
 
         for (int i = 0; i < elementCount; i++) {
@@ -221,12 +223,11 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
                 );
             }
 
-            final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> subResult
-                    = rves.compilePatternMatch(input.subPattern(
+            final PatternMatcher subResult = rves.compilePatternMatch(input.subPattern(
                     termType,
                     __ -> term.toNullable(),
                     "_" + i
-            ), acceptor);
+            ), , acceptor);
             subResults.add(subResult);
         }
 
@@ -242,15 +243,13 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
                 solvedPatternType,
                 List.of("__x.getLength() == " + elementCount),
                 compiledSubInputs,
-                subResults,
-                () -> PatternMatchOutput.collectUnificationResults(subResults),
-                () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
+                subResults
         );
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<TupledExpressions> input) {
-        if (isTypelyHoled(input)) {
+    public PatternType inferPatternTypeInternal(Maybe<TupledExpressions> input, StaticState state) {
+        if (isTypelyHoled(input, )) {
             return PatternType.holed(inputType -> {
                 final TypeHelper typeHelper = module.get(TypeHelper.class);
                 final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
@@ -263,12 +262,12 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
                     for (int i = 0; i < exprs.size(); i++) {
                         Maybe<RValueExpression> expr = exprs.get(i);
                         final IJadescriptType inputElementType = inputElementTypes.get(i);
-                        elementTypes.add(rves.inferSubPatternType(expr).solve(inputElementType));
+                        elementTypes.add(rves.inferSubPatternType(expr, ).solve(inputElementType));
                     }
                 } else {
                     for (int i = 0; i < exprs.size(); i++) {
                         Maybe<RValueExpression> expr = exprs.get(i);
-                        final PatternType subPatternType = rves.inferSubPatternType(expr);
+                        final PatternType subPatternType = rves.inferSubPatternType(expr, );
                         if (subPatternType instanceof PatternType.HoledPatternType) {
                             elementTypes.add(typeHelper.TOP.apply(
                                     PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(i, exprs.size())
@@ -285,29 +284,29 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
                 return typeHelper.TUPLE.apply(elementTypes);
             });
         } else {
-            return PatternType.simple(inferType(input));
+            return PatternType.simple(inferType(input, ));
         }
 
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<TupledExpressions, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<TupledExpressions> input,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
         List<Maybe<RValueExpression>> terms = input.getPattern().__(TupledExpressions::getTuples)
                 .extract(Maybe::nullAsEmptyList);
-        PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
+        PatternType patternType = inferPatternType(input.getPattern(), input.getMode(), );
         IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
         int elementCount = terms.size();
 
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-        final List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>> subResults
-                = new ArrayList<>(elementCount);
 
-        validateTupleSize(input.getPattern(), acceptor, elementCount);
 
+        boolean sizeCheck = validateTupleSize(input.getPattern(), acceptor, elementCount);
+
+        boolean allElemsCheck = VALID;
         for (int i = 0; i < terms.size(); i++) {
             final Maybe<RValueExpression> term = terms.get(i);
             IJadescriptType termType;
@@ -325,25 +324,22 @@ public class TupleExpressionSemantics extends AssignableExpressionSemantics<Tupl
                         PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(i, elementCount)
                 );
             }
-            final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> subResult
-                    = rves.validatePatternMatch(input.subPattern(
+            boolean elemCheck = rves.validatePatternMatch(input.subPattern(
                     termType,
                     __ -> term.toNullable(),
                     "_" + i
-            ), acceptor);
-            subResults.add(subResult);
+            ), , acceptor);
+            allElemsCheck = allElemsCheck && elemCheck;
         }
 
-        return input.createValidationOutput(
-                () -> PatternMatchOutput.collectUnificationResults(subResults),
-                () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-        );
+        return sizeCheck && allElemsCheck;
     }
 
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<TupledExpressions> input) {
-        return subExpressionsAllAlwaysPure(input);
+    protected boolean isAlwaysPureInternal(Maybe<TupledExpressions> input,
+                                           StaticState state) {
+        return subExpressionsAllAlwaysPure(input, state);
     }
 
     @Override

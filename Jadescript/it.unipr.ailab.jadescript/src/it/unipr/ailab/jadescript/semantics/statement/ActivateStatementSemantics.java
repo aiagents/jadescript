@@ -61,7 +61,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
         List<ExpressionWriter> params = new ArrayList<>();
 
         final String compiledBehaviour = module.get(RValueExpressionSemantics.class).compile(
-                expr,
+                expr, ,
                 acceptor
         );
 
@@ -69,7 +69,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
         if (delay.isPresent()) {
             methodName += "_after";
             params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
-                    delay,
+                    delay, ,
                     acceptor
             )));
         }
@@ -77,7 +77,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
         if (start.isPresent()) {
             methodName += "_at";
             params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
-                    start,
+                    start, ,
                     acceptor
             )));
         }
@@ -85,7 +85,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
         if (period.isPresent()) {
             methodName += "_every";
             params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
-                    period,
+                    period, ,
                     acceptor
             )));
         }
@@ -105,8 +105,8 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
         Maybe<RValueExpression> delay = input.__(ActivateStatement::getDelay);
         Maybe<RValueExpression> start = input.__(ActivateStatement::getStartTime);
         InterceptAcceptor exprValidations = new InterceptAcceptor(acceptor);
-        module.get(RValueExpressionSemantics.class).validate(expr, exprValidations);
-        IJadescriptType exprType = module.get(RValueExpressionSemantics.class).inferType(expr);
+        module.get(RValueExpressionSemantics.class).validate(expr, , exprValidations);
+        IJadescriptType exprType = module.get(RValueExpressionSemantics.class).inferType(expr, );
         if (!exprValidations.thereAreErrors()) {
             module.get(ValidationHelper.class).assertExpectedType(Behaviour.class, exprType,
                     "InvalidBehaviourExpressionType",
@@ -143,9 +143,9 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
             }
         }
 
-        module.get(RValueExpressionSemantics.class).validate(period, exprValidations);
+        module.get(RValueExpressionSemantics.class).validate(period, , exprValidations);
         if (!exprValidations.thereAreErrors()) {
-            IJadescriptType periodType = module.get(RValueExpressionSemantics.class).inferType(period);
+            IJadescriptType periodType = module.get(RValueExpressionSemantics.class).inferType(period, );
             module.get(ValidationHelper.class).assertExpectedType(
                     th.DURATION,
                     periodType,
@@ -164,11 +164,11 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
         );
 
         if (delay.isPresent()) {
-            module.get(RValueExpressionSemantics.class).validate(delay, exprValidations);
+            module.get(RValueExpressionSemantics.class).validate(delay, , exprValidations);
             if (!exprValidations.thereAreErrors()) {
                 module.get(ValidationHelper.class).assertExpectedType(
                         th.DURATION,
-                        module.get(RValueExpressionSemantics.class).inferType(delay),
+                        module.get(RValueExpressionSemantics.class).inferType(delay, ),
                         "InvalidDelayType",
                         delay,
                         acceptor
@@ -177,11 +177,11 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
         }
 
         if (start.isPresent()) {
-            module.get(RValueExpressionSemantics.class).validate(start, exprValidations);
+            module.get(RValueExpressionSemantics.class).validate(start, , exprValidations);
             if (!exprValidations.thereAreErrors()) {
                 module.get(ValidationHelper.class).assertExpectedType(
                         th.TIMESTAMP,
-                        module.get(RValueExpressionSemantics.class).inferType(start),
+                        module.get(RValueExpressionSemantics.class).inferType(start, ),
                         "InvalidDelayType",
                         start,
                         acceptor

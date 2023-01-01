@@ -5,10 +5,11 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Symbol;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
+import it.unipr.ailab.jadescript.semantics.expression.AssignableExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
@@ -16,7 +17,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.jadescript.semantics.utils.Util.Tuple2;
@@ -40,7 +40,8 @@ import static it.unipr.ailab.maybe.Maybe.*;
  */
 //TODO rename to MethodCallSemantics
 @Singleton
-public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
+public class MethodInvocationSemantics
+    extends AssignableExpressionSemantics<MethodCall> {
 
 
     public MethodInvocationSemantics(SemanticsModule semanticsModule) {
@@ -79,7 +80,7 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<MethodCall> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<MethodCall> input) {
         return Optional.empty();
     }
 
@@ -101,8 +102,8 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
 
     @Override
     protected String compileInternal(
-            Maybe<MethodCall> input,
-            CompilationOutputAcceptor acceptor
+        Maybe<MethodCall> input,
+        StaticState state, CompilationOutputAcceptor acceptor
     ) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
@@ -146,7 +147,7 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
             // Falling back to common invocation
             return name + "(" + argumentsSafe.stream()
                     .map(Maybe::of)
-                    .map(input1 -> module.get(RValueExpressionSemantics.class).compile(input1, acceptor))
+                    .map(input1 -> module.get(RValueExpressionSemantics.class).compile(input1, , acceptor))
                     .collect(Collectors.joining(", ")) + ")";
 
         } else if (namedArgs.isPresent()) {
@@ -177,7 +178,7 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
             } else {
                 return name + "(" + toListOfMaybes(namedArgs.__(NamedArgumentList::getParameterValues))
                         .stream()
-                        .map(input1 -> module.get(RValueExpressionSemantics.class).compile(input1, acceptor))
+                        .map(input1 -> module.get(RValueExpressionSemantics.class).compile(input1, , acceptor))
                         .collect(Collectors.joining(", ")) + ")";
             }
         } else {
@@ -205,8 +206,8 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
         Map<String, String> result = new HashMap<>();
         for (String name : argNames) {
             final Maybe<RValueExpression> expr = of(args.get(name));
-            IJadescriptType type = module.get(RValueExpressionSemantics.class).inferType(expr);
-            String compiled = module.get(RValueExpressionSemantics.class).compile(expr, acceptor);
+            IJadescriptType type = module.get(RValueExpressionSemantics.class).inferType(expr, );
+            String compiled = module.get(RValueExpressionSemantics.class).compile(expr, , acceptor);
             final IJadescriptType destType = namedParameters.get(name);
             if (destType != null) {
                 compiled = module.get(TypeHelper.class).compileWithEventualImplicitConversions(
@@ -221,7 +222,8 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
 
     @Override
     protected IJadescriptType inferTypeInternal(
-            Maybe<MethodCall> input
+            Maybe<MethodCall> input,
+            StaticState state
     ) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
@@ -303,7 +305,7 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
     }
 
     @Override
-    protected boolean validateInternal(Maybe<MethodCall> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<MethodCall> input, StaticState state, ValidationMessageAcceptor acceptor) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
         Maybe<String> name = input.__(MethodCall::getName);
@@ -335,8 +337,8 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
         for (Maybe<RValueExpression> rvalExpr : Maybe.toListOfMaybes(exprs)) {
             argumentsValidationResult = argumentsValidationResult &&
                     module.get(RValueExpressionSemantics.class).validate(
-                            rvalExpr,
-                            acceptor
+                            rvalExpr, ,
+                        acceptor
                     );
         }
 
@@ -385,7 +387,7 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
             signature = Util.getSignature(
                     nameSafe,
                     args.stream()
-                            .map(module.get(RValueExpressionSemantics.class)::inferType)
+                            .map(input1 -> module.get(RValueExpressionSemantics.class).inferType(input1, ))
                             .collect(Collectors.toList()),
                     argNames.stream()
                             .flatMap(Maybe::filterNulls)
@@ -483,7 +485,7 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
                 boolean paramTypeCheck = VALID;
                 for (int i = 0; i < argExpressions.size(); i++) {
                     IJadescriptType argType = module.get(RValueExpressionSemantics.class)
-                            .inferType(Maybe.of(argExpressions.get(i)));
+                            .inferType(Maybe.of(argExpressions.get(i)), );
                     IJadescriptType paramType = match.parameterTypes().get(i);
 
                     final boolean argCheck = module.get(ValidationHelper.class).assertExpectedType(
@@ -521,13 +523,14 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
 
 
     @Override
-    protected boolean isHoledInternal(Maybe<MethodCall> input) {
-        return subExpressionsAnyHoled(input);
+    protected boolean isHoledInternal(Maybe<MethodCall> input, StaticState state) {
+        return subExpressionsAnyHoled(input, );
     }
 
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<MethodCall> input) {
+    protected boolean isTypelyHoledInternal(Maybe<MethodCall> input,
+                                            StaticState state) {
         /*
         Functional-notation patterns are identified by name and number of arguments, and, when resolved, have always
          a compile-time-known non-holed type. Therefore, they are never typely-holed, even when their arguments
@@ -538,14 +541,15 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
 
 
     @Override
-    protected boolean isUnboundInternal(Maybe<MethodCall> input) {
-        return subExpressionsAnyUnbound(input);
+    protected boolean isUnboundInternal(Maybe<MethodCall> input,
+                                        StaticState state) {
+        return subExpressionsAnyUnbound(input, );
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
-            PatternMatchInput<MethodCall, ?, ?> input,
-            CompilationOutputAcceptor acceptor
+    public PatternMatcher compilePatternMatchInternal(
+        PatternMatchInput<MethodCall> input,
+        StaticState state, CompilationOutputAcceptor acceptor
     ) {
         final Maybe<? extends CallableSymbol> method = resolve(input.getPattern());
 
@@ -572,21 +576,19 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
                         .collect(Collectors.toList());
                 argExpressions = sortToMatchParamNames(argExpressions, argNames, m.parameterNames());
             }
-            List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults
-                    = new ArrayList<>(argExpressions.size());
+            List<PatternMatcher> subResults = new ArrayList<>(argExpressions.size());
             for (int i = 0; i < argExpressions.size(); i++) {
                 Maybe<RValueExpression> term = argExpressions.get(i);
                 IJadescriptType upperBound = patternTermTypes.get(i);
-                final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> termOutput =
-                        rves.compilePatternMatch(input.subPattern(
-                                upperBound,
-                                __ -> term.toNullable(),
-                                "_" + i
-                        ), acceptor);
+                final PatternMatcher termOutput = rves.compilePatternMatch(input.subPattern(
+                        upperBound,
+                        __ -> term.toNullable(),
+                        "_" + i
+                ), , acceptor);
                 subResults.add(termOutput);
             }
 
-            PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
+            PatternType patternType = inferPatternType(input.getPattern(), input.getMode(), );
             IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
 
             List<String> compiledSubInputs = new ArrayList<>(m.parameterNames().size());
@@ -600,9 +602,7 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
                     i -> (i < 0 || i >= compiledSubInputs.size())
                             ? "/*IndexOutOfBounds*/"
                             : compiledSubInputs.get(i),
-                    subResults,
-                    () -> PatternMatchOutput.collectUnificationResults(subResults),
-                    () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
+                    subResults
             );
 
         } else {
@@ -612,24 +612,28 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
 
 
     @Override
-    public boolean isAlwaysPureInternal(Maybe<MethodCall> input) {
+    public boolean isAlwaysPureInternal(Maybe<MethodCall> input,
+                                        StaticState state) {
         final Maybe<? extends CallableSymbol> resolve = resolve(input);
         return resolve.__(CallableSymbol::isPure).extract(nullAsTrue)
-                && subExpressionsAllAlwaysPure(input);
+                && subExpressionsAllAlwaysPure(input, state);
     }
 
     @Override
-    public boolean isPatternEvaluationPureInternal(Maybe<MethodCall> input) {
+    public boolean isPatternEvaluationPureInternal(
+        PatternMatchInput<MethodCall> input,
+        StaticState state) {
         //TODO this assumption (if its pure as call, then its pure as pattern evaluation) is not valid when the new
         // pattern resolution system will be introduced
         final Maybe<? extends CallableSymbol> resolve = resolve(input);
         return resolve.__(CallableSymbol::isPure).extract(nullAsTrue)
-                && subPatternEvaluationsAllPure(input);
+                && subPatternEvaluationsAllPure(input, state);
     }
 
     @Override
     public PatternType inferPatternTypeInternal(
-            Maybe<MethodCall> input
+            Maybe<MethodCall> input,
+            StaticState state
     ) {
         final Maybe<? extends CallableSymbol> method = resolve(input);
         if (method.isPresent()) {
@@ -641,9 +645,9 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<MethodCall, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<MethodCall> input,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
         final List<? extends CallableSymbol> methods = resolveCandidates(input.getPattern());
         Maybe<MethodCall> patternCall = input.getPattern();
@@ -671,7 +675,7 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
                         "InvalidPattern"
                 );
             }
-            return input.createEmptyValidationOutput();
+            return VALID;
         } else if (methods.size() > 1) {
             if (patternCall.isPresent()) {
                 List<String> candidatesMessage = new ArrayList<>();
@@ -690,7 +694,7 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
                         "InvalidPattern"
                 );
             }
-            return input.createEmptyValidationOutput();
+            return VALID;
         } else { // => methods.size() == 1
             //TODO this should ensure that the resolved method corresponds to a pattern-matchable value
             // => find a metadata method created for this OR use an actual method
@@ -703,30 +707,23 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
                         .collect(Collectors.toList());
                 argExpressions = sortToMatchParamNames(argExpressions, argNames, m.parameterNames());
             }
-            List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>> subResults
-                    = new ArrayList<>(argExpressions.size());
+
+            boolean allArgsCheck = VALID;
             for (int i = 0; i < argExpressions.size(); i++) {
                 Maybe<RValueExpression> term = argExpressions.get(i);
                 IJadescriptType upperBound = patternTermTypes.get(i);
-                final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> termOutput =
-                        rves.validatePatternMatch(
-                                input.subPattern(
-                                        upperBound,
-                                        __ -> term.toNullable(),
-                                        "_" + i
-                                ),
-                                acceptor
-                        );
-                subResults.add(termOutput);
+                boolean argCheck = rves.validatePatternMatch(
+                        input.subPattern(
+                                upperBound,
+                                __ -> term.toNullable(),
+                                "_" + i
+                        ), ,
+                    acceptor
+                );
+                allArgsCheck = allArgsCheck && argCheck;
             }
 
-            PatternType patternType = inferPatternType(input.getPattern(), input.getMode());
-            IJadescriptType solvedPatternType = patternType.solve(input.getProvidedInputType());
-
-            return input.createValidationOutput(
-                    () -> PatternMatchOutput.collectUnificationResults(subResults),
-                    () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-            );
+            return allArgsCheck;
         }
     }
 
@@ -807,19 +804,20 @@ public class MethodInvocationSemantics extends ExpressionSemantics<MethodCall> {
     }
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<MethodCall> input) {
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<MethodCall> input, StaticState state) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
         Maybe<String> name = input.__(MethodCall::getName);
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
-        if (noArgs && isAlwaysPure(input) && name.isPresent() && !name.toNullable().isBlank()) {
+        if (noArgs && isAlwaysPure(input, ) && name.isPresent() && !name.toNullable().isBlank()) {
             return List.of(name.toNullable());
         }
         return List.of();
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<MethodCall> input) {
+    protected StaticState advanceInternal(Maybe<MethodCall> input,
+                                          StaticState state) {
         return ExpressionTypeKB.empty();
     }
 }

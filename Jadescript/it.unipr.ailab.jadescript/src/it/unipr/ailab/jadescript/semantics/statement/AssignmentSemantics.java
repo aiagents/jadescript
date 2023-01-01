@@ -2,24 +2,16 @@ package it.unipr.ailab.jadescript.semantics.statement;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.GenerationParameters;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.ContextManager;
-import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Created on 26/04/18.
@@ -38,9 +30,9 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
         final Maybe<RValueExpression> right = input.__(Assignment::getRexpr);
 
         //TODO determine if left is pattern
-        final String rightCompiled = module.get(RValueExpressionSemantics.class).compile(right, acceptor);
-        final IJadescriptType rightType = module.get(RValueExpressionSemantics.class).inferType(right);
-        module.get(LValueExpressionSemantics.class).compileAssignment(left, rightCompiled, rightType, acceptor);
+        final String rightCompiled = module.get(RValueExpressionSemantics.class).compile(right, , acceptor);
+        final IJadescriptType rightType = module.get(RValueExpressionSemantics.class).inferType(right, );
+        module.get(LValueExpressionSemantics.class).compileAssignment(left, rightCompiled, rightType, , acceptor);
     }
 
     @Override
@@ -63,7 +55,7 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
 
         if (syntacticSubValidation == VALID) {
             //TODO determine if left is pattern
-            module.get(LValueExpressionSemantics.class).validateAssignment(left, right, acceptor);
+            module.get(LValueExpressionSemantics.class).validateAssignment(left, right, , acceptor);
         }
     }
 

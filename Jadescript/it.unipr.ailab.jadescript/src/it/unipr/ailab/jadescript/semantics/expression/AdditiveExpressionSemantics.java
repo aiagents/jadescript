@@ -5,10 +5,10 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.Additive;
 import it.unipr.ailab.jadescript.jadescript.Multiplicative;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -19,7 +19,6 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -38,71 +37,134 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
 
     @Override
-    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<Additive> input) {
-        final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
+        Maybe<Additive> input
+    ) {
+        final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(
+            input.__(Additive::getMultiplicative)
+        );
         return operands.stream()
-                .map(x -> new ExpressionSemantics.SemanticsBoundToExpression<>(
-                        module.get(MultiplicativeExpressionSemantics.class),
-                        x
-                ));
+            .map(x -> new ExpressionSemantics.SemanticsBoundToExpression<>(
+                module.get(MultiplicativeExpressionSemantics.class),
+                x
+            ));
     }
 
-
-    private String associativeCompile(
-            List<Maybe<Multiplicative>> operands,
-            List<Maybe<String>> operators,
-            CompilationOutputAcceptor acceptor
+    private StaticState associativeUseState(
+        List<Maybe<Multiplicative>> operands,
+        List<Maybe<String>> operators,
+        StaticState state
     ) {
-        if (operands.isEmpty()) return "";
-        String result = module.get(MultiplicativeExpressionSemantics.class).compile(
-                operands.get(0),
-                acceptor
-        );
-        IJadescriptType t = module.get(MultiplicativeExpressionSemantics.class).inferType(operands.get(0));
+        StaticState result = module.get(MultiplicativeExpressionSemantics.class)
+            .advance(operands.get(0), state);
         for (int i = 1; i < operands.size() && i - 1 < operators.size(); i++) {
-            result = compilePair(result, t, operators.get(i - 1), operands.get(i), acceptor);
-            t = inferPair(t, operators.get(i - 1), operands.get(i));
+            result = useStatePair(
+                result,
+                operands.get(i)
+            );
         }
         return result;
     }
 
-    private IJadescriptType associativeInfer(List<Maybe<Multiplicative>> operands, List<Maybe<String>> operators) {
-        if (operands.isEmpty()) return module.get(TypeHelper.class).NOTHING;
-        IJadescriptType t = module.get(MultiplicativeExpressionSemantics.class).inferType(operands.get(0));
+
+    private String associativeCompile(
+        List<Maybe<Multiplicative>> operands,
+        List<Maybe<String>> operators,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
+    ) {
+        if (operands.isEmpty()) return "";
+        IJadescriptType t = module.get(MultiplicativeExpressionSemantics.class)
+            .inferType(operands.get(0), state);
+        String op0c = module.get(MultiplicativeExpressionSemantics.class)
+            .compile(operands.get(0), state, acceptor);
+        StaticState op0s = module.get(MultiplicativeExpressionSemantics.class)
+            .advance(operands.get(0), state);
+        String result = op0c;
+        StaticState resultState = op0s;
         for (int i = 1; i < operands.size() && i - 1 < operators.size(); i++) {
-            t = inferPair(t, operators.get(i - 1), operands.get(i));
+            result = compilePair(
+                result,
+                resultState,
+                t,
+                operators.get(i - 1),
+                operands.get(i),
+                acceptor
+            );
+            resultState = useStatePair(
+                resultState,
+                operands.get(i)
+            );
+            t = inferPair(t, operators.get(i - 1), operands.get(i), state);
+        }
+        return result;
+    }
+
+    private IJadescriptType associativeInfer(
+        List<Maybe<Multiplicative>> operands,
+        List<Maybe<String>> operators,
+        StaticState state
+    ) {
+        if (operands.isEmpty()) return module.get(TypeHelper.class).NOTHING;
+        IJadescriptType t = module.get(MultiplicativeExpressionSemantics.class)
+            .inferType(operands.get(0), state);
+        for (int i = 1; i < operands.size() && i - 1 < operators.size(); i++) {
+            t = inferPair(t, operators.get(i - 1), operands.get(i), state);
         }
         return t;
     }
 
-    private String compilePair(
-            String op1c,
-            IJadescriptType t1,
-            Maybe<String> op,
-            Maybe<Multiplicative> op2,
-            CompilationOutputAcceptor acceptor
+    private StaticState useStatePair(
+        StaticState op1s,
+        Maybe<Multiplicative> op2
     ) {
-        IJadescriptType t2 = module.get(MultiplicativeExpressionSemantics.class).inferType(op2);
-        String op2c = module.get(MultiplicativeExpressionSemantics.class).compile(op2, acceptor);
+        return module.get(MultiplicativeExpressionSemantics.class)
+            .advance(op2, op1s);
+    }
+
+    private String compilePair(
+        String op1c,
+        StaticState op1s,
+        IJadescriptType t1,
+        Maybe<String> op,
+        Maybe<Multiplicative> op2,
+        CompilationOutputAcceptor acceptor
+    ) {
+        final MultiplicativeExpressionSemantics mes =
+            module.get(MultiplicativeExpressionSemantics.class);
+        IJadescriptType t2 = mes.inferType(op2, op1s);
+        String op2c = mes.compile(op2, op1s, acceptor);
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-        if (t1.typeEquals(typeHelper.DURATION) && t2.typeEquals(typeHelper.DURATION)) {
+        if (t1.typeEquals(typeHelper.DURATION)
+            && t2.typeEquals(typeHelper.DURATION)) {
             if (op.wrappedEquals("-")) {
-                return "jadescript.lang.Duration.subtraction(" + op1c + ", " + op2c + ")";
+                return "jadescript.lang.Duration.subtraction("
+                    + op1c + ", " + op2c + ")";
             } else {
-                return "jadescript.lang.Duration.sum(" + op1c + ", " + op2c + ")";
+                return "jadescript.lang.Duration.sum("
+                    + op1c + ", " + op2c + ")";
             }
-        } else if ((t1.typeEquals(typeHelper.TIMESTAMP) && t2.typeEquals(typeHelper.DURATION))
-                || (t1.typeEquals(typeHelper.DURATION) && t2.typeEquals(typeHelper.TIMESTAMP))) {
+        } else if ((t1.typeEquals(typeHelper.TIMESTAMP)
+            && t2.typeEquals(typeHelper.DURATION))
+            || (t1.typeEquals(typeHelper.DURATION)
+            && t2.typeEquals(typeHelper.TIMESTAMP))) {
             if (op.wrappedEquals("-")) {
-                return "jadescript.lang.Timestamp.minus(" + op1c + ", " + op2c + ")";
+                return "jadescript.lang.Timestamp.minus("
+                    + op1c + ", " + op2c + ")";
             } else {
-                return "jadescript.lang.Timestamp.plus(" + op1c + ", " + op2c + ")";
+                return "jadescript.lang.Timestamp.plus("
+                    + op1c + ", " + op2c + ")";
             }
-        } else if (t1.typeEquals(typeHelper.TIMESTAMP) && t2.typeEquals(typeHelper.TIMESTAMP)
-                && op.wrappedEquals("-")) {
-            return "jadescript.lang.Timestamp.subtract(" + op1c + ", " + op2c + ")";
-        } else if ((t1.typeEquals(typeHelper.TEXT) || t2.typeEquals(typeHelper.TEXT)) && op.wrappedEquals("+")) {
-            return "java.lang.String.valueOf(" + op1c + ") + java.lang.String.valueOf(" + op2c + ")";
+        } else if (t1.typeEquals(typeHelper.TIMESTAMP)
+            && t2.typeEquals(typeHelper.TIMESTAMP)
+            && op.wrappedEquals("-")) {
+            return "jadescript.lang.Timestamp.subtract("
+                + op1c + ", " + op2c + ")";
+        } else if ((t1.typeEquals(typeHelper.TEXT)
+            || t2.typeEquals(typeHelper.TEXT))
+            && op.wrappedEquals("+")) {
+            return "java.lang.String.valueOf(" + op1c + ") " +
+                "+ java.lang.String.valueOf(" + op2c + ")";
         } else {
             String c1 = op1c;
             String c2 = op2c;
@@ -118,20 +180,32 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         }
     }
 
-    private IJadescriptType inferPair(IJadescriptType t1, Maybe<String> op, Maybe<Multiplicative> op2) {
-        IJadescriptType t2 = module.get(MultiplicativeExpressionSemantics.class).inferType(op2);
+    private IJadescriptType inferPair(
+        IJadescriptType t1, Maybe<String> op,
+        Maybe<Multiplicative> op2,
+        StaticState state
+    ) {
+        IJadescriptType t2 = module.get(MultiplicativeExpressionSemantics.class)
+            .inferType(op2, state);
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-        if (t1.typeEquals(typeHelper.DURATION) && t2.typeEquals(typeHelper.DURATION)) {
+        if (t1.typeEquals(typeHelper.DURATION)
+            && t2.typeEquals(typeHelper.DURATION)) {
             return typeHelper.DURATION;
-        } else if ((t1.typeEquals(typeHelper.TIMESTAMP) && t2.typeEquals(typeHelper.DURATION))
-                || (t1.typeEquals(typeHelper.DURATION) && t2.typeEquals(typeHelper.TIMESTAMP))) {
+        } else if ((t1.typeEquals(typeHelper.TIMESTAMP)
+            && t2.typeEquals(typeHelper.DURATION))
+            || (t1.typeEquals(typeHelper.DURATION)
+            && t2.typeEquals(typeHelper.TIMESTAMP))) {
             return typeHelper.TIMESTAMP;
-        } else if (t1.typeEquals(typeHelper.TIMESTAMP) && t2.typeEquals(typeHelper.TIMESTAMP)
-                && op.wrappedEquals("-")) {
+        } else if (t1.typeEquals(typeHelper.TIMESTAMP)
+            && t2.typeEquals(typeHelper.TIMESTAMP)
+            && op.wrappedEquals("-")) {
             return typeHelper.DURATION;
-        } else if ((t1.typeEquals(typeHelper.TEXT) || t2.typeEquals(typeHelper.TEXT)) && op.wrappedEquals("+")) {
+        } else if ((t1.typeEquals(typeHelper.TEXT)
+            || t2.typeEquals(typeHelper.TEXT))
+            && op.wrappedEquals("+")) {
             return typeHelper.TEXT;
-        } else if (typeHelper.NUMBER.isAssignableFrom(t1) || typeHelper.NUMBER.isAssignableFrom(t2)) {
+        } else if (typeHelper.NUMBER.isAssignableFrom(t1)
+            || typeHelper.NUMBER.isAssignableFrom(t2)) {
 
             if (typeHelper.implicitConversionCanOccur(t1, t2)) {
                 return t2;
@@ -144,43 +218,60 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
 
     @Override
-    protected String compileInternal(Maybe<Additive> input, CompilationOutputAcceptor acceptor) {
-        final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
-        final List<Maybe<String>> operators = Maybe.toListOfMaybes(input.__(Additive::getAdditiveOp));
-        return associativeCompile(operands, operators, acceptor);
+    protected String compileInternal(
+        Maybe<Additive> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
+    ) {
+        final List<Maybe<Multiplicative>> operands =
+            Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
+        final List<Maybe<String>> operators =
+            Maybe.toListOfMaybes(input.__(Additive::getAdditiveOp));
+        return associativeCompile(operands, operators, state, acceptor);
     }
 
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<Additive> input) {
-        final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
-        final List<Maybe<String>> operators = Maybe.toListOfMaybes(input.__(Additive::getAdditiveOp));
-        return associativeInfer(operands, operators);
+    protected IJadescriptType inferTypeInternal(
+        Maybe<Additive> input,
+        StaticState state
+    ) {
+        final List<Maybe<Multiplicative>> operands =
+            Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
+        final List<Maybe<String>> operators =
+            Maybe.toListOfMaybes(input.__(Additive::getAdditiveOp));
+        return associativeInfer(operands, operators, state);
 
     }
 
     @Override
     protected boolean mustTraverse(Maybe<Additive> input) {
-        final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
+        final List<Maybe<Multiplicative>> operands =
+            Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
         return operands.size() == 1;
     }
 
     @Override
-    protected Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traverse(Maybe<Additive> input) {
-        final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
+    protected Optional<? extends SemanticsBoundToExpression<?>>
+    traverse(Maybe<Additive> input) {
+        final List<Maybe<Multiplicative>> operands =
+            Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
         if (!mustTraverse(input)) {
             return Optional.empty();
         }
 
         return Optional.of(new ExpressionSemantics.SemanticsBoundToExpression<>(
-                module.get(MultiplicativeExpressionSemantics.class),
-                operands.get(0)
+            module.get(MultiplicativeExpressionSemantics.class),
+            operands.get(0)
         ));
     }
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<Additive> input) {
-        return subExpressionsAllAlwaysPure(input);
+    protected boolean isAlwaysPureInternal(
+        Maybe<Additive> input,
+        StaticState state
+    ) {
+        return subExpressionsAllAlwaysPure(input, state);
     }
 
     @Override
@@ -189,23 +280,35 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<Additive> input) {
-        return subExpressionsAllMatch(input, ExpressionSemantics::isPatternEvaluationPure);
+    protected boolean isPatternEvaluationPureInternal(
+        PatternMatchInput<Additive> input,
+        StaticState state
+    ) {
+        return subPatternEvaluationsAllPure(input, state);
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<Additive> input) {
-        return subExpressionsAnyMatch(input, ExpressionSemantics::isHoledInternal);
+    protected boolean isHoledInternal(
+        Maybe<Additive> input,
+        StaticState state
+    ) {
+        return subExpressionsAnyHoled(input, state);
     }
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<Additive> input) {
-        return subExpressionsAnyMatch(input, ExpressionSemantics::isTypelyHoled);
+    protected boolean isTypelyHoledInternal(
+        Maybe<Additive> input,
+        StaticState state
+    ) {
+        return subExpressionsAnyTypelyHoled(input, state);
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<Additive> input) {
-        return subExpressionsAnyMatch(input, ExpressionSemantics::isUnbound);
+    protected boolean isUnboundInternal(
+        Maybe<Additive> input,
+        StaticState state
+    ) {
+        return subExpressionsAnyUnbound(input, state);
     }
 
     @Override
@@ -214,57 +317,84 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     }
 
 
-
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<Additive, ?, ?> input, CompilationOutputAcceptor acceptor) {
+    public PatternMatcher compilePatternMatchInternal(
+        PatternMatchInput<Additive> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
+    ) {
         return input.createEmptyCompileOutput();
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<Additive> input) {
+    public PatternType inferPatternTypeInternal(
+        Maybe<Additive> input,
+        StaticState state
+    ) {
         return PatternType.empty(module);
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<Additive, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<Additive> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
     ) {
-            return input.createEmptyValidationOutput();
+        return VALID;
     }
 
-    public boolean validateAssociative(
-            List<Maybe<Multiplicative>> operands,
-            List<Maybe<String>> operators,
-            ValidationMessageAcceptor acceptor
+    private boolean validateAssociative(
+        List<Maybe<Multiplicative>> operands,
+        List<Maybe<String>> operators,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
     ) {
         if (operands.isEmpty()) return VALID;
-        IJadescriptType t = module.get(MultiplicativeExpressionSemantics.class).inferType(operands.get(0));
+        IJadescriptType t = module.get(MultiplicativeExpressionSemantics.class)
+            .inferType(operands.get(0), state);
         Maybe<Multiplicative> op1 = operands.get(0);
-        boolean op1Validation = module.get(MultiplicativeExpressionSemantics.class)
-                .validate(op1, acceptor);
+        boolean op1Validation =
+            module.get(MultiplicativeExpressionSemantics.class)
+                .validate(op1, state, acceptor);
         if (op1Validation == INVALID) {
             return INVALID;
         }
+        StaticState finalState = state;
         for (int i = 1; i < operands.size() && i - 1 < operators.size(); i++) {
             Maybe<Multiplicative> op2 = operands.get(i);
-            final boolean pairValidation = validatePair(op1, t, operators.get(i - 1), op2, acceptor);
+            boolean pairValidation = validatePair(
+                op1,
+                t,
+                operators.get(i - 1),
+                op2,
+                finalState,
+                acceptor
+            );
             if (pairValidation == INVALID) {
                 return INVALID;
             }
-            t = inferPair(t, operators.get(i - 1), operands.get(i));
+            StaticState pairState = useStatePair(
+                finalState,
+                op2
+            );
+            t = inferPair(
+                t,
+                operators.get(i - 1),
+                operands.get(i),
+                pairState
+            );
             op1 = op2;
+            finalState = pairState;
         }
         return VALID;
     }
 
     private boolean validatePairTypes(
-            Maybe<Multiplicative> op1,
-            IJadescriptType t1,
-            Maybe<Multiplicative> op2,
-            IJadescriptType t2,
-            ValidationMessageAcceptor acceptor
+        Maybe<Multiplicative> op1,
+        IJadescriptType t1,
+        Maybe<Multiplicative> op2,
+        IJadescriptType t2,
+        ValidationMessageAcceptor acceptor
     ) {
         TypeHelper th = module.get(TypeHelper.class);
         ValidationHelper vh = module.get(ValidationHelper.class);
@@ -272,139 +402,143 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             return VALID;
         } else if (th.INTEGER.typeEquals(t1)) {
             return vh.assertExpectedTypes(
-                    Arrays.asList(th.INTEGER, th.REAL, th.TEXT),
-                    t2,
-                    "InvalidAdditiveOperation",
-                    op2,
-                    acceptor
+                Arrays.asList(th.INTEGER, th.REAL, th.TEXT),
+                t2,
+                "InvalidAdditiveOperation",
+                op2,
+                acceptor
             );
 
         } else if (th.REAL.typeEquals(t1)) {
             return vh.assertExpectedTypes(
-                    Arrays.asList(th.REAL, th.INTEGER, th.TEXT),
-                    t2,
-                    "InvalidAdditiveOperation",
-                    op2,
-                    acceptor
+                Arrays.asList(th.REAL, th.INTEGER, th.TEXT),
+                t2,
+                "InvalidAdditiveOperation",
+                op2,
+                acceptor
             );
 
         } else if (th.INTEGER.typeEquals(t2)) {
             return vh.assertExpectedTypes(
-                    Arrays.asList(th.INTEGER, th.REAL, th.TEXT),
-                    t1,
-                    "InvalidAdditiveOperation",
-                    op1,
-                    acceptor
+                Arrays.asList(th.INTEGER, th.REAL, th.TEXT),
+                t1,
+                "InvalidAdditiveOperation",
+                op1,
+                acceptor
             );
 
         } else if (th.REAL.typeEquals(t2)) {
             return vh.assertExpectedTypes(
-                    Arrays.asList(th.REAL, th.INTEGER, th.TEXT),
-                    t1,
-                    "InvalidAdditiveOperation",
-                    op1,
-                    acceptor
+                Arrays.asList(th.REAL, th.INTEGER, th.TEXT),
+                t1,
+                "InvalidAdditiveOperation",
+                op1,
+                acceptor
             );
 
         } else if (th.DURATION.typeEquals(t1)) {
             return vh.assertExpectedTypes(
-                    Arrays.asList(th.DURATION, th.TIMESTAMP, th.TEXT),
-                    t2,
-                    "InvalidAdditiveOperation",
-                    op2,
-                    acceptor
+                Arrays.asList(th.DURATION, th.TIMESTAMP, th.TEXT),
+                t2,
+                "InvalidAdditiveOperation",
+                op2,
+                acceptor
             );
 
         } else if (th.DURATION.typeEquals(t2)) {
             return vh.assertExpectedTypes(
-                    Arrays.asList(th.DURATION, th.TIMESTAMP, th.TEXT),
-                    t1,
-                    "InvalidAdditiveOperation",
-                    op1,
-                    acceptor
+                Arrays.asList(th.DURATION, th.TIMESTAMP, th.TEXT),
+                t1,
+                "InvalidAdditiveOperation",
+                op1,
+                acceptor
             );
 
         } else if (th.TIMESTAMP.typeEquals(t1)) {
             return vh.assertExpectedTypes(
-                    Arrays.asList(th.TIMESTAMP, th.DURATION, th.TEXT),
-                    t2,
-                    "InvalidAdditiveOperation",
-                    op2,
-                    acceptor
+                Arrays.asList(th.TIMESTAMP, th.DURATION, th.TEXT),
+                t2,
+                "InvalidAdditiveOperation",
+                op2,
+                acceptor
             );
 
         } else if (th.TIMESTAMP.typeEquals(t2)) {
             return vh.assertExpectedTypes(
-                    Arrays.asList(th.TIMESTAMP, th.DURATION, th.TEXT),
-                    t1,
-                    "InvalidAdditiveOperation",
-                    op1,
-                    acceptor
+                Arrays.asList(th.TIMESTAMP, th.DURATION, th.TEXT),
+                t1,
+                "InvalidAdditiveOperation",
+                op1,
+                acceptor
             );
 
         } else {
-            // at least one of the two operands has to be TEXT, INTEGER, REAL, DURATION or TIMESTAMP
+            // at least one of the two operands has to be TEXT, INTEGER,
+            // REAL, DURATION or TIMESTAMP
             vh.assertion(
-                    th.TEXT.isAssignableFrom(t1) ||
-                            th.INTEGER.isAssignableFrom(t1) ||
-                            th.REAL.isAssignableFrom(t1) ||
-                            th.DURATION.isAssignableFrom(t1) ||
-                            th.TIMESTAMP.isAssignableFrom(t1) ||
-                            th.TEXT.isAssignableFrom(t2) ||
-                            th.INTEGER.isAssignableFrom(t2) ||
-                            th.REAL.isAssignableFrom(t2) ||
-                            th.DURATION.isAssignableFrom(t2) ||
-                            th.TIMESTAMP.isAssignableFrom(t2),
-                    "InvalidAdditiveOperation",
-                    "At least one of the two operands has to be of type 'integer', 'real', " +
-                            "'text', 'timestamp' or 'duration'.",
-                    op1,
-                    acceptor
+                th.TEXT.isAssignableFrom(t1) ||
+                    th.INTEGER.isAssignableFrom(t1) ||
+                    th.REAL.isAssignableFrom(t1) ||
+                    th.DURATION.isAssignableFrom(t1) ||
+                    th.TIMESTAMP.isAssignableFrom(t1) ||
+                    th.TEXT.isAssignableFrom(t2) ||
+                    th.INTEGER.isAssignableFrom(t2) ||
+                    th.REAL.isAssignableFrom(t2) ||
+                    th.DURATION.isAssignableFrom(t2) ||
+                    th.TIMESTAMP.isAssignableFrom(t2),
+                "InvalidAdditiveOperation",
+                "At least one of the two operands has to be of type " +
+                    "'integer', 'real', " +
+                    "'text', 'timestamp' or 'duration'.",
+                op1,
+                acceptor
             );
         }
 
         return VALID;
     }
 
-    public boolean validatePair(
-            Maybe<Multiplicative> op1,
-            IJadescriptType t1,
-            Maybe<String> op,
-            Maybe<Multiplicative> op2,
-            ValidationMessageAcceptor acceptor
+    private boolean validatePair(
+        Maybe<Multiplicative> op1,
+        IJadescriptType t1,
+        Maybe<String> op,
+        Maybe<Multiplicative> op2,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
     ) {
-        boolean op2Validation = module.get(MultiplicativeExpressionSemantics.class)
-                .validate(op2, acceptor);
+        final MultiplicativeExpressionSemantics mes =
+            module.get(MultiplicativeExpressionSemantics.class);
+        boolean op2Validation = mes.validate(op2, state, acceptor);
         if (op2Validation == INVALID) {
             return INVALID;
         }
 
+        //not needed: StaticState op2s = mes.useState(op2, state);
+        IJadescriptType t2 = mes.inferType(op2, state);
+
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-
-        IJadescriptType t2 = module.get(MultiplicativeExpressionSemantics.class).inferType(op2);
-
-        if ((t1.typeEquals(typeHelper.TEXT) || t2.typeEquals(typeHelper.TEXT)) && op.wrappedEquals("-")) {
-            op2.safeDo(op2Safe -> {
-                acceptor.acceptError(
-                        "Invalid '-' operator in a string concatenation operation.",
-                        op2Safe,
-                        null,
-                        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                        "InvalidStringConcatenation"
-                );
-            });
-            return INVALID;
-        }
-
-        boolean cannotSumTimestamps = module.get(ValidationHelper.class).assertion(
-                Util.implication(
-                        t1.typeEquals(typeHelper.TIMESTAMP) && t2.typeEquals(typeHelper.TIMESTAMP),
-                        op.wrappedEquals("-")
-                ),
-                "InvalidOperation",
-                "Can not sum two timestamps.",
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+        if ((t1.typeEquals(typeHelper.TEXT) || t2.typeEquals(typeHelper.TEXT))
+            && op.wrappedEquals("-")) {
+            return validationHelper.emitError(
+                "InvalidStringConcatenation",
+                "Invalid '-' operator in a string concatenation operation.",
                 op2,
                 acceptor
+            );
+        }
+
+        boolean cannotSumTimestamps = validationHelper.assertion(
+            Util.implication(
+                t1.typeEquals(typeHelper.TIMESTAMP)
+                    && t2.typeEquals(typeHelper.TIMESTAMP),
+                op.wrappedEquals("-")
+            ),
+            "InvalidOperation",
+            "Can not sum two timestamps.",
+            op2,
+            acceptor
         );
 
         if (cannotSumTimestamps == INVALID) {
@@ -415,20 +549,40 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     }
 
     @Override
-    protected boolean validateInternal(Maybe<Additive> input, ValidationMessageAcceptor acceptor) {
-        final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
-        final List<Maybe<String>> operators = Maybe.toListOfMaybes(input.__(Additive::getAdditiveOp));
-        return validateAssociative(operands, operators, acceptor);
+    protected boolean validateInternal(
+        Maybe<Additive> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ) {
+        final List<Maybe<Multiplicative>> operands =
+            Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
+        final List<Maybe<String>> operators =
+            Maybe.toListOfMaybes(input.__(Additive::getAdditiveOp));
+        return validateAssociative(operands, operators, state, acceptor);
     }
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<Additive> input) {
-        return List.of();
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(
+        Maybe<Additive> input,
+        StaticState state
+    ) {
+        return Maybe.nothing();
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<Additive> input) {
-        return ExpressionTypeKB.empty();
+    protected StaticState advanceInternal(
+        Maybe<Additive> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+    @Override
+    protected StaticState useStateAsPatternInternal(
+        PatternMatchInput<Additive> input,
+        StaticState state
+    ) {
+        return state;
     }
 
 

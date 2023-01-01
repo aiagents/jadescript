@@ -5,10 +5,9 @@ import it.unipr.ailab.jadescript.jadescript.Matches;
 import it.unipr.ailab.jadescript.jadescript.Multiplicative;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -36,12 +35,13 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
 
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<Multiplicative> input) {
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<Multiplicative> input, StaticState state) {
         return Collections.emptyList();
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<Multiplicative> input) {
+    protected StaticState advanceInternal(Maybe<Multiplicative> input,
+                                          StaticState state) {
         return ExpressionTypeKB.empty();
     }
 
@@ -52,8 +52,8 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     ) {
         if (operands.isEmpty()) return "";
         String result = module.get(MatchesExpressionSemantics.class)
-                .compile(operands.get(0), acceptor);
-        IJadescriptType t = module.get(MatchesExpressionSemantics.class).inferType(operands.get(0));
+                .compile(operands.get(0), , acceptor);
+        IJadescriptType t = module.get(MatchesExpressionSemantics.class).inferType(operands.get(0), );
         for (int i = 1; i < operands.size() && i - 1 < operators.size(); i++) {
             result = compilePair(result, t, operators.get(i - 1), operands.get(i), acceptor);
             t = inferPair(t, operators.get(i - 1), operands.get(i));
@@ -63,7 +63,7 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
 
     private IJadescriptType associativeInfer(List<Maybe<Matches>> operands, List<Maybe<String>> operators) {
         if (operands.isEmpty()) return module.get(TypeHelper.class).NOTHING;
-        IJadescriptType t = module.get(MatchesExpressionSemantics.class).inferType(operands.get(0));
+        IJadescriptType t = module.get(MatchesExpressionSemantics.class).inferType(operands.get(0), );
         for (int i = 1; i < operands.size() && i - 1 < operators.size(); i++) {
             t = inferPair(t, operators.get(i - 1), operands.get(i));
         }
@@ -77,8 +77,8 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
             Maybe<Matches> op2,
             CompilationOutputAcceptor acceptor
     ) {
-        IJadescriptType t2 = module.get(MatchesExpressionSemantics.class).inferType(op2);
-        String op2c = module.get(MatchesExpressionSemantics.class).compile(op2, acceptor);
+        IJadescriptType t2 = module.get(MatchesExpressionSemantics.class).inferType(op2, );
+        String op2c = module.get(MatchesExpressionSemantics.class).compile(op2, , acceptor);
         final TypeHelper typeHelper = module.get(TypeHelper.class);
 
         if (t1.typeEquals(typeHelper.DURATION) && t2.typeEquals(typeHelper.DURATION)) {
@@ -114,7 +114,7 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     }
 
     private IJadescriptType inferPair(IJadescriptType t1, Maybe<String> op, Maybe<Matches> op2) {
-        IJadescriptType t2 = module.get(MatchesExpressionSemantics.class).inferType(op2);
+        IJadescriptType t2 = module.get(MatchesExpressionSemantics.class).inferType(op2, );
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         if (t1.typeEquals(typeHelper.DURATION) && t2.typeEquals(typeHelper.DURATION)) {
             if (op.wrappedEquals("/")) {
@@ -153,7 +153,8 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     }
 
     @Override
-    protected String compileInternal(Maybe<Multiplicative> input, CompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<Multiplicative> input,
+                                     StaticState state, CompilationOutputAcceptor acceptor) {
         if (input == null) return "";
         final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
         final List<Maybe<String>> multiplicativeOps = Maybe.toListOfMaybes(input.__(Multiplicative::getMultiplicativeOp));
@@ -161,7 +162,8 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     }
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<Multiplicative> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<Multiplicative> input,
+                                                StaticState state) {
         if (input == null) return module.get(TypeHelper.class).ANY;
         final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
         final List<Maybe<String>> multiplicativeOps = Maybe.toListOfMaybes(input.__(Multiplicative::getMultiplicativeOp));
@@ -176,7 +178,7 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<Multiplicative> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<Multiplicative> input) {
         if (mustTraverse(input)) {
             final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
             return Optional.of(new SemanticsBoundToExpression<>(module.get(MatchesExpressionSemantics.class), matches.get(0)));
@@ -185,7 +187,7 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<Multiplicative> input) {
+    protected boolean isPatternEvaluationPureInternal(PatternMatchInput<Multiplicative> input, StaticState state) {
         return true;
     }
 
@@ -195,9 +197,9 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
             ValidationMessageAcceptor acceptor
     ) {
         if (operands.isEmpty()) return VALID;
-        IJadescriptType t = module.get(MatchesExpressionSemantics.class).inferType(operands.get(0));
+        IJadescriptType t = module.get(MatchesExpressionSemantics.class).inferType(operands.get(0), );
         Maybe<Matches> op1 = operands.get(0);
-        boolean op1Validation = module.get(MatchesExpressionSemantics.class).validate(op1, acceptor);
+        boolean op1Validation = module.get(MatchesExpressionSemantics.class).validate(op1, , acceptor);
         if (op1Validation == INVALID) {
             return op1Validation;
         }
@@ -295,45 +297,47 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
             ValidationMessageAcceptor acceptor
     ) {
         boolean op2Validation = module.get(MatchesExpressionSemantics.class)
-                .validate(op2, acceptor);
+                .validate(op2, , acceptor);
         if (op2Validation == INVALID) {
             return INVALID;
         }
 
-        IJadescriptType t2 = module.get(MatchesExpressionSemantics.class).inferType(op2);
+        IJadescriptType t2 = module.get(MatchesExpressionSemantics.class).inferType(op2, );
 
 
         return validatePairTypes(op1, t1, op2, t2, op, acceptor);
     }
 
     @Override
-    protected boolean validateInternal(Maybe<Multiplicative> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<Multiplicative> input, StaticState state, ValidationMessageAcceptor acceptor) {
         final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
         final List<Maybe<String>> operators = Maybe.toListOfMaybes(input.__(Multiplicative::getMultiplicativeOp));
         return validateAssociative(operands, operators, acceptor);
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<Multiplicative, ?, ?> input, CompilationOutputAcceptor acceptor) {
+    public PatternMatcher
+    compilePatternMatchInternal(PatternMatchInput<Multiplicative> input, StaticState state, CompilationOutputAcceptor acceptor) {
         return input.createEmptyCompileOutput();
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<Multiplicative> input) {
+    public PatternType inferPatternTypeInternal(Maybe<Multiplicative> input,
+                                                StaticState state) {
         return PatternType.empty(module);
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<Multiplicative, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<Multiplicative> input,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        return input.createEmptyValidationOutput();
+        return VALID;
     }
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<Multiplicative> input) {
+    protected boolean isAlwaysPureInternal(Maybe<Multiplicative> input,
+                                           StaticState state) {
         return true;
     }
 
@@ -343,17 +347,20 @@ public class MultiplicativeExpressionSemantics extends ExpressionSemantics<Multi
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<Multiplicative> input) {
+    protected boolean isHoledInternal(Maybe<Multiplicative> input,
+                                      StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<Multiplicative> input) {
+    protected boolean isTypelyHoledInternal(Maybe<Multiplicative> input,
+                                            StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<Multiplicative> input) {
+    protected boolean isUnboundInternal(Maybe<Multiplicative> input,
+                                        StaticState state) {
         return false;
     }
 

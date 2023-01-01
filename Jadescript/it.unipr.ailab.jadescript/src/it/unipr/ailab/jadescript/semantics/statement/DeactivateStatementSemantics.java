@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.DeactivateStatement;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
@@ -38,16 +39,16 @@ public class DeactivateStatementSemantics extends StatementSemantics<DeactivateS
 
         String methodName = "deactivate";
         List<ExpressionWriter> params = new ArrayList<>();
-        final String compiledBehaviour = module.get(RValueExpressionSemantics.class).compile(target, acceptor).toString();
+        final String compiledBehaviour = module.get(RValueExpressionSemantics.class).compile(target, , acceptor).toString();
 
         if (delay.isPresent()) {
             methodName += "_after";
-            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(delay, acceptor).toString()));
+            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(delay, , acceptor).toString()));
         }
 
         if (end.isPresent()) {
             methodName += "_at";
-            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(end, acceptor).toString()));
+            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(end, , acceptor).toString()));
         }
 
 
@@ -64,12 +65,12 @@ public class DeactivateStatementSemantics extends StatementSemantics<DeactivateS
         Maybe<RValueExpression> delay = input.__(DeactivateStatement::getDelay);
         Maybe<RValueExpression> end = input.__(DeactivateStatement::getEndTime);
         InterceptAcceptor exprValidations = new InterceptAcceptor(acceptor);
-        module.get(RValueExpressionSemantics.class).validate(target, exprValidations);
+        module.get(RValueExpressionSemantics.class).validate(target, , exprValidations);
         final TypeHelper th = module.get(TypeHelper.class);
         if (!exprValidations.thereAreErrors()) {
             module.get(ValidationHelper.class).assertExpectedType(
                     module.get(TypeHelper.class).ANYBEHAVIOUR,
-                    module.get(RValueExpressionSemantics.class).inferType(target),
+                    module.get(RValueExpressionSemantics.class).inferType(target, ),
                     "InvalidDeactivateStatement",
                     target,
                     acceptor
@@ -77,11 +78,11 @@ public class DeactivateStatementSemantics extends StatementSemantics<DeactivateS
         }
 
         if (delay.isPresent()) {
-            module.get(RValueExpressionSemantics.class).validate(delay, exprValidations);
+            module.get(RValueExpressionSemantics.class).validate(delay, , exprValidations);
             if (!exprValidations.thereAreErrors()) {
                 module.get(ValidationHelper.class).assertExpectedType(
                         th.DURATION,
-                        module.get(RValueExpressionSemantics.class).inferType(delay),
+                        module.get(RValueExpressionSemantics.class).inferType(delay, ),
                         "InvalidDelayType",
                         delay,
                         acceptor
@@ -90,11 +91,11 @@ public class DeactivateStatementSemantics extends StatementSemantics<DeactivateS
         }
 
         if (end.isPresent()) {
-            module.get(RValueExpressionSemantics.class).validate(end, exprValidations);
+            module.get(RValueExpressionSemantics.class).validate(end, , exprValidations);
             if (!exprValidations.thereAreErrors()) {
                 module.get(ValidationHelper.class).assertExpectedType(
                         th.TIMESTAMP,
-                        module.get(RValueExpressionSemantics.class).inferType(end),
+                        module.get(RValueExpressionSemantics.class).inferType(end, ),
                         "InvalidDelayType",
                         end,
                         acceptor
@@ -113,7 +114,7 @@ public class DeactivateStatementSemantics extends StatementSemantics<DeactivateS
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
-    public List<Effect> computeEffectsInternal(Maybe<DeactivateStatement> input) {
+    public List<Effect> computeEffectsInternal(Maybe<DeactivateStatement> input, StaticState state) {
         Maybe<RValueExpression> target = input.__(x -> (DeactivateStatement) x).__(DeactivateStatement::getTarget);
 
         final SemanticsBoundToExpression<?> deepSemantics = module.get(RValueExpressionSemantics.class).deepTraverse(target);
@@ -123,7 +124,7 @@ public class DeactivateStatementSemantics extends StatementSemantics<DeactivateS
                 .isThisReference((Maybe) deepSemantics.getInput())) {
             return Effect.JumpsAwayFromOperation.INSTANCE.toList();
         } else {
-            return super.computeEffects(input);
+            return super.computeEffects(input, );
         }
 
     }

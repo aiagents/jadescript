@@ -51,7 +51,7 @@ public class ExpressionTypeKB {
     public Optional<FlowTypeInferringTerm> query(List<String> propertyChain) {
         return truths.stream()
                 .filter(ett -> ett.matchesPropertyChain(propertyChain))
-                .map(ExpressionTypeTruth::getInferredType)
+                .map(ExpressionTypeTruth::getInferredType\)
                 .findFirst();
     }
 

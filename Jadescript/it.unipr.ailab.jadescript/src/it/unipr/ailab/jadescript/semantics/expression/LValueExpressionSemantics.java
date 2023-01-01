@@ -3,18 +3,14 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -35,24 +31,26 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
     }
 
     @Override
-    protected String compileInternal(Maybe<LValueExpression> input, CompilationOutputAcceptor acceptor) {
-        return module.get(OfNotationExpressionSemantics.class).compile(input.__(i -> (OfNotation) i), acceptor);
+    protected String compileInternal(Maybe<LValueExpression> input,
+                                     StaticState state, CompilationOutputAcceptor acceptor) {
+        return module.get(OfNotationExpressionSemantics.class).compile(input.__(i -> (OfNotation) i), , acceptor);
     }
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<LValueExpression> input) {
-        return module.get(OfNotationExpressionSemantics.class).inferType(input.__(i -> (OfNotation) i));
+    protected IJadescriptType inferTypeInternal(Maybe<LValueExpression> input, StaticState state) {
+        return module.get(OfNotationExpressionSemantics.class).inferType(input.__(i -> (OfNotation) i), );
     }
 
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<LValueExpression> input) {
-        return module.get(OfNotationExpressionSemantics.class).propertyChain(input.__(i -> (OfNotation) i));
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<LValueExpression> input, StaticState state) {
+        return module.get(OfNotationExpressionSemantics.class).describeExpression(input.__(i -> (OfNotation) i), );
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<LValueExpression> input) {
-        return module.get(OfNotationExpressionSemantics.class).computeKB(input.__(i -> (OfNotation) i));
+    protected StaticState advanceInternal(Maybe<LValueExpression> input,
+                                          StaticState state) {
+        return module.get(OfNotationExpressionSemantics.class).advance(input.__(i -> (OfNotation) i), );
     }
 
     @Override
@@ -61,7 +59,7 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<LValueExpression> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<LValueExpression> input) {
         return Optional.of(new SemanticsBoundToExpression<>(
                 module.get(OfNotationExpressionSemantics.class),
                 input.__(i -> (OfNotation) i)
@@ -69,31 +67,31 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
     }
 
     @Override
-    protected boolean validateInternal(Maybe<LValueExpression> input, ValidationMessageAcceptor acceptor) {
-        return module.get(OfNotationExpressionSemantics.class).validate(input.__(i -> (OfNotation) i), acceptor);
+    protected boolean validateInternal(Maybe<LValueExpression> input, StaticState state, ValidationMessageAcceptor acceptor) {
+        return module.get(OfNotationExpressionSemantics.class).validate(input.__(i -> (OfNotation) i), , acceptor);
     }
 
     @Override
     public void compileAssignmentInternal(
-            Maybe<LValueExpression> input,
-            String expression,
-            IJadescriptType exprType,
-            CompilationOutputAcceptor acceptor
+        Maybe<LValueExpression> input,
+        String expression,
+        IJadescriptType exprType,
+        StaticState state, CompilationOutputAcceptor acceptor
     ) {
         module.get(OfNotationExpressionSemantics.class)
-                .compileAssignment(input.__(i -> (OfNotation) i), expression, exprType, acceptor);
+                .compileAssignment(input.__(i -> (OfNotation) i), expression, exprType, , acceptor);
     }
 
     @Override
     public boolean validateAssignmentInternal(
-            Maybe<LValueExpression> input,
-            Maybe<RValueExpression> expression,
-            ValidationMessageAcceptor acceptor
+        Maybe<LValueExpression> input,
+        Maybe<RValueExpression> expression,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
         return module.get(OfNotationExpressionSemantics.class).validateAssignment(
                 input.__(i -> (OfNotation) i),
-                expression,
-                acceptor
+                expression, ,
+            acceptor
         );
     }
 
@@ -112,56 +110,60 @@ public class LValueExpressionSemantics extends AssignableExpressionSemantics<LVa
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<LValueExpression> input) {
-        return module.get(OfNotationExpressionSemantics.class).isPatternEvaluationPure(input.__(i -> (OfNotation) i));
+    protected boolean isPatternEvaluationPureInternal(PatternMatchInput<LValueExpression> input, StaticState state) {
+        return module.get(OfNotationExpressionSemantics.class).isPatternEvaluationPure(input.__(i -> (OfNotation) i), );
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<LValueExpression> input) {
-        return module.get(OfNotationExpressionSemantics.class).isHoled(input.__(i -> (OfNotation) i));
+    protected boolean isHoledInternal(Maybe<LValueExpression> input,
+                                      StaticState state) {
+        return module.get(OfNotationExpressionSemantics.class).isHoled(input.__(i -> (OfNotation) i), );
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<LValueExpression> input) {
-        return module.get(OfNotationExpressionSemantics.class).isUnbound(input.__(i -> (OfNotation) i));
+    protected boolean isUnboundInternal(Maybe<LValueExpression> input,
+                                        StaticState state) {
+        return module.get(OfNotationExpressionSemantics.class).isUnbound(input.__(i -> (OfNotation) i), );
     }
 
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<LValueExpression, ?, ?> input, CompilationOutputAcceptor acceptor) {
+    public PatternMatcher
+    compilePatternMatchInternal(PatternMatchInput<LValueExpression> input, StaticState state, CompilationOutputAcceptor acceptor) {
         return module.get(OfNotationExpressionSemantics.class).compilePatternMatchInternal(
-                input.mapPattern(lve -> (OfNotation) lve),
-                acceptor
+                input.mapPattern(lve -> (OfNotation) lve), ,
+            acceptor
         );
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<LValueExpression> input) {
+    public PatternType inferPatternTypeInternal(Maybe<LValueExpression> input, StaticState state) {
         return module.get(OfNotationExpressionSemantics.class).inferPatternTypeInternal(
-                input.__(lve -> (OfNotation) lve));
+                input.__(lve -> (OfNotation) lve), );
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<LValueExpression, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<LValueExpression> input,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
         return module.get(OfNotationExpressionSemantics.class).validatePatternMatchInternal(
-                input.mapPattern(lve -> (OfNotation) lve),
-                acceptor
+                input.mapPattern(lve -> (OfNotation) lve), ,
+            acceptor
         );
     }
 
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<LValueExpression> input) {
-        return module.get(OfNotationExpressionSemantics.class).isAlwaysPureInternal(input.__(lve-> (OfNotation) lve));
+    protected boolean isAlwaysPureInternal(Maybe<LValueExpression> input,
+                                           StaticState state) {
+        return module.get(OfNotationExpressionSemantics.class).isAlwaysPureInternal(input.__(lve-> (OfNotation) lve), );
     }
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<LValueExpression> input) {
-        return module.get(OfNotationExpressionSemantics.class).isTypelyHoledInternal(input.__(lve-> (OfNotation) lve));
+    protected boolean isTypelyHoledInternal(Maybe<LValueExpression> input,
+                                            StaticState state) {
+        return module.get(OfNotationExpressionSemantics.class).isTypelyHoledInternal(input.__(lve-> (OfNotation) lve), );
     }
 
     @Override

@@ -1,175 +1,19 @@
 package it.unipr.ailab.jadescript.semantics;
-//
-//
-//import it.unipr.ailab.jadescript.jadescript.*;
-//import it.unipr.ailab.jadescript.semantics.context.ContextManager;
-//import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-//import it.unipr.ailab.jadescript.semantics.expression.*;
-//import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-//import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-//import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-//import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
-//import it.unipr.ailab.jadescript.semantics.proxyeobjects.PatternMatchRequest;
-//import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
-//import it.unipr.ailab.jadescript.semantics.proxyeobjects.VirtualIdentifier;
-//import it.unipr.ailab.maybe.Maybe;
-//import it.unipr.ailab.sonneteer.classmember.ClassMemberWriter;
-//import it.unipr.ailab.sonneteer.classmember.FieldWriter;
-//import it.unipr.ailab.sonneteer.classmember.MethodWriter;
-//import it.unipr.ailab.sonneteer.classmember.ParameterWriter;
-//import it.unipr.ailab.sonneteer.qualifiers.Visibility;
-//import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
-//import it.unipr.ailab.sonneteer.statement.StatementWriter;
-//import it.unipr.ailab.sonneteer.statement.VariableDeclarationWriter;
-//import it.unipr.ailab.sonneteer.type.ClassDeclarationWriter;
-//import org.eclipse.emf.ecore.EObject;
-//import org.eclipse.xtext.common.types.*;
-//import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-//import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
-//
-//import java.util.*;
-//import java.util.stream.Collectors;
-//
-//import static it.unipr.ailab.maybe.Functional.filterAndCast;
-//import static it.unipr.ailab.maybe.Maybe.*;
-//
-//
+
+
 public class PatternMatchingSemantics
 //        extends Semantics<PatternMatchRequest>
-        {
-//
-//    public PatternMatchingSemantics(SemanticsModule semanticsModule) {
-//        super(semanticsModule);
-//    }
-//
-//
-//    /**
-//     * Converts a list of {@link LocalClassStatementWriter} into a list of {@link JvmDeclaredType} (using a
-//     * {@link JvmTypesBuilder}) which can in turn be used to generate inner classes to pattern match a "content" of an
-//     * event against the pattern in the header of the event handler
-//     *
-//     * @param auxiliaryStatements the input auxiliaryStatements
-//     * @param sourceEObject       the eObject indicated as source of the pattern
-//     * @param module              the semantics module
-//     * @return a list of {@link JvmDeclaredType} where each instance is a pattern matcher class.
-//     */
-//    public static List<JvmDeclaredType> getPatternMatcherClasses(
-//            List<StatementWriter> auxiliaryStatements,
-//            Maybe<? extends EObject> sourceEObject,
-//            SemanticsModule module
-//    ) {
-//        if (sourceEObject.isNothing()) {
-//            return Collections.emptyList();
-//        }
-//
-//        JvmTypesBuilder jvmTypesBuilder = module.get(JvmTypesBuilder.class);
-//        TypeHelper typeHelper = module.get(TypeHelper.class);
-//        CompilationHelper compilationHelper = module.get(CompilationHelper.class);
-//
-//        EObject eobj = sourceEObject.toNullable();
-//        return auxiliaryStatements.stream()
-//                .filter(LocalClassStatementWriter.class::isInstance)
-//                .map(LocalClassStatementWriter.class::cast)
-//                .map(localClass -> jvmTypesBuilder.toClass(eobj, localClass.getName(), itClass -> {
-//                    for (ClassMemberWriter member : localClass.getMembers()) {
-//                        if (member instanceof ClassDeclarationWriter.ConstructorWriter) {
-//                            ClassDeclarationWriter.ConstructorWriter ctor = (ClassDeclarationWriter.ConstructorWriter) member;
-//                            itClass.getMembers().add(jvmTypesBuilder.toConstructor(eobj, itCtor -> {
-//                                itCtor.setVisibility(convertToJvm(member.getVisibility()));
-//                                for (ParameterWriter parameter : ctor.getParameters()) {
-//                                    JvmFormalParameter param = jvmTypesBuilder.toParameter(
-//                                            eobj,
-//                                            parameter.getName(),
-//                                            typeHelper.typeRef(parameter.getType())
-//                                    );
-//                                    itCtor.getParameters().add(param);
-//                                }
-//                                compilationHelper.createAndSetBody(
-//                                        itCtor,
-//                                        ctor.getBody()::writeSonnet
-//                                );
-//                            }));
-//                        } else if (member instanceof FieldWriter) {
-//                            FieldWriter field = (FieldWriter) member;
-//                            itClass.getMembers().add(jvmTypesBuilder.toField(eobj, field.getName(), typeHelper.typeRef(field.getType()), itField -> {
-//                                itField.setVisibility(convertToJvm(member.getVisibility()));
-//                                if (field.getInitExpression() != null) {
-//                                    compilationHelper.createAndSetInitializer(
-//                                            itField,
-//                                            field.getInitExpression()::writeSonnet
-//                                    );
-//                                }
-//                            }));
-//                        } else if (member instanceof MethodWriter) {
-//                            MethodWriter method = (MethodWriter) member;
-//                            itClass.getMembers().add(
-//                                    jvmTypesBuilder.toMethod(eobj, method.getName(), typeHelper.typeRef(method.getReturnType()),
-//                                            itMethod -> {
-//                                                itMethod.setVisibility(convertToJvm(member.getVisibility()));
-//                                                for (ParameterWriter parameter : method.getParameters()) {
-//                                                    JvmFormalParameter param = jvmTypesBuilder.toParameter(
-//                                                            eobj,
-//                                                            parameter.getName(),
-//                                                            typeHelper.typeRef(parameter.getType())
-//                                                    );
-//                                                    itMethod.getParameters().add(param);
-//                                                }
-//                                                compilationHelper.createAndSetBody(
-//                                                        itMethod,
-//                                                        method.getBody()::writeSonnet
-//                                                );
-//                                            }
-//                                    ));
-//                        }//else ignore
-//                    }
-//                })).collect(Collectors.toList());
-//    }
-//
-//    public static List<JvmField> getPatternMatcherFieldDeclarations(
-//            List<StatementWriter> auxiliaryStatements,
-//            Maybe<? extends EObject> sourceObject,
-//            SemanticsModule module
-//    ) {
-//        if (sourceObject.isNothing()) {
-//            return Collections.emptyList();
-//        }
-//
-//        EObject eobj = sourceObject.toNullable();
-//
-//        JvmTypesBuilder jvmTypesBuilder = module.get(JvmTypesBuilder.class);
-//        TypeHelper typeHelper = module.get(TypeHelper.class);
-//        CompilationHelper compilationHelper = module.get(CompilationHelper.class);
-//        return auxiliaryStatements.stream()
-//                .filter(VariableDeclarationWriter.class::isInstance)
-//                .map(VariableDeclarationWriter.class::cast)
-//                .map(variableDeclarationWriter -> {
-//                    return jvmTypesBuilder.toField(
-//                            eobj,
-//                            variableDeclarationWriter.getName(),
-//                            typeHelper.typeRef(variableDeclarationWriter.getType()),
-//                            itField -> {
-//                                compilationHelper.createAndSetInitializer(
-//                                        itField,
-//                                        w.callExpr("new " + variableDeclarationWriter.getType())::writeSonnet
-//                                );
-//                            }
-//                    );
-//                }).collect(Collectors.toList());
-//    }
-//
-//    private static JvmVisibility convertToJvm(Visibility visibility) {
-//        switch (visibility) {
-//            case PUBLIC:
-//                return JvmVisibility.PUBLIC;
-//            case PRIVATE:
-//                return JvmVisibility.PRIVATE;
-//            case PROTECTED:
-//                return JvmVisibility.PROTECTED;
-//            case PACKAGE:
-//            default:
-//                return JvmVisibility.DEFAULT;
-//        }
-//    }
+{
+    private final SemanticsModule module;
+
+
+    public PatternMatchingSemantics(SemanticsModule semanticsModule) {
+        this.module = semanticsModule;
+    }
+
+
+
+
 //
 //
 //    @Override

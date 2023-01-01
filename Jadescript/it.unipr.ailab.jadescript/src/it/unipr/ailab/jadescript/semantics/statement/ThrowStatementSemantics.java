@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.statement;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
@@ -26,10 +27,10 @@ public class ThrowStatementSemantics extends StatementSemantics<ThrowStatement> 
         InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
 
         Maybe<RValueExpression> reason = input.__(ThrowStatement::getReason);
-        module.get(RValueExpressionSemantics.class).validate(reason, subValidation);
+        module.get(RValueExpressionSemantics.class).validate(reason, , subValidation);
 
         if (!subValidation.thereAreErrors()) {
-            IJadescriptType reasonType = module.get(RValueExpressionSemantics.class).inferType(reason);
+            IJadescriptType reasonType = module.get(RValueExpressionSemantics.class).inferType(reason, );
 
             module.get(ValidationHelper.class).assertExpectedType(
                     module.get(TypeHelper.class).PROPOSITION,
@@ -47,7 +48,7 @@ public class ThrowStatementSemantics extends StatementSemantics<ThrowStatement> 
         acceptor.accept(w.callStmnt(
                 EXCEPTION_THROWER_NAME+".__throw",
                 w.expr(module.get(RValueExpressionSemantics.class).compile(
-                        input.__(ThrowStatement::getReason),
+                        input.__(ThrowStatement::getReason), ,
                         acceptor
                 ).toString())
         ));
@@ -62,7 +63,8 @@ public class ThrowStatementSemantics extends StatementSemantics<ThrowStatement> 
     }
 
     @Override
-    public List<Effect> computeEffectsInternal(Maybe<ThrowStatement> input) {
+    public List<Effect> computeEffectsInternal(Maybe<ThrowStatement> input,
+                                               StaticState state) {
         return Collections.singletonList(Effect.JumpsAwayFromOperation.INSTANCE);
     }
 }

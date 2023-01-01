@@ -4,10 +4,10 @@ import it.unipr.ailab.jadescript.jadescript.AidLiteral;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeCast;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -16,79 +16,149 @@ import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.nullAsTrue;
 
-public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics<AidLiteral> {
+public class AidLiteralExpressionSemantics
+    extends AssignableExpressionSemantics<AidLiteral> {
+
     public AidLiteralExpressionSemantics(SemanticsModule module) {
         super(module);
     }
 
     @Override
-    protected boolean validateInternal(Maybe<AidLiteral> input, ValidationMessageAcceptor acceptor) {
-        final TypeCastExpressionSemantics tces = module.get(TypeCastExpressionSemantics.class);
+    protected boolean validateInternal(
+        Maybe<AidLiteral> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ) {
+        final TypeCastExpressionSemantics tces =
+            module.get(TypeCastExpressionSemantics.class);
         final Maybe<TypeCast> left = input.__(AidLiteral::getTypeCast);
-        boolean leftValidation = tces.validate(left, acceptor);
+        boolean leftValidation = tces.validate(left, state, acceptor);
         boolean leftTypeValidation = VALID;
         boolean rightValidation = VALID;
         boolean rightTypeValidation = VALID;
 
-        if (leftValidation == VALID && input.__(AidLiteral::isIsAidExpr).extract(nullAsFalse)) {
-            leftTypeValidation = module.get(ValidationHelper.class).assertExpectedType(
+        if (leftValidation == VALID
+            && input.__(AidLiteral::isIsAidExpr).extract(nullAsFalse)) {
+            leftTypeValidation = module.get(ValidationHelper.class)
+                .assertExpectedType(
                     module.get(TypeHelper.class).TEXT,
-                    tces.inferType(left),
+                    tces.inferType(left, state),
                     "InvalidAIDNickname",
                     left,
                     acceptor
-            );
+                );
         }
 
+        StaticState finalState = tces.advance(left, state);
         final Maybe<TypeCast> right = input.__(AidLiteral::getHap);
         if (right.isPresent()) {
-            rightValidation = tces.validate(right, acceptor);
+            rightValidation = tces.validate(right, finalState, acceptor);
             if (rightValidation == VALID) {
-                rightTypeValidation = module.get(ValidationHelper.class).assertExpectedType(
+                rightTypeValidation = module.get(ValidationHelper.class)
+                    .assertExpectedType(
                         module.get(TypeHelper.class).TEXT,
-                        tces.inferType(right),
+                        tces.inferType(right, finalState),
                         "InvalidAIDHAP",
                         right,
                         acceptor
-                );
+                    );
             }
         }
 
-        return leftValidation && leftTypeValidation && rightValidation && rightTypeValidation;
+        return leftValidation && leftTypeValidation
+            && rightValidation && rightTypeValidation;
     }
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<AidLiteral> input) {
-        return Collections.emptyList();
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(
+        Maybe<AidLiteral> input,
+        StaticState state
+    ) {
+        return Maybe.nothing();
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<AidLiteral> input) {
-        return ExpressionTypeKB.empty();
+    protected StaticState advanceInternal(
+        Maybe<AidLiteral> input,
+        StaticState state
+    ) {
+        final TypeCastExpressionSemantics tces =
+            module.get(TypeCastExpressionSemantics.class);
+        final Maybe<TypeCast> left = input.__(AidLiteral::getTypeCast);
+
+        StaticState finalState = tces.advance(left, state);
+        final Maybe<TypeCast> right = input.__(AidLiteral::getHap);
+        if (right.isPresent()) {
+            finalState = tces.advance(right, finalState);
+        }
+
+        return finalState;
+    }
+
+    @Override
+    protected StaticState useStateAsPatternInternal(
+        PatternMatchInput<AidLiteral> input,
+        StaticState state
+    ) {
+        final Maybe<TypeCast> hap = input.getPattern().__(AidLiteral::getHap);
+        final TypeCastExpressionSemantics tces =
+            module.get(TypeCastExpressionSemantics.class);
+        final IJadescriptType textType = module.get(TypeHelper.class).TEXT;
+
+        StaticState newState = tces.advancePattern(
+            input.subPattern(
+                textType,
+                AidLiteral::getTypeCast,
+                "_localname"
+            ),
+            state
+        );
+        if (hap.isPresent()) {
+            newState = tces.advancePattern(
+                input.subPattern(textType, __ -> hap.toNullable(), "_hap"),
+                newState
+            );
+        }
+
+        return newState;
     }
 
     @Override
     public void compileAssignmentInternal(
-            Maybe<AidLiteral> input,
-            String compiledExpression,
-            IJadescriptType exprType,
-            CompilationOutputAcceptor acceptor
+        Maybe<AidLiteral> input,
+        String compiledExpression,
+        IJadescriptType exprType,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
     ) {
         // CANNOT BE L-EXPRESSION
     }
 
     @Override
+    protected StaticState advanceAssignmentInternal(
+        Maybe<AidLiteral> left,
+        IJadescriptType rightType,
+        StaticState state
+    ) {
+        // CANNOT BE L-EXPRESSION
+        return state;
+    }
+
+    @Override
     public boolean validateAssignmentInternal(
-            Maybe<AidLiteral> input,
-            Maybe<RValueExpression> expression,
-            ValidationMessageAcceptor acceptor
+        Maybe<AidLiteral> input,
+        Maybe<RValueExpression> expression,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
     ) {
         // CANNOT BE L-EXPRESSION
         return errorNotLvalue(input, acceptor);
@@ -96,7 +166,10 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
 
 
     @Override
-    public boolean syntacticValidateLValueInternal(Maybe<AidLiteral> input, ValidationMessageAcceptor acceptor) {
+    public boolean syntacticValidateLValueInternal(
+        Maybe<AidLiteral> input,
+        ValidationMessageAcceptor acceptor
+    ) {
         return errorNotLvalue(input, acceptor);
     }
 
@@ -106,121 +179,178 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<AidLiteral> input) {
-        return true;
+    protected boolean isPatternEvaluationPureInternal(
+        PatternMatchInput<AidLiteral> input, StaticState state
+    ) {
+        return subPatternEvaluationsAllPure(input, state);
     }
 
     @Override
     protected boolean canBeHoledInternal(Maybe<AidLiteral> input) {
-        return false;
+        return true;
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<AidLiteral> input) {
-        // CANNOT BE HOLED
-        return false;
+    protected boolean isHoledInternal(
+        Maybe<AidLiteral> input,
+        StaticState state
+    ) {
+        return subExpressionsAnyHoled(input, state);
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<AidLiteral> input) {
-        return subExpressionsAnyMatch(input, ExpressionSemantics::isUnbound);
+    protected boolean isUnboundInternal(
+        Maybe<AidLiteral> input,
+        StaticState state
+    ) {
+        return subExpressionsAnyUnbound(input, state);
     }
 
 
-
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<AidLiteral> input) {
-        // CANNOT BE HOLED
-        return false;
+    protected boolean isTypelyHoledInternal(
+        Maybe<AidLiteral> input,
+        StaticState state
+    ) {
+        return subExpressionsAnyHoled(input, state);
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
-            PatternMatchInput<AidLiteral, ?, ?> input,
-            CompilationOutputAcceptor acceptor
+    public PatternMatcher compilePatternMatchInternal(
+        PatternMatchInput<AidLiteral> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
     ) {
         final Maybe<TypeCast> hap = input.getPattern().__(AidLiteral::getHap);
-        final TypeCastExpressionSemantics tces = module.get(TypeCastExpressionSemantics.class);
+        final TypeCastExpressionSemantics tces =
+            module.get(TypeCastExpressionSemantics.class);
 
         final IJadescriptType textType = module.get(TypeHelper.class).TEXT;
-        List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults =
-                new ArrayList<>(2);
-        subResults.add(tces.compilePatternMatch(input.subPattern(
-                textType,
-                AidLiteral::getTypeCast,
-                "_localname"
-        ), acceptor));
+        List<PatternMatcher> subResults = new ArrayList<>(2);
+
+        final IJadescriptType patternType = inferPatternType(
+            input.getPattern(),
+            input.getMode(),
+            state
+        ).solve(input.getProvidedInputType());
+
+        final PatternMatchInput.SubPattern<TypeCast, AidLiteral>
+            localNameSubpattern = input.subPattern(
+            textType,
+            AidLiteral::getTypeCast,
+            "_localname"
+        );
+        subResults.add(tces.compilePatternMatch(
+            localNameSubpattern,
+            state,
+            acceptor
+        ));
+        StaticState newState = tces.advancePattern(
+            localNameSubpattern,
+            state
+        );
 
         Function<Integer, String> compiledSubinputs;
         if (hap.isPresent()) {
-            subResults.add(tces.compilePatternMatch(input.subPattern(
-                    textType,
-                    __ -> hap.toNullable(),
-                    "_hap"
-            ), acceptor));
+            final PatternMatchInput.SubPattern<TypeCast, AidLiteral>
+                hapSubpattern = input.subPattern(
+                textType,
+                __ -> hap.toNullable(),
+                "_hap"
+            );
+            subResults.add(tces.compilePatternMatch(
+                hapSubpattern,
+                newState,
+                acceptor
+            ));
 
-            compiledSubinputs = (i) -> i == 0 ? "__x.getLocalName()" : "__x.getHap()";
+
+            compiledSubinputs = (i) -> i == 0
+                ? "__x.getLocalName()"
+                : "__x.getHap()";
         } else {
             compiledSubinputs = (__) -> "__x.getLocalName()";
         }
 
+
         return input.createCompositeMethodOutput(
-                inferPatternType(input.getPattern(), input.getMode())
-                        .solve(input.getProvidedInputType()),
-                compiledSubinputs,
-                subResults,
-                () -> PatternMatchOutput.collectUnificationResults(subResults),
-                () -> new PatternMatchOutput.WithTypeNarrowing(module.get(TypeHelper.class).AID)
+            patternType,
+            compiledSubinputs,
+            subResults
         );
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<AidLiteral> input) {
+    public PatternType inferPatternTypeInternal(
+        Maybe<AidLiteral> input,
+        StaticState state
+    ) {
         return PatternType.simple(module.get(TypeHelper.class).AID);
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<AidLiteral, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<AidLiteral> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
     ) {
         final Maybe<TypeCast> hap = input.getPattern().__(AidLiteral::getHap);
-        final TypeCastExpressionSemantics tces = module.get(TypeCastExpressionSemantics.class);
+        final TypeCastExpressionSemantics tces =
+            module.get(TypeCastExpressionSemantics.class);
         final IJadescriptType textType = module.get(TypeHelper.class).TEXT;
 
-        List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>> subResults =
-                new ArrayList<>(2);
-        subResults.add(tces.validatePatternMatch(input.subPattern(
-                textType,
-                AidLiteral::getTypeCast,
-                "_localname"
-        ), acceptor));
 
+        final PatternMatchInput.SubPattern<TypeCast, AidLiteral>
+            localNameSubpattern = input.subPattern(
+            textType,
+            AidLiteral::getTypeCast,
+            "_localname"
+        );
+        final boolean localNameCheck = tces.validatePatternMatch(
+            localNameSubpattern,
+            state,
+            acceptor
+        );
+
+        StaticState newState = tces.advancePattern(
+            localNameSubpattern,
+            state
+        );
+
+        boolean hapCheck = VALID;
         if (hap.isPresent()) {
-            subResults.add(tces.validatePatternMatch(input.subPattern(
-                    textType,
-                    __ -> hap.toNullable(),
-                    "_hap"
-            ), acceptor));
+            final PatternMatchInput.SubPattern<TypeCast, AidLiteral>
+                hapSubpattern = input.subPattern(
+                textType,
+                __ -> hap.toNullable(),
+                "_hap"
+            );
+            hapCheck = tces.validatePatternMatch(
+                hapSubpattern,
+                newState,
+                acceptor
+            );
 
         }
 
-        return input.createValidationOutput(
-                () -> PatternMatchOutput.collectUnificationResults(subResults),
-                () -> new PatternMatchOutput.WithTypeNarrowing(module.get(TypeHelper.class).AID)
-        );
+        return localNameCheck && hapCheck;
     }
 
     @Override
-    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<AidLiteral> input) {
-        final TypeCastExpressionSemantics tces = module.get(TypeCastExpressionSemantics.class);
-        final SemanticsBoundToExpression<TypeCast> localName = input.__(AidLiteral::getTypeCast)
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
+        Maybe<AidLiteral> input
+    ) {
+        final TypeCastExpressionSemantics tces =
+            module.get(TypeCastExpressionSemantics.class);
+        final SemanticsBoundToExpression<TypeCast> localName =
+            input.__(AidLiteral::getTypeCast)
                 .extract(x -> new SemanticsBoundToExpression<>(tces, x));
 
         Stream<SemanticsBoundToExpression<?>> result = Stream.of(localName);
 
         if (input.__(AidLiteral::getHap).isPresent()) {
-            final SemanticsBoundToExpression<TypeCast> hap = input.__(AidLiteral::getHap)
+            final SemanticsBoundToExpression<TypeCast> hap =
+                input.__(AidLiteral::getHap)
                     .extract(x -> new SemanticsBoundToExpression<>(tces, x));
             result = Stream.concat(result, Stream.of(hap));
         }
@@ -228,24 +358,45 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    protected String compileInternal(Maybe<AidLiteral> input, CompilationOutputAcceptor acceptor) {
-        final String leftCompiled = module.get(TypeCastExpressionSemantics.class)
-                .compile(input.__(AidLiteral::getTypeCast), acceptor);
-        String argString = "java.lang.String.valueOf(" + leftCompiled + ")";
+    protected String compileInternal(
+        Maybe<AidLiteral> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
+    ) {
+        final Maybe<TypeCast> localName = input.__(AidLiteral::getTypeCast);
+        final TypeCastExpressionSemantics tces =
+            module.get(TypeCastExpressionSemantics.class);
+        final String localNameCompiled = tces.compile(
+            localName,
+            state,
+            acceptor
+        );
+
+        StaticState newState = tces.advance(localName, state);
+        String argString = "java.lang.String.valueOf("
+            + localNameCompiled + ")";
         String isGuid = "false";
-        if (input.__(AidLiteral::getHap).isPresent()) {
+
+        final Maybe<TypeCast> hap = input.__(AidLiteral::getHap);
+        if (hap.isPresent()) {
             isGuid = "true";
-            final String rightCompiled = module.get(TypeCastExpressionSemantics.class)
-                    .compile(input.__(AidLiteral::getHap), acceptor);
+            final String hapCompiled = tces.compile(
+                hap,
+                newState,
+                acceptor
+            );
             argString += " + \"@\" + " +
-                    "java.lang.String.valueOf(" + rightCompiled + ")";
+                "java.lang.String.valueOf(" + hapCompiled + ")";
         }
         return "new jade.core.AID(" + argString + ", " + isGuid + ")";
 
     }
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<AidLiteral> input) {
+    protected IJadescriptType inferTypeInternal(
+        Maybe<AidLiteral> input,
+        StaticState state
+    ) {
         return module.get(TypeHelper.class).AID;
     }
 
@@ -255,11 +406,12 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<AidLiteral> input) {
+    protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
+    traverse(Maybe<AidLiteral> input) {
         if (mustTraverse(input)) {
             return Optional.ofNullable(input.__(AidLiteral::getTypeCast))
-                    .map(x -> new ExpressionSemantics.SemanticsBoundToExpression<>(
-                            module.get(TypeCastExpressionSemantics.class), x));
+                .map(x -> new SemanticsBoundToAssignableExpression<>(
+                    module.get(TypeCastExpressionSemantics.class), x));
         } else {
             return Optional.empty();
         }
@@ -267,10 +419,12 @@ public class AidLiteralExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<AidLiteral> input) {
-        return subExpressionsAllMatch(input, ExpressionSemantics::isAlwaysPure);
+    protected boolean isAlwaysPureInternal(
+        Maybe<AidLiteral> input,
+        StaticState state
+    ) {
+        return subExpressionsAllAlwaysPure(input, state);
     }
-
 
 
 }

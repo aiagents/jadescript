@@ -67,7 +67,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
 
         if (!subValidations.thereAreErrors()) {
             //The content has to be valid
-            module.get(RValueExpressionSemantics.class).validate(content, subValidations);
+            module.get(RValueExpressionSemantics.class).validate(content, , subValidations);
             InterceptAcceptor perfValidation = new InterceptAcceptor(subValidations);
 
             //The performative has to be specified
@@ -81,7 +81,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
             );
 
             if (!perfValidation.thereAreErrors()) {
-                final IJadescriptType inputContentType = module.get(RValueExpressionSemantics.class).inferType(content);
+                final IJadescriptType inputContentType = module.get(RValueExpressionSemantics.class).inferType(content, );
                 final IJadescriptType adaptedContentType = module.get(TypeHelper.class).adaptMessageContentDefaultTypes(
                         performative,
                         inputContentType
@@ -199,7 +199,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
 
         Maybe<EList<RValueExpression>> rexprs = receivers.__(CommaSeparatedListOfRExpressions::getExpressions);
         for (Maybe<RValueExpression> receiverExpr : iterate(rexprs)) {
-            module.get(RValueExpressionSemantics.class).validate(receiverExpr, subValidations);
+            module.get(RValueExpressionSemantics.class).validate(receiverExpr, , subValidations);
         }
 
 
@@ -222,7 +222,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
 
         final String contentVarName = hashBasedName("_contentToBeSent", input.toNullable());
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
-        final IJadescriptType inputContentType = rves.inferType(contentExpr);
+        final IJadescriptType inputContentType = rves.inferType(contentExpr, );
         final IJadescriptType adaptedContentType = module.get(TypeHelper.class).adaptMessageContentDefaultTypes(
                 performative,
                 inputContentType
@@ -230,7 +230,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
         final String adaptedCompiledContent = module.get(TypeHelper.class).adaptMessageContentDefaultCompile(
                 performative,
                 inputContentType,
-                rves.compile(contentExpr, acceptor).toString()
+                rves.compile(contentExpr, , acceptor).toString()
         );
 
         acceptor.accept(w.variable("java.lang.Object", contentVarName, w.expr(adaptedCompiledContent)));
@@ -277,7 +277,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
                 .__(CommaSeparatedListOfRExpressions::getExpressions);
 
         for (Maybe<RValueExpression> receiver : iterate(rexprs)) {
-            IJadescriptType receiversType = module.get(RValueExpressionSemantics.class).inferType(receiver);
+            IJadescriptType receiversType = module.get(RValueExpressionSemantics.class).inferType(receiver, );
             if (receiversType instanceof ListType || receiversType instanceof SetType) {
                 String receiversTypeName = receiversType.compileToJavaTypeReference();
                 IJadescriptType receiversComponentType = receiversType.getElementTypeIfCollection()
@@ -314,7 +314,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
                 acceptor.accept(w.variable(
                         receiversTypeName,
                         receiversListName,
-                        w.expr(module.get(RValueExpressionSemantics.class).compile(receiversExpr, acceptor).toString())
+                        w.expr(module.get(RValueExpressionSemantics.class).compile(receiversExpr, , acceptor).toString())
                 ));
                 acceptor.accept(w.foreach(componentType, receiverName, w.expr(receiversListName), doAIDConversion ?
                                 w.block().addStatement(w.callStmnt(
@@ -340,8 +340,8 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
             String messageName,
             CompilationOutputAcceptor acceptor
     ) {
-        IJadescriptType componentType = module.get(RValueExpressionSemantics.class).inferType(re);
-        String argOfAddReceiver = module.get(RValueExpressionSemantics.class).compile(re, acceptor).toString();
+        IJadescriptType componentType = module.get(RValueExpressionSemantics.class).inferType(re, );
+        String argOfAddReceiver = module.get(RValueExpressionSemantics.class).compile(re, , acceptor).toString();
 
         boolean doAIDConversion = !module.get(TypeHelper.class).AID.typeEquals(componentType);
         acceptor.accept(doAIDConversion ?

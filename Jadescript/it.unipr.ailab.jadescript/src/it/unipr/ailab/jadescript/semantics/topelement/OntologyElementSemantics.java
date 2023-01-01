@@ -44,6 +44,7 @@ public class OntologyElementSemantics extends Semantics {
 
     public OntologyElementSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
+
     }
 
 
@@ -156,7 +157,7 @@ public class OntologyElementSemantics extends Semantics {
                 for (Maybe<SlotDeclaration> slot : slots) {
                     Maybe<String> slotName = slot.__(SlotDeclaration::getName);
                     InterceptAcceptor typeValidation = new InterceptAcceptor(acceptor);
-                    module.get(TypeExpressionSemantics.class).validate(slot.__(SlotDeclaration::getType), typeValidation);
+                    module.get(TypeExpressionSemantics.class).validate(slot.__(SlotDeclaration::getType), , typeValidation);
                     if (!typeValidation.thereAreErrors()) {
                         IJadescriptType slotType = slot.__(SlotDeclaration::getType)
                                 .extract(module.get(TypeExpressionSemantics.class)::toJadescriptType);
@@ -198,7 +199,7 @@ public class OntologyElementSemantics extends Semantics {
 
 
                             module.get(ValidationHelper.class).assertion(
-                                    module.get(RValueExpressionSemantics.class).isAlwaysPure(args.get(i)),
+                                    module.get(RValueExpressionSemantics.class).isAlwaysPure(args.get(i), ),
                                     "InvalidSuperSlotInitExpression",
                                     "Initialization expressions of super-slots must be pure (without side effects).",
                                     superSlots,
@@ -211,12 +212,12 @@ public class OntologyElementSemantics extends Semantics {
                             module.get(ContextManager.class).enterSuperSlotInitializer(superSlotsInitScope);
                             InterceptAcceptor subVal = new InterceptAcceptor(acceptor);
 
-                            module.get(RValueExpressionSemantics.class).validate(args.get(i), subVal);
+                            module.get(RValueExpressionSemantics.class).validate(args.get(i), , subVal);
                             IJadescriptType argType;
                             if (subVal.thereAreErrors()) {
                                 argType = module.get(TypeHelper.class).ANY;
                             } else {
-                                argType = args.get(i).extract(module.get(RValueExpressionSemantics.class)::inferType);
+                                argType = args.get(i).extract(input1 -> module.get(RValueExpressionSemantics.class).inferType(input1, ));
                             }
                             module.get(ContextManager.class).exit();
 
@@ -324,7 +325,7 @@ public class OntologyElementSemantics extends Semantics {
         slotTypeExpression.safeDo(slotTypeExprSafe -> {
 
             final TypeExpressionSemantics typeExprSem = module.get(TypeExpressionSemantics.class);
-            typeExprSem.validate(slotTypeExpression, acceptor);
+            typeExprSem.validate(slotTypeExpression, , acceptor);
             IJadescriptType slotType = typeExprSem.toJadescriptType(slotTypeExpression);
 
 
@@ -404,20 +405,23 @@ public class OntologyElementSemantics extends Semantics {
                     it.setAbstract(true);
                     module.get(ContextManager.class).enterOntologyElementDeclaration();
                     if (!isPreindexingPhase) {
-                        List<RValueExpression> superArguments = new ArrayList<>();
+                        List<Maybe<RValueExpression>> superArguments = new ArrayList<>();
                         List<IJadescriptType> superDestTypes = new ArrayList<>();
 
-                        Maybe<? extends JvmParameterizedTypeReference> superType = input.__(ExtendingFeature::getSuperType);
+                        Maybe<? extends JvmParameterizedTypeReference> superType = input
+                                .__(ExtendingFeature::getSuperType);
 
                         if (superType.isNothing()) {
-                            it.getSuperTypes().add(module.get(TypeHelper.class).typeRef(getBaseOntologyContentType(input)));
+                            it.getSuperTypes().add(module.get(TypeHelper.class)
+                                    .typeRef(getBaseOntologyContentType(input)));
                         }
 
                         prepareSuperTypeInitialization(input, it, superArguments, superDestTypes, superType);
 
                         if (input.__(i -> i instanceof FeatureWithSlots).extract(nullAsFalse)) {
 
-                            for (Maybe<SlotDeclaration> slot : iterate(input.__(i -> (FeatureWithSlots) i).__(FeatureWithSlots::getSlots))) {
+                            for (Maybe<SlotDeclaration> slot : iterate(input.__(i -> (FeatureWithSlots) i)
+                                    .__(FeatureWithSlots::getSlots))) {
                                 addNativeProperty(it.getMembers(), slot);
                             }
                         }
@@ -495,8 +499,8 @@ public class OntologyElementSemantics extends Semantics {
                                     for (Maybe<SlotDeclaration> slot : iterate(slots)) {
 
 
-                                        IJadescriptType slotType = module.get(TypeExpressionSemantics.class).toJadescriptType(
-                                                slot.__(SlotDeclaration::getType));
+                                        IJadescriptType slotType = module.get(TypeExpressionSemantics.class)
+                                                .toJadescriptType(slot.__(SlotDeclaration::getType));
 
                                         Maybe<String> slotName = slot.__(SlotDeclaration::getName);
                                         safeDo(slot, slotName,
@@ -537,13 +541,15 @@ public class OntologyElementSemantics extends Semantics {
                 it -> {
                     module.get(ContextManager.class).enterOntologyElementDeclaration();
                     if (!isPreIndexingPhase) {
-                        List<RValueExpression> superArguments = new ArrayList<>();
+                        List<Maybe<RValueExpression>> superArguments = new ArrayList<>();
                         List<IJadescriptType> superDestTypes = new ArrayList<>();
 
-                        Maybe<? extends JvmParameterizedTypeReference> superType = input.__(ExtendingFeature::getSuperType);
+                        Maybe<? extends JvmParameterizedTypeReference> superType =
+                                input.__(ExtendingFeature::getSuperType);
 
                         if (superType.isNothing()) {
-                            it.getSuperTypes().add(module.get(TypeHelper.class).typeRef(getBaseOntologyContentType(input)));
+                            it.getSuperTypes().add(module.get(TypeHelper.class)
+                                    .typeRef(getBaseOntologyContentType(input)));
                         }
 
                         prepareSuperTypeInitialization(input, it, superArguments, superDestTypes, superType);
@@ -573,7 +579,13 @@ public class OntologyElementSemantics extends Semantics {
         ));
     }
 
-    private void prepareSuperTypeInitialization(Maybe<ExtendingFeature> input, JvmGenericType it, List<RValueExpression> superArguments, List<IJadescriptType> superDestTypes, Maybe<? extends JvmParameterizedTypeReference> superType) {
+    private void prepareSuperTypeInitialization(
+            Maybe<ExtendingFeature> input,
+            JvmGenericType it,
+            List<Maybe<RValueExpression>> superArguments,
+            List<IJadescriptType> superDestTypes,
+            Maybe<? extends JvmParameterizedTypeReference> superType
+    ) {
         superType.safeDo(superTypeSafe -> {
             it.getSuperTypes().add(module.get(JvmTypesBuilder.class).cloneWithProxies(superTypeSafe));
 
@@ -619,7 +631,7 @@ public class OntologyElementSemantics extends Semantics {
                         //push a scope; compute the type of the init expression
                         module.get(ContextManager.class).enterSuperSlotInitializer(superSlotsInitScope);
                         IJadescriptType argType = args.get(i)
-                                .extract(module.get(RValueExpressionSemantics.class)::inferType);
+                                .extract(input1 -> module.get(RValueExpressionSemantics.class).inferType(input1, ));
                         module.get(ContextManager.class).exit();
 
                         //then populate the sets for later
@@ -634,29 +646,22 @@ public class OntologyElementSemantics extends Semantics {
                 }
 
                 List<String> ctorArgNames = new ArrayList<>();
-                List<RValueExpression> ctorArgs = new ArrayList<>();
+                List<Maybe<RValueExpression>> ctorArgs = new ArrayList<>();
 
                 superProperties.forEach((propName, propType) -> {
-
                     //assuming isInitialized XOR isRedeclared (checked by validator):
                     ctorArgNames.add(propName);
 
                     if (slotTypeSet.containsKey(propName)) {//redeclared
-                        ctorArgs.add(new SyntheticExpression(new SyntheticExpression.SemanticsMethods() {
+                        ctorArgs.add(of(new SyntheticExpression(new SyntheticExpression.SemanticsMethods() {
                             @Override
                             public String compile() {
                                 return propName;
                             }
-                        }));
+                        })));
                     } else if (isWithSuperSlots && superSlotTypeSet.containsKey(propName)) {//initialized
-                        Maybe<RValueExpression> argMaybe = args.get(superSlotPositionSet.get(propName));
-                        if (argMaybe.isPresent()) {
-
-                            ctorArgs.add(argMaybe.toNullable());
-                        }
+                        ctorArgs.add(args.get(superSlotPositionSet.get(propName)));
                     }
-
-
                 });
 
 
@@ -796,7 +801,7 @@ public class OntologyElementSemantics extends Semantics {
     private void addOntologyElementsConstructor(
             EList<JvmMember> members,
             Maybe<ExtendingFeature> input,
-            List<RValueExpression> superArguments,
+            List<Maybe<RValueExpression>> superArguments,
             List<IJadescriptType> superDestTypes
     ) {
         input.safeDo(inputSafe -> {
@@ -870,21 +875,27 @@ public class OntologyElementSemantics extends Semantics {
 
 
                         module.get(CompilationHelper.class).createAndSetBody(it, scb -> {
-                            String superArgumentsCompiled;
-                            if (!superDestTypes.isEmpty()) {
-                                superArgumentsCompiled = module.get(CompilationHelper.class).compileRValueList(
-                                        superArguments,
-                                        superDestTypes,
 
-                                );
-                            } else {
-                                superArgumentsCompiled = module.get(CompilationHelper.class).compileRValueList(
-                                        superArguments
-                                );
+                            StringBuilder superArgumentsCompiled = new StringBuilder();
+                            for (int i = 0; i < superArguments.size(); i++) {
+                                if (i != 0) {
+                                    superArgumentsCompiled.append(", ");
+                                }
+                                Maybe<RValueExpression> superArgument = superArguments.get(i);
+                                IJadescriptType nullable = null;
+                                if (i < superDestTypes.size()) {
+                                    nullable = superDestTypes.get(i);
+                                }
+                                String lambdaCompiled = module.get(CompilationHelper.class)
+                                        .compileRValueAsLambdaSupplier(
+                                                superArgument,
+                                                nullable
+                                        );
+                                superArgumentsCompiled.append(lambdaCompiled);
                             }
 
-                            w.simpleStmt("super(" + superArgumentsCompiled + ")")
-                                    .writeSonnet(scb);
+
+                            w.simpleStmt("super(" + superArgumentsCompiled + ")").writeSonnet(scb);
 
 
                             scb.line();
@@ -1015,7 +1026,7 @@ public class OntologyElementSemantics extends Semantics {
                                             }
 
                                             IJadescriptType type = module.get(TypeExpressionSemantics.class).toJadescriptType(of(slot.getType()));
-                                            final String getterCall = "get"+Strings.toFirstUpper(slot.getName())+"()";
+                                            final String getterCall = "get" + Strings.toFirstUpper(slot.getName()) + "()";
                                             if (module.get(TypeHelper.class).TEXT.isAssignableFrom(type)) {
                                                 w.callStmnt(
                                                                 "_sb.append",

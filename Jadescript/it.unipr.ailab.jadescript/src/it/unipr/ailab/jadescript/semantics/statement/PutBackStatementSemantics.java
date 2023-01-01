@@ -35,7 +35,7 @@ public class PutBackStatementSemantics extends StatementSemantics<PutbackStateme
                 acceptor.accept(
                         w.callStmnt(THE_AGENT + "().__putBackMessage", w.expr(
                                         module.get(RValueExpressionSemantics.class)
-                                                .compile(input.__(PutbackStatement::getMessage), acceptor).toString()
+                                                .compile(input.__(PutbackStatement::getMessage), , acceptor).toString()
                                 )
                         )
                 );
@@ -49,10 +49,10 @@ public class PutBackStatementSemantics extends StatementSemantics<PutbackStateme
         InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
 
         Maybe<RValueExpression> message = input.__(PutbackStatement::getMessage);
-        module.get(RValueExpressionSemantics.class).validate(message, subValidation);
+        module.get(RValueExpressionSemantics.class).validate(message, , subValidation);
 
         if(!subValidation.thereAreErrors()){
-            IJadescriptType messageType = module.get(RValueExpressionSemantics.class).inferType(message);
+            IJadescriptType messageType = module.get(RValueExpressionSemantics.class).inferType(message, );
             module.get(ValidationHelper.class).assertExpectedType(
                     module.get(TypeHelper.class).ANYMESSAGE,
                     messageType,

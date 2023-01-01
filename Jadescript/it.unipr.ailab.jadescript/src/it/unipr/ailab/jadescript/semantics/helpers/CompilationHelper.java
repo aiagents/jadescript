@@ -19,6 +19,7 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.WriterFactory;
 import it.unipr.ailab.sonneteer.comment.MultilineCommentWriter;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
+import it.unipr.ailab.sonneteer.expression.LambdaWithBlockWriter;
 import it.unipr.ailab.sonneteer.statement.*;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtend2.lib.StringConcatenationClient;
@@ -38,11 +39,10 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static it.unipr.ailab.maybe.Maybe.of;
-
 public class CompilationHelper implements IQualifiedNameProvider {
 
     private final SemanticsModule module;
+
 
     private final static WriterFactory w = WriterFactory.getInstance();
 
@@ -169,49 +169,79 @@ public class CompilationHelper implements IQualifiedNameProvider {
         List<String> compiledArgs = rvals.stream()
                 .map(Maybe::of)
                 .map(x -> x.__(xx -> (RValueExpression) xx))
-                .map(x -> module.get(RValueExpressionSemantics.class).compile(x, acceptor))
+                .map(x -> module.get(RValueExpressionSemantics.class).compile(x, , acceptor))
                 .collect(Collectors.toList());
         List<IJadescriptType> argTypes = rvals.stream()
                 .map(Maybe::of)
                 .map(x -> x.__(xx -> (RValueExpression) xx))
-                .map(x -> module.get(RValueExpressionSemantics.class).inferType(x))
+                .map(x -> module.get(RValueExpressionSemantics.class).inferType(x, ))
                 .collect(Collectors.toList());
         return adaptAndCompileRValueList(compiledArgs, argTypes, destinationTypes);
     }
 
-    public String compileRValueList(
-            List<? extends RValueExpression> rvals,
-            List<IJadescriptType> destinationTypes,
-            CompilationOutputAcceptor acceptor
+    /**
+     * Compiles the expression into a Supplier lambdas, which contains all the expression's generated
+     * auxiliary statements, and it returns with the value which is used to provide the value.
+     * <p></p>
+     * For example, let's say we need to pass a super-argument with the string "Hello".
+     * Using this to compile the arguments of the super constructor generates:
+     * <p></p>
+     * {@code super(((Supplier<String>)()->{return "Hello";}).get());}.
+     * <p></p>
+     * This is important in order to compile expressions as super-arguments that may need to generate auxiliary
+     * statements in order to work correctly, or to initialize fields in the same way.
+     *
+     * @param expr
+     */
+    public String compileRValueAsLambdaSupplier(
+            Maybe<RValueExpression> expr
     ) {
-        if (rvals == null) return "";
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < rvals.size(); i++) {
-            Maybe<RValueExpression> expr = of(rvals.get(i));
-            if (destinationTypes != null) {
-                IJadescriptType destType = destinationTypes.get(i);
-                IJadescriptType argType = module.get(RValueExpressionSemantics.class).inferType(expr);
-                if (module.get(TypeHelper.class).implicitConversionCanOccur(argType, destType)) {
-                    sb.append(module.get(TypeHelper.class).compileImplicitConversion(
-                            module.get(RValueExpressionSemantics.class).compile(expr, acceptor).toString(),
-                            argType,
-                            destType
-                    ));
-                } else {
-                    sb.append(module.get(RValueExpressionSemantics.class).compile(expr, acceptor).toString());
-                }
-            } else {
-                sb.append(module.get(RValueExpressionSemantics.class).compile(expr, acceptor).toString());
-            }
-            if (i != rvals.size() - 1) {
-                sb.append(",");
-            }
-        }
-        return sb.toString();
+        return compileRValueAsLambdaSupplier(expr, null);
     }
 
-    public String compileRValueList(List<RValueExpression> rvals, CompilationOutputAcceptor acceptor) {
-        return compileRValueList(rvals, null, acceptor);
+    /**
+     * Compiles the expression into a Supplier lambdas, which contains all the expression's generated
+     * auxiliary statements, and it returns with the value which is used to provide the value.
+     * <p></p>
+     * For example, let's say we need to pass a super-argument with the string "Hello".
+     * Using this to compile the arguments of the super constructor generates:
+     * <p></p>
+     * {@code super(((Supplier<String>)()->{return "Hello";}).get());}.
+     * <p></p>
+     * This is important in order to compile expressions as super-arguments that may need to generate auxiliary
+     * statements in order to work correctly, or to initialize fields in the same way.
+     */
+    public String compileRValueAsLambdaSupplier(
+            Maybe<RValueExpression> expr,
+            IJadescriptType destinationType
+    ){
+        final LambdaWithBlockWriter lambda = w.blockLambda();
+        final IJadescriptType type;
+        final String returnExpr;
+
+        final IJadescriptType startType = module.get(RValueExpressionSemantics.class).inferType(expr, );
+        final String compiled = module.get(RValueExpressionSemantics.class).compile(expr, , lambda.getBody()::add);
+
+        if(destinationType == null){
+            returnExpr = compiled;
+            type = startType;
+        }else {
+            returnExpr = module.get(TypeHelper.class).compileWithEventualImplicitConversions(
+                    compiled,
+                    startType,
+                    destinationType
+            );
+            type = destinationType;
+        }
+
+        lambda.getBody().addStatement(w.returnStmnt(w.expr(returnExpr)));
+        SourceCodeBuilder scb = new SourceCodeBuilder();
+        scb.add("((java.util.function.Supplier<")
+                .add(type.compileToJavaTypeReference())
+                .add(">)")
+                .add(lambda)
+                .add(").get()");
+        return scb.toString();
     }
 
 

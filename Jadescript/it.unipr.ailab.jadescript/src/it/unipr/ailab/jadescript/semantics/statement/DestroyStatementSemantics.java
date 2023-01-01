@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.DestroyStatement;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
@@ -34,7 +35,7 @@ public class DestroyStatementSemantics extends StatementSemantics<DestroyStateme
         Maybe<RValueExpression> target = input.__(DestroyStatement::getTarget);
 
         acceptor.accept(w.callStmnt(
-                module.get(RValueExpressionSemantics.class).compile(target, acceptor) + ".destroy"
+                module.get(RValueExpressionSemantics.class).compile(target, , acceptor) + ".destroy"
         ));
 
 
@@ -45,11 +46,11 @@ public class DestroyStatementSemantics extends StatementSemantics<DestroyStateme
     public void validate(Maybe<DestroyStatement> input, ValidationMessageAcceptor acceptor) {
         Maybe<RValueExpression> target = input.__(DestroyStatement::getTarget);
         InterceptAcceptor exprValidations = new InterceptAcceptor(acceptor);
-        module.get(RValueExpressionSemantics.class).validate(target, exprValidations);
+        module.get(RValueExpressionSemantics.class).validate(target, , exprValidations);
         if (!exprValidations.thereAreErrors()) {
             module.get(ValidationHelper.class).assertExpectedType(
                     module.get(TypeHelper.class).ANYBEHAVIOUR,
-                    module.get(RValueExpressionSemantics.class).inferType(target),
+                    module.get(RValueExpressionSemantics.class).inferType(target, ),
                     "InvalidDestroyStatement",
                     target,
                     acceptor
@@ -67,7 +68,8 @@ public class DestroyStatementSemantics extends StatementSemantics<DestroyStateme
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
 	@Override
-    public List<Effect> computeEffectsInternal(Maybe<DestroyStatement> input) {
+    public List<Effect> computeEffectsInternal(Maybe<DestroyStatement> input,
+                                               StaticState state) {
         Maybe<RValueExpression> target = input.__(x->(DestroyStatement)x).__(DestroyStatement::getTarget);
 
         final SemanticsBoundToExpression<?> deepSemantics = module.get(RValueExpressionSemantics.class).deepTraverse(target);
@@ -77,7 +79,7 @@ public class DestroyStatementSemantics extends StatementSemantics<DestroyStateme
                 .isThisReference((Maybe)deepSemantics.getInput())) {
             return Effect.JumpsAwayFromOperation.INSTANCE.toList();
         } else {
-            return super.computeEffects(input);
+            return super.computeEffects(input, );
         }
 
     }

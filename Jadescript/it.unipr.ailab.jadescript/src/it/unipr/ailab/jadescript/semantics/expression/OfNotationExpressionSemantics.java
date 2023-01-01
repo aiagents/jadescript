@@ -4,11 +4,10 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -18,7 +17,6 @@ import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -59,7 +57,7 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
 
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<OfNotation> input) {
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<OfNotation> input, StaticState state) {
         final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
         final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
 
@@ -69,27 +67,29 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
                 .map(Maybe::toNullable)
                 .forEach(result::add);
 
-        result.addAll(module.get(AidLiteralExpressionSemantics.class).propertyChain(aidLiteral));
+        result.addAll(module.get(AidLiteralExpressionSemantics.class).describeExpression(aidLiteral, ));
 
         return result;
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<OfNotation> input) {
+    protected StaticState advanceInternal(Maybe<OfNotation> input,
+                                          StaticState state) {
         return ExpressionTypeKB.empty();
     }
 
     @Override
-    protected String compileInternal(Maybe<OfNotation> input, CompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<OfNotation> input,
+                                     StaticState state, CompilationOutputAcceptor acceptor) {
         if (input == null) return "";
 
 
         final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
         final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
         StringBuilder r = new StringBuilder(module.get(AidLiteralExpressionSemantics.class)
-                .compile(aidLiteral, acceptor));
+                .compile(aidLiteral, , acceptor));
 
-        IJadescriptType prev = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral);
+        IJadescriptType prev = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral, );
         for (int i = properties.size() - 1; i >= 0; i--) {
             String propName = properties.get(i).extract(nullAsEmptyString);
             Optional<? extends NamedSymbol> property = prev.namespace().searchAs(
@@ -108,10 +108,10 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
 
     @Override
     public void compileAssignmentInternal(
-            Maybe<OfNotation> input,
-            String compiledExpression,
-            IJadescriptType exprType,
-            CompilationOutputAcceptor acceptor
+        Maybe<OfNotation> input,
+        String compiledExpression,
+        IJadescriptType exprType,
+        StaticState state, CompilationOutputAcceptor acceptor
     ) {
 
         final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
@@ -120,15 +120,15 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
             module.get(AidLiteralExpressionSemantics.class).compileAssignment(
                     aidLiteral,
                     compiledExpression,
-                    exprType,
-                    acceptor
+                    exprType, ,
+                acceptor
             );
             return;
         }
 
         StringBuilder sb = new StringBuilder(module.get(AidLiteralExpressionSemantics.class)
-                .compile(aidLiteral, acceptor));
-        IJadescriptType prevType = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral);
+                .compile(aidLiteral, , acceptor));
+        IJadescriptType prevType = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral, );
         for (int i = properties.size() - 1; i >= 0; i--) {
             String propName = properties.get(i).extract(nullAsEmptyString);
             IJadescriptType currentPropType = inferTypeProperty(of(propName), prevType);
@@ -171,13 +171,14 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<OfNotation> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<OfNotation> input,
+                                                StaticState state) {
         if (input == null) return module.get(TypeHelper.class).ANY;
         final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
         final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
 
         List<Maybe<String>> props = new ArrayList<>(properties);
-        IJadescriptType prevType = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral);
+        IJadescriptType prevType = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral, );
         for (int i = props.size() - 1; i >= 0; i--) {
             Maybe<String> prop = props.get(i);
             prevType = inferTypeProperty(prop, prevType);
@@ -192,7 +193,7 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<OfNotation> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<OfNotation> input) {
         final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
         if (mustTraverse(input)) {
             return Optional.of(new SemanticsBoundToExpression<>(
@@ -221,27 +222,27 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
 
     @Override
     public boolean validateAssignmentInternal(
-            Maybe<OfNotation> input,
-            Maybe<RValueExpression> expression,
-            ValidationMessageAcceptor acceptor
+        Maybe<OfNotation> input,
+        Maybe<RValueExpression> expression,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
         if (input == null) return VALID;
 
         final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
         final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
         if (mustTraverse(input)) {
-            return module.get(AidLiteralExpressionSemantics.class).validateAssignment(aidLiteral, expression, acceptor);
+            return module.get(AidLiteralExpressionSemantics.class).validateAssignment(aidLiteral, expression, , acceptor);
         }
 
         boolean subValidation = module.get(RValueExpressionSemantics.class)
-                .validate(expression, acceptor);
+                .validate(expression, , acceptor);
         if (subValidation == INVALID) {
             return subValidation;
         }
 
-        IJadescriptType typeOfRExpression = module.get(RValueExpressionSemantics.class).inferType(expression);
+        IJadescriptType typeOfRExpression = module.get(RValueExpressionSemantics.class).inferType(expression, );
         List<Maybe<String>> props = new ArrayList<>(properties);
-        IJadescriptType prevType = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral);
+        IJadescriptType prevType = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral, );
 
         for (int i = props.size() - 1; i >= 0; i--) {
             Maybe<String> prop = props.get(i);
@@ -373,24 +374,24 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<OfNotation> input) {
+    protected boolean isPatternEvaluationPureInternal(PatternMatchInput<OfNotation> input, StaticState state) {
         return true;
     }
 
     @Override
-    protected boolean validateInternal(Maybe<OfNotation> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<OfNotation> input, StaticState state, ValidationMessageAcceptor acceptor) {
         if (input == null) return VALID;
         final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
         final Maybe<AidLiteral> aidLiteral = input.__(OfNotation::getAidLiteral);
 
         final boolean subValidation = module.get(AidLiteralExpressionSemantics.class)
-                .validate(aidLiteral, acceptor);
+                .validate(aidLiteral, , acceptor);
 
         if (subValidation == INVALID) {
             return subValidation;
         }
 
-        IJadescriptType afterLastOfType = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral);
+        IJadescriptType afterLastOfType = module.get(AidLiteralExpressionSemantics.class).inferType(aidLiteral, );
         List<Maybe<String>> props = new ArrayList<>(properties);
         if (!props.isEmpty()) {
             IJadescriptType prevType = afterLastOfType;
@@ -419,41 +420,45 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<OfNotation, ?, ?> input, CompilationOutputAcceptor acceptor) {
+    public PatternMatcher
+    compilePatternMatchInternal(PatternMatchInput<OfNotation> input, StaticState state, CompilationOutputAcceptor acceptor) {
         return input.createEmptyCompileOutput();
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<OfNotation> input) {
+    public PatternType inferPatternTypeInternal(Maybe<OfNotation> input,
+                                                StaticState state) {
         return PatternType.empty(module);
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<OfNotation, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<OfNotation> input,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        return input.createEmptyValidationOutput();
+        return VALID;
     }
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<OfNotation> input) {
+    protected boolean isAlwaysPureInternal(Maybe<OfNotation> input,
+                                           StaticState state) {
         return true;
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<OfNotation> input) {
+    protected boolean isHoledInternal(Maybe<OfNotation> input, StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<OfNotation> input) {
+    protected boolean isTypelyHoledInternal(Maybe<OfNotation> input,
+                                            StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<OfNotation> input) {
+    protected boolean isUnboundInternal(Maybe<OfNotation> input,
+                                        StaticState state) {
         return false;
     }
 

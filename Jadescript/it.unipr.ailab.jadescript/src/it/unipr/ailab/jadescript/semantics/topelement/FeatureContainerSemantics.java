@@ -3,7 +3,6 @@ package it.unipr.ailab.jadescript.semantics.topelement;
 import com.google.common.collect.HashMultimap;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.DroppingAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.feature.MemberBehaviourSemantics;
@@ -172,7 +171,7 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                                         right,
                                         (in, expressionSemantics1) -> {
                                             @SuppressWarnings({"unchecked", "rawtypes"}) final List<String> list =
-                                                    expressionSemantics1.propertyChain((Maybe) in);
+                                                    expressionSemantics1.describeExpression((Maybe) in, );
                                             return list;
                                         }
                                 );

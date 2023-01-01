@@ -29,14 +29,19 @@ public class AtomWithTrailersStatementSemantics extends StatementSemantics<AtomE
     }
 
     @Override
-    public void compileStatement(Maybe<AtomExpr> input, CompilationOutputAcceptor acceptor) {
+    public void compileStatement(
+        Maybe<AtomExpr> input,
+        CompilationOutputAcceptor acceptor
+    ) {
         acceptor.accept(w.simpleStmt(
-                module.get(AtomWithTrailersExpressionSemantics.class).compile(input, acceptor).toString()
+            module.get(AtomWithTrailersExpressionSemantics.class).compile(
+                input, , acceptor).toString()
         ));
     }
 
     @Override
-    public void validate(Maybe<AtomExpr> input, ValidationMessageAcceptor acceptor) {
+    public void validate(Maybe<AtomExpr> input,
+                         ValidationMessageAcceptor acceptor) {
         if (input == null) return;
         Maybe<Primary> atom = input.__(AtomExpr::getAtom);
         Maybe<EList<Trailer>> trailers = input.__(AtomExpr::getTrailers);
@@ -47,30 +52,32 @@ public class AtomWithTrailersStatementSemantics extends StatementSemantics<AtomE
                 input.safeDo(inputSafe -> {
 
                     acceptor.acceptError(
-                            "Invalid statement",
-                            inputSafe,
-                            null,
-                            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                            ISSUE_CODE_PREFIX + "InvalidStatement"
+                        "Invalid statement",
+                        inputSafe,
+                        null,
+                        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+                        ISSUE_CODE_PREFIX + "InvalidStatement"
                     );
                 });
             }
         } else {
             //check if it is valid as statement (can only be a method call)
-            Maybe<Trailer> lastTrailer = trailers.__(trailersSafe -> trailersSafe.get(trailersSafe.size() - 1));
-            InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
+            Maybe<Trailer> lastTrailer =
+                trailers.__(trailersSafe -> trailersSafe.get(trailersSafe.size() - 1));
+            InterceptAcceptor interceptAcceptor =
+                new InterceptAcceptor(acceptor);
             module.get(ValidationHelper.class).assertion(
-                    lastTrailer.__(Trailer::isIsACall),
-                    "InvalidStatement",
-                    "Not a statement",
-                    input,
-                    interceptAcceptor
+                lastTrailer.__(Trailer::isIsACall),
+                "InvalidStatement",
+                "Not a statement",
+                input,
+                interceptAcceptor
             );
 
 
             if (!interceptAcceptor.thereAreErrors()) {
                 //check as common rExp
-                module.get(AtomWithTrailersExpressionSemantics.class).validate(input, acceptor);
+                module.get(AtomWithTrailersExpressionSemantics.class).validate(input, , acceptor);
             }
 
         }

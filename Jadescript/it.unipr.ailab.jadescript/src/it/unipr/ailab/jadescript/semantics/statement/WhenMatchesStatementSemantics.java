@@ -7,8 +7,7 @@ import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
@@ -49,13 +48,12 @@ public class WhenMatchesStatementSemantics extends StatementSemantics<WhenMatche
 
 
             final Maybe<LValueExpression> pattern = patterns.get(i);
-            final String compiledInputExpr = module.get(RValueExpressionSemantics.class).compile(inputExpr, acceptor)
+            final String compiledInputExpr = module.get(RValueExpressionSemantics.class).compile(inputExpr, , acceptor)
                     .toString();
 
             PatternMatchOutput<
-                    ? extends PatternMatchSemanticsProcess.IsCompilation,
-                    PatternMatchOutput.DoesUnification,
-                    PatternMatchOutput.WithTypeNarrowing> output =
+                    ? extends PatternMatcher
+                    > output =
                     module.get(PatternMatchHelper.class)
                             .compileWhenMatchesStatementPatternMatching(inputExpr, pattern, acceptor);
 
@@ -111,13 +109,12 @@ public class WhenMatchesStatementSemantics extends StatementSemantics<WhenMatche
         for (int i = 0; i < Math.min(branches.size(), patterns.size()); i++) {
             final Maybe<LValueExpression> pattern = patterns.get(i);
             module.get(ContextManager.class).pushScope();
-            module.get(RValueExpressionSemantics.class).validate(inputExpr, acceptor);
+            module.get(RValueExpressionSemantics.class).validate(inputExpr, , acceptor);
 
 
             final PatternMatchOutput<
-                    ? extends PatternMatchSemanticsProcess.IsValidation,
-                    PatternMatchOutput.DoesUnification,
-                    PatternMatchOutput.WithTypeNarrowing> output =
+                    ? extends PatternMatchSemanticsProcess.IsValidation
+                    > output =
                     module.get(PatternMatchHelper.class).validateWhenMatchesStatementPatternMatching(
                             inputExpr,
                             pattern,

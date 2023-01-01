@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.block;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.*;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSemantics;
@@ -150,7 +151,7 @@ public class BlockSemantics extends Semantics
                             final int finalI = i;
                             module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(statement, (sem) -> {
                                 sem.validate(wrappedSubCast(statement), interceptAcceptor);
-                                List<Effect> effects = sem.computeEffects(wrappedSubCast(statement));
+                                List<Effect> effects = sem.computeEffects(wrappedSubCast(statement), );
                                 if (effects.stream().anyMatch(e -> e instanceof Effect.JumpsAwayFromIteration)) {
                                     if (!interceptAcceptor.thereAreErrors() && finalI < statementsSafe.size() - 1) {
                                         acceptor.acceptError(
@@ -205,7 +206,8 @@ public class BlockSemantics extends Semantics
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
-    public List<Effect> computeEffectsInternal(Maybe<CodeBlock> i) {
+    public List<Effect> computeEffectsInternal(Maybe<CodeBlock> i,
+                                               StaticState state) {
         if (!i.isInstanceOf(CodeBlock.class)) {
             return Collections.emptyList();
         }
@@ -215,7 +217,7 @@ public class BlockSemantics extends Semantics
         try {
             for (Maybe<Statement> statement : Maybe.toListOfMaybes(i.__(CodeBlock::getStatements))) {
                 module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(statement, (sem) -> {
-                    result.addAll(sem.computeEffects(wrappedSubCast(statement)));
+                    result.addAll(sem.computeEffects(wrappedSubCast(statement), ));
                 });
             }
         } finally {
@@ -234,7 +236,7 @@ public class BlockSemantics extends Semantics
             if(!statements.isEmpty()){
                 Maybe<Statement> last = statements.get(statements.size() - 1);
                 module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(last, (sem) -> {
-                        result.addAll(sem.computeEffects(wrappedSubCast(last)));
+                        result.addAll(sem.computeEffects(wrappedSubCast(last), ));
                 });
             }
         } finally {

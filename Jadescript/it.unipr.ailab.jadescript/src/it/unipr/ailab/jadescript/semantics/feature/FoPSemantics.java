@@ -105,7 +105,7 @@ public interface FoPSemantics {
             returnType = typeHelper.VOID;
         } else {
             InterceptAcceptor typeValidation = new InterceptAcceptor(acceptor);
-            typeExpressionSemantics.validate(type, typeValidation);
+            typeExpressionSemantics.validate(type, , typeValidation);
             if (!typeValidation.thereAreErrors()) {
                 returnType = typeExpressionSemantics.toJadescriptType(type);
             } else {
@@ -119,7 +119,7 @@ public interface FoPSemantics {
             paramNames.add(parameter.__(FormalParameter::getName).orElse(""));
             InterceptAcceptor paramTypeValidation = new InterceptAcceptor(acceptor);
             final Maybe<TypeExpression> paramTypeExpr = parameter.__(FormalParameter::getType);
-            typeExpressionSemantics.validate(paramTypeExpr, paramTypeValidation);
+            typeExpressionSemantics.validate(paramTypeExpr, , paramTypeValidation);
             if (!paramTypeValidation.thereAreErrors()) {
                 paramTypes.add(typeExpressionSemantics.toJadescriptType(paramTypeExpr));
             } else {

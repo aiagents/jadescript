@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.BreakStatement;
 import it.unipr.ailab.jadescript.jadescript.ForStatement;
 import it.unipr.ailab.jadescript.jadescript.WhileStatement;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -72,7 +73,8 @@ public class BreakStatementSemantics extends StatementSemantics<BreakStatement> 
 
 
     @Override
-    public List<Effect> computeEffectsInternal(Maybe<BreakStatement> input) {
+    public List<Effect> computeEffectsInternal(Maybe<BreakStatement> input,
+                                               StaticState state) {
         return Effect.JumpsAwayFromIteration.INSTANCE.toList();
     }
 }

@@ -49,11 +49,11 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
         InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
 
         final Maybe<RValueExpression> nickName = input.__(CreateAgentStatement::getAgentNickName);
-        module.get(RValueExpressionSemantics.class).validate(nickName, interceptAcceptor);
+        module.get(RValueExpressionSemantics.class).validate(nickName, , interceptAcceptor);
         if (!interceptAcceptor.thereAreErrors()) {
             module.get(ValidationHelper.class).assertExpectedType(
                     module.get(TypeHelper.class).TEXT,
-                    module.get(RValueExpressionSemantics.class).inferType(nickName),
+                    module.get(RValueExpressionSemantics.class).inferType(nickName, ),
                     "InvalidAgentName",
                     nickName,
                     acceptor
@@ -62,7 +62,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
 
         final Maybe<TypeExpression> agentTypeEObject = input.__(CreateAgentStatement::getAgentType);
         InterceptAcceptor agentTypeValidation = new InterceptAcceptor(acceptor);
-        module.get(TypeExpressionSemantics.class).validate(agentTypeEObject, agentTypeValidation);
+        module.get(TypeExpressionSemantics.class).validate(agentTypeEObject, , agentTypeValidation);
         if (!agentTypeValidation.thereAreErrors()) {
             final IJadescriptType agentType = agentTypeEObject.extract(
                     module.get(TypeExpressionSemantics.class)::toJadescriptType
@@ -107,8 +107,8 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
                 List<IJadescriptType> argumentTypes = new ArrayList<>();
 
                 for (Maybe<RValueExpression> arg : simpleArgs) {
-                    module.get(RValueExpressionSemantics.class).validate(arg, acceptor);
-                    argumentTypes.add(module.get(RValueExpressionSemantics.class).inferType(arg));
+                    module.get(RValueExpressionSemantics.class).validate(arg, , acceptor);
+                    argumentTypes.add(module.get(RValueExpressionSemantics.class).inferType(arg, ));
                 }
 
                 if (createMethodOpt.isPresent()) {
@@ -136,8 +136,8 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
                 List<IJadescriptType> argumentTypes = new ArrayList<>();
 
                 for (Maybe<RValueExpression> arg : namedArgsValues) {
-                    module.get(RValueExpressionSemantics.class).validate(arg, acceptor);
-                    argumentTypes.add(module.get(RValueExpressionSemantics.class).inferType(arg));
+                    module.get(RValueExpressionSemantics.class).validate(arg, , acceptor);
+                    argumentTypes.add(module.get(RValueExpressionSemantics.class).inferType(arg, ));
                 }
 
                 if (createMethodOpt.isPresent()) {
@@ -396,14 +396,14 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
 
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
         final String compiledNickName = rves
-                .compile(nickName, acceptor);
+                .compile(nickName, , acceptor);
 
         acceptor.accept(w.simpleStmt(agentType.compileToJavaTypeReference()
                 + ".create(" + THE_AGENT + "().getContainerController(), "
                 + compiledNickName
                 + (args.isEmpty() || args.stream().allMatch(Maybe::isNothing) ? "" : ", ")
                 + args.stream()
-                .map(input1 -> rves.compile(input1, acceptor))
+                .map(input1 -> rves.compile(input1, , acceptor))
                 .collect(Collectors.joining(", "))
                 + ")"
         ));

@@ -1,4 +1,4 @@
-package it.unipr.ailab.jadescript.semantics;
+package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;

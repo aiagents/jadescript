@@ -3,11 +3,9 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
@@ -15,7 +13,6 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -36,7 +33,8 @@ public class SyntheticExpressionSemantics extends ExpressionSemantics<SyntheticE
     }
 
     @Override
-    protected String compileInternal(Maybe<SyntheticExpression> input, CompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<SyntheticExpression> input,
+                                     StaticState state, CompilationOutputAcceptor acceptor) {
         final SyntheticExpression.SemanticsMethods customSemantics = input.__(SyntheticExpression::getSemanticsMethods)
                 .toOpt().orElseGet(SyntheticExpression.SemanticsMethods::new); //empty methods if null
         final Maybe<SyntheticExpression.SyntheticType> type = input.__(SyntheticExpression::getSyntheticType);
@@ -47,7 +45,7 @@ public class SyntheticExpressionSemantics extends ExpressionSemantics<SyntheticE
     }
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<SyntheticExpression> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<SyntheticExpression> input, StaticState state) {
         final SyntheticExpression.SemanticsMethods customSemantics = input.__(SyntheticExpression::getSemanticsMethods)
                 .toOpt().orElseGet(SyntheticExpression.SemanticsMethods::new); //empty methods if null
         final Maybe<SyntheticExpression.SyntheticType> type = input.__(SyntheticExpression::getSyntheticType);
@@ -69,17 +67,18 @@ public class SyntheticExpressionSemantics extends ExpressionSemantics<SyntheticE
     }
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<SyntheticExpression> input) {
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<SyntheticExpression> input, StaticState state) {
         return Collections.emptyList();
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<SyntheticExpression> input) {
+    protected StaticState advanceInternal(Maybe<SyntheticExpression> input,
+                                          StaticState state) {
         return ExpressionTypeKB.empty();
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<SyntheticExpression> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<SyntheticExpression> input) {
         final SyntheticExpression.SemanticsMethods customSemantics = input.__(SyntheticExpression::getSemanticsMethods)
                 .toOpt().orElseGet(SyntheticExpression.SemanticsMethods::new); //empty methods if null
         final Maybe<SyntheticExpression.SyntheticType> type = input.__(SyntheticExpression::getSyntheticType);
@@ -90,7 +89,7 @@ public class SyntheticExpressionSemantics extends ExpressionSemantics<SyntheticE
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<SyntheticExpression> input) {
+    protected boolean isPatternEvaluationPureInternal(PatternMatchInput<SyntheticExpression> input, StaticState state) {
         final SyntheticExpression.SemanticsMethods customSemantics = input.__(SyntheticExpression::getSemanticsMethods)
                 .toOpt().orElseGet(SyntheticExpression.SemanticsMethods::new); //empty methods if null
         final Maybe<SyntheticExpression.SyntheticType> type = input.__(SyntheticExpression::getSyntheticType);
@@ -101,7 +100,7 @@ public class SyntheticExpressionSemantics extends ExpressionSemantics<SyntheticE
     }
 
     @Override
-    protected boolean validateInternal(Maybe<SyntheticExpression> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<SyntheticExpression> input, StaticState state, ValidationMessageAcceptor acceptor) {
         final SyntheticExpression.SemanticsMethods customSemantics = input.__(SyntheticExpression::getSemanticsMethods)
                 .toOpt().orElseGet(SyntheticExpression.SemanticsMethods::new); //empty methods if null
         final Maybe<SyntheticExpression.SyntheticType> type = input.__(SyntheticExpression::getSyntheticType);
@@ -112,29 +111,30 @@ public class SyntheticExpressionSemantics extends ExpressionSemantics<SyntheticE
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<SyntheticExpression, ?, ?> input, CompilationOutputAcceptor acceptor) {
+    public PatternMatcher
+    compilePatternMatchInternal(PatternMatchInput<SyntheticExpression> input, StaticState state, CompilationOutputAcceptor acceptor) {
         return input.createEmptyCompileOutput();
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<SyntheticExpression> input) {
+    public PatternType inferPatternTypeInternal(Maybe<SyntheticExpression> input, StaticState state) {
         return PatternType.empty(module);
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<SyntheticExpression, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<SyntheticExpression> input,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        return input.createEmptyValidationOutput();
+        return VALID;
     }
 
 
 
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<SyntheticExpression> input) {
+    protected boolean isAlwaysPureInternal(Maybe<SyntheticExpression> input,
+                                           StaticState state) {
         return true;
     }
 
@@ -144,17 +144,20 @@ public class SyntheticExpressionSemantics extends ExpressionSemantics<SyntheticE
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<SyntheticExpression> input) {
+    protected boolean isHoledInternal(Maybe<SyntheticExpression> input,
+                                      StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<SyntheticExpression> input) {
+    protected boolean isTypelyHoledInternal(Maybe<SyntheticExpression> input,
+                                            StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<SyntheticExpression> input) {
+    protected boolean isUnboundInternal(Maybe<SyntheticExpression> input,
+                                        StaticState state) {
         return false;
     }
 

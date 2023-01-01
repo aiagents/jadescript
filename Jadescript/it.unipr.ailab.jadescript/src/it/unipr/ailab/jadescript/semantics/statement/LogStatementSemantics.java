@@ -26,7 +26,7 @@ public class LogStatementSemantics extends StatementSemantics<LogStatement> {
 
     @Override
     public void validate(Maybe<LogStatement> input, ValidationMessageAcceptor acceptor) {
-        module.get(RValueExpressionSemantics.class).validate(input.__(LogStatement::getExpr), acceptor);
+        module.get(RValueExpressionSemantics.class).validate(input.__(LogStatement::getExpr), , acceptor);
         //apparently nothing to validate, other than the validity of the sub-expression
     }
 
@@ -39,7 +39,7 @@ public class LogStatementSemantics extends StatementSemantics<LogStatement> {
         String content;
         if (input.__(LogStatement::getExpr).isPresent()) {
             content = module.get(RValueExpressionSemantics.class).compile(
-                    input.__(LogStatement::getExpr),
+                    input.__(LogStatement::getExpr), ,
                     acceptor
             ).toString();
         } else {

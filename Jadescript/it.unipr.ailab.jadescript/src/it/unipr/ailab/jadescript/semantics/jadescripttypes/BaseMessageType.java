@@ -1,15 +1,15 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
-import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
@@ -18,8 +18,6 @@ import static it.unipr.ailab.maybe.Maybe.of;
 
 public class BaseMessageType extends ParametricType implements EmptyCreatable {
 
-    private final Map<String, Property> properties = new HashMap<>();
-    private boolean initializedProperties = false;
     private final TypeArgument contentType;
     private final Class<?> messageClass;
 
@@ -68,35 +66,10 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
         return contentType.ignoreBound();
     }
 
-    private void initBuiltinProperties() {
-        if (!initializedProperties) {
-            addProperty(new Property("sender", module.get(TypeHelper.class).AID, true, getLocation())
-                    .setCompileByJVMAccessors()
-            );
-            addProperty(new Property("performative", module.get(TypeHelper.class).PERFORMATIVE, true, getLocation())
-                    .setCompileByCustomJVMMethod("getJadescriptPerformative", "setJadescriptPerformative")
-            );
-            addProperty(new Property("content", contentType.ignoreBound(), true, getLocation())
-                    .setCustomCompile(
-                            (e) -> e + "getContent("+ THE_AGENT + "().getContentManager())",
-                            // It's read only, so the setter doesn't matter:
-                            (e, re) -> e+"/*Error trying to set content*/ =" + re)
-            );
-            addProperty(new Property("ontology", module.get(TypeHelper.class).ONTOLOGY, true, getLocation())
-                    .setCompileByJVMAccessors()
-            );
-        }
-        this.initializedProperties = true;
-    }
-
-    protected Map<String, Property> getBuiltinProperties() {
-        initBuiltinProperties();
-        return properties;
-    }
 
     @Override
     public void addProperty(Property prop) {
-        properties.put(prop.name(), prop);
+
     }
 
     @Override
@@ -140,26 +113,95 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
     }
 
     @Override
-    public TypeNamespace namespace() {
-        return new BuiltinOpsNamespace(
-                module,
-                nothing(),
-                new ArrayList<>(getBuiltinProperties().values()),
-                List.of(),
-                getLocation()
-        );
+    public MessageTypeNamespace namespace() {
+        return MessageTypeNamespace.messageTypeNamespace(module, contentType, getLocation());
     }
 
     @Override
     public JvmTypeReference asJvmTypeReference() {
         return module.get(TypeHelper.class).typeRef(
                 messageClass,
-                getTypeArguments().stream().map(TypeArgument::asJvmTypeReference).collect(Collectors.toList())
+                getTypeArguments().stream()
+                        .map(TypeArgument::asJvmTypeReference)
+                        .collect(Collectors.toList())
         );
     }
 
     @Override
     public String compileNewEmptyInstance() {
         return "new jadescript.core.message.Message<>(jadescript.lang.Performative.UNKNOWN)";
+    }
+
+    public static class MessageTypeNamespace extends BuiltinOpsNamespace {
+
+
+        private final Property senderProperty;
+        private final Property performativeProperty;
+        private final Property contentProperty;
+        private final Property ontologyProperty;
+
+        private MessageTypeNamespace(
+                SemanticsModule module,
+                Property senderProperty,
+                Property performativeProperty,
+                Property contentProperty,
+                Property ontologyProperty,
+                SearchLocation location
+        ) {
+            super(
+                    module,
+                    nothing(),
+                    List.of(
+                            senderProperty,
+                            performativeProperty,
+                            contentProperty,
+                            ontologyProperty
+                    ),
+                    List.of(),
+                    location
+            );
+            this.senderProperty = senderProperty;
+            this.performativeProperty = performativeProperty;
+            this.contentProperty = contentProperty;
+            this.ontologyProperty = ontologyProperty;
+        }
+
+        public static MessageTypeNamespace messageTypeNamespace(
+                SemanticsModule module,
+                TypeArgument contentType,
+                SearchLocation location
+        ) {
+            return new MessageTypeNamespace(
+                    module,
+                    new Property("sender", module.get(TypeHelper.class).AID, true, location)
+                            .setCompileByJVMAccessors(),
+                    new Property("performative", module.get(TypeHelper.class).PERFORMATIVE, true, location)
+                            .setCompileByCustomJVMMethod("getJadescriptPerformative", "setJadescriptPerformative"),
+                    new Property("content", contentType.ignoreBound(), true, location)
+                            .setCustomCompile(
+                                    (e) -> e + "getContent(" + THE_AGENT + "().getContentManager())",
+                                    (e, re) -> e + "/*Error trying to set content*/ =" + re
+                            ),
+                    new Property("ontology", module.get(TypeHelper.class).ONTOLOGY, true, location)
+                            .setCompileByJVMAccessors(),
+                    location
+            );
+        }
+
+        public Property getSenderProperty() {
+            return senderProperty;
+        }
+
+        public Property getPerformativeProperty() {
+            return performativeProperty;
+        }
+
+        public Property getContentProperty() {
+            return contentProperty;
+        }
+
+        public Property getOntologyProperty() {
+            return ontologyProperty;
+        }
     }
 }

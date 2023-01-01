@@ -46,11 +46,11 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
         if (isWithIndex) {
             return w.callStmnt(
                     collectionCompiled + ".remove",
-                    w.expr("(int)" + rves.compile(index, acceptor))
+                    w.expr("(int)" + rves.compile(index, , acceptor))
             );
         } else {
-            String arg = rves.compile(element, acceptor);
-            if (module.get(TypeHelper.class).INTEGER.isAssignableFrom(rves.inferType(element))) {
+            String arg = rves.compile(element, , acceptor);
+            if (module.get(TypeHelper.class).INTEGER.isAssignableFrom(rves.inferType(element, ))) {
                 arg = "(Integer) " + arg;
             }
             return w.callStmnt(collectionCompiled + ".remove", w.expr(arg));
@@ -64,7 +64,7 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
     ) {
         return w.callStmnt(
                 collectionCompiled + ".remove",
-                w.expr(module.get(RValueExpressionSemantics.class).compile(key, acceptor))
+                w.expr(module.get(RValueExpressionSemantics.class).compile(key, , acceptor))
         );
     }
 
@@ -78,20 +78,20 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
 
         return w.callStmnt(
                 collectionCompiled + "." + (isRetain ? "retain" : "remove") + "All",
-                w.expr(module.get(RValueExpressionSemantics.class).compile(argCollection, acceptor))
+                w.expr(module.get(RValueExpressionSemantics.class).compile(argCollection, , acceptor))
         );
     }
 
     @Override
     public void compileStatement(Maybe<RemoveStatement> input, CompilationOutputAcceptor acceptor) {
         final Maybe<RValueExpression> collection = input.__(RemoveStatement::getCollection);
-        String collectionCompiled = module.get(RValueExpressionSemantics.class).compile(collection, acceptor);
+        String collectionCompiled = module.get(RValueExpressionSemantics.class).compile(collection, , acceptor);
         final boolean isRetain = input.__(RemoveStatement::isRetain).extract(nullAsFalse);
         final boolean isWithIndex = input.__(RemoveStatement::isWithIndex).extract(nullAsFalse);
         final boolean isAll = input.__(RemoveStatement::isAll).extract(nullAsFalse);
         final Maybe<RValueExpression> index = input.__(RemoveStatement::getIndex);
         final Maybe<RValueExpression> element = input.__(RemoveStatement::getElement);
-        IJadescriptType typeOfCollection = module.get(RValueExpressionSemantics.class).inferType(collection);
+        IJadescriptType typeOfCollection = module.get(RValueExpressionSemantics.class).inferType(collection, );
         StatementWriter statementWriter;
         if (typeOfCollection instanceof ListType || typeOfCollection instanceof SetType) {
             if (isAll) {
@@ -124,12 +124,12 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
         final boolean isAll = input.__(RemoveStatement::isAll).extract(nullAsFalse);
         final Maybe<RValueExpression> index = input.__(RemoveStatement::getIndex);
         final Maybe<RValueExpression> element = input.__(RemoveStatement::getElement);
-        IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection);
+        IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection, );
 
-        module.get(RValueExpressionSemantics.class).validate(collection, subValidations);
+        module.get(RValueExpressionSemantics.class).validate(collection, , subValidations);
         module.get(RValueExpressionSemantics.class).validate(
-                input.__(inputSafe -> inputSafe.isWithIndex() ? inputSafe.getIndex() : inputSafe.getElement()),
-                subValidations
+                input.__(inputSafe -> inputSafe.isWithIndex() ? inputSafe.getIndex() : inputSafe.getElement()), ,
+            subValidations
         );
 
         final ValidationHelper validationHelper = module.get(ValidationHelper.class);
@@ -163,7 +163,7 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
             );
         }
 
-        final IJadescriptType elementType = module.get(RValueExpressionSemantics.class).inferType(element);
+        final IJadescriptType elementType = module.get(RValueExpressionSemantics.class).inferType(element, );
         if (!subValidations.thereAreErrors() && isAll) {
             final TypeHelper typeHelper = module.get(TypeHelper.class);
             final ListType expectedList = typeHelper.LIST.apply(Arrays.asList(

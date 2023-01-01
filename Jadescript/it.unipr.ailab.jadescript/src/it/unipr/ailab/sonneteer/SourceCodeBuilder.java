@@ -49,6 +49,12 @@ public class SourceCodeBuilder {
         }
         return this;
     }
+
+    public SourceCodeBuilder add(Writer w){
+        w.writeSonnet(this);
+        return this;
+    }
+
     public SourceCodeBuilder indent(){
         indentationLevel++;
         return this;

@@ -28,21 +28,20 @@ public class MessageHandlerWhenExpressionContext
         implements NamedSymbol.Searcher, CallableSymbol.Searcher, MessageReceivedContext {
 
 
-    private Maybe<Performative> performative = Maybe.nothing();
+    private final Maybe<Performative> performative;
     private final LazyValue<NamespaceWithSymbols> messageNamespace;
 
     public MessageHandlerWhenExpressionContext(
             SemanticsModule module,
+            Maybe<Performative> performative,
             ProceduralFeatureContainerContext outer
     ) {
+
         super(module, outer);
         this.messageNamespace = new LazyValue<>(() -> getMessageType().namespace());
+        this.performative = performative;
     }
 
-    public MessageHandlerWhenExpressionContext setPerformative(Maybe<Performative> performative) {
-        this.performative = performative;
-        return this;
-    }
 
     @Override
     public IJadescriptType getMessageContentType() {

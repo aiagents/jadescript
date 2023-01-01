@@ -44,7 +44,7 @@ public class ProcedureCallStatementSemantics extends StatementSemantics<Procedur
                                     simpleArgs,
                                     namedArgs,
                                     true
-                            ),
+                            ), ,
                             acceptor
                     ).toString()
             ));
@@ -72,7 +72,7 @@ public class ProcedureCallStatementSemantics extends StatementSemantics<Procedur
             Maybe<String> name = input.__(ProcedureCallStatement::getName);
             Maybe<SimpleArgumentList> simpleArgs = input.__(ProcedureCallStatement::getSimpleArgs);
             Maybe<NamedArgumentList> namedArgs = input.__(ProcedureCallStatement::getNamedArgs);
-            module.get(MethodInvocationSemantics.class).validate(MethodCall.methodCall(input, name, simpleArgs, namedArgs, true), acceptor);
+            module.get(MethodInvocationSemantics.class).validate(MethodCall.methodCall(input, name, simpleArgs, namedArgs, true), , acceptor);
         }
     }
 

@@ -3,10 +3,9 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import it.unipr.ailab.jadescript.jadescript.Primary;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
@@ -15,7 +14,6 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -45,17 +43,18 @@ public class PlaceholderExpressionSemantics extends ExpressionSemantics<Primary>
     }
 
     @Override
-    protected boolean validateInternal(Maybe<Primary> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<Primary> input, StaticState state, ValidationMessageAcceptor acceptor) {
         return errorNotRExpression(input, acceptor);
     }
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<Primary> input) {
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<Primary> input, StaticState state) {
         return Collections.emptyList();
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<Primary> input) {
+    protected StaticState advanceInternal(Maybe<Primary> input,
+                                          StaticState state) {
         return ExpressionTypeKB.empty();
     }
 
@@ -65,12 +64,13 @@ public class PlaceholderExpressionSemantics extends ExpressionSemantics<Primary>
     }
 
     @Override
-    protected String compileInternal(Maybe<Primary> input, CompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<Primary> input, StaticState state, CompilationOutputAcceptor acceptor) {
         return "/*ERROR: placeholder compiled*/null";
     }
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<Primary> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<Primary> input,
+                                                StaticState state) {
         return module.get(TypeHelper.class).TOP.apply(
                 "Cannot compute the type of a '_' placeholder used as expression."
         );
@@ -82,63 +82,60 @@ public class PlaceholderExpressionSemantics extends ExpressionSemantics<Primary>
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<Primary> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<Primary> input) {
         return Optional.empty();
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<Primary> input) {
+    protected boolean isPatternEvaluationPureInternal(
+        PatternMatchInput<Primary> input,
+        StaticState state) {
         return true;
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
-            PatternMatchInput<Primary, ?, ?> input,
-            CompilationOutputAcceptor acceptor
+    public PatternMatcher compilePatternMatchInternal(
+        PatternMatchInput<Primary> input,
+        StaticState state, CompilationOutputAcceptor acceptor
     ) {
         IJadescriptType solvedPatternType = input.getProvidedInputType();
-        return input.createPlaceholderMethodOutput(
-                solvedPatternType,
-                () -> PatternMatchOutput.EMPTY_UNIFICATION,
-                () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-        );
+        return input.createPlaceholderMethodOutput(solvedPatternType);
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<Primary> input) {
+    public PatternType inferPatternTypeInternal(Maybe<Primary> input,
+                                                StaticState state) {
         return PatternType.holed(t -> t);
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<Primary, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<Primary> input,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        IJadescriptType solvedPatternType = input.getProvidedInputType();
-        return input.createValidationOutput(
-                () -> PatternMatchOutput.EMPTY_UNIFICATION,
-                () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-        );
+        return VALID;
     }
 
 
     @Override
-    protected boolean isHoledInternal(Maybe<Primary> input) {
+    protected boolean isHoledInternal(Maybe<Primary> input, StaticState state) {
         return true;
     }
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<Primary> input) {
+    protected boolean isTypelyHoledInternal(Maybe<Primary> input,
+                                            StaticState state) {
         return true;
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<Primary> input) {
+    protected boolean isUnboundInternal(Maybe<Primary> input, StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<Primary> input) {
+    protected boolean isAlwaysPureInternal(Maybe<Primary> input,
+                                           StaticState state) {
         return true;
     }
 

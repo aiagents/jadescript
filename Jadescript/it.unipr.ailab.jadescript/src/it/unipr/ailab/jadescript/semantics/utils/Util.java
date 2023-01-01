@@ -87,8 +87,7 @@ public class Util implements SemanticsConsts {
         );
     }
 
-    @SuppressWarnings("unused")
-	private <T> Stream<T> safeFilter(Stream<T> stream, Predicate<T> predicate) {
+	public static <T> Stream<T> safeFilter(Stream<T> stream, Predicate<T> predicate) {
         if (predicate != null) {
             return stream.filter(predicate);
         } else {

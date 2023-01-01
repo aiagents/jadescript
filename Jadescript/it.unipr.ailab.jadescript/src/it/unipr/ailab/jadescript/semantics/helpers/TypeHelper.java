@@ -1560,7 +1560,7 @@ public class TypeHelper implements SemanticsConsts {
             return "";
         }
         int endIndex = type.indexOf('<');
-        if (endIndex < 0 || endIndex > type.length()) {
+        if (endIndex < 0) {
             return type;
         }
         return type.substring(0, endIndex);
@@ -1806,7 +1806,9 @@ public class TypeHelper implements SemanticsConsts {
         }
     }
 
-    public JvmTypeReference getArrayListMapComponentType(JvmTypeReference arrayOrListType) {
+    public JvmTypeReference getArrayListMapComponentType(
+        JvmTypeReference arrayOrListType
+    ) {
         if (arrayOrListType instanceof JvmGenericArrayTypeReference) {
             return ((JvmGenericArrayTypeReference) arrayOrListType).getComponentType();
         } else if (arrayOrListType instanceof JvmParameterizedTypeReference) {
@@ -1906,6 +1908,16 @@ public class TypeHelper implements SemanticsConsts {
         }
     }
 
+    public IJadescriptType getLUB(IJadescriptType t0, IJadescriptType... ts){
+        if(ts.length == 0){
+            return t0;
+        }else if(ts.length == 1){
+            return getLUB(t0, ts[0]);
+        }else{
+            return Arrays.stream(ts).reduce(t0, this::getLUB);
+        }
+    }
+
     @SuppressWarnings("unused")
     public IJadescriptType getGLB(IJadescriptType t1, IJadescriptType t2) {
         if (t1.isAssignableFrom(t2)) {
@@ -1914,6 +1926,16 @@ public class TypeHelper implements SemanticsConsts {
             return t1;
         } else {
             return NOTHING;
+        }
+    }
+
+    public IJadescriptType getGLB(IJadescriptType t0, IJadescriptType... ts){
+        if(ts.length == 0){
+            return t0;
+        }else if(ts.length == 1){
+            return getGLB(t0, ts[0]);
+        }else{
+            return Arrays.stream(ts).reduce(t0, this::getGLB);
         }
     }
 

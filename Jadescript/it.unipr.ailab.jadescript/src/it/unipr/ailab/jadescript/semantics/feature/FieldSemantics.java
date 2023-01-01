@@ -73,10 +73,11 @@ public class FieldSemantics extends FeatureSemantics<Field> {
                                 module.get(ContextManager.class).restore(savedContext);
                                 module.get(ContextManager.class).enterProceduralFeature(FieldInitializerContext::new);
 
-                                scb.add(module.get(RValueExpressionSemantics.class).compile(right,
+                                scb.add(module.get(RValueExpressionSemantics.class).compile(right, ,
                                         //TODO TODO TODO!!
                                         // Create acceptor and collector of initialization stuff for fields
-                                        new DroppingAcceptor()));
+                                        new DroppingAcceptor()
+                                ));
 
                                 module.get(ContextManager.class).exit();
 
@@ -151,7 +152,7 @@ public class FieldSemantics extends FeatureSemantics<Field> {
             type = module.get(TypeExpressionSemantics.class).toJadescriptType(explicitType);
         } else if (right.isPresent()) {
             module.get(ContextManager.class).enterProceduralFeature(FieldInitializerContext::new);
-            type = module.get(RValueExpressionSemantics.class).inferType(right);
+            type = module.get(RValueExpressionSemantics.class).inferType(right, );
             module.get(ContextManager.class).exit();
         } else {
             // Something's wrong.
@@ -172,7 +173,7 @@ public class FieldSemantics extends FeatureSemantics<Field> {
 
         if (explicitType.isPresent()) {
             InterceptAcceptor typeValidation = new InterceptAcceptor(acceptor);
-            module.get(TypeExpressionSemantics.class).validate(explicitType, typeValidation);
+            module.get(TypeExpressionSemantics.class).validate(explicitType, , typeValidation);
             if (!typeValidation.thereAreErrors()) {
                 typeDescriptor = Maybe.of(module.get(TypeExpressionSemantics.class).toJadescriptType(explicitType));
                 typeDescriptor.safeDo(t -> t.validateType(explicitType, acceptor));
@@ -184,10 +185,10 @@ public class FieldSemantics extends FeatureSemantics<Field> {
 
             InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
 
-            module.get(RValueExpressionSemantics.class).validate(right, subValidation);
+            module.get(RValueExpressionSemantics.class).validate(right, , subValidation);
 
             if (!subValidation.thereAreErrors()) {
-                IJadescriptType inferredType = module.get(RValueExpressionSemantics.class).inferType(right);
+                IJadescriptType inferredType = module.get(RValueExpressionSemantics.class).inferType(right, );
 
                 if (typeDescriptor.isPresent()) {
                     module.get(ValidationHelper.class).assertExpectedType(

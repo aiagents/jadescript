@@ -14,18 +14,27 @@ import java.util.stream.Stream;
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
 public interface MessageReceivedContext extends SemanticsConsts {
+    static ContextGeneratedReference messageContentContextGeneratedReference(
+        IJadescriptType messageType,
+        IJadescriptType contentType
+    ) {
+        return new ContextGeneratedReference(CONTENT_VAR_NAME, contentType,
+            (__) -> "(" + messageType.compileAsJavaCast() + " "
+                + MESSAGE_VAR_NAME + ")" +
+                ".getContent(" + THE_AGENT + "().getContentManager())"
+        );
+    }
+
     Maybe<Performative> getPerformative();
 
     IJadescriptType getMessageContentType();
 
     IJadescriptType getMessageType();
 
-
-
     default Stream<NamedSymbol> getMessageStream(
-            Predicate<String> name,
-            Predicate<IJadescriptType> readingType,
-            Predicate<Boolean> canWrite
+        Predicate<String> name,
+        Predicate<IJadescriptType> readingType,
+        Predicate<Boolean> canWrite
     ) {
         Stream<Integer> mess = Stream.of(0);
         mess = safeFilter(mess, __ -> MESSAGE_VAR_NAME, name);
@@ -33,39 +42,32 @@ public interface MessageReceivedContext extends SemanticsConsts {
         mess = safeFilter(mess, __ -> messageType, readingType);
         mess = safeFilter(mess, __ -> true, canWrite);
         return mess.map(__ -> new ContextGeneratedReference(
-                MESSAGE_VAR_NAME,
-                messageType,
-                (___) -> "(" + messageType.compileAsJavaCast() + " " + MESSAGE_VAR_NAME + ")"
+            MESSAGE_VAR_NAME,
+            messageType,
+            (___) -> "(" + messageType.compileAsJavaCast() + " "
+                + MESSAGE_VAR_NAME + ")"
         ));
     }
 
     default Stream<NamedSymbol> getContentStream(
-            Predicate<String> name,
-            Predicate<IJadescriptType> readingType,
-            Predicate<Boolean> canWrite
+        Predicate<String> name,
+        Predicate<IJadescriptType> readingType,
+        Predicate<Boolean> canWrite
     ) {
         Stream<Integer> cont = Stream.of(0);
         cont = safeFilter(cont, __ -> CONTENT_VAR_NAME, name);
         cont = safeFilter(cont, __ -> getMessageContentType(), readingType);
         cont = safeFilter(cont, __ -> true, canWrite);
-        return cont.map(__ -> messageContentContextGeneratedReference(getMessageType(), getMessageContentType()));
+        return cont.map(__ -> messageContentContextGeneratedReference(
+            getMessageType(), getMessageContentType()));
     }
 
     default void debugDumpReceivedMessage(SourceCodeBuilder scb) {
         scb.open("--> is MessageReceivedContext {");
         scb.line("performative = " + getPerformative());
-        scb.line("messageContentType = " + getMessageContentType().getDebugPrint());
+        scb.line("messageContentType = " + getMessageContentType()
+            .getDebugPrint());
         scb.line("messageType = " + getMessageType().getDebugPrint());
         scb.close("}");
-    }
-
-    static ContextGeneratedReference messageContentContextGeneratedReference(
-            IJadescriptType messageType,
-            IJadescriptType contentType
-    ) {
-        return new ContextGeneratedReference(CONTENT_VAR_NAME, contentType,
-                (__) -> "(" + messageType.compileAsJavaCast() + " " + MESSAGE_VAR_NAME + ")" +
-                        ".getContent(" + THE_AGENT + "().getContentManager())"
-        );
     }
 }

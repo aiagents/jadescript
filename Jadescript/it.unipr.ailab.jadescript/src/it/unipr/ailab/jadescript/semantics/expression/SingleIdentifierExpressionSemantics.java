@@ -1,17 +1,17 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.Assignment;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.*;
 import it.unipr.ailab.jadescript.semantics.context.Context;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -51,7 +51,7 @@ public class SingleIdentifierExpressionSemantics
 
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<VirtualIdentifier> input) {
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<VirtualIdentifier> input, StaticState state) {
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved = resolve(input);
         final String ident = input.__(VirtualIdentifier::getIdent).extract(nullAsEmptyString);
         if(resolved.isNothing() || ident.isBlank()){
@@ -59,12 +59,13 @@ public class SingleIdentifierExpressionSemantics
         }else if(resolved.toNullable() instanceof Either.Left){
             return List.of(ident);
         }else /*if(resolved.toNullable() instanceof Either.Right)*/{
-            return module.get(MethodInvocationSemantics.class).propertyChain(MethodCall.methodCall(input));
+            return module.get(MethodInvocationSemantics.class).describeExpression(MethodCall.methodCall(input), );
         }
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<VirtualIdentifier> input) {
+    protected StaticState advanceInternal(Maybe<VirtualIdentifier> input,
+                                          StaticState state) {
         return ExpressionTypeKB.empty();
     }
 
@@ -101,7 +102,8 @@ public class SingleIdentifierExpressionSemantics
     }
 
     @Override
-    protected String compileInternal(Maybe<VirtualIdentifier> input, CompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<VirtualIdentifier> input,
+                                     StaticState state, CompilationOutputAcceptor acceptor) {
         if (input == null) return "";
         Maybe<String> ident = input.__(VirtualIdentifier::getIdent);
         if (ident.wrappedEquals(THIS)) {
@@ -123,15 +125,15 @@ public class SingleIdentifierExpressionSemantics
                 return variable.compileRead("");
             }
         } else /*if (resolved.toNullable() instanceof Either.Right)*/ {
-            return module.get(MethodInvocationSemantics.class).compile(MethodCall.methodCall(input), acceptor);
+            return module.get(MethodInvocationSemantics.class).compile(MethodCall.methodCall(input), , acceptor);
         }
     }
 
     public void compileAssignmentInternal(
-            Maybe<VirtualIdentifier> input,
-            String compiledExpression,
-            IJadescriptType exprType,
-            CompilationOutputAcceptor acceptor
+        Maybe<VirtualIdentifier> input,
+        String compiledExpression,
+        IJadescriptType exprType,
+        StaticState state, CompilationOutputAcceptor acceptor
     ) {
         if (input == null) return;
         final Maybe<String> ident = input.__(VirtualIdentifier::getIdent);
@@ -175,7 +177,7 @@ public class SingleIdentifierExpressionSemantics
         }
     }
 
-    protected IJadescriptType inferTypeInternal(Maybe<VirtualIdentifier> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<VirtualIdentifier> input, StaticState state) {
         if (input == null) return module.get(TypeHelper.class).ANY;
         final Maybe<String> ident = input.__(VirtualIdentifier::getIdent);
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved = resolve(input);
@@ -186,7 +188,7 @@ public class SingleIdentifierExpressionSemantics
         } else if (resolved.toNullable() instanceof Either.Left) {
             return ((Either.Left<NamedSymbol, CallableSymbol>) resolved.toNullable()).getLeft().readingType();
         } else /*if(resolved.toNullable() instanceof Either.Right)*/ {
-            return module.get(MethodInvocationSemantics.class).inferType(MethodCall.methodCall(input));
+            return module.get(MethodInvocationSemantics.class).inferType(MethodCall.methodCall(input), );
         }
     }
 
@@ -197,12 +199,13 @@ public class SingleIdentifierExpressionSemantics
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<VirtualIdentifier> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<VirtualIdentifier> input) {
         return Optional.empty();
     }
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<VirtualIdentifier> input) {
+    protected boolean isAlwaysPureInternal(Maybe<VirtualIdentifier> input,
+                                           StaticState state) {
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved = resolve(input);
         //Considering it pure if it is not resolved and if it is a named symbol (i.e. not a call to a function without
         // parentheses).
@@ -211,28 +214,31 @@ public class SingleIdentifierExpressionSemantics
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<VirtualIdentifier> input) {
+    protected boolean isHoledInternal(Maybe<VirtualIdentifier> input,
+                                      StaticState state) {
         return !resolves(input);
     }
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<VirtualIdentifier> input) {
+    protected boolean isTypelyHoledInternal(Maybe<VirtualIdentifier> input,
+                                            StaticState state) {
         return !resolves(input);
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<VirtualIdentifier> input) {
+    protected boolean isUnboundInternal(Maybe<VirtualIdentifier> input,
+                                        StaticState state) {
         return !resolves(input);
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<VirtualIdentifier, ?, ?> input, CompilationOutputAcceptor acceptor) {
+    public PatternMatcher
+    compilePatternMatchInternal(PatternMatchInput<VirtualIdentifier> input, StaticState state, CompilationOutputAcceptor acceptor) {
         final String identifier = input.getPattern().__(VirtualIdentifier::getIdent).orElse("");
-        if (isUnbound(input.getPattern())) {
+        if (isUnbound(input.getPattern(), )) {
 
             if (input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION) {
-                IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.getProvidedInputType());
+                IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode(), ).solve(input.getProvidedInputType());
                 String localClassName = "__PatternMatcher" + input.getPattern()
                         .__(ProxyEObject::getProxyEObject)
                         .__(Objects::hashCode)
@@ -248,17 +254,15 @@ public class SingleIdentifierExpressionSemantics
 
                 return input.createFieldAssigningMethodOutput(
                         solvedPatternType,
-                        identifier,
-                        () -> new PatternMatchOutput.DoesUnification(List.of(deconstructedVariable)),
-                        () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
+                        identifier
                 );
             } else {
                 return input.createEmptyCompileOutput();
             }
         } else {
 
-            IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.getProvidedInputType());
-            String tempCompile = compile(input.getPattern(), acceptor);
+            IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode(), ).solve(input.getProvidedInputType());
+            String tempCompile = compile(input.getPattern(), , acceptor);
             String compiledFinal;
             if (tempCompile.startsWith(input.getRootPatternMatchVariableName())) {
                 compiledFinal = identifier;
@@ -267,30 +271,28 @@ public class SingleIdentifierExpressionSemantics
             }
             return input.createSingleConditionMethodOutput(
                     solvedPatternType,
-                    "java.util.Objects.equals(__x," + compiledFinal + ")",
-                    () -> PatternMatchOutput.EMPTY_UNIFICATION,
-                    () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
+                    "java.util.Objects.equals(__x," + compiledFinal + ")"
             );
         }
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<VirtualIdentifier> input) {
-        if (isTypelyHoled(input)) {
+    public PatternType inferPatternTypeInternal(Maybe<VirtualIdentifier> input, StaticState state) {
+        if (isTypelyHoled(input, )) {
             return PatternType.holed(inputType -> inputType);
         } else {
-            return PatternType.simple(inferType(input));
+            return PatternType.simple(inferType(input, ));
         }
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<VirtualIdentifier, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<VirtualIdentifier> input,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        if (isUnbound(input.getPattern())) {
+        if (isUnbound(input.getPattern(), )) {
             final String identifier = input.getPattern().__(VirtualIdentifier::getIdent).orElse("");
-            module.get(ValidationHelper.class).assertion(
+            boolean resolutionCheck = module.get(ValidationHelper.class).assertion(
                     input.getMode().getUnification() != PatternMatchMode.Unification.WITHOUT_VAR_DECLARATION,
                     "InvalidReference",
                     "Unresolved name: " + identifier,
@@ -299,7 +301,10 @@ public class SingleIdentifierExpressionSemantics
             );
 
             if (input.getMode().getUnification() == PatternMatchMode.Unification.WITH_VAR_DECLARATION) {
-                IJadescriptType solvedPatternType = inferPatternType(input.getPattern(), input.getMode()).solve(input.getProvidedInputType());
+                IJadescriptType solvedPatternType = inferPatternType(
+                        input.getPattern(),
+                        input.getMode(),
+                ).solve(input.getProvidedInputType());
 
                 String localClassName = "__PatternMatcher" + input.getPattern()
                         .__(ProxyEObject::getProxyEObject)
@@ -325,31 +330,22 @@ public class SingleIdentifierExpressionSemantics
                     );
                 }
 
-                return input.createValidationOutput(
-                        () -> new PatternMatchOutput.DoesUnification(List.of(deconstructedVariable)),
-                        () -> new PatternMatchOutput.WithTypeNarrowing(solvedPatternType)
-                );
-            } else {
-                return input.createEmptyValidationOutput();
             }
+            return resolutionCheck;
         } else {
-            IJadescriptType typeOfNamedSymbol = inferType(input.getPattern());
-            module.get(ValidationHelper.class).assertExpectedType(
+            IJadescriptType typeOfNamedSymbol = inferType(input.getPattern(), );
+            return module.get(ValidationHelper.class).assertExpectedType(
                     input.getProvidedInputType(),
                     typeOfNamedSymbol,
                     "UnexpectedTermType",
                     input.getPattern().__(VirtualIdentifier::getProxyEObject),
                     acceptor
             );
-            return input.createValidationOutput(
-                    () -> PatternMatchOutput.EMPTY_UNIFICATION,
-                    () -> new PatternMatchOutput.WithTypeNarrowing(typeOfNamedSymbol)
-            );
         }
     }
 
 
-    protected boolean validateInternal(Maybe<VirtualIdentifier> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<VirtualIdentifier> input, StaticState state, ValidationMessageAcceptor acceptor) {
         final Maybe<String> ident = input.__(VirtualIdentifier::getIdent);
         if (ident.isNothing()) {
             return VALID;
@@ -365,20 +361,20 @@ public class SingleIdentifierExpressionSemantics
     }
 
     public boolean validateAssignmentInternal(
-            Maybe<VirtualIdentifier> input,
-            Maybe<RValueExpression> expression,
-            ValidationMessageAcceptor acceptor
+        Maybe<VirtualIdentifier> input,
+        Maybe<RValueExpression> expression,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
         final Maybe<String> ident = input.__(VirtualIdentifier::getIdent);
 
 
         boolean subValidation = module.get(RValueExpressionSemantics.class)
-                .validate(expression, acceptor);
+                .validate(expression, , acceptor);
 
         if (ident.isNothing() || subValidation == INVALID) {
             return INVALID;
         }
-        IJadescriptType typeOfRExpression = module.get(RValueExpressionSemantics.class).inferType(expression);
+        IJadescriptType typeOfRExpression = module.get(RValueExpressionSemantics.class).inferType(expression, );
 
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolve = resolve(input);
         if (resolve.isNothing()) {
@@ -391,14 +387,14 @@ public class SingleIdentifierExpressionSemantics
                     acceptor
             );
 
-            boolean rightValidation = module.get(RValueExpressionSemantics.class).validate(expression, acceptor);
+            boolean rightValidation = module.get(RValueExpressionSemantics.class).validate(expression, , acceptor);
 
 
             if (reservedNameValidation == INVALID || rightValidation == INVALID) {
                 return INVALID;
             }
 
-            IJadescriptType type = module.get(RValueExpressionSemantics.class).inferType(expression);
+            IJadescriptType type = module.get(RValueExpressionSemantics.class).inferType(expression, );
             boolean typeValidation = type.validateType(expression, acceptor);
             if (typeValidation == INVALID || ident.isNothing() || ident.toNullable().isBlank()) {
                 return INVALID;
@@ -491,7 +487,7 @@ public class SingleIdentifierExpressionSemantics
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<VirtualIdentifier> input) {
+    protected boolean isPatternEvaluationPureInternal(PatternMatchInput<VirtualIdentifier> input, StaticState state) {
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolve = this.resolve(input);
         if (resolve.isNothing()) {
             //Yes: probably declaring a new local variable.
@@ -505,7 +501,7 @@ public class SingleIdentifierExpressionSemantics
         } else if (either instanceof Either.Right) {
             //Resolves to a function invocation
             return module.get(MethodInvocationSemantics.class).isPatternEvaluationPure(
-                    MethodCall.methodCall(input)
+                    MethodCall.methodCall(input),
             );
         } else {
             return true;

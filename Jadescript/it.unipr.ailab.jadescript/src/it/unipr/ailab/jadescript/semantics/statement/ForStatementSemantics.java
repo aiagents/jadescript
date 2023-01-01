@@ -44,7 +44,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         Maybe<String> varName = input.__(ForStatement::getVarName);
         Maybe<String> var2Name = input.__(ForStatement::getVar2Name);
         Maybe<OptionalBlock> forBody = input.__(ForStatement::getForBody);
-        IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection);
+        IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection, );
         IJadescriptType firstVarType;
 
         if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
@@ -68,13 +68,13 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         );
 
         final String compiledCollection = module.get(RValueExpressionSemantics.class)
-                .compile(collection, acceptor);
+                .compile(collection, , acceptor);
         if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
 
             Maybe<RValueExpression> end = input.__(ForStatement::getEndIndex);
 
             final String compiledEndIndex = module.get(RValueExpressionSemantics.class)
-                    .compile(end, acceptor);
+                    .compile(end, , acceptor);
 
             ExpressionWriter completeCollExpression = w.expr(
                     "new jadescript.util.IntegerRange(" + compiledCollection + ", "
@@ -160,9 +160,9 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             Maybe<String> varName = input.__(ForStatement::getVarName);
             Maybe<String> var2Name = input.__(ForStatement::getVar2Name);
             InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-            module.get(RValueExpressionSemantics.class).validate(collection, interceptAcceptor);
+            module.get(RValueExpressionSemantics.class).validate(collection, , interceptAcceptor);
             if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
-                module.get(RValueExpressionSemantics.class).validate(endIndex, interceptAcceptor);
+                module.get(RValueExpressionSemantics.class).validate(endIndex, , interceptAcceptor);
             }
             if (!interceptAcceptor.thereAreErrors()) {
 
@@ -185,11 +185,11 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                 });
 
 
-                IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection);
+                IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection, );
 
                 if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
                     @SuppressWarnings("UnnecessaryLocalVariable") IJadescriptType startType = collectionType;
-                    IJadescriptType endType = module.get(RValueExpressionSemantics.class).inferType(endIndex);
+                    IJadescriptType endType = module.get(RValueExpressionSemantics.class).inferType(endIndex, );
                     module.get(ValidationHelper.class).assertExpectedType(module.get(TypeHelper.class).INTEGER, startType,
                             "InvalidIndexType",
                             input,

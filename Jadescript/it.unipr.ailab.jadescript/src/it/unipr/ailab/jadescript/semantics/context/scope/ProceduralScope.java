@@ -16,9 +16,8 @@ import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
-public abstract class ProceduralScope implements Searcheable,
-        NamedSymbol.Searcher {
-
+public abstract class ProceduralScope
+    implements Searcheable, NamedSymbol.Searcher {
 
 
     protected final Map<String, NamedSymbol> variables = new HashMap<>();
@@ -28,14 +27,15 @@ public abstract class ProceduralScope implements Searcheable,
     public abstract Maybe<? extends Searcheable> superSearcheable();
 
 
-
-    public UserVariable addUserVariable(String name, IJadescriptType type, boolean canWrite){
-        final UserVariable userVariable = new UserVariable(name, type, canWrite);
+    public UserVariable addUserVariable(String name, IJadescriptType type,
+                                        boolean canWrite) {
+        final UserVariable userVariable = new UserVariable(name, type,
+            canWrite);
         this.variables.put(name, userVariable);
         return userVariable;
     }
 
-    public void addNamedElement(NamedSymbol ne){
+    public void addNamedElement(NamedSymbol ne) {
         this.variables.put(ne.name(), ne);
     }
 
@@ -54,9 +54,9 @@ public abstract class ProceduralScope implements Searcheable,
 
     @Override
     public Stream<? extends NamedSymbol> searchName(
-            Predicate<String> name,
-            Predicate<IJadescriptType> readingType,
-            Predicate<Boolean> canWrite
+        Predicate<String> name,
+        Predicate<IJadescriptType> readingType,
+        Predicate<Boolean> canWrite
     ) {
         Stream<NamedSymbol> stream = variables.values().stream();
         stream = safeFilter(stream, NamedSymbol::name, name);

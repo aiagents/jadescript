@@ -5,6 +5,8 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -45,19 +47,19 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
 
     @Override
     public void compileAssignmentInternal(
-            Maybe<TypeCast> input,
-            String compiledExpression,
-            IJadescriptType exprType,
-            CompilationOutputAcceptor acceptor
+        Maybe<TypeCast> input,
+        String compiledExpression,
+        IJadescriptType exprType,
+        StaticState state, CompilationOutputAcceptor acceptor
     ) {
         //TODO typed declarations?
     }
 
     @Override
     public boolean validateAssignmentInternal(
-            Maybe<TypeCast> input,
-            Maybe<RValueExpression> expression,
-            ValidationMessageAcceptor acceptor
+        Maybe<TypeCast> input,
+        Maybe<RValueExpression> expression,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
         //TODO typed declarations?
         return VALID;
@@ -77,28 +79,32 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
     }
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<TypeCast> input) {
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<TypeCast> input, StaticState state) {
         return Collections.emptyList();
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<TypeCast> input) {
+    protected StaticState advanceInternal(Maybe<TypeCast> input,
+                                          StaticState state) {
         return ExpressionTypeKB.empty();
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<TypeCast> input) {
+    protected boolean isPatternEvaluationPureInternal(
+        PatternMatchInput<TypeCast> input,
+        StaticState state) {
         return true;
     }
 
     @Override
-    protected String compileInternal(Maybe<TypeCast> input, CompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<TypeCast> input,
+                                     StaticState state, CompilationOutputAcceptor acceptor) {
         if (input == null) return "";
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
         final List<Maybe<TypeExpression>> typeCasts = Maybe.toListOfMaybes(input.__(TypeCast::getTypeCasts));
         String result = module.get(AtomWithTrailersExpressionSemantics.class)
-                .compile(atomExpr, acceptor);
-        IJadescriptType lastCast = module.get(AtomWithTrailersExpressionSemantics.class).inferType(atomExpr);
+                .compile(atomExpr, , acceptor);
+        IJadescriptType lastCast = module.get(AtomWithTrailersExpressionSemantics.class).inferType(atomExpr, );
         for (Maybe<TypeExpression> tc : typeCasts) {
 
             IJadescriptType toCastType = module.get(TypeExpressionSemantics.class).toJadescriptType(tc);
@@ -119,7 +125,8 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
     }
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<TypeCast> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<TypeCast> input,
+                                                StaticState state) {
         if (input == null)
             return module.get(TypeHelper.class).ANY;
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
@@ -129,7 +136,7 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
             Maybe<TypeExpression> lastTypeName = typeCasts.get(typeCasts.size() - 1);
             return module.get(TypeExpressionSemantics.class).toJadescriptType(lastTypeName);
         } else {
-            return module.get(AtomWithTrailersExpressionSemantics.class).inferType(atomExpr);
+            return module.get(AtomWithTrailersExpressionSemantics.class).inferType(atomExpr, );
         }
     }
 
@@ -139,7 +146,7 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TypeCast> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<TypeCast> input) {
         if (mustTraverse(input)) {
             return Optional.of(new SemanticsBoundToExpression<>(
                     module.get(AtomWithTrailersExpressionSemantics.class),
@@ -150,9 +157,9 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
-            PatternMatchInput<TypeCast, ?, ?> input,
-            CompilationOutputAcceptor acceptor
+    public PatternMatcher compilePatternMatchInternal(
+        PatternMatchInput<TypeCast> input,
+        StaticState state, CompilationOutputAcceptor acceptor
     ) {
         final List<IJadescriptType> castsTypes = toListOfMaybes(input.getPattern().__(TypeCast::getTypeCasts)).stream()
                 .map(module.get(TypeExpressionSemantics.class)::toJadescriptType)
@@ -161,37 +168,34 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
         return compilePatternMatchRecursive(input, castsTypes, acceptor);
     }
 
-    private PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchRecursive(
-            PatternMatchInput<TypeCast, ?, ?> input,
+    private PatternMatcher compilePatternMatchRecursive(
+            PatternMatchInput<TypeCast> input,
             List<IJadescriptType> castsTypes,
             CompilationOutputAcceptor acceptor
     ) {
         if (castsTypes.isEmpty()) {
             return module.get(AtomWithTrailersExpressionSemantics.class).compilePatternMatchInternal(
-                    input.mapPattern(TypeCast::getAtomExpr),
-                    acceptor
+                    input.mapPattern(TypeCast::getAtomExpr), ,
+                acceptor
             );
         } else if (castsTypes.size() == 1) {
-            final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> subResult
+            final PatternMatcher subResult
                     = module.get(AtomWithTrailersExpressionSemantics.class).compilePatternMatch(
                     input.subPattern(
                             castsTypes.get(0),
                             TypeCast::getAtomExpr,
                             "_typecast0"
-                    ),
-                    acceptor
+                    ), ,
+                acceptor
             );
             return input.createCompositeMethodOutput(
                     castsTypes.get(0),
                     __ -> "__x",
-                    List.of(subResult),
-                    () -> PatternMatchOutput.collectUnificationResults(List.of(subResult)),
-                    () -> new PatternMatchOutput.WithTypeNarrowing(castsTypes.get(0))
+                    List.of(subResult)
             );
         } else {
             final IJadescriptType castToType = castsTypes.get(castsTypes.size() - 1);
-            final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> subResult
-                    = compilePatternMatchRecursive(
+            final PatternMatcher subResult = compilePatternMatchRecursive(
                     input.subPattern(
                             castToType,
                             __ -> __,
@@ -203,20 +207,19 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
             return input.createCompositeMethodOutput(
                     castToType,
                     __ -> "__x",
-                    List.of(subResult),
-                    () -> PatternMatchOutput.collectUnificationResults(List.of(subResult)),
-                    () -> new PatternMatchOutput.WithTypeNarrowing(castToType)
+                    List.of(subResult)
             );
         }
     }
 
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<TypeCast> input) {
+    public PatternType inferPatternTypeInternal(Maybe<TypeCast> input,
+                                                StaticState state) {
         final List<Maybe<TypeExpression>> casts = toListOfMaybes(input.__(TypeCast::getTypeCasts));
         if (casts.isEmpty()) {
             return module.get(AtomWithTrailersExpressionSemantics.class).inferPatternTypeInternal(
-                    input.__(TypeCast::getAtomExpr));
+                    input.__(TypeCast::getAtomExpr), );
         }
         IJadescriptType outmost = module.get(TypeExpressionSemantics.class).toJadescriptType(
                 casts.get(casts.size() - 1)
@@ -225,9 +228,9 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<TypeCast, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<TypeCast> input,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
         final List<Maybe<TypeExpression>> casts = toListOfMaybes(input.getPattern().__(TypeCast::getTypeCasts));
         final List<IJadescriptType> castsTypes = casts.stream()
@@ -241,34 +244,28 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
         );
     }
 
-    private PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchRecursive(
-            PatternMatchInput<TypeCast, ?, ?> input,
+    private boolean validatePatternMatchRecursive(
+            PatternMatchInput<TypeCast> input,
             List<IJadescriptType> castsTypes,
             ValidationMessageAcceptor acceptor
     ) {
         if (castsTypes.isEmpty()) {
             return module.get(AtomWithTrailersExpressionSemantics.class).validatePatternMatch(
-                    input.mapPattern(TypeCast::getAtomExpr),
-                    acceptor
+                    input.mapPattern(TypeCast::getAtomExpr), ,
+                acceptor
             );
         } else if (castsTypes.size() == 1) {
-            PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> subResult
-                    = module.get(AtomWithTrailersExpressionSemantics.class).validatePatternMatch(
+            return module.get(AtomWithTrailersExpressionSemantics.class).validatePatternMatch(
                     input.subPattern(
                             castsTypes.get(0),
                             TypeCast::getAtomExpr,
                             "_typecast0"
-                    ),
-                    acceptor
-            );
-            return input.createValidationOutput(
-                    () -> PatternMatchOutput.collectUnificationResults(List.of(subResult)),
-                    () -> new PatternMatchOutput.WithTypeNarrowing(castsTypes.get(0))
+                    ), ,
+                acceptor
             );
         } else {
             final IJadescriptType castToType = castsTypes.get(castsTypes.size() - 1);
-            final PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> subResult
-                    = validatePatternMatchRecursive(
+            return validatePatternMatchRecursive(
                     input.subPattern(
                             castToType,
                             __ -> __,
@@ -277,31 +274,27 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
                     castsTypes.subList(0, castsTypes.size() - 1),
                     acceptor
             );
-            return input.createValidationOutput(
-                    () -> PatternMatchOutput.collectUnificationResults(List.of(subResult)),
-                    () -> new PatternMatchOutput.WithTypeNarrowing(castToType)
-            );
         }
     }
 
 
     @Override
-    protected boolean validateInternal(Maybe<TypeCast> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<TypeCast> input, StaticState state, ValidationMessageAcceptor acceptor) {
         if (input == null) return VALID;
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
         final List<Maybe<TypeExpression>> typeCasts = Maybe.toListOfMaybes(input.__(TypeCast::getTypeCasts));
-        boolean stage1 = module.get(AtomWithTrailersExpressionSemantics.class).validate(atomExpr, acceptor);
+        boolean stage1 = module.get(AtomWithTrailersExpressionSemantics.class).validate(atomExpr, , acceptor);
         if (stage1 == INVALID) {
             return INVALID;
         }
 
         if (!typeCasts.isEmpty()) {
             IJadescriptType typeOfExpression = module.get(AtomWithTrailersExpressionSemantics.class)
-                    .inferType(atomExpr);
+                    .inferType(atomExpr, );
             IJadescriptType typeOfCast0 = module.get(TypeExpressionSemantics.class)
                     .toJadescriptType(typeCasts.get(0));
             boolean result = module.get(TypeExpressionSemantics.class)
-                    .validate(typeCasts.get(0), acceptor);
+                    .validate(typeCasts.get(0), , acceptor);
 
             module.get(ValidationHelper.class).advice(
                     isNumberToNumberCast(typeOfExpression, typeOfCast0) || isCastable(typeOfExpression, typeOfCast0),
@@ -315,12 +308,12 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
 
             for (int i = 1; i < typeCasts.size(); i++) {
                 final boolean typeExpressionValidation = module.get(TypeExpressionSemantics.class)
-                        .validate(typeCasts.get(i - 1), acceptor);
+                        .validate(typeCasts.get(i - 1), , acceptor);
                 result = result && typeExpressionValidation;
                 IJadescriptType typeBefore = module.get(TypeExpressionSemantics.class)
                         .toJadescriptType(typeCasts.get(i - 1));
                 final boolean typeExpressionValidationNext = module.get(TypeExpressionSemantics.class)
-                        .validate(typeCasts.get(i), acceptor);
+                        .validate(typeCasts.get(i), , acceptor);
                 result = result && typeExpressionValidationNext;
                 IJadescriptType typeAfter = module.get(TypeExpressionSemantics.class)
                         .toJadescriptType(typeCasts.get(i));
@@ -356,25 +349,27 @@ public class TypeCastExpressionSemantics extends AssignableExpressionSemantics<T
 
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<TypeCast> input) {
+    protected boolean isAlwaysPureInternal(Maybe<TypeCast> input,
+                                           StaticState state) {
         return true;
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<TypeCast> input) {
-        return subExpressionsAnyHoled(input);
+    protected boolean isHoledInternal(Maybe<TypeCast> input, StaticState state) {
+        return subExpressionsAnyHoled(input, );
     }
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<TypeCast> input) {
+    protected boolean isTypelyHoledInternal(Maybe<TypeCast> input,
+                                            StaticState state) {
         // The type is always determined by the last 'as'
         //TODO IDEA: consider explicitly holed types
         return false;
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<TypeCast> input) {
-        return subExpressionsAnyUnbound(input);
+    protected boolean isUnboundInternal(Maybe<TypeCast> input, StaticState state) {
+        return subExpressionsAnyUnbound(input, );
     }
 
     @Override

@@ -9,12 +9,10 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
@@ -51,13 +49,15 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
     }
 
     @Override
-    protected String compileInternal(Maybe<TypeExpression> input, CompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<TypeExpression> input,
+                                     StaticState state, CompilationOutputAcceptor acceptor) {
         return toJadescriptType(input).compileToJavaTypeReference();
     }
 
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<TypeExpression> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<TypeExpression> input,
+                                                StaticState state) {
         if (input == null)
             return module.get(TypeHelper.class).ANY;
         return module.get(TypeHelper.class).jtFromClass(Class.class);
@@ -69,37 +69,38 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TypeExpression> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<TypeExpression> input) {
         return Optional.empty();
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<TypeExpression> input) {
+    protected boolean isPatternEvaluationPureInternal(PatternMatchInput<TypeExpression> input, StaticState state) {
         return true;
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<TypeExpression, ?, ?> input, CompilationOutputAcceptor acceptor) {
+    public PatternMatcher
+    compilePatternMatchInternal(PatternMatchInput<TypeExpression> input, StaticState state, CompilationOutputAcceptor acceptor) {
         return input.createEmptyCompileOutput();
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<TypeExpression> input) {
+    public PatternType inferPatternTypeInternal(Maybe<TypeExpression> input,
+                                                StaticState state) {
         return PatternType.empty(module);
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<TypeExpression, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<TypeExpression> input,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        return input.createEmptyValidationOutput();
+        return VALID;
     }
 
 
     @Override
-    protected boolean validateInternal(Maybe<TypeExpression> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<TypeExpression> input, StaticState state, ValidationMessageAcceptor acceptor) {
         if (input == null) {
             return VALID;
         }
@@ -160,7 +161,7 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
                     for (Maybe<TypeExpression> typeParameter : iterate(
                             collectionType.__(CollectionTypeExpression::getTypeParameters)
                     )) {
-                        final boolean typeParameterValidation = validate(typeParameter, acceptor);
+                        final boolean typeParameterValidation = validate(typeParameter, , acceptor);
                         result = result && typeParameterValidation;
                     }
                 }
@@ -175,7 +176,7 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
                     acceptor
             );
             for (Maybe<TypeExpression> subExpr : subExprs) {
-                final boolean subExprValidation = validate(subExpr, acceptor);
+                final boolean subExprValidation = validate(subExpr, , acceptor);
                 result = result && subExprValidation;
             }
             return result;
@@ -187,12 +188,13 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
     }
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<TypeExpression> input) {
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<TypeExpression> input, StaticState state) {
         return List.of();
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<TypeExpression> input) {
+    protected StaticState advanceInternal(Maybe<TypeExpression> input,
+                                          StaticState state) {
         return ExpressionTypeKB.empty();
     }
 
@@ -364,7 +366,8 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
 
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<TypeExpression> input) {
+    protected boolean isAlwaysPureInternal(Maybe<TypeExpression> input,
+                                           StaticState state) {
         return true;
     }
 
@@ -374,17 +377,20 @@ public class TypeExpressionSemantics extends ExpressionSemantics<TypeExpression>
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<TypeExpression> input) {
+    protected boolean isHoledInternal(Maybe<TypeExpression> input,
+                                      StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<TypeExpression> input) {
+    protected boolean isTypelyHoledInternal(Maybe<TypeExpression> input,
+                                            StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<TypeExpression> input) {
+    protected boolean isUnboundInternal(Maybe<TypeExpression> input,
+                                        StaticState state) {
         return false;
     }
 

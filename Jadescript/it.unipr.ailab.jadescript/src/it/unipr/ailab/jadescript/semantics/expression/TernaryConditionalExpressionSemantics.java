@@ -4,11 +4,9 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -16,9 +14,7 @@ import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -58,36 +54,38 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
     }
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<TernaryConditional> input) {
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<TernaryConditional> input, StaticState state) {
         return Collections.emptyList();
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<TernaryConditional> input) {
+    protected StaticState advanceInternal(Maybe<TernaryConditional> input,
+                                          StaticState state) {
         final Maybe<RValueExpression> expression1 = input.__(TernaryConditional::getExpression1);
         final Maybe<RValueExpression> expression2 = input.__(TernaryConditional::getExpression2);
-        ExpressionTypeKB kb1 = module.get(RValueExpressionSemantics.class).computeKB(expression1);
-        ExpressionTypeKB kb2 = module.get(RValueExpressionSemantics.class).computeKB(expression2);
+        ExpressionTypeKB kb1 = module.get(RValueExpressionSemantics.class).advance(expression1, );
+        ExpressionTypeKB kb2 = module.get(RValueExpressionSemantics.class).advance(expression2, );
         return module.get(TypeHelper.class).mergeByLUB(kb1, kb2);
     }
 
     @Override
-    protected String compileInternal(Maybe<TernaryConditional> input, CompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<TernaryConditional> input,
+                                     StaticState state, CompilationOutputAcceptor acceptor) {
         final Maybe<LogicalOr> condition = input.__(TernaryConditional::getCondition);
         final Maybe<RValueExpression> expression1 = input.__(TernaryConditional::getExpression1);
         final Maybe<RValueExpression> expression2 = input.__(TernaryConditional::getExpression2);
-        String part1 = module.get(LogicalOrExpressionSemantics.class).compile(condition, acceptor);
-        String part2 = module.get(RValueExpressionSemantics.class).compile(expression1, acceptor);
-        String part3 = module.get(RValueExpressionSemantics.class).compile(expression2, acceptor);
+        String part1 = module.get(LogicalOrExpressionSemantics.class).compile(condition, , acceptor);
+        String part2 = module.get(RValueExpressionSemantics.class).compile(expression1, , acceptor);
+        String part3 = module.get(RValueExpressionSemantics.class).compile(expression2, , acceptor);
         return "((" + part1 + ") ? (" + part2 + ") : (" + part3 + "))";
     }
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<TernaryConditional> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<TernaryConditional> input, StaticState state) {
         final Maybe<RValueExpression> expression1 = input.__(TernaryConditional::getExpression1);
         final Maybe<RValueExpression> expression2 = input.__(TernaryConditional::getExpression2);
-        IJadescriptType type1 = module.get(RValueExpressionSemantics.class).inferType(expression1);
-        IJadescriptType type2 = module.get(RValueExpressionSemantics.class).inferType(expression2);
+        IJadescriptType type1 = module.get(RValueExpressionSemantics.class).inferType(expression1, );
+        IJadescriptType type2 = module.get(RValueExpressionSemantics.class).inferType(expression2, );
         return module.get(TypeHelper.class).getLUB(type1, type2);
 
     }
@@ -99,7 +97,7 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TernaryConditional> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<TernaryConditional> input) {
         final Maybe<LogicalOr> condition = input.__(TernaryConditional::getCondition);
         if (mustTraverse(input)) {
             return Optional.of(new SemanticsBoundToExpression<>(
@@ -111,24 +109,24 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<TernaryConditional> input) {
-        return subPatternEvaluationsAllPure(input);
+    protected boolean isPatternEvaluationPureInternal(PatternMatchInput<TernaryConditional> input, StaticState state) {
+        return subPatternEvaluationsAllPure(input, state);
     }
 
     @Override
-    protected boolean validateInternal(Maybe<TernaryConditional> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<TernaryConditional> input, StaticState state, ValidationMessageAcceptor acceptor) {
         if (input == null) return VALID;
         final Maybe<LogicalOr> condition = input.__(TernaryConditional::getCondition);
         final Maybe<RValueExpression> expression1 = input.__(TernaryConditional::getExpression1);
         final Maybe<RValueExpression> expression2 = input.__(TernaryConditional::getExpression2);
         boolean conditionValidation = module.get(LogicalOrExpressionSemantics.class)
-                .validate(condition, acceptor);
+                .validate(condition, , acceptor);
 
         if (conditionValidation == INVALID) {
             return INVALID;
         }
 
-        IJadescriptType type = module.get(LogicalOrExpressionSemantics.class).inferType(condition);
+        IJadescriptType type = module.get(LogicalOrExpressionSemantics.class).inferType(condition, );
         final boolean validConditionType = module.get(ValidationHelper.class).assertExpectedType(
                 Boolean.class,
                 type,
@@ -140,14 +138,14 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
         conditionValidation = conditionValidation && validConditionType;
 
         final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
-        boolean expr1Validation = rves.validate(expression1, acceptor);
-        boolean expr2Validation = rves.validate(expression2, acceptor);
+        boolean expr1Validation = rves.validate(expression1, , acceptor);
+        boolean expr2Validation = rves.validate(expression2, , acceptor);
 
         if (expr2Validation == INVALID || expr1Validation == INVALID) {
             return INVALID;
         }
 
-        final IJadescriptType computedType = inferType(input);
+        final IJadescriptType computedType = inferType(input, );
         final boolean commonParentTypeValidation = module.get(ValidationHelper.class).assertion(
                 !computedType.isErroneous(),
                 "TernaryConditionalInvalidType",
@@ -160,28 +158,29 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<TernaryConditional, ?, ?> input, CompilationOutputAcceptor acceptor) {
+    public PatternMatcher
+    compilePatternMatchInternal(PatternMatchInput<TernaryConditional> input, StaticState state, CompilationOutputAcceptor acceptor) {
         return input.createEmptyCompileOutput();
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<TernaryConditional> input) {
+    public PatternType inferPatternTypeInternal(Maybe<TernaryConditional> input, StaticState state) {
         return PatternType.empty(module);
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<TernaryConditional, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<TernaryConditional> input,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        return input.createEmptyValidationOutput();
+        return VALID;
     }
 
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<TernaryConditional> input) {
-        return subPatternEvaluationsAllPure(input);
+    protected boolean isAlwaysPureInternal(Maybe<TernaryConditional> input,
+                                           StaticState state) {
+        return subPatternEvaluationsAllPure(input, state);
     }
 
     @Override
@@ -190,17 +189,20 @@ public class TernaryConditionalExpressionSemantics extends ExpressionSemantics<T
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<TernaryConditional> input) {
+    protected boolean isHoledInternal(Maybe<TernaryConditional> input,
+                                      StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<TernaryConditional> input) {
+    protected boolean isTypelyHoledInternal(Maybe<TernaryConditional> input,
+                                            StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<TernaryConditional> input) {
+    protected boolean isUnboundInternal(Maybe<TernaryConditional> input,
+                                        StaticState state) {
         return false;
     }
 

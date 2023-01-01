@@ -28,7 +28,7 @@ public class WhileStatementSemantics extends StatementSemantics<WhileStatement> 
     @Override
     public void validate(Maybe<WhileStatement> input, ValidationMessageAcceptor acceptor) {
         module.get(ContextManager.class).pushScope();
-        module.get(RValueExpressionSemantics.class).validate(input.__(WhileStatement::getCondition), acceptor);
+        module.get(RValueExpressionSemantics.class).validate(input.__(WhileStatement::getCondition), , acceptor);
 
         module.get(BlockSemantics.class).validateOptionalBlock(input.__(WhileStatement::getWhileBody), acceptor);
         module.get(ContextManager.class).popScope();
@@ -40,7 +40,7 @@ public class WhileStatementSemantics extends StatementSemantics<WhileStatement> 
 
 
         final String compiledCondition = module.get(RValueExpressionSemantics.class).compile(
-                input.__(WhileStatement::getCondition),
+                input.__(WhileStatement::getCondition), ,
                 acceptor
         ).toString();
 

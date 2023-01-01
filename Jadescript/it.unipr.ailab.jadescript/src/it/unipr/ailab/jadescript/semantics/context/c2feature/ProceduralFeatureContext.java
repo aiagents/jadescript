@@ -9,19 +9,21 @@ import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
-public abstract class ProceduralFeatureContext extends Context implements ScopedContext {
+public abstract class ProceduralFeatureContext
+    extends Context
+    implements ScopedContext {
     protected final ProceduralFeatureContainerContext outer;
-    private final LazyValue<ScopeManager> scopeManager;
+    private final ScopeManager scopeManager;
 
     public ProceduralFeatureContext(SemanticsModule module, ProceduralFeatureContainerContext outer) {
         super(module);
         this.outer = outer;
-        this.scopeManager = new LazyValue<>(ScopeManager::new);
+        this.scopeManager = new ScopeManager();
     }
 
     @Override
     public ScopeManager getScopeManager() {
-        return scopeManager.get();
+        return scopeManager;
     }
 
     @Override

@@ -5,10 +5,9 @@ import it.unipr.ailab.jadescript.jadescript.ContainmentCheck;
 import it.unipr.ailab.jadescript.jadescript.RelationalComparison;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -18,7 +17,6 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -52,7 +50,8 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
-    protected String compileInternal(Maybe<RelationalComparison> input, CompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<RelationalComparison> input,
+                                     StaticState state, CompilationOutputAcceptor acceptor) {
         if (input == null) return "";
         final Maybe<ContainmentCheck> left = input.__(RelationalComparison::getLeft);
         final Maybe<ContainmentCheck> right = input.__(RelationalComparison::getRight);
@@ -63,14 +62,14 @@ public class RelationalComparisonExpressionSemantics
             relationalOp = of("<=");
         }
         String leftCompiled = module.get(ContainmentCheckExpressionSemantics.class)
-                .compile(left, acceptor);
+                .compile(left, , acceptor);
 
         TypeHelper th = module.get(TypeHelper.class);
 
         String rightCompiled = module.get(ContainmentCheckExpressionSemantics.class)
-                .compile(right, acceptor);
-        IJadescriptType t1 = module.get(ContainmentCheckExpressionSemantics.class).inferType(left);
-        IJadescriptType t2 = module.get(ContainmentCheckExpressionSemantics.class).inferType(right);
+                .compile(right, , acceptor);
+        IJadescriptType t1 = module.get(ContainmentCheckExpressionSemantics.class).inferType(left, );
+        IJadescriptType t2 = module.get(ContainmentCheckExpressionSemantics.class).inferType(right, );
         if (t1.isAssignableFrom(th.DURATION) && t2.isAssignableFrom(th.DURATION)) {
             return "jadescript.lang.Duration.compare(" + leftCompiled
                     + ", " + rightCompiled + ") " + relationalOp + " 0";
@@ -84,7 +83,7 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<RelationalComparison> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<RelationalComparison> input, StaticState state) {
         if (input == null) return module.get(TypeHelper.class).ANY;
         return module.get(TypeHelper.class).BOOLEAN;
     }
@@ -97,7 +96,7 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<RelationalComparison> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<RelationalComparison> input) {
         final Maybe<ContainmentCheck> left = input.__(RelationalComparison::getLeft);
         if (mustTraverse(input)) {
             return Optional.of(new SemanticsBoundToExpression<>(
@@ -109,44 +108,44 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<RelationalComparison> input) {
+    protected boolean isPatternEvaluationPureInternal(PatternMatchInput<RelationalComparison> input, StaticState state) {
         return true;
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
+    public PatternMatcher
     compilePatternMatchInternal(
-            PatternMatchInput<RelationalComparison, ?, ?> input,
-            CompilationOutputAcceptor acceptor
+        PatternMatchInput<RelationalComparison> input,
+        StaticState state, CompilationOutputAcceptor acceptor
     ) {
         //TODO refinement pattern? e.g. p matches Person(name, age >= 18)
         return input.createEmptyCompileOutput();
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<RelationalComparison> input) {
+    public PatternType inferPatternTypeInternal(Maybe<RelationalComparison> input, StaticState state) {
         return PatternType.empty(module);
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<RelationalComparison, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<RelationalComparison> input,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        return input.createEmptyValidationOutput();
+        return VALID;
     }
 
     @Override
-    protected boolean validateInternal(Maybe<RelationalComparison> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<RelationalComparison> input, StaticState state, ValidationMessageAcceptor acceptor) {
         if (input == null) return VALID;
         final TypeHelper th = module.get(TypeHelper.class);
         final Maybe<ContainmentCheck> left = input.__(RelationalComparison::getLeft);
         final Maybe<ContainmentCheck> right = input.__(RelationalComparison::getRight);
-        final boolean leftValidate = module.get(ContainmentCheckExpressionSemantics.class).validate(left, acceptor);
-        final boolean rightValidate = module.get(ContainmentCheckExpressionSemantics.class).validate(right, acceptor);
+        final boolean leftValidate = module.get(ContainmentCheckExpressionSemantics.class).validate(left, , acceptor);
+        final boolean rightValidate = module.get(ContainmentCheckExpressionSemantics.class).validate(right, , acceptor);
         if (leftValidate == VALID && rightValidate == VALID) {
-            IJadescriptType typeLeft = module.get(ContainmentCheckExpressionSemantics.class).inferType(left);
-            IJadescriptType typeRight = module.get(ContainmentCheckExpressionSemantics.class).inferType(right);
+            IJadescriptType typeLeft = module.get(ContainmentCheckExpressionSemantics.class).inferType(left, );
+            IJadescriptType typeRight = module.get(ContainmentCheckExpressionSemantics.class).inferType(right, );
             boolean ltValidation = module.get(ValidationHelper.class).assertExpectedTypes(
                     Arrays.asList(th.NUMBER, th.TIMESTAMP, th.DURATION),
                     typeLeft,
@@ -186,18 +185,20 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<RelationalComparison> input) {
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<RelationalComparison> input, StaticState state) {
         return List.of();
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<RelationalComparison> input) {
+    protected StaticState advanceInternal(Maybe<RelationalComparison> input,
+                                          StaticState state) {
         return ExpressionTypeKB.empty();
     }
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<RelationalComparison> input) {
-        return subExpressionsAllAlwaysPure(input);
+    protected boolean isAlwaysPureInternal(Maybe<RelationalComparison> input,
+                                           StaticState state) {
+        return subExpressionsAllAlwaysPure(input, state);
     }
 
     @Override
@@ -206,17 +207,19 @@ public class RelationalComparisonExpressionSemantics
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<RelationalComparison> input) {
+    protected boolean isHoledInternal(Maybe<RelationalComparison> input,
+                                      StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<RelationalComparison> input) {
+    protected boolean isTypelyHoledInternal(Maybe<RelationalComparison> input, StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<RelationalComparison> input) {
+    protected boolean isUnboundInternal(Maybe<RelationalComparison> input,
+                                        StaticState state) {
         return false;
     }
 

@@ -18,4 +18,8 @@ public interface Effect {
         JumpsAwayFromOperation INSTANCE = new JumpsAwayFromOperation() {
         };
     }
+
+
+
+
 }

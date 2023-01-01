@@ -4,10 +4,11 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.EqualityComparison;
 import it.unipr.ailab.jadescript.jadescript.TypeComparison;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.SubPattern;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -15,7 +16,6 @@ import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -25,54 +25,139 @@ import java.util.stream.Stream;
  * Created on 28/12/16.
  */
 @Singleton
-public class EqualityComparisonExpressionSemantics extends ExpressionSemantics<EqualityComparison> {
+public class EqualityComparisonExpressionSemantics
+    extends ExpressionSemantics<EqualityComparison> {
 
     public static final String EQUALS_OPERATOR = "=";
     public static final String NOT_EQUALS_OPERATOR = "!=";
 
-    public EqualityComparisonExpressionSemantics(SemanticsModule semanticsModule) {
+    public EqualityComparisonExpressionSemantics(
+        SemanticsModule semanticsModule
+    ) {
         super(semanticsModule);
     }
 
 
     @Override
-    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<EqualityComparison> input) {
-        final TypeComparisonExpressionSemantics tces = module.get(TypeComparisonExpressionSemantics.class);
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
+        Maybe<EqualityComparison> input
+    ) {
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
         return Stream.of(
-                input.__(EqualityComparison::getLeft)
-                        .extract(x -> new ExpressionSemantics.SemanticsBoundToExpression<>(tces, x)),
-                input.__(EqualityComparison::getRight)
-                        .extract(x -> new ExpressionSemantics.SemanticsBoundToExpression<>(tces, x))
+            input.__(EqualityComparison::getLeft).extract(sbte ->
+                new ExpressionSemantics.SemanticsBoundToExpression<>(
+                    tces,
+                    sbte
+                )),
+            input.__(EqualityComparison::getRight).extract(sbte ->
+                new ExpressionSemantics.SemanticsBoundToExpression<>(
+                    tces,
+                    sbte
+                ))
         );
     }
 
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<EqualityComparison> input) {
-        return Collections.emptyList();
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(
+        Maybe<EqualityComparison> input,
+        StaticState state
+    ) {
+        return Maybe.nothing();
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<EqualityComparison> input) {
-        //TODO Copy implications about the operand expressions?
-        return ExpressionTypeKB.empty();
+    protected StaticState advanceInternal(
+        Maybe<EqualityComparison> input,
+        StaticState state
+    ) {
+        Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
+        final Maybe<ExpressionDescriptor> edLeft = tces.describeExpression(
+            left,
+            state
+        );
+        final StaticState afterLeft = tces.advance(left, state);
+
+        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
+        final Maybe<ExpressionDescriptor> edRight = tces.describeExpression(
+            right,
+            state
+        );
+
+        final StaticState afterRight = tces.advance(right, afterLeft);
+
+        return afterRight.assertExpressionsEqual(edLeft, edRight);
+    }
+
+    @Override
+    protected StaticState useStateAsPatternInternal(
+        PatternMatchInput<EqualityComparison> input,
+        StaticState state
+    ) {
+        Maybe<TypeComparison> left =
+            input.getPattern().__(EqualityComparison::getLeft);
+        Maybe<TypeComparison> right =
+            input.getPattern().__(EqualityComparison::getRight);
+        String equalityOp =
+            input.getPattern().__(EqualityComparison::getEqualityOp).orElse("");
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
+
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
+            || !tces.isHoled(left, state)) {
+            return advance(input.getPattern(), state);
+        } else {
+            final IJadescriptType rType = tces.inferSubPatternType(right, state)
+                .solve(input.getProvidedInputType());
+
+            StaticState afterRight = tces.advancePattern(
+                input.subPattern(
+                    input.getProvidedInputType(),
+                    __ -> right.toNullable(),
+                    "_right"
+                ),
+                state
+            );
+
+
+            final SubPattern<
+                TypeComparison,
+                EqualityComparison
+                > leftSubpattern = input.subPattern(
+                rType,
+                __ -> left.toNullable(),
+                "_left"
+            );
+
+
+            return tces.advancePattern(
+                leftSubpattern,
+                afterRight
+            );
+        }
     }
 
     @Override
     protected String compileInternal(
-            Maybe<EqualityComparison> input,
-            CompilationOutputAcceptor acceptor
+        Maybe<EqualityComparison> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
     ) {
         Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
-        final String leftResult = module.get(TypeComparisonExpressionSemantics.class)
-                .compile(left, acceptor);
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
+
+        final String leftResult = tces.compile(left, state, acceptor);
+        final StaticState afterLeft = tces.advance(left, state);
 
         Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
 
-        StringBuilder sb = new StringBuilder();
-        sb.append(leftResult);
 
-        String equalityOp = input.__(EqualityComparison::getEqualityOp).orElse("");
+        String equalityOp = input.__(EqualityComparison::getEqualityOp)
+            .orElse("");
         if (equalityOp.equals("≠")) {
             equalityOp = "!=";
         }
@@ -84,21 +169,19 @@ public class EqualityComparisonExpressionSemantics extends ExpressionSemantics<E
             not = "";
         }
 
-        String stringSoFar = sb.toString();
-        sb = new StringBuilder();
-        sb.append(not);
-        sb.append("java.util.Objects.equals(")
-                .append(stringSoFar)
-                .append(", ")
-                .append(module.get(TypeComparisonExpressionSemantics.class).compile(right, acceptor))
-                .append(")");
+        final String rightCompiled = tces.compile(right, afterLeft, acceptor);
 
 
-        return sb.toString();
+        return not + "java.util.Objects.equals(" +
+            leftResult + ", " +
+            rightCompiled + ")";
     }
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<EqualityComparison> input) {
+    protected IJadescriptType inferTypeInternal(
+        Maybe<EqualityComparison> input,
+        StaticState state
+    ) {
         return module.get(TypeHelper.class).BOOLEAN;
     }
 
@@ -110,183 +193,291 @@ public class EqualityComparisonExpressionSemantics extends ExpressionSemantics<E
     }
 
     @Override
-    protected Optional<ExpressionSemantics.SemanticsBoundToExpression<?>> traverse(Maybe<EqualityComparison> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
+        Maybe<EqualityComparison> input
+    ) {
         if (mustTraverse(input)) {
             return Optional.ofNullable(input.__(EqualityComparison::getLeft))
-                    .map(x -> new ExpressionSemantics.SemanticsBoundToExpression<>(
-                            module.get(TypeComparisonExpressionSemantics.class),
-                            x
-                    ));
+                .map(x -> new ExpressionSemantics.SemanticsBoundToExpression<>(
+                    module.get(TypeComparisonExpressionSemantics.class),
+                    x
+                ));
         } else {
             return Optional.empty();
         }
     }
 
     @Override
-    protected boolean validateInternal(Maybe<EqualityComparison> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return VALID;
-        final TypeComparisonExpressionSemantics tces = module.get(TypeComparisonExpressionSemantics.class);
-        boolean leftValidation = tces.validate(input.__(EqualityComparison::getLeft), acceptor);
-        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
-        boolean rightValidation = tces.validate(right, acceptor);
+    protected boolean validateInternal(
+        Maybe<EqualityComparison> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ) {
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
+        final Maybe<TypeComparison> left =
+            input.__(EqualityComparison::getLeft);
+
+        final boolean leftValidation = tces.validate(left, state, acceptor);
+        final StaticState afterLeft = tces.advance(left, state);
+
+        final Maybe<TypeComparison> right =
+            input.__(EqualityComparison::getRight);
+
+        final boolean rightValidation = tces.validate(
+            right,
+            afterLeft,
+            acceptor
+        );
         return leftValidation && rightValidation;
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<EqualityComparison> input) {
-        Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
-        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
-        String equalityOp = input.__(EqualityComparison::getEqualityOp).orElse("");
-
-        return equalityOp.equals(EQUALS_OPERATOR) && (
-                module.get(TypeComparisonExpressionSemantics.class).isHoled(left)
-                        || module.get(TypeComparisonExpressionSemantics.class).isHoled(right)
-        );
-
-    }
-
-    @Override
-    protected boolean isTypelyHoledInternal(Maybe<EqualityComparison> input) {
-        Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
-        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
-        String equalityOp = input.__(EqualityComparison::getEqualityOp).orElse("");
-
-        return equalityOp.equals(EQUALS_OPERATOR) && (
-                module.get(TypeComparisonExpressionSemantics.class).isTypelyHoled(left)
-                        || module.get(TypeComparisonExpressionSemantics.class).isTypelyHoled(right)
-        );
-    }
-
-    @Override
-    protected boolean isUnboundInternal(Maybe<EqualityComparison> input) {
-        Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
-        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
-        String equalityOp = input.__(EqualityComparison::getEqualityOp).orElse("");
-
-        return equalityOp.equals(EQUALS_OPERATOR) && (
-                module.get(TypeComparisonExpressionSemantics.class).isUnbound(left)
-                        || module.get(TypeComparisonExpressionSemantics.class).isUnbound(right)
-        );
-    }
-
-    @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
-            PatternMatchInput<EqualityComparison, ?, ?> input,
-            CompilationOutputAcceptor acceptor
+    protected boolean isHoledInternal(
+        Maybe<EqualityComparison> input,
+        StaticState state
     ) {
-        Maybe<TypeComparison> left = input.getPattern().__(EqualityComparison::getLeft);
-        Maybe<TypeComparison> right = input.getPattern().__(EqualityComparison::getRight);
-        String equalityOp = input.getPattern().__(EqualityComparison::getEqualityOp).orElse("");
-        final TypeComparisonExpressionSemantics tces = module.get(TypeComparisonExpressionSemantics.class);
-        if (equalityOp.equals(NOT_EQUALS_OPERATOR) || !tces.isHoled(left)) {
-            return compileExpressionEqualityPatternMatch(input, acceptor);
+        Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
+        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
+        String equalityOp = input.__(EqualityComparison::getEqualityOp)
+            .orElse("");
+
+        return equalityOp.equals(EQUALS_OPERATOR)
+            && (
+            module.get(TypeComparisonExpressionSemantics.class)
+                .isHoled(left, state)
+                || module.get(TypeComparisonExpressionSemantics.class)
+                .isHoled(right, state)
+        );
+
+    }
+
+    @Override
+    protected boolean isTypelyHoledInternal(
+        Maybe<EqualityComparison> input,
+        StaticState state
+    ) {
+        Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
+        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
+        String equalityOp = input.__(EqualityComparison::getEqualityOp)
+            .orElse("");
+
+        return equalityOp.equals(EQUALS_OPERATOR)
+            && (
+            module.get(TypeComparisonExpressionSemantics.class)
+                .isTypelyHoled(left, state)
+                || module.get(TypeComparisonExpressionSemantics.class)
+                .isTypelyHoled(right, state)
+        );
+    }
+
+    @Override
+    protected boolean isUnboundInternal(
+        Maybe<EqualityComparison> input,
+        StaticState state
+    ) {
+        Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
+        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
+        String equalityOp = input.__(EqualityComparison::getEqualityOp)
+            .orElse("");
+
+        return equalityOp.equals(EQUALS_OPERATOR)
+            && (
+            module.get(TypeComparisonExpressionSemantics.class)
+                .isUnbound(left, state)
+                || module.get(TypeComparisonExpressionSemantics.class)
+                .isUnbound(right, state)
+        );
+    }
+
+    @Override
+    public PatternMatcher compilePatternMatchInternal(
+        PatternMatchInput<EqualityComparison> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
+    ) {
+        Maybe<TypeComparison> left = input.getPattern()
+            .__(EqualityComparison::getLeft);
+        Maybe<TypeComparison> right = input.getPattern()
+            .__(EqualityComparison::getRight);
+        String equalityOp = input.getPattern()
+            .__(EqualityComparison::getEqualityOp).orElse("");
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
+            || !tces.isHoled(left, state)) {
+            return compileExpressionEqualityPatternMatch(
+                input,
+                state,
+                acceptor
+            );
         } else {
-            final IJadescriptType rType = tces.inferSubPatternType(right).solve(input.getProvidedInputType());
-            PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> rightResult =
-                    tces.compilePatternMatch(input.subPattern(
-                            input.getProvidedInputType(),
-                            __ -> right.toNullable(),
-                            "_right"
-                    ), acceptor);
-            final PatternMatchInput.SubPattern<TypeComparison, EqualityComparison, ?, ?> leftSubpattern =
-                    input.subPattern(
-                            rType,
-                            __ -> left.toNullable(),
-                            "_left"
-                    );
-            PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> leftResult =
-                    tces.compilePatternMatch(leftSubpattern, acceptor);
-            final List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>> subResults =
-                    List.of(rightResult, leftResult);
+            final IJadescriptType rType = tces.inferSubPatternType(right, state)
+                .solve(input.getProvidedInputType());
+            final SubPattern<TypeComparison, EqualityComparison>
+                rightSubpattern = input.subPattern(
+                input.getProvidedInputType(),
+                __ -> right.toNullable(),
+                "_right"
+            );
+            PatternMatcher rightResult = tces.compilePatternMatch(
+                rightSubpattern, state, acceptor);
+            StaticState afterRight = tces.advancePattern(
+                rightSubpattern, state
+            );
+
+            final SubPattern<
+                TypeComparison,
+                EqualityComparison
+                > leftSubpattern = input.subPattern(
+                rType,
+                __ -> left.toNullable(),
+                "_left"
+            );
+            PatternMatcher leftResult = tces.compilePatternMatch(
+                leftSubpattern,
+                afterRight,
+                acceptor
+            );
             return input.createCompositeMethodOutput(
-                    rType,
-                    (Integer i) -> {
-                        if (i < 0 || i >= 2) {
-                            return "/* Index out of bounds */";
-                        } else {
-                            return "__x";
-                        }
-                    },
-                    subResults,
-                    () -> PatternMatchOutput.collectUnificationResults(subResults),
-                    () -> new PatternMatchOutput.WithTypeNarrowing(
-                            tces.inferSubPatternType(leftSubpattern.getPattern()).solve(rType)
-                    )
+                rType,
+                (Integer i) -> {
+                    if (i < 0 || i >= 2) {
+                        return "/* Index out of bounds */";
+                    } else {
+                        return "__x";
+                    }
+                },
+                List.of(
+                    rightResult,
+                    leftResult
+                )
             );
         }
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<EqualityComparison> input) {
-        Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
-        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
-        String equalityOp = input.__(EqualityComparison::getEqualityOp).orElse("");
-        final TypeComparisonExpressionSemantics tces = module.get(TypeComparisonExpressionSemantics.class);
+    protected boolean isPatternEvaluationPureInternal(
+        PatternMatchInput<EqualityComparison> input,
+        StaticState state
+    ) {
+        Maybe<TypeComparison> left = input
+            .getPattern()
+            .__(EqualityComparison::getLeft);
+        Maybe<TypeComparison> right = input
+            .getPattern()
+            .__(EqualityComparison::getRight);
+        String equalityOp = input
+            .getPattern()
+            .__(EqualityComparison::getEqualityOp)
+            .orElse("");
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
 
-        if (equalityOp.equals(NOT_EQUALS_OPERATOR) || !tces.isHoled(left)) {
-            return isAlwaysPure(input);
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
+            || !tces.isHoled(left, state)) {
+            return isAlwaysPure(input.getPattern(), state);
         } else {
-            return tces.isPatternEvaluationPure(right) && tces.isPatternEvaluationPure(left);
+            final StaticState afterRight = tces.advance(right, state);
+            return tces.isPatternEvaluationPure(
+                input.replacePattern(right),
+                state
+            ) && tces.isPatternEvaluationPure(
+                input.replacePattern(left),
+                afterRight
+            );
         }
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<EqualityComparison> input) {
+    public PatternType inferPatternTypeInternal(
+        Maybe<EqualityComparison> input,
+        StaticState state
+    ) {
         Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
         Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
-        String equalityOp = input.__(EqualityComparison::getEqualityOp).orElse("");
-        final TypeComparisonExpressionSemantics tces = module.get(TypeComparisonExpressionSemantics.class);
-        if (equalityOp.equals(NOT_EQUALS_OPERATOR) || !tces.isTypelyHoled(left)) {
+        String equalityOp =
+            input.__(EqualityComparison::getEqualityOp).orElse("");
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
+            || !tces.isTypelyHoled(left, state)) {
             return PatternType.simple(module.get(TypeHelper.class).BOOLEAN);
         } else {
-            return tces.inferSubPatternType(right);
+            return tces.inferSubPatternType(right, state);
         }
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<EqualityComparison, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<EqualityComparison> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
     ) {
-        Maybe<TypeComparison> left = input.getPattern().__(EqualityComparison::getLeft);
-        Maybe<TypeComparison> right = input.getPattern().__(EqualityComparison::getRight);
-        String equalityOp = input.getPattern().__(EqualityComparison::getEqualityOp).orElse("");
-        final TypeComparisonExpressionSemantics tces = module.get(TypeComparisonExpressionSemantics.class);
+        Maybe<TypeComparison> left =
+            input.getPattern().__(EqualityComparison::getLeft);
+        Maybe<TypeComparison> right =
+            input.getPattern().__(EqualityComparison::getRight);
+        String equalityOp =
+            input.getPattern().__(EqualityComparison::getEqualityOp).orElse("");
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
 
-        if (equalityOp.equals(NOT_EQUALS_OPERATOR) || !tces.isHoled(left)) {
-            return validateExpressionEqualityPatternMatch(input, acceptor);
-        } else {
-            final IJadescriptType rType = tces.inferSubPatternType(right).solve(input.getProvidedInputType());
-            PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> rightResult =
-                    tces.validatePatternMatch(input.subPattern(
-                            input.getProvidedInputType(),
-                            __ -> right.toNullable(),
-                            "_right"
-                    ), acceptor);
-            final PatternMatchInput.SubPattern<TypeComparison, EqualityComparison, ?, ?> leftSubpattern =
-                    input.subPattern(
-                            rType,
-                            __ -> left.toNullable(),
-                            "_left"
-                    );
-            PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> leftResult =
-                    tces.validatePatternMatchInternal(leftSubpattern, acceptor);
-
-            final List<PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?>> subResults =
-                    List.of(rightResult, leftResult);
-
-            return input.createValidationOutput(
-                    () -> PatternMatchOutput.collectUnificationResults(subResults),
-                    () -> new PatternMatchOutput.WithTypeNarrowing(
-                            tces.inferSubPatternType(leftSubpattern.getPattern()).solve(rType)
-                    )
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
+            || !tces.isHoled(left, state)) {
+            return validateExpressionEqualityPatternMatch(
+                input,
+                state,
+                acceptor
             );
+        } else {
+            final IJadescriptType rType = tces.inferSubPatternType(right, state)
+                .solve(input.getProvidedInputType());
+
+            final SubPattern<TypeComparison, EqualityComparison>
+                rightSubpattern =
+                input.subPattern(
+                    input.getProvidedInputType(),
+                    __ -> right.toNullable(),
+                    "_right"
+                );
+            boolean rightResult = tces.validatePatternMatch(
+                rightSubpattern,
+                state,
+                acceptor
+            );
+
+            StaticState afterRight = tces.advancePattern(
+                rightSubpattern,
+                state
+            );
+
+            final SubPattern<
+                TypeComparison,
+                EqualityComparison
+                > leftSubpattern = input.subPattern(
+                rType,
+                __ -> left.toNullable(),
+                "_left"
+            );
+
+            boolean leftResult = tces.validatePatternMatchInternal(
+                leftSubpattern,
+                afterRight,
+                acceptor
+            );
+
+
+            return rightResult && leftResult;
         }
     }
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<EqualityComparison> input) {
-        return subExpressionsAllAlwaysPure(input);
+    protected boolean isAlwaysPureInternal(
+        Maybe<EqualityComparison> input,
+        StaticState state
+    ) {
+        return subExpressionsAllAlwaysPure(input, state);
     }
 
     @Override

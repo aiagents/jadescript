@@ -41,8 +41,8 @@ public class ClearStatementSemantics extends StatementSemantics<ClearStatement> 
         if (input != null) {
             acceptor.accept(w.callStmnt(
                     module.get(RValueExpressionSemantics.class).compile(
-                            input.__(ClearStatement::getCollection),
-                            acceptor
+                            input.__(ClearStatement::getCollection), ,
+                        acceptor
                     ) + ".clear"
             ));
         }
@@ -54,9 +54,9 @@ public class ClearStatementSemantics extends StatementSemantics<ClearStatement> 
         InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
 
         Maybe<RValueExpression> collection = input.__(ClearStatement::getCollection);
-        module.get(RValueExpressionSemantics.class).validate(collection, subValidation);
+        module.get(RValueExpressionSemantics.class).validate(collection, , subValidation);
         if (!subValidation.thereAreErrors()) {
-            IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection);
+            IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection, );
             module.get(ValidationHelper.class).assertion(
                     collectionType.namespace().searchAs(
                             CallableSymbol.Searcher.class,

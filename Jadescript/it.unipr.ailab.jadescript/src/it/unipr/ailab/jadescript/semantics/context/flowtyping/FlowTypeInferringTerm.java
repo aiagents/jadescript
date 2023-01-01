@@ -11,7 +11,8 @@ public class FlowTypeInferringTerm {
     private IJadescriptType typeRef;
     private boolean isNegated;
 
-    private FlowTypeInferringTerm(){}
+    private FlowTypeInferringTerm() {
+    }
 
     public static FlowTypeInferringTerm of(IJadescriptType typeRef) {
         FlowTypeInferringTerm result = new FlowTypeInferringTerm();
@@ -20,23 +21,29 @@ public class FlowTypeInferringTerm {
         return result;
     }
 
-    public static FlowTypeInferringTerm of(TypeHelper typeHelper, JvmTypeReference typeRef) {
+    public static FlowTypeInferringTerm of(
+        TypeHelper typeHelper,
+        JvmTypeReference typeRef
+    ) {
         FlowTypeInferringTerm result = new FlowTypeInferringTerm();
-        result.typeRef = typeHelper.jtFromJvmTypeRef( typeRef);
+        result.typeRef = typeHelper.jtFromJvmTypeRef(typeRef);
         result.isNegated = false;
         return result;
     }
 
-    public static FlowTypeInferringTerm ofNegated(IJadescriptType typeRef){
+    public static FlowTypeInferringTerm ofNegated(IJadescriptType typeRef) {
         FlowTypeInferringTerm result = new FlowTypeInferringTerm();
         result.typeRef = typeRef;
         result.isNegated = true;
         return result;
     }
 
-    public static FlowTypeInferringTerm ofNegated(TypeHelper typeHelper, JvmTypeReference typeRef) {
+    public static FlowTypeInferringTerm ofNegated(
+        TypeHelper typeHelper,
+        JvmTypeReference typeRef
+    ) {
         FlowTypeInferringTerm result = new FlowTypeInferringTerm();
-        result.typeRef = typeHelper.jtFromJvmTypeRef( typeRef);
+        result.typeRef = typeHelper.jtFromJvmTypeRef(typeRef);
         result.isNegated = true;
         return result;
     }
@@ -50,9 +57,9 @@ public class FlowTypeInferringTerm {
     }
 
     public FlowTypeInferringTerm negate() {
-        if(isNegated){
+        if (isNegated) {
             return of(typeRef);
-        }else{
+        } else {
             return ofNegated(typeRef);
         }
     }

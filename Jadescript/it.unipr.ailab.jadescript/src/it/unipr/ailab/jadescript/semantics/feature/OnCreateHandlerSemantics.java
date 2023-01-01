@@ -224,7 +224,7 @@ public class OnCreateHandlerSemantics extends FeatureSemantics<OnCreateHandler> 
                 for (Maybe<FormalParameter> parameter : iterate(parameters)) {
                     InterceptAcceptor parameterTypeValidation = new InterceptAcceptor(acceptor);
                     module.get(TypeExpressionSemantics.class).validate(
-                            parameter.__(FormalParameter::getType),
+                            parameter.__(FormalParameter::getType), ,
                             parameterTypeValidation
                     );
 

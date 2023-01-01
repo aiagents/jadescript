@@ -320,7 +320,7 @@ public class OnPerceptHandlerSemantics extends FeatureSemantics<OnPerceptHandler
 
 
             InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-            module.get(RValueExpressionSemantics.class).validateUsageAsHandlerCondition(expr, expr, interceptAcceptor);
+            module.get(RValueExpressionSemantics.class).validateUsageAsHandlerCondition(expr, expr, , interceptAcceptor);
             if (!interceptAcceptor.thereAreErrors()) {
                 IJadescriptType computedContentType = inferContentType(input);
 
@@ -337,7 +337,7 @@ public class OnPerceptHandlerSemantics extends FeatureSemantics<OnPerceptHandler
                         module.get(PatternMatchingSemantics.class).validate(patternMatchRequest, acceptor);
                     }
                     if (expr.isPresent()) {
-                        module.get(RValueExpressionSemantics.class).validate(expr, acceptor);
+                        module.get(RValueExpressionSemantics.class).validate(expr, , acceptor);
                     }
                     module.get(ContextManager.class).exit();
                 }
@@ -458,7 +458,7 @@ public class OnPerceptHandlerSemantics extends FeatureSemantics<OnPerceptHandler
                     .compileMatchesExpression(patternMatchRequest)
                     .orElse("");
             String x2 = module.get(RValueExpressionSemantics.class)
-                    .compile(expr, )
+                    .compile(expr, , )
                     .orElse("");
             if (!x1.isBlank() && !x2.isBlank()) {
                 compiledExpression = "(" + x1 + ") && (" + x2 + ")";

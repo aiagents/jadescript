@@ -3,11 +3,9 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
@@ -16,7 +14,6 @@ import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -54,17 +51,18 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    protected List<String> propertyChainInternal(Maybe<TypeComparison> input) {
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<TypeComparison> input, StaticState state) {
         return Collections.emptyList();
     }
 
     @Override
-    protected ExpressionTypeKB computeKBInternal(Maybe<TypeComparison> input) {
+    protected StaticState advanceInternal(Maybe<TypeComparison> input,
+                                          StaticState state) {
         final Maybe<RelationalComparison> left = input.__(TypeComparison::getRelationalComparison);
         final Maybe<TypeExpression> type = input.__(TypeComparison::getType);
 
-        ExpressionTypeKB subKb = module.get(RelationalComparisonExpressionSemantics.class).computeKB(left).copy();
-        List<String> propChain = module.get(RelationalComparisonExpressionSemantics.class).propertyChain(left);
+        ExpressionTypeKB subKb = module.get(RelationalComparisonExpressionSemantics.class).advance(left, ).copy();
+        List<String> propChain = module.get(RelationalComparisonExpressionSemantics.class).describeExpression(left, );
         subKb.add(
                 FlowTypeInferringTerm.of(module.get(TypeExpressionSemantics.class).toJadescriptType(type)),
                 propChain
@@ -73,13 +71,14 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    protected String compileInternal(Maybe<TypeComparison> input, CompilationOutputAcceptor acceptor) {
+    protected String compileInternal(Maybe<TypeComparison> input,
+                                     StaticState state, CompilationOutputAcceptor acceptor) {
         if (input == null) return "";
 
         final Maybe<RelationalComparison> left = input.__(TypeComparison::getRelationalComparison);
         final Maybe<TypeExpression> type = input.__(TypeComparison::getType);
 
-        String result = module.get(RelationalComparisonExpressionSemantics.class).compile(left, acceptor);
+        String result = module.get(RelationalComparisonExpressionSemantics.class).compile(left, , acceptor);
         IJadescriptType jadescriptType = module.get(TypeExpressionSemantics.class).toJadescriptType(type);
         String compiledTypeExpression = jadescriptType.compileToJavaTypeReference();
         if (module.get(TypeHelper.class).ONTOLOGY.isAssignableFrom(jadescriptType)) {
@@ -98,7 +97,8 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<TypeComparison> input) {
+    protected IJadescriptType inferTypeInternal(Maybe<TypeComparison> input,
+                                                StaticState state) {
         if (input == null) return module.get(TypeHelper.class).ANY;
         final Maybe<RelationalComparison> left = input.__(TypeComparison::getRelationalComparison);
         return module.get(TypeHelper.class).BOOLEAN;
@@ -111,7 +111,7 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    protected Optional<SemanticsBoundToExpression<?>> traverse(Maybe<TypeComparison> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<TypeComparison> input) {
         if (mustTraverse(input)) {
             return Optional.of(new SemanticsBoundToExpression<>(
                             module.get(RelationalComparisonExpressionSemantics.class),
@@ -123,15 +123,15 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(Maybe<TypeComparison> input) {
+    protected boolean isPatternEvaluationPureInternal(PatternMatchInput<TypeComparison> input, StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean validateInternal(Maybe<TypeComparison> input, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(Maybe<TypeComparison> input, StaticState state, ValidationMessageAcceptor acceptor) {
         if (input == null) return VALID;
         boolean subResult = module.get(RelationalComparisonExpressionSemantics.class)
-                .validate(input.__(TypeComparison::getRelationalComparison), acceptor);
+                .validate(input.__(TypeComparison::getRelationalComparison), , acceptor);
         final Maybe<TypeExpression> typeExpr = input.__(TypeComparison::getType);
         IJadescriptType type = module.get(TypeExpressionSemantics.class)
                 .toJadescriptType(typeExpr);
@@ -143,28 +143,30 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
 
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?>
-    compilePatternMatchInternal(PatternMatchInput<TypeComparison, ?, ?> input, CompilationOutputAcceptor acceptor) {
+    public PatternMatcher
+    compilePatternMatchInternal(PatternMatchInput<TypeComparison> input, StaticState state, CompilationOutputAcceptor acceptor) {
         return input.createEmptyCompileOutput();
     }
 
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<TypeComparison> input) {
+    public PatternType inferPatternTypeInternal(Maybe<TypeComparison> input,
+                                                StaticState state) {
         return PatternType.empty(module);
     }
 
     @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<TypeComparison, ?, ?> input,
-            ValidationMessageAcceptor acceptor
+    public boolean validatePatternMatchInternal(
+        PatternMatchInput<TypeComparison> input,
+        StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        return input.createEmptyValidationOutput();
+        return VALID;
     }
 
 
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<TypeComparison> input) {
-        return subExpressionsAllAlwaysPure(input);
+    protected boolean isAlwaysPureInternal(Maybe<TypeComparison> input,
+                                           StaticState state) {
+        return subExpressionsAllAlwaysPure(input, state);
     }
 
     @Override
@@ -173,17 +175,20 @@ public class TypeComparisonExpressionSemantics extends ExpressionSemantics<TypeC
     }
 
     @Override
-    protected boolean isHoledInternal(Maybe<TypeComparison> input) {
+    protected boolean isHoledInternal(Maybe<TypeComparison> input,
+                                      StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<TypeComparison> input) {
+    protected boolean isTypelyHoledInternal(Maybe<TypeComparison> input,
+                                            StaticState state) {
         return false;
     }
 
     @Override
-    protected boolean isUnboundInternal(Maybe<TypeComparison> input) {
+    protected boolean isUnboundInternal(Maybe<TypeComparison> input,
+                                        StaticState state) {
         return false;
     }
 

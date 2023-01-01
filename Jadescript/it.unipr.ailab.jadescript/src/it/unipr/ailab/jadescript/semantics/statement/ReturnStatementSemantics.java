@@ -8,6 +8,7 @@ import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.ReturnExpectedContext;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
@@ -43,7 +44,7 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
         boolean isExprValid = true;
         if (hasExpr) {
             InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-            module.get(RValueExpressionSemantics.class).validate(expr, interceptAcceptor);
+            module.get(RValueExpressionSemantics.class).validate(expr, , interceptAcceptor);
             isExprValid = !interceptAcceptor.thereAreErrors();
         }
 
@@ -66,7 +67,7 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
                             acceptor);
                 } else {
                     if (hasExpr) {
-                        IJadescriptType actualType = module.get(RValueExpressionSemantics.class).inferType(expr);
+                        IJadescriptType actualType = module.get(RValueExpressionSemantics.class).inferType(expr, );
                         module.get(ValidationHelper.class).assertion(expectedReturn.get().isAssignableFrom(actualType),
                                 "InvalidReturnStatement",
                                 "Expected returned value type: " + expectedReturn.get()
@@ -101,7 +102,7 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
     public void compileStatement(Maybe<ReturnStatement> input, CompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> expr = input.__(ReturnStatement::getExpr);
 
-        String compiledExpression = module.get(RValueExpressionSemantics.class).compile(expr, acceptor).toString();
+        String compiledExpression = module.get(RValueExpressionSemantics.class).compile(expr, , acceptor).toString();
         if(expr.isPresent()){
             final Optional<IJadescriptType> expectedReturn = module.get(ContextManager.class)
                     .currentContext()
@@ -109,7 +110,7 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
                     .findFirst()
                     .map(ReturnExpectedContext::expectedReturnType);
             if(expectedReturn.isPresent()){
-                IJadescriptType returnExprType = module.get(RValueExpressionSemantics.class).inferType(expr);
+                IJadescriptType returnExprType = module.get(RValueExpressionSemantics.class).inferType(expr, );
                 if(module.get(TypeHelper.class).implicitConversionCanOccur(returnExprType, expectedReturn.get())){
 
                     compiledExpression = module.get(TypeHelper.class).compileImplicitConversion(
@@ -133,7 +134,8 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
     }
 
     @Override
-    public List<Effect> computeEffectsInternal(Maybe<ReturnStatement> input) {
+    public List<Effect> computeEffectsInternal(Maybe<ReturnStatement> input,
+                                               StaticState state) {
         return Collections.singletonList(Effect.JumpsAwayFromOperation.INSTANCE);
     }
 }

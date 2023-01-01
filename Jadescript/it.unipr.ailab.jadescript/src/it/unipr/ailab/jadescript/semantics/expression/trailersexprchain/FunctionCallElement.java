@@ -6,10 +6,10 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
 import it.unipr.ailab.jadescript.semantics.MethodInvocationSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.expression.AssignableExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchOutput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchSemanticsProcess;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
@@ -33,11 +33,11 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     private final MethodInvocationSemantics subSemantics;
 
     public FunctionCallElement(
-            SemanticsModule module,
-            Maybe<String> identifier,
-            Maybe<SimpleArgumentList> simpleArgs,
-            Maybe<NamedArgumentList> namedArgs,
-            Maybe<? extends EObject> input
+        SemanticsModule module,
+        Maybe<String> identifier,
+        Maybe<SimpleArgumentList> simpleArgs,
+        Maybe<NamedArgumentList> namedArgs,
+        Maybe<? extends EObject> input
     ) {
         super(module);
         this.identifier = identifier;
@@ -48,159 +48,24 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     }
 
 
-    @Override
-    public String compile(ReversedTrailerChain rest, CompilationOutputAcceptor acceptor) {
-        //rest should be empty, so it's ignored
-        return subSemantics.compile(generateMethodCall(), acceptor);
-    }
 
     private Maybe<MethodCall> generateMethodCall() {
-        return MethodCall.methodCall(input, identifier, simpleArgs, namedArgs, false);
-    }
-
-
-    @Override
-    public IJadescriptType inferType(ReversedTrailerChain rest) {
-        //rest should be empty, so it's ignored
-
-        return subSemantics.inferType(generateMethodCall());
-    }
-
-    @Override
-    public boolean validate(ReversedTrailerChain rest, ValidationMessageAcceptor acceptor) {
-        //rest should be empty, so it's ignored
-
-        return subSemantics.validate(generateMethodCall(), acceptor);
-    }
-
-
-    @Override
-    public boolean validateAssignment(
-            ReversedTrailerChain rest,
-            Maybe<RValueExpression> rValueExpression,
-            IJadescriptType typeOfRExpr,
-            ValidationMessageAcceptor acceptor
-    ) {
-        //CANNOT ASSIGN TO A METHOD CALL
-        //this is never called because of prior check via syntacticValidateLValue(...)
-
-        input.safeDo(inputSafe -> {
-            acceptor.acceptError(
-                    "this is not a valid l-value expression",
-                    inputSafe,
-                    null,
-                    ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                    "InvalidLValueExpression"
-            );
-        });
-        return INVALID;
-    }
-
-
-    @Override
-    public boolean syntacticValidateLValue(ValidationMessageAcceptor acceptor) {
-        input.safeDo(inputSafe -> {
-            acceptor.acceptError(
-                    "this is not a valid l-value expression",
-                    inputSafe,
-                    null,
-                    ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                    "InvalidLValueExpression"
-            );
-        });
-        return INVALID;
-    }
-
-    @Override
-    public void compileAssignment(
-            ReversedTrailerChain rest,
-            String compiledExpression,
-            IJadescriptType exprType,
-            CompilationOutputAcceptor acceptor
-    ) {
-        acceptor.accept(w.commentStmt("CANNOT ASSIGN TO A METHOD CALL"));
-    }
-
-    @Override
-    public boolean isAlwaysPure(ReversedTrailerChain rest) {
-        // if one day there will be declared (or inferred) purity of functions, this implementation will change
-        return false;
-    }
-
-    @Override
-    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>> getSubExpressions(ReversedTrailerChain rest) {
-        //rest should be empty, so it's ignored
-        return subSemantics.getSubExpressions(generateMethodCall());
-    }
-
-    @Override
-    public boolean isHoled(ReversedTrailerChain rest) {
-        //rest should be empty, so it's ignored
-        return subSemantics.isHoled(generateMethodCall());
-    }
-
-    @Override
-    public boolean isUnbounded(ReversedTrailerChain rest) {
-        //rest should be empty, so it's ignored
-        return subSemantics.isUnbound(generateMethodCall());
-    }
-
-    @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsCompilation, ?, ?> compilePatternMatchInternal(
-            PatternMatchInput<AtomExpr, ?, ?> input,
-            ReversedTrailerChain rest,
-            CompilationOutputAcceptor acceptor
-    ) {
-        //rest should be empty, so it's ignored
-        return subSemantics.compilePatternMatchInternal(input.replacePattern(generateMethodCall()), acceptor);
-    }
-
-    @Override
-    public PatternType inferPatternTypeInternal(
-            Maybe<AtomExpr> input,
-            ReversedTrailerChain rest
-    ) {
-        //rest should be empty, so it's ignored
-        return subSemantics.inferPatternTypeInternal(input.__(__ -> generateMethodCall().toNullable()));
-    }
-
-    @Override
-    public PatternMatchOutput<? extends PatternMatchSemanticsProcess.IsValidation, ?, ?> validatePatternMatchInternal(
-            PatternMatchInput<AtomExpr, ?, ?> input,
-            ReversedTrailerChain rest,
-            ValidationMessageAcceptor acceptor
-    ) {
-        //rest should be empty, so it's ignored
-        return subSemantics.validatePatternMatchInternal(
-                input.replacePattern(generateMethodCall()),
-                acceptor
+        return MethodCall.methodCall(
+            input,
+            identifier,
+            simpleArgs,
+            namedArgs,
+            false
         );
     }
 
-    @Override
-    public boolean isTypelyHoled(ReversedTrailerChain rest) {
-        //rest should be empty, so it's ignored
-        return subSemantics.isTypelyHoled(generateMethodCall());
-    }
 
     @Override
-    public boolean isValidLexpr(ReversedTrailerChain rest) {
-        return subSemantics.isValidLExpr(input.__(__ -> generateMethodCall().toNullable()));
+    public AssignableExpressionSemantics.SemanticsBoundToAssignableExpression<?>
+    resolveChain(ReversedTrailerChain withoutFirst) {
+        return new AssignableExpressionSemantics
+            .SemanticsBoundToAssignableExpression<>(
+            subSemantics, generateMethodCall()
+        );
     }
-
-    @Override
-    public boolean isPatternEvaluationPure(ReversedTrailerChain rest) {
-        return subSemantics.isPatternEvaluationPure(input.__(__ -> generateMethodCall().toNullable()));
-    }
-
-    @Override
-    public boolean canBeHoled(ReversedTrailerChain withoutFirst) {
-        return subSemantics.canBeHoled(generateMethodCall());
-    }
-
-    @Override
-    public boolean containsNotHoledAssignableParts(ReversedTrailerChain withoutFirst) {
-        return subSemantics.containsNotHoledAssignableParts(generateMethodCall());
-    }
-
 }

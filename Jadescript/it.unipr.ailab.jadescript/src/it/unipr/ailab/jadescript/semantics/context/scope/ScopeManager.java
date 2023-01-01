@@ -1,7 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.context.scope;
 
 
-public class ScopeManager {
+public class ScopeMa nager {
     private ProceduralScope currentScope;
 
     public ScopeManager(){
