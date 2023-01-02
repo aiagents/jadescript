@@ -105,7 +105,7 @@ public class AidLiteralExpressionSemantics
     }
 
     @Override
-    protected StaticState useStateAsPatternInternal(
+    protected StaticState advancePatternInternal(
         PatternMatchInput<AidLiteral> input,
         StaticState state
     ) {

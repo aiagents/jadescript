@@ -85,7 +85,7 @@ public class ContainmentCheckExpressionSemantics
     }
 
     @Override
-    protected StaticState useStateAsPatternInternal(
+    protected StaticState advancePatternInternal(
         PatternMatchInput<ContainmentCheck> input,
         StaticState state
     ) {

@@ -14,10 +14,6 @@ public class FlowTypingRule {
         this.consequence = consequence;
     }
 
-    public static final FlowTypingRule EMPTY = new FlowTypingRule(
-        FlowTypingRuleCondition.DidImpossible.INSTANCE,
-        Function.identity()
-    );
 
     public FlowTypingRuleCondition getRuleCondition() {
         return ruleCondition;

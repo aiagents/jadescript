@@ -4,7 +4,7 @@ import it.unipr.ailab.jadescript.jadescript.ExtendingFeature;
 import it.unipr.ailab.jadescript.jadescript.FeatureWithSlots;
 import it.unipr.ailab.jadescript.jadescript.SlotDeclaration;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
-import it.unipr.ailab.jadescript.semantics.MethodInvocationSemantics;
+import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
@@ -17,7 +17,6 @@ import it.unipr.ailab.maybe.Maybe;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
@@ -116,7 +115,7 @@ public class OntologyElementConstructorSymbol implements CallableSymbol {
                 lazyName.get() + "(" +
                 String.join(
                         ", ",
-                        MethodInvocationSemantics.sortToMatchParamNames(compiledRexprs, parameterNames())
+                        MethodCallSemantics.sortToMatchParamNames(compiledRexprs, parameterNames())
                 ) + ")";
     }
 

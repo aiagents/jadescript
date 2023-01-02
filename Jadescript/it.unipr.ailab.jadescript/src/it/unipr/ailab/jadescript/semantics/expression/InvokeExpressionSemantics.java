@@ -161,7 +161,7 @@ public class InvokeExpressionSemantics
     }
 
     @Override
-    protected StaticState useStateAsPatternInternal(
+    protected StaticState advancePatternInternal(
         PatternMatchInput<InvokeExpression> input,
         StaticState state
     ) {

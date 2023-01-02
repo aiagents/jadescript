@@ -278,7 +278,7 @@ public class ListLiteralExpressionSemantics
     }
 
     @Override
-    protected StaticState useStateAsPatternInternal(
+    protected StaticState advancePatternInternal(
         PatternMatchInput<ListLiteral> input,
         StaticState state
     ) {

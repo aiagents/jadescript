@@ -440,7 +440,7 @@ public class ValidationHelper implements SemanticsConsts {
         );
     }
 
-    public void assertExpectedType(
+    public boolean assertExpectedType(
             Class<?> expected,
             IJadescriptType actual,
             String issueCode,
@@ -449,7 +449,7 @@ public class ValidationHelper implements SemanticsConsts {
     ) {
         Objects.requireNonNull(expected);
         final IJadescriptType expectedDescriptor = module.get(TypeHelper.class).jtFromClass(expected);
-        assertion(
+        return assertion(
                 expectedDescriptor.isAssignableFrom(actual),
                 issueCode,
                 "invalid type; found: '" + actual.getJadescriptName() +

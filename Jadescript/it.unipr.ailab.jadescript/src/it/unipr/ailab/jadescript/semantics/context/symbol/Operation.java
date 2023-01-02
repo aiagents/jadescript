@@ -1,6 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol;
 
-import it.unipr.ailab.jadescript.semantics.MethodInvocationSemantics;
+import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
@@ -102,7 +102,7 @@ public class Operation implements CallableSymbol {
     ) {
         return dereferencePrefix + name() + "(" + String.join(
                 " ,",
-                MethodInvocationSemantics.sortToMatchParamNames(
+                MethodCallSemantics.sortToMatchParamNames(
                         compiledRexprs,
                         parameterNames
                 )

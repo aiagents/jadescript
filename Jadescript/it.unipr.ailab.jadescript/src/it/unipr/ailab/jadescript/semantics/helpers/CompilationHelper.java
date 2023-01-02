@@ -20,7 +20,10 @@ import it.unipr.ailab.sonneteer.WriterFactory;
 import it.unipr.ailab.sonneteer.comment.MultilineCommentWriter;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.expression.LambdaWithBlockWriter;
-import it.unipr.ailab.sonneteer.statement.*;
+import it.unipr.ailab.sonneteer.statement.BlockWriter;
+import it.unipr.ailab.sonneteer.statement.LocalVarBindingProvider;
+import it.unipr.ailab.sonneteer.statement.StatementWriter;
+import it.unipr.ailab.sonneteer.statement.VariableDeclarationWriter;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtend2.lib.StringConcatenationClient;
 import org.eclipse.xtext.common.types.JvmExecutable;
@@ -41,235 +44,86 @@ import java.util.stream.Collectors;
 
 public class CompilationHelper implements IQualifiedNameProvider {
 
-    private final SemanticsModule module;
-
-
     private final static WriterFactory w = WriterFactory.getInstance();
+    private final static LateVarBindingContext bindingContext =
+        new LateVarBindingContext();
+    public static final LocalVarBindingProvider userBlockLocalVars =
+        new LocalVarBindingProvider() {
+            @Override
+            public VariableDeclarationWriter bindDeclaration(
+                String chosenType,
+                String varName,
+                ExpressionWriter nullableInitExpression
+            ) {
+                final Optional<UserVariable> variable =
+                    bindingContext.findVariable(varName);
+                if (variable.isPresent()) {
+                    return variable.get().bindDeclaration(nullableInitExpression);
+                } else {
+                    return DEFAULT_VAR_BINDING_PROVIDER.bindDeclaration(
+                        chosenType,
+                        varName,
+                        nullableInitExpression
+                    );
+                }
+            }
+
+            @Override
+            public StatementWriter bindWrite(
+                String varName,
+                ExpressionWriter expression
+            ) {
+                final Optional<UserVariable> variable =
+                    bindingContext.findVariable(varName);
+                if (variable.isPresent()) {
+                    if (variable.get().isCapturedInAClosure()) {
+                        return variable.get().bindWriteInClosure(expression);
+                    } else {
+                        return variable.get().bindWrite(expression);
+                    }
+                } else {
+                    return DEFAULT_VAR_BINDING_PROVIDER.bindWrite(
+                        varName,
+                        expression
+                    );
+                }
+            }
+
+            @Override
+            public String bindRead(String varName) {
+                final Optional<UserVariable> variable =
+                    bindingContext.findVariable(varName);
+                if (variable.isPresent()) {
+                    if (variable.get().isCapturedInAClosure()) {
+                        return variable.get().bindReadInClosure();
+                    } else {
+                        return variable.get().bindRead();
+                    }
+                } else {
+                    return DEFAULT_VAR_BINDING_PROVIDER.bindRead(varName);
+                }
+            }
+
+
+        };
+    private final SemanticsModule module;
 
     public CompilationHelper(SemanticsModule module) {
         this.module = module;
     }
 
-    private final static LateVarBindingContext bindingContext = new LateVarBindingContext();
-
-    public static final LocalVarBindingProvider userBlockLocalVars = new LocalVarBindingProvider() {
-        @Override
-        public VariableDeclarationWriter bindDeclaration(
-                String chosenType,
-                String varName,
-                ExpressionWriter nullableInitExpression
-        ) {
-            final Optional<UserVariable> variable = bindingContext.findVariable(varName);
-            if (variable.isPresent()) {
-                return variable.get().bindDeclaration(nullableInitExpression);
-            } else {
-                return DEFAULT_VAR_BINDING_PROVIDER.bindDeclaration(
-                        chosenType,
-                        varName,
-                        nullableInitExpression
-                );
-            }
-        }
-
-        @Override
-        public StatementWriter bindWrite(String varName, ExpressionWriter expression) {
-            final Optional<UserVariable> variable = bindingContext.findVariable(varName);
-            if (variable.isPresent()) {
-                if (variable.get().isCapturedInAClosure()) {
-                    return variable.get().bindWriteInClosure(expression);
-                } else {
-                    return variable.get().bindWrite(expression);
-                }
-            } else {
-                return DEFAULT_VAR_BINDING_PROVIDER.bindWrite(varName, expression);
-            }
-        }
-
-        @Override
-        public String bindRead(String varName) {
-            final Optional<UserVariable> variable = bindingContext.findVariable(varName);
-            if (variable.isPresent()) {
-                if (variable.get().isCapturedInAClosure()) {
-                    return variable.get().bindReadInClosure();
-                } else {
-                    return variable.get().bindRead();
-                }
-            } else {
-                return DEFAULT_VAR_BINDING_PROVIDER.bindRead(varName);
-            }
-        }
-
-
-    };
-
     @NotNull
     public static String extractOntologyVarName(JvmTypeReference jvmTypeReference) {
         return SemanticsConsts.ONTOLOGY_VAR_NAME + "__" +
-                jvmTypeReference.getQualifiedName('.').replaceAll("\\.", "_");
+            jvmTypeReference.getQualifiedName('.').replaceAll("\\.", "_");
     }
 
     public static String extractOntologyVarName(IJadescriptType usedOntologyType) {
         return extractOntologyVarName(usedOntologyType.asJvmTypeReference());
     }
 
-
-    public void createAndSetBody(
-            JvmExecutable container,
-            Consumer<SourceCodeBuilder> initializer
-    ) {
-        module.get(JvmTypesBuilder.class).setBody(container, new StringConcatenationClient() {
-            @Override
-            protected void appendTo(TargetStringConcatenation target) {
-                SourceCodeBuilder sourceCodeBuilder = new SourceCodeBuilder("");
-                initializer.accept(sourceCodeBuilder);
-                target.append(sourceCodeBuilder);
-                target.newLineIfNotEmpty();
-            }
-        });
-    }
-
-    public void createAndSetInitializer(
-            JvmField field,
-            Consumer<SourceCodeBuilder> init
-    ) {
-        module.get(JvmTypesBuilder.class).setInitializer(field, new StringConcatenationClient() {
-            @Override
-            protected void appendTo(TargetStringConcatenation target) {
-                SourceCodeBuilder sourceCodeBuilder = new SourceCodeBuilder("");
-                init.accept(sourceCodeBuilder);
-                target.append(sourceCodeBuilder);
-            }
-        });
-    }
-
-    public List<String> adaptAndCompileRValueList(
-            List<String> compiledArgs,
-            List<IJadescriptType> argTypes,
-            List<IJadescriptType> destinationTypes
-    ) {
-        List<String> result = new ArrayList<>();
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        for (int i = 0; i < Math.min(compiledArgs.size(), Math.min(argTypes.size(), destinationTypes.size())); i++) {
-            result.add(
-                    typeHelper.compileWithEventualImplicitConversions(
-                            compiledArgs.get(i),
-                            argTypes.get(i),
-                            destinationTypes.get(i)
-                    )
-            );
-        }
-        return result;
-    }
-
-    public List<String> adaptAndCompileRValueList(
-            List<? extends RValueExpression> rvals,
-            List<IJadescriptType> destinationTypes,
-            CompilationOutputAcceptor acceptor
-    ) {
-        List<String> compiledArgs = rvals.stream()
-                .map(Maybe::of)
-                .map(x -> x.__(xx -> (RValueExpression) xx))
-                .map(x -> module.get(RValueExpressionSemantics.class).compile(x, , acceptor))
-                .collect(Collectors.toList());
-        List<IJadescriptType> argTypes = rvals.stream()
-                .map(Maybe::of)
-                .map(x -> x.__(xx -> (RValueExpression) xx))
-                .map(x -> module.get(RValueExpressionSemantics.class).inferType(x, ))
-                .collect(Collectors.toList());
-        return adaptAndCompileRValueList(compiledArgs, argTypes, destinationTypes);
-    }
-
-    /**
-     * Compiles the expression into a Supplier lambdas, which contains all the expression's generated
-     * auxiliary statements, and it returns with the value which is used to provide the value.
-     * <p></p>
-     * For example, let's say we need to pass a super-argument with the string "Hello".
-     * Using this to compile the arguments of the super constructor generates:
-     * <p></p>
-     * {@code super(((Supplier<String>)()->{return "Hello";}).get());}.
-     * <p></p>
-     * This is important in order to compile expressions as super-arguments that may need to generate auxiliary
-     * statements in order to work correctly, or to initialize fields in the same way.
-     *
-     * @param expr
-     */
-    public String compileRValueAsLambdaSupplier(
-            Maybe<RValueExpression> expr
-    ) {
-        return compileRValueAsLambdaSupplier(expr, null);
-    }
-
-    /**
-     * Compiles the expression into a Supplier lambdas, which contains all the expression's generated
-     * auxiliary statements, and it returns with the value which is used to provide the value.
-     * <p></p>
-     * For example, let's say we need to pass a super-argument with the string "Hello".
-     * Using this to compile the arguments of the super constructor generates:
-     * <p></p>
-     * {@code super(((Supplier<String>)()->{return "Hello";}).get());}.
-     * <p></p>
-     * This is important in order to compile expressions as super-arguments that may need to generate auxiliary
-     * statements in order to work correctly, or to initialize fields in the same way.
-     */
-    public String compileRValueAsLambdaSupplier(
-            Maybe<RValueExpression> expr,
-            IJadescriptType destinationType
-    ){
-        final LambdaWithBlockWriter lambda = w.blockLambda();
-        final IJadescriptType type;
-        final String returnExpr;
-
-        final IJadescriptType startType = module.get(RValueExpressionSemantics.class).inferType(expr, );
-        final String compiled = module.get(RValueExpressionSemantics.class).compile(expr, , lambda.getBody()::add);
-
-        if(destinationType == null){
-            returnExpr = compiled;
-            type = startType;
-        }else {
-            returnExpr = module.get(TypeHelper.class).compileWithEventualImplicitConversions(
-                    compiled,
-                    startType,
-                    destinationType
-            );
-            type = destinationType;
-        }
-
-        lambda.getBody().addStatement(w.returnStmnt(w.expr(returnExpr)));
-        SourceCodeBuilder scb = new SourceCodeBuilder();
-        scb.add("((java.util.function.Supplier<")
-                .add(type.compileToJavaTypeReference())
-                .add(">)")
-                .add(lambda)
-                .add(").get()");
-        return scb.toString();
-    }
-
-
-    public LateVarBindingContext lateBindingContext() {
-        return bindingContext;
-    }
-
-    public SourceCodeBuilder compileBlockToNewSCB(Maybe<CodeBlock> cb) {
-        SourceCodeBuilder ssb = new SourceCodeBuilder("");
-        if (cb != null) {
-            final BlockWriter compiledBlock = module.get(BlockSemantics.class).compile(cb);
-            compiledBlock.setBindingProvider(userBlockLocalVars);
-            compiledBlock.writeSonnet(ssb);
-        }
-        bindingContext.clear();
-        return ssb;
-    }
-
-    public String compileEmptyConstructorCall(
-            Maybe<TypeExpression> typeExpr
-    ) {
-        return compileEmptyConstructorCall(
-                module.get(TypeExpressionSemantics.class).toJadescriptType(typeExpr)
-        );
-    }
-
     public static String compileEmptyConstructorCall(
-            final IJadescriptType jadescriptType
+        final IJadescriptType jadescriptType
     ) {
         if (jadescriptType instanceof EmptyCreatable) {
             return ((EmptyCreatable) jadescriptType).compileNewEmptyInstance();
@@ -278,19 +132,19 @@ public class CompilationHelper implements IQualifiedNameProvider {
         }
     }
 
-
     public static Maybe<String> sourceToLocationText(Maybe<? extends EObject> input) {
         return Util.extractEObject(input).__(eObject -> {
             final ICompositeNode node = NodeModelUtils.getNode(eObject);
             int startLine = node.getStartLine();
             int endLine = node.getEndLine();
-            if(startLine == endLine) {
+            if (startLine == endLine) {
                 return "at line " + startLine;
-            }else{
+            } else {
                 return "from line " + startLine + " to line " + endLine;
             }
         });
     }
+
     public static Maybe<String> sourceToText(Maybe<? extends EObject> input) {
         return Util.extractEObject(input).__(eObject -> {
             final ICompositeNode node = NodeModelUtils.getNode(eObject);
@@ -300,7 +154,8 @@ public class CompilationHelper implements IQualifiedNameProvider {
 
     public static MultilineCommentWriter inputStatementComment(Maybe<Statement> input, String prefix) {
         final MultilineCommentWriter multiComment = w.multiComment(
-                prefix + " " + sourceToLocationText(input).orElse("[Unknown location in source]")
+            prefix + " " + sourceToLocationText(input).orElse("[Unknown " +
+                "location in source]")
         );
         String source = sourceToText(input).orElse("[unknown source]");
         for (String line : source.split("\\R")) {
@@ -309,9 +164,168 @@ public class CompilationHelper implements IQualifiedNameProvider {
         return multiComment;
     }
 
+    public void createAndSetBody(
+        JvmExecutable container,
+        Consumer<SourceCodeBuilder> initializer
+    ) {
+        module.get(JvmTypesBuilder.class).setBody(
+            container,
+            new StringConcatenationClient() {
+                @Override
+                protected void appendTo(TargetStringConcatenation target) {
+                    SourceCodeBuilder sourceCodeBuilder =
+                        new SourceCodeBuilder("");
+                    initializer.accept(sourceCodeBuilder);
+                    target.append(sourceCodeBuilder);
+                    target.newLineIfNotEmpty();
+                }
+            }
+        );
+    }
+
+    public void createAndSetInitializer(
+        JvmField field,
+        Consumer<SourceCodeBuilder> init
+    ) {
+        module.get(JvmTypesBuilder.class).setInitializer(
+            field,
+            new StringConcatenationClient() {
+                @Override
+                protected void appendTo(TargetStringConcatenation target) {
+                    SourceCodeBuilder sourceCodeBuilder =
+                        new SourceCodeBuilder("");
+                    init.accept(sourceCodeBuilder);
+                    target.append(sourceCodeBuilder);
+                }
+            }
+        );
+    }
+
+    public List<String> adaptAndCompileRValueList(
+        List<String> compiledArgs,
+        List<IJadescriptType> argTypes,
+        List<IJadescriptType> destinationTypes
+    ) {
+        List<String> result = new ArrayList<>();
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        for (int i = 0; i < Math.min(
+            compiledArgs.size(),
+            Math.min(argTypes.size(), destinationTypes.size())
+        ); i++) {
+            result.add(
+                typeHelper.compileWithEventualImplicitConversions(
+                    compiledArgs.get(i),
+                    argTypes.get(i),
+                    destinationTypes.get(i)
+                )
+            );
+        }
+        return result;
+    }
+
+
+    /**
+     * Compiles the expression into a Supplier lambda, which contains all the
+     * expression's generated auxiliary statements, and it returns with the
+     * value which is used to provide the value.
+     * <p></p>
+     * For example, let's say we need to pass a super-argument with the
+     * string "Hello".
+     * Using this to compile the arguments of the super constructor generates:
+     * <p></p>
+     * {@code super(((Supplier<String>)()->{return "Hello";}).get());}.
+     * <p></p>
+     * This is important in order to compile expressions as super-arguments
+     * that may need to generate auxiliary statements in order to work
+     * correctly, or to initialize fields in the same way.
+     *
+     * @param expr
+     */
+    public String compileRValueAsLambdaSupplier(
+        Maybe<RValueExpression> expr
+    ) {
+        return compileRValueAsLambdaSupplier(expr, null);
+    }
+
+    /**
+     * Compiles the expression into a Supplier lambda, which contains all the
+     * expression's generated auxiliary statements, and it returns with the
+     * value which is used to provide the value.
+     * <p></p>
+     * For example, let's say we need to pass a super-argument with the
+     * string "Hello".
+     * Using this to compile the arguments of the super constructor generates:
+     * <p></p>
+     * {@code super(((Supplier<String>)()->{return "Hello";}).get());}.
+     * <p></p>
+     * This is important in order to compile expressions as super-arguments
+     * that may need to generate auxiliary statements in order to work
+     * correctly, or to initialize fields in the same way.
+     */
+    public String compileRValueAsLambdaSupplier(
+        Maybe<RValueExpression> expr,
+        IJadescriptType destinationType
+    ) {
+        final LambdaWithBlockWriter lambda = w.blockLambda();
+        final IJadescriptType type;
+        final String returnExpr;
+
+        final IJadescriptType startType =
+            module.get(RValueExpressionSemantics.class).inferType(expr, );
+        final String compiled =
+            module.get(RValueExpressionSemantics.class).compile(expr, ,
+                lambda.getBody()::add);
+
+        if (destinationType == null) {
+            returnExpr = compiled;
+            type = startType;
+        } else {
+            returnExpr =
+                module.get(TypeHelper.class).compileWithEventualImplicitConversions(
+                    compiled,
+                    startType,
+                    destinationType
+                );
+            type = destinationType;
+        }
+
+        lambda.getBody().addStatement(w.returnStmnt(w.expr(returnExpr)));
+        SourceCodeBuilder scb = new SourceCodeBuilder();
+        scb.add("((java.util.function.Supplier<")
+            .add(type.compileToJavaTypeReference())
+            .add(">)")
+            .add(lambda)
+            .add(").get()");
+        return scb.toString();
+    }
+
+    public LateVarBindingContext lateBindingContext() {
+        return bindingContext;
+    }
+
+    public SourceCodeBuilder compileBlockToNewSCB(Maybe<CodeBlock> cb) {
+        SourceCodeBuilder ssb = new SourceCodeBuilder("");
+        if (cb != null) {
+            final BlockWriter compiledBlock =
+                module.get(BlockSemantics.class).compile(cb);
+            compiledBlock.setBindingProvider(userBlockLocalVars);
+            compiledBlock.writeSonnet(ssb);
+        }
+        bindingContext.clear();
+        return ssb;
+    }
+
+    public String compileEmptyConstructorCall(
+        Maybe<TypeExpression> typeExpr
+    ) {
+        return compileEmptyConstructorCall(
+            module.get(TypeExpressionSemantics.class).toJadescriptType(typeExpr)
+        );
+    }
+
     public LightweightTypeReference toLightweightTypeReference(IJadescriptType type, EObject container) {
         return module.get(JadescriptCompilerUtils.class)
-                .toLightweightTypeReference(type.asJvmTypeReference(), container);
+            .toLightweightTypeReference(type.asJvmTypeReference(), container);
     }
 
 

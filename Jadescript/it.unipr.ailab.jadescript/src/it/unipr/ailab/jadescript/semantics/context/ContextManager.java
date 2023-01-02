@@ -31,6 +31,8 @@ public class ContextManager {
         this.module = module;
     }
 
+    //TODO ensure that each search from local scopes starts from
+    // state, not from currentContext
     public Context currentContext() {
         return innerContext;
     }

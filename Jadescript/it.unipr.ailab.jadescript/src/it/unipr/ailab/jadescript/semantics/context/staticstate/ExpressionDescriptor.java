@@ -1,11 +1,71 @@
 package it.unipr.ailab.jadescript.semantics.context.staticstate;
 
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
 
 import java.util.List;
 import java.util.Objects;
 
 public interface ExpressionDescriptor {
+
+    public static class OrExpression implements ExpressionDescriptor {
+        private final ImmutableList<ExpressionDescriptor> expressions;
+
+        public OrExpression(ImmutableList<ExpressionDescriptor> expressions) {
+            this.expressions = expressions;
+        }
+
+        public ImmutableList<ExpressionDescriptor> getExpressions() {
+            return expressions;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof OrExpression)) return false;
+
+            OrExpression that = (OrExpression) o;
+
+            return getExpressions() != null ?
+                getExpressions().equals(that.getExpressions()) :
+                that.getExpressions() == null;
+        }
+
+        @Override
+        public int hashCode() {
+            return getExpressions() != null ? getExpressions().hashCode() : 0;
+        }
+    }
+
+    public static class AndExpression implements ExpressionDescriptor {
+
+        private final ImmutableList<ExpressionDescriptor> expressions;
+
+        public AndExpression(ImmutableList<ExpressionDescriptor> expressions) {
+            this.expressions = expressions;
+        }
+
+        public ImmutableList<ExpressionDescriptor> getExpressions() {
+            return expressions;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof AndExpression)) return false;
+
+            AndExpression that = (AndExpression) o;
+
+            return getExpressions() != null ?
+                getExpressions().equals(that.getExpressions()) :
+                that.getExpressions() == null;
+        }
+
+        @Override
+        public int hashCode() {
+            return getExpressions() != null ? getExpressions().hashCode() : 0;
+        }
+    }
 
     public static class TypeCheck implements ExpressionDescriptor {
         private final ExpressionDescriptor expressionChecked;
@@ -51,9 +111,6 @@ public interface ExpressionDescriptor {
             return result;
         }
     }
-
-
-
 
 
     public static class PropertyChain implements ExpressionDescriptor {

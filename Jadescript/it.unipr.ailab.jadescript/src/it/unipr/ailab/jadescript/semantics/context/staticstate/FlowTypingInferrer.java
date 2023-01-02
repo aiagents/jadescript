@@ -12,11 +12,6 @@ public interface FlowTypingInferrer {
         @Nullable Predicate<IJadescriptType> upperBound
     );
 
-    Stream<? extends IJadescriptType> getNegatedUpperBound(
-        @Nullable Predicate<ExpressionDescriptor> forExpression,
-        @Nullable Predicate<IJadescriptType> lowerBound
-    );
-
     Stream<? extends FlowTypingRule> getRule(
         @Nullable Predicate<ExpressionDescriptor> forExpression,
         @Nullable Predicate<FlowTypingRule> rule

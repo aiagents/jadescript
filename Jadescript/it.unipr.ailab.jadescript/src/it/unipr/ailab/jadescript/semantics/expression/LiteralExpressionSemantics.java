@@ -336,7 +336,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
     }
 
     @Override
-    protected StaticState useStateAsPatternInternal(
+    protected StaticState advancePatternInternal(
         PatternMatchInput<Literal> input,
         StaticState state
     ) {

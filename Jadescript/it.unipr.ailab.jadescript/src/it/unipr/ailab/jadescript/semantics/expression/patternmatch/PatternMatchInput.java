@@ -352,24 +352,24 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
                 PatternMatchMode.PatternLocation.BOOLEAN_EXPRESSION
         );
-        private final Maybe<UnaryPrefix> inputExpr;
+        private final IJadescriptType inputExprType;
 
         public MatchesExpression(
                 SemanticsModule module,
-                Maybe<UnaryPrefix> inputExpr,
+                IJadescriptType inputExprType,
                 Maybe<T> pattern,
                 String termID,
                 String rootPatternMatchVariableName
         ) {
             super(module, MODE, pattern, termID, rootPatternMatchVariableName);
-            this.inputExpr = inputExpr;
+            this.inputExprType = inputExprType;
         }
 
         @Override
         public <R> MatchesExpression<R> mapPattern(Function<T, R> function) {
             return new MatchesExpression<>(
                     module,
-                    inputExpr,
+                    inputExprType,
                     getPattern().__(function),
                     getTermID(),
                     getRootPatternMatchVariableName()
@@ -378,7 +378,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
         @Override
         public IJadescriptType getProvidedInputType() {
-            return module.get(UnaryPrefixExpressionSemantics.class).inferType(inputExpr, );
+            return inputExprType;
         }
 
 

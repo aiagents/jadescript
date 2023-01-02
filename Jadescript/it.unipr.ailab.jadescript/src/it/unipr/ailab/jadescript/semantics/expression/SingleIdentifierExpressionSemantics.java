@@ -35,7 +35,7 @@ import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 /**
  * Created on 26/08/18.
  */
-//TODO consider redesigning this as traversing toward MethodInvocationSemantics for nullary function calls
+//TODO consider redesigning this as traversing toward MethodCallSemantics for nullary function calls
 @Singleton
 public class SingleIdentifierExpressionSemantics
         extends AssignableExpressionSemantics<VirtualIdentifier> {
@@ -59,7 +59,7 @@ public class SingleIdentifierExpressionSemantics
         }else if(resolved.toNullable() instanceof Either.Left){
             return List.of(ident);
         }else /*if(resolved.toNullable() instanceof Either.Right)*/{
-            return module.get(MethodInvocationSemantics.class).describeExpression(MethodCall.methodCall(input), );
+            return module.get(MethodCallSemantics.class).describeExpression(MethodCall.methodCall(input), );
         }
     }
 
@@ -85,7 +85,7 @@ public class SingleIdentifierExpressionSemantics
         if (named.isPresent()) {
             return Maybe.of(new Either.Left<>(named.toNullable()));
         }
-        Maybe<? extends CallableSymbol> callable = module.get(MethodInvocationSemantics.class).resolve(
+        Maybe<? extends CallableSymbol> callable = module.get(MethodCallSemantics.class).resolve(
                 MethodCall.methodCall(input)
         );
         return callable.__(Either.Right::new);
@@ -125,7 +125,7 @@ public class SingleIdentifierExpressionSemantics
                 return variable.compileRead("");
             }
         } else /*if (resolved.toNullable() instanceof Either.Right)*/ {
-            return module.get(MethodInvocationSemantics.class).compile(MethodCall.methodCall(input), , acceptor);
+            return module.get(MethodCallSemantics.class).compile(MethodCall.methodCall(input), , acceptor);
         }
     }
 
@@ -188,7 +188,7 @@ public class SingleIdentifierExpressionSemantics
         } else if (resolved.toNullable() instanceof Either.Left) {
             return ((Either.Left<NamedSymbol, CallableSymbol>) resolved.toNullable()).getLeft().readingType();
         } else /*if(resolved.toNullable() instanceof Either.Right)*/ {
-            return module.get(MethodInvocationSemantics.class).inferType(MethodCall.methodCall(input), );
+            return module.get(MethodCallSemantics.class).inferType(MethodCall.methodCall(input), );
         }
     }
 
@@ -500,7 +500,7 @@ public class SingleIdentifierExpressionSemantics
             return true;
         } else if (either instanceof Either.Right) {
             //Resolves to a function invocation
-            return module.get(MethodInvocationSemantics.class).isPatternEvaluationPure(
+            return module.get(MethodCallSemantics.class).isPatternEvaluationPure(
                     MethodCall.methodCall(input),
             );
         } else {

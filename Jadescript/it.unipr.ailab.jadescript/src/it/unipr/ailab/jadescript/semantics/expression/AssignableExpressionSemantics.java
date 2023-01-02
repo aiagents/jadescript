@@ -297,7 +297,7 @@ public abstract class AssignableExpressionSemantics<T>
         }
 
         @Override
-        protected StaticState useStateAsPatternInternal(
+        protected StaticState advancePatternInternal(
             PatternMatchInput<X> input,
             StaticState state
         ) {

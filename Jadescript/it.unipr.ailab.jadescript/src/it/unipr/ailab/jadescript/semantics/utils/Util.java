@@ -11,12 +11,14 @@ import org.eclipse.xtext.EcoreUtil2;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.util.ITextRegionWithLineInformation;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
@@ -26,7 +28,9 @@ public class Util implements SemanticsConsts {
     private Util() {
     } // do not instantiate
 
-    public static <T, X> java.util.function.Predicate<T> dinstinctBy(Function<? super T, ? extends X> extractor) {
+    public static <T, X> java.util.function.Predicate<T> dinstinctBy(
+        Function<? super T, ? extends X> extractor
+    ) {
         HashSet<X> hashFlag = new HashSet<>();
         return t -> hashFlag.add(extractor.apply(t));
     }
@@ -51,7 +55,11 @@ public class Util implements SemanticsConsts {
         }
     }
 
-    public static <T, R> boolean allElementsMatch(List<T> a, List<R> b, BiPredicate<? super T, ? super R> predicate) {
+    public static <T, R> boolean allElementsMatch(
+        List<T> a,
+        List<R> b,
+        BiPredicate<? super T, ? super R> predicate
+    ) {
         if(a.size()!=b.size()){
             return false;
         }
@@ -87,7 +95,10 @@ public class Util implements SemanticsConsts {
         );
     }
 
-	public static <T> Stream<T> safeFilter(Stream<T> stream, Predicate<T> predicate) {
+	public static <T> Stream<T> safeFilter(
+        Stream<T> stream,
+        Predicate<T> predicate
+    ) {
         if (predicate != null) {
             return stream.filter(predicate);
         } else {
@@ -95,7 +106,11 @@ public class Util implements SemanticsConsts {
         }
     }
 
-    public static <T1, T2> Stream<T1> safeFilter(Stream<T1> stream, Function<T1, T2> function, Predicate<T2> predicate) {
+    public static <T1, T2> Stream<T1> safeFilter(
+        Stream<T1> stream,
+        Function<T1, T2> function,
+        Predicate<T2> predicate
+    ) {
         if (predicate != null && function != null) {
             return stream.filter(x -> predicate.test(function.apply(x)));
         } else {
@@ -110,7 +125,10 @@ public class Util implements SemanticsConsts {
             BiPredicate<T2, T3> predicate
     ) {
         if (predicate != null && function1 != null && function2 != null) {
-            return stream.filter(x -> predicate.test(function1.apply(x), function2.apply(x)));
+            return stream.filter(x -> predicate.test(
+                function1.apply(x),
+                function2.apply(x)
+            ));
         } else {
             return stream;
         }
@@ -124,17 +142,25 @@ public class Util implements SemanticsConsts {
         return (a || b) && !(a && b);
     }
 
-    public static Maybe<String> getOuterClassThisReference(Maybe<? extends EObject> input) {
+    public static Maybe<String> getOuterClassThisReference(
+        Maybe<? extends EObject> input
+    ) {
         if (input.isNothing()) {
             return nothing();
         }
         EObject inputSafe = input.toNullable();
-        NamedFeature memberContainer = EcoreUtil2.getContainerOfType(inputSafe, NamedFeature.class);
+        NamedFeature memberContainer = EcoreUtil2.getContainerOfType(
+            inputSafe,
+            NamedFeature.class
+        );
         if (memberContainer != null) {
             return of(memberContainer.getName() + "." + THIS);
         }
 
-        FeatureContainer container = EcoreUtil2.getContainerOfType(inputSafe, FeatureContainer.class);
+        FeatureContainer container = EcoreUtil2.getContainerOfType(
+            inputSafe,
+            FeatureContainer.class
+        );
         if (container != null && !(container instanceof NamedFeature)) {
             return of(container.getName() + "." + THIS);
         } else {
@@ -147,7 +173,11 @@ public class Util implements SemanticsConsts {
         return name + "(arity = " + arity + ")";
     }
 
-    public static String getSignature(String name, List<IJadescriptType> paramTypes, List<String> paramNames) {
+    public static String getSignature(
+        String name,
+        List<IJadescriptType> paramTypes,
+        List<String> paramNames
+    ) {
         StringBuilder sb = new StringBuilder(name + "(");
         for (int i = 0; i < paramTypes.size(); i++) {
             if (i != 0) {
@@ -177,8 +207,11 @@ public class Util implements SemanticsConsts {
     }
 
 
-    public static ITextRegionWithLineInformation getLocationForEObject(EObject inputSafe) {
-        return NodeModelUtils.getNode(inputSafe).getTextRegionWithLineInformation();
+    public static ITextRegionWithLineInformation getLocationForEObject(
+        EObject inputSafe
+    ) {
+        return NodeModelUtils.getNode(inputSafe)
+            .getTextRegionWithLineInformation();
     }
 
     public static int min(int... args) {
@@ -216,8 +249,13 @@ public class Util implements SemanticsConsts {
 
             Tuple2<?, ?> tuple2 = (Tuple2<?, ?>) o;
 
-            if (get_1() != null ? !get_1().equals(tuple2.get_1()) : tuple2.get_1() != null) return false;
-            return get_2() != null ? get_2().equals(tuple2.get_2()) : tuple2.get_2() == null;
+            if (get_1() != null
+                ? !get_1().equals(tuple2.get_1())
+                : tuple2.get_1() != null
+            ) return false;
+            return get_2() != null
+                ? get_2().equals(tuple2.get_2())
+                : tuple2.get_2() == null;
         }
 
         @Override
@@ -232,11 +270,15 @@ public class Util implements SemanticsConsts {
             return "Tuple2[" + _1 + ", " + _2 + ']';
         }
 
-        public <R1> Tuple2<R1, T2> mapLeft(Function<? super T1, ? extends R1> mapper){
+        public <R1> Tuple2<R1, T2> mapLeft(
+            Function<? super T1, ? extends R1> mapper
+        ){
             return new Tuple2<>(mapper.apply(_1), _2);
         }
 
-        public <R2> Tuple2<T1, R2> mapRight(Function<? super T2, ? extends R2> mapper){
+        public <R2> Tuple2<T1, R2> mapRight(
+            Function<? super T2, ? extends R2> mapper
+        ){
             return new Tuple2<>(_1, mapper.apply(_2));
         }
 
@@ -275,9 +317,21 @@ public class Util implements SemanticsConsts {
 
             Tuple3<?, ?, ?> tuple3 = (Tuple3<?, ?, ?>) o;
 
-            if (get_1() != null ? !get_1().equals(tuple3.get_1()) : tuple3.get_1() != null) return false;
-            if (get_2() != null ? !get_2().equals(tuple3.get_2()) : tuple3.get_2() != null) return false;
-            return get_3() != null ? get_3().equals(tuple3.get_3()) : tuple3.get_3() == null;
+            if (get_1() != null
+                ? !get_1().equals(tuple3.get_1())
+                : tuple3.get_1() != null
+            ) {
+                return false;
+            }
+            if (get_2() != null
+                ? !get_2().equals(tuple3.get_2())
+                : tuple3.get_2() != null
+            ) {
+                return false;
+            }
+            return get_3() != null
+                ? get_3().equals(tuple3.get_3())
+                : tuple3.get_3() == null;
         }
 
         @Override
@@ -290,11 +344,7 @@ public class Util implements SemanticsConsts {
 
         @Override
         public String toString() {
-            return "Tuple3[" +
-                    "" + _1 +
-                    ", " + _2 +
-                    ", " + _3 +
-                    ']';
+            return "Tuple3[" + _1 + ", " + _2 +", " + _3 +']';
         }
     }
 
@@ -334,10 +384,27 @@ public class Util implements SemanticsConsts {
 
             Tuple4<?, ?, ?, ?> tuple4 = (Tuple4<?, ?, ?, ?>) o;
 
-            if (get_1() != null ? !get_1().equals(tuple4.get_1()) : tuple4.get_1() != null) return false;
-            if (get_2() != null ? !get_2().equals(tuple4.get_2()) : tuple4.get_2() != null) return false;
-            if (get_3() != null ? !get_3().equals(tuple4.get_3()) : tuple4.get_3() != null) return false;
-            return get_4() != null ? get_4().equals(tuple4.get_4()) : tuple4.get_4() == null;
+            if (get_1() != null
+                ? !get_1().equals(tuple4.get_1())
+                : tuple4.get_1() != null)
+            {
+                return false;
+            }
+            if (get_2() != null
+                ? !get_2().equals(tuple4.get_2())
+                : tuple4.get_2() != null)
+            {
+                return false;
+            }
+            if (get_3() != null
+                ? !get_3().equals(tuple4.get_3())
+                : tuple4.get_3() != null)
+            {
+                return false;
+            }
+            return get_4() != null
+                ? get_4().equals(tuple4.get_4())
+                : tuple4.get_4() == null;
         }
 
         @Override
@@ -351,16 +418,22 @@ public class Util implements SemanticsConsts {
 
         @Override
         public String toString() {
-            return "Tuple4[" +
-                    "" + _1 +
-                    ", " + _2 +
-                    ", " + _3 +
-                    ", " + _4 +
-                    ']';
+            return "Tuple4[" + _1 + ", " + _2 + ", " + _3 + ", " + _4 + ']';
         }
     }
 
-    public static <T1, T2, T3, T4> Tuple4<T1, T2, T3, T4> tuple(T1 _1, T2 _2, T3 _3, T4 _4) {
+    @SafeVarargs
+    public static <T> Stream<T> buildStream(Supplier<? extends T>... suppliers){
+        return Arrays.stream(suppliers)
+            .map(Supplier::get);
+    }
+
+    public static <T1, T2, T3, T4> Tuple4<T1, T2, T3, T4> tuple(
+        T1 _1,
+        T2 _2,
+        T3 _3,
+        T4 _4
+    ) {
         return new Tuple4<>(_1, _2, _3, _4);
     }
 

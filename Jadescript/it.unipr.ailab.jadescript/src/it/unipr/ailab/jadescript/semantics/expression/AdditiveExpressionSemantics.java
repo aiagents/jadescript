@@ -578,7 +578,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     }
 
     @Override
-    protected StaticState useStateAsPatternInternal(
+    protected StaticState advancePatternInternal(
         PatternMatchInput<Additive> input,
         StaticState state
     ) {

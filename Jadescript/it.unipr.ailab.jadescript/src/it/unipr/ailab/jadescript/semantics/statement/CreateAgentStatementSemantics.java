@@ -2,7 +2,7 @@ package it.unipr.ailab.jadescript.semantics.statement;
 
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
-import it.unipr.ailab.jadescript.semantics.MethodInvocationSemantics;
+import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
@@ -382,7 +382,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
         final Optional<? extends CallableSymbol> createMethodOpt = getCreateMethod(agentType);
 
         if (input.__(CreateAgentStatement::getNamedArgs).isPresent() && createMethodOpt.isPresent()) {
-            args = MethodInvocationSemantics.sortToMatchParamNames(
+            args = MethodCallSemantics.sortToMatchParamNames(
                     args,
                     nullAsEmptyList(input.__(CreateAgentStatement::getNamedArgs)
                             .__(NamedArgumentList::getParameterNames)

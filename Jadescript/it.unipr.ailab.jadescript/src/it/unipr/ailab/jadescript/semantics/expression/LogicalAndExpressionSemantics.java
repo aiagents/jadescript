@@ -2,10 +2,11 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.EqualityComparison;
-import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.LogicalAnd;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.FlowTypingRule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.FlowTypingRuleCondition;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -14,6 +15,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -63,15 +65,23 @@ public class LogicalAndExpressionSemantics
         StaticState newState = state;
         for (int i = 0; i < equs.size(); i++) {
             Maybe<EqualityComparison> equ = equs.get(i);
+
             final String operandCompiled = eces.compile(
                 equ,
                 newState,
                 acceptor
             );
-            newState = eces.advance(
-                equ,
-                newState
-            );
+            Maybe<ExpressionDescriptor> thisExpr =
+                eces.describeExpression(equ, newState);
+
+            newState = eces.advance(equ, newState);
+
+            if (thisExpr.isPresent()) {
+                newState = newState.assertEvaluation(
+                    thisExpr.toNullable(),
+                    FlowTypingRuleCondition.ReturnedTrue.INSTANCE
+                );
+            }
             if (i != 0) {
                 result.append(" && ").append(operandCompiled);
             } else {
@@ -87,8 +97,36 @@ public class LogicalAndExpressionSemantics
         Maybe<LogicalAnd> input,
         StaticState state
     ) {
-        //TODO
-        return Maybe.nothing();
+        ImmutableList<ExpressionDescriptor> operands = new ImmutableList<>();
+
+        List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(
+            input.__(LogicalAnd::getEqualityComparison)
+        );
+
+        final EqualityComparisonExpressionSemantics eces =
+            module.get(EqualityComparisonExpressionSemantics.class);
+
+        StaticState newState = state;
+        for (Maybe<EqualityComparison> equ : equs) {
+            Maybe<ExpressionDescriptor> thisExpr =
+                eces.describeExpression(equ, newState);
+
+            newState = eces.advance(equ, newState);
+
+            if (thisExpr.isPresent()) {
+                operands = operands.add(thisExpr.toNullable());
+                newState = newState.assertEvaluation(
+                    thisExpr.toNullable(),
+                    FlowTypingRuleCondition.ReturnedTrue.INSTANCE
+                );
+            }
+        }
+        if (operands.isEmpty()) {
+            return Maybe.nothing();
+        }
+        return Maybe.of(new ExpressionDescriptor.AndExpression(
+            operands
+        ));
     }
 
     @Override
@@ -96,7 +134,97 @@ public class LogicalAndExpressionSemantics
         Maybe<LogicalAnd> input,
         StaticState state
     ) {
-        return subExpressionsAdvanceAll(input, state);
+        final StaticState newState = advanceCommon(input, state);
+        return addOverallTrueRule(input, newState);
+    }
+
+    private StaticState addOverallTrueRule(
+        Maybe<LogicalAnd> input,
+        StaticState state
+    ) {
+        final Maybe<ExpressionDescriptor> overallAndExpression =
+            describeExpression(input, state);
+
+        if (overallAndExpression.isNothing()) {
+            return state;
+        }
+
+        return state.addRule(
+            overallAndExpression.toNullable(),
+            new FlowTypingRule(
+                FlowTypingRuleCondition.ReturnedTrue.INSTANCE,
+                ruleInputState -> {
+                    List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(
+                        input.__(LogicalAnd::getEqualityComparison)
+                    );
+
+                    if (equs.isEmpty()) {
+                        return state;
+                    }
+
+                    final EqualityComparisonExpressionSemantics eces =
+                        module.get(EqualityComparisonExpressionSemantics.class);
+
+                    final Maybe<ExpressionDescriptor> lastOperand =
+                        eces.describeExpression(
+                            equs.get(equs.size() - 1),
+                            state
+                        );
+
+                    StaticState newState = advanceCommon(input, state);
+
+                    if (lastOperand.isNothing()) {
+                        return newState;
+                    }
+
+                    return newState.assertEvaluation(
+                        lastOperand.toNullable(),
+                        FlowTypingRuleCondition.ReturnedTrue.INSTANCE
+                    );
+                }
+            )
+        );
+    }
+
+    private StaticState advanceCommon(
+        Maybe<LogicalAnd> input,
+        StaticState state
+    ) {
+        List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(
+            input.__(LogicalAnd::getEqualityComparison)
+        );
+
+        final EqualityComparisonExpressionSemantics eces =
+            module.get(EqualityComparisonExpressionSemantics.class);
+
+        StaticState newState = state;
+        for (int i = 0; i < equs.size(); i++) {
+            Maybe<EqualityComparison> equ = equs.get(i);
+            Maybe<ExpressionDescriptor> exprDesc =
+                eces.describeExpression(equ, newState);
+            // The state is now updated to take into account the
+            // evaluation of this operand
+            newState = eces.advance(equ, newState);
+
+            //The evaluation of next operands can be done with the assumption
+            // that this operand returned true (short-circuit semantics).
+            if (i < equs.size() - 1 && exprDesc.isPresent()) { // excluding last
+                newState = newState.assertEvaluation(
+                    exprDesc.toNullable(),
+                    FlowTypingRuleCondition.ReturnedTrue.INSTANCE
+                );
+            }
+        }
+        return newState;
+    }
+
+
+    @Override
+    protected StaticState advancePatternInternal(
+        PatternMatchInput<LogicalAnd> input,
+        StaticState state
+    ) {
+        return state;
     }
 
     @Override
@@ -149,42 +277,44 @@ public class LogicalAndExpressionSemantics
         if (input == null) return VALID;
         List<Maybe<EqualityComparison>> equs =
             Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison));
-        if (equs.size() > 1) {
-            boolean result = VALID;
-            for (int i = 0; i < equs.size(); i++) {
-                Maybe<EqualityComparison> equ = equs.get(i);
-                //TODO continue from here 2023-1-1 19:28 UTC+1:00
-                boolean equValidation =
-                    module.get(EqualityComparisonExpressionSemantics.class)
-                        .validate(equ, , acceptor);
-                if (equValidation == VALID) {
-                    IJadescriptType type =
-                        module.get(EqualityComparisonExpressionSemantics.class).inferType(equ, );
-                    final boolean operandType =
-                        module.get(ValidationHelper.class).assertExpectedType(
-                            Boolean.class,
-                            type,
-                            "InvalidOperandType",
-                            input,
-                            JadescriptPackage.eINSTANCE.getLogicalAnd_EqualityComparison(),
-                            i,
-                            acceptor
-                        );
-                    result = result && operandType;
-                } else {
-                    result = INVALID;
-                }
-            }
-            return result;
-        } else {
+        final EqualityComparisonExpressionSemantics eces =
+            module.get(EqualityComparisonExpressionSemantics.class);
 
-            return VALID;
+        boolean result = VALID;
+        StaticState newState = state;
+        for (Maybe<EqualityComparison> equ : equs) {
+            boolean equValidation = eces.validate(equ, newState, acceptor);
+            if (equValidation == VALID) {
+                IJadescriptType type =
+                    eces.inferType(equ, newState);
+                final boolean operandType =
+                    module.get(ValidationHelper.class).assertExpectedType(
+                        Boolean.class,
+                        type,
+                        "InvalidOperandType",
+                        equ,
+                        acceptor
+                    );
+                result = result && operandType;
+            } else {
+                result = INVALID;
+            }
+            Maybe<ExpressionDescriptor> thisExpr =
+                eces.describeExpression(equ, newState);
+            newState = eces.advance(equ, newState);
+            if (thisExpr.isPresent()) {
+                newState = newState.assertEvaluation(
+                    thisExpr.toNullable(),
+                    FlowTypingRuleCondition.ReturnedTrue.INSTANCE
+                );
+            }
         }
+        return result;
+
     }
 
     @Override
-    public PatternMatcher
-    compilePatternMatchInternal(
+    public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<LogicalAnd> input,
         StaticState state,
         CompilationOutputAcceptor acceptor
@@ -201,23 +331,12 @@ public class LogicalAndExpressionSemantics
     }
 
     @Override
-    public boolean
-    validatePatternMatchInternal(
+    public boolean validatePatternMatchInternal(
         PatternMatchInput<LogicalAnd> input,
-        StaticState state, ValidationMessageAcceptor acceptor
+        StaticState state,
+        ValidationMessageAcceptor acceptor
     ) {
-        final Maybe<LogicalAnd> pattern = input.getPattern();
-        final List<Maybe<EqualityComparison>> operands = Maybe.toListOfMaybes(
-            pattern.__(LogicalAnd::getEqualityComparison)
-        );
-        if (mustTraverse(pattern)) {
-            return module.get(EqualityComparisonExpressionSemantics.class).validatePatternMatchInternal(
-                input.replacePattern(operands.get(0)), ,
-                acceptor
-            );
-        } else {
-            return VALID;
-        }
+        return VALID;
     }
 
 

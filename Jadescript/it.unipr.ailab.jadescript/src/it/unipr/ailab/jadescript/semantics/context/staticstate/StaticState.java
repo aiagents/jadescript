@@ -33,8 +33,6 @@ public class StaticState
     private final
     ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds;
     private final
-    ImmutableMap<ExpressionDescriptor, IJadescriptType> negatedUpperBounds;
-    private final
     ImmutableMap<ExpressionDescriptor, ImmutableList<FlowTypingRule>>
         rules;
 
@@ -46,7 +44,6 @@ public class StaticState
         this.outer = outer;
         this.namedSymbols = new ImmutableList<>();
         this.upperBounds = new ImmutableMap<>();
-        this.negatedUpperBounds = new ImmutableMap<>();
         this.rules = new ImmutableMap<>();
     }
 
@@ -56,8 +53,6 @@ public class StaticState
         ImmutableList<NamedSymbol> namedSymbols,
         ImmutableMap<ExpressionDescriptor, IJadescriptType>
             upperBounds,
-        ImmutableMap<ExpressionDescriptor, IJadescriptType>
-            negatedUpperBounds,
         ImmutableMap<ExpressionDescriptor, ImmutableList<FlowTypingRule>>
             rules
     ) {
@@ -65,7 +60,6 @@ public class StaticState
         this.outer = outer;
         this.namedSymbols = namedSymbols;
         this.upperBounds = upperBounds;
-        this.negatedUpperBounds = negatedUpperBounds;
         this.rules = rules;
     }
 
@@ -119,10 +113,7 @@ public class StaticState
         return upperBounds;
     }
 
-    public ImmutableMap<ExpressionDescriptor, IJadescriptType>
-    getNegatedUpperBounds() {
-        return negatedUpperBounds;
-    }
+
 
     public ImmutableMap<ExpressionDescriptor, ImmutableList<FlowTypingRule>>
     getFlowTyipingRules() {
@@ -184,27 +175,6 @@ public class StaticState
     }
 
     @Override
-    public Stream<? extends IJadescriptType> getNegatedUpperBound(
-        @Nullable Predicate<ExpressionDescriptor> forExpression,
-        @Nullable Predicate<IJadescriptType> lowerBound
-    ) {
-        final ImmutableMap<ExpressionDescriptor, IJadescriptType> nub =
-            getNegatedUpperBounds();
-
-        Stream<ExpressionDescriptor> result = safeFilter(
-            nub.streamKeys(),
-            forExpression
-        );
-
-        return safeFilter(
-            result.map(ed -> nub.get(ed).orElseGet(
-                () -> module.get(TypeHelper.class).ANY
-            )),
-            lowerBound
-        );
-    }
-
-    @Override
     public Stream<? extends FlowTypingRule> getRule(
         @Nullable Predicate<ExpressionDescriptor> forExpression,
         @Nullable Predicate<FlowTypingRule> rule
@@ -237,61 +207,6 @@ public class StaticState
                 bound,
                 module.get(TypeHelper.class)::getGLB
             ),
-            this.getNegatedUpperBounds(),
-            this.getFlowTyipingRules()
-        );
-    }
-
-    public StaticState assertFlowTypingLowerBound(
-        ExpressionDescriptor expressionDescriptor,
-        IJadescriptType bound
-    ) {
-        return new StaticState(
-            this.getModule(),
-            this.outerContext(),
-            this.getNamedSymbols(),
-            this.getFlowTypingUpperBounds(),
-            this.getNegatedUpperBounds().merge(
-                expressionDescriptor,
-                bound,
-                module.get(TypeHelper.class)::getGLB
-            ),
-            this.getFlowTyipingRules()
-        );
-    }
-
-    public StaticState alternativeFlowTypingUpperBound(
-        ExpressionDescriptor expressionDescriptor,
-        IJadescriptType bound
-    ) {
-        return new StaticState(
-            this.getModule(),
-            this.outerContext(),
-            this.getNamedSymbols(),
-            this.getFlowTypingUpperBounds().merge(
-                expressionDescriptor,
-                bound,
-                module.get(TypeHelper.class)::getLUB
-            ),
-            this.getNegatedUpperBounds(),
-            this.getFlowTyipingRules()
-        );
-    }
-
-    public StaticState alternativeFlowTypingLowerBound(
-        ExpressionDescriptor expressionDescriptor,
-        IJadescriptType bound
-    ) {
-        return new StaticState(
-            this.getModule(),
-            this.outerContext(),
-            this.getNamedSymbols(),
-            this.getFlowTypingUpperBounds(),
-            this.getNegatedUpperBounds().merge(
-                expressionDescriptor,
-                bound,
-                module.get(TypeHelper.class)::getLUB
-            ),
             this.getFlowTyipingRules()
         );
     }
@@ -299,11 +214,11 @@ public class StaticState
     public StaticState assertExpressionsEqual(
         Maybe<ExpressionDescriptor> ed1,
         Maybe<ExpressionDescriptor> ed2
-    ){
-        if(ed1.isNothing()){
+    ) {
+        if (ed1.isNothing()) {
             return this;
         }
-        if(ed2.isNothing()){
+        if (ed2.isNothing()) {
             return this;
         }
 
@@ -332,7 +247,6 @@ public class StaticState
             this.outerContext(),
             this.getNamedSymbols().add(ns),
             this.getFlowTypingUpperBounds(),
-            this.getNegatedUpperBounds(),
             this.getFlowTyipingRules()
         );
     }
@@ -347,7 +261,6 @@ public class StaticState
             this.outerContext(),
             this.getNamedSymbols(),
             this.getFlowTypingUpperBounds(),
-            this.getNegatedUpperBounds(),
             this.getFlowTyipingRules().merge(
                 forExpression,
                 new ImmutableList<FlowTypingRule>().add(rule),

@@ -27,6 +27,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
@@ -105,6 +106,9 @@ public abstract class ExpressionSemantics<T> extends Semantics
     public final Stream<SemanticsBoundToExpression<?>> getSubExpressions(
         Maybe<T> input
     ) {
+        //TODO check all getSubExpressionsInternal:
+        //  apparently, we are creating useless sbte instances with
+        //  Maybe.nothing() inputs (Maybe.extract() is not conditional)
         return traverse(input)
             .map(x -> x.getSemantics().getSubExpressions((Maybe) x.getInput()))
             .orElseGet(() -> getSubExpressionsInternal(input));
@@ -176,22 +180,23 @@ public abstract class ExpressionSemantics<T> extends Semantics
             ));
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked"})
     public final <TT, R> R subExpressionsReduce(
         Maybe<T> input,
         R identity,
         TriFunction<R, ExpressionSemantics<TT>, Maybe<TT>, R> triFunction,
         BinaryOperator<R> combiner
     ) {
-        return getSubExpressions(input).reduce(
-            identity,
-            (r, sbte) -> (R) ((TriFunction) triFunction).apply(
-                r,
-                sbte.getSemantics(),
-                sbte.getInput()
-            ),
-            combiner
-        );
+        final AtomicReference<R> result = new AtomicReference<>(identity);
+        getSubExpressions(input).forEachOrdered(sbte -> {
+            final R newResult = triFunction.apply(
+                result.get(),
+                (ExpressionSemantics<TT>) sbte.getSemantics(),
+                (Maybe<TT>) sbte.getInput()
+            );
+            result.set(combiner.apply(result.get(), newResult));
+        });
+        return result.get();
     }
 
     public final <TT, R> R subExpressionsReduceLast(
@@ -360,7 +365,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
     public final StaticState subExpressionsAdvanceAll(
         Maybe<T> input,
         StaticState state
-    ){
+    ) {
         return subExpressionsReduceLast(
             input,
             state,
@@ -376,10 +381,10 @@ public abstract class ExpressionSemantics<T> extends Semantics
             .map(x -> x.getSemantics().advancePattern(
                 input.replacePattern(x.getInput()),
                 state
-            )).orElseGet(() -> useStateAsPatternInternal(input, state));
+            )).orElseGet(() -> advancePatternInternal(input, state));
     }
 
-    protected abstract StaticState useStateAsPatternInternal(
+    protected abstract StaticState advancePatternInternal(
         PatternMatchInput<T> input,
         StaticState state
     );
@@ -1246,7 +1251,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         }
 
         @Override
-        protected StaticState useStateAsPatternInternal(
+        protected StaticState advancePatternInternal(
             PatternMatchInput<T> input,
             StaticState state
         ) {

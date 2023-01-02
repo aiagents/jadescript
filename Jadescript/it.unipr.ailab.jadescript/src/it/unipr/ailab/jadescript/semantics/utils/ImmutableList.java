@@ -18,6 +18,10 @@ public class ImmutableList<E>
         return result;
     }
 
+    public ImmutableList(){
+        //TODO make private and use common "empty" instance
+
+    }
 
     @NotNull
     @Override
@@ -52,5 +56,20 @@ public class ImmutableList<E>
         result.inner.addAll(this.inner);
         result.inner.addAll(l2.inner);
         return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ImmutableList)) return false;
+
+        ImmutableList<?> that = (ImmutableList<?>) o;
+
+        return inner.equals(that.inner);
+    }
+
+    @Override
+    public int hashCode() {
+        return inner.hashCode();
     }
 }

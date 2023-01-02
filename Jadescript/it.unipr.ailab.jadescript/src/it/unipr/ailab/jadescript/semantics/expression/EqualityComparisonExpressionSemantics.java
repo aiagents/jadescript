@@ -93,7 +93,7 @@ public class EqualityComparisonExpressionSemantics
     }
 
     @Override
-    protected StaticState useStateAsPatternInternal(
+    protected StaticState advancePatternInternal(
         PatternMatchInput<EqualityComparison> input,
         StaticState state
     ) {

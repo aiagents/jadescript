@@ -4,7 +4,7 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.NamedArgumentList;
 import it.unipr.ailab.jadescript.jadescript.ProcedureCallStatement;
 import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
-import it.unipr.ailab.jadescript.semantics.MethodInvocationSemantics;
+import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
@@ -37,7 +37,7 @@ public class ProcedureCallStatementSemantics extends StatementSemantics<Procedur
             Maybe<NamedArgumentList> namedArgs = input.__(ProcedureCallStatement::getNamedArgs);
 
             acceptor.accept(w.simpleStmt(
-                    module.get(MethodInvocationSemantics.class).compile(
+                    module.get(MethodCallSemantics.class).compile(
                             MethodCall.methodCall(
                                     input,
                                     name,
@@ -59,7 +59,7 @@ public class ProcedureCallStatementSemantics extends StatementSemantics<Procedur
         Maybe<String> name = input.__(ProcedureCallStatement::getName);
         Maybe<SimpleArgumentList> simpleArgs = input.__(ProcedureCallStatement::getSimpleArgs);
         Maybe<NamedArgumentList> namedArgs = input.__(ProcedureCallStatement::getNamedArgs);
-        return new ArrayList<>(module.get(MethodInvocationSemantics.class).getSubExpressions(
+        return new ArrayList<>(module.get(MethodCallSemantics.class).getSubExpressions(
                 MethodCall.methodCall(input, name, simpleArgs, namedArgs, true)
         ));
     }
@@ -72,7 +72,7 @@ public class ProcedureCallStatementSemantics extends StatementSemantics<Procedur
             Maybe<String> name = input.__(ProcedureCallStatement::getName);
             Maybe<SimpleArgumentList> simpleArgs = input.__(ProcedureCallStatement::getSimpleArgs);
             Maybe<NamedArgumentList> namedArgs = input.__(ProcedureCallStatement::getNamedArgs);
-            module.get(MethodInvocationSemantics.class).validate(MethodCall.methodCall(input, name, simpleArgs, namedArgs, true), , acceptor);
+            module.get(MethodCallSemantics.class).validate(MethodCall.methodCall(input, name, simpleArgs, namedArgs, true), , acceptor);
         }
     }
 

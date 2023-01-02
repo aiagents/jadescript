@@ -1,7 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.namespace;
 
 import com.google.common.collect.Streams;
-import it.unipr.ailab.jadescript.semantics.MethodInvocationSemantics;
+import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ActualParameter;
 import it.unipr.ailab.jadescript.semantics.context.search.JvmTypeLocation;
@@ -235,7 +235,7 @@ public abstract class JvmModelBasedNamespace
             return dereferencePrefix + jvmOperation.getSimpleName() + "(" +
                     String.join(
                             ", ",
-                            MethodInvocationSemantics.sortToMatchParamNames(args, argNames, parameterNames())
+                            MethodCallSemantics.sortToMatchParamNames(args, argNames, parameterNames())
                     ) + ")";
         }
 
@@ -332,7 +332,7 @@ public abstract class JvmModelBasedNamespace
             return "new " + jvmConstructor.getQualifiedName('.') + "(" +
                     String.join(
                             ", ",
-                            MethodInvocationSemantics.sortToMatchParamNames(args, argNames, parameterNames())
+                            MethodCallSemantics.sortToMatchParamNames(args, argNames, parameterNames())
                     ) + ")";
         }
 
