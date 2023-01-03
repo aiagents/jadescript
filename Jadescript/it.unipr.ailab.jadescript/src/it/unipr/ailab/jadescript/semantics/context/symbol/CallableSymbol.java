@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol;
 
 
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
@@ -31,6 +32,9 @@ public interface CallableSymbol extends Symbol {
     String compileInvokeByName(String dereferencePrefix, Map<String, String> compiledRexprs);
 
     boolean isPure();
+
+    StaticState advanceCall(StaticState state);
+    //TODO introduce PatternSymbol which has advancePatternMatch
 
     default int arity() {
         return Math.min(parameterNames().size(), parameterTypesByName().size());
@@ -73,8 +77,15 @@ public interface CallableSymbol extends Symbol {
     interface Searcher {
         String ANY_NAME = null;
         Predicate<IJadescriptType> ANY_RETURN_TYPE = null;
-        BiPredicate<Integer, Function<Integer, String>> ANY_PARAMETER_NAMES = null;
-        BiPredicate<Integer, Function<Integer, IJadescriptType>> ANY_PARAMETER_TYPES = null;
+        BiPredicate<Integer, Function<Integer, String>>
+            ANY_PARAMETER_NAMES = null;
+        BiPredicate<Integer, Function<Integer, IJadescriptType>>
+            ANY_PARAMETER_TYPES = null;
+        static <T> BiPredicate<Integer, Function<Integer, T>>
+            arityIs(int arity){
+            return (i, p) -> i == arity;
+        }
+
 
         Stream<? extends CallableSymbol> searchCallable(
                 String name,

@@ -375,14 +375,15 @@ public class Maybe<OfType> {
 
 
     /**
-     * Returns the result of invocation of the {@link Object::equals} method on the wrapped
-     * object, if present; otherwise, it returns false.
+     * Returns the result of invocation of the {@link Object#equals(Object)}
+     * method on the wrapped object, if present; otherwise, it returns true if
+     * {@code o2} is null.
      */
     public boolean wrappedEquals(Object o2) {
         if (isPresent()) {
             return o.equals(o2);
         } else {
-            return false;
+            return o2 == null;
         }
     }
 

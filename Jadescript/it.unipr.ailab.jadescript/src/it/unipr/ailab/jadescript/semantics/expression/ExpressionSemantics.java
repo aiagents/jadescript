@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
@@ -43,10 +44,13 @@ public abstract class ExpressionSemantics<T> extends Semantics
     private final ExpressionSemantics<?> EMPTY_EXPRESSION_SEMANTICS
         = new Adapter<>(this.module);
 
+
     public ExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
+
+    //TODO use it to handle Maybe.nothing() inputs
     @SuppressWarnings("unchecked")
     public final <X> ExpressionSemantics<X> emptySemantics() {
         return (ExpressionSemantics<X>) EMPTY_EXPRESSION_SEMANTICS;
@@ -97,12 +101,12 @@ public abstract class ExpressionSemantics<T> extends Semantics
         extends ExpressionSemantics.SemanticsBoundToExpression<?>>
     traverse(Maybe<T> input);
 
+
     /**
      * Given a Maybe(input), it provides a list of pairs (e, s), where e is a
      * subexpression of the input and s the
      * associated semantics.
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public final Stream<SemanticsBoundToExpression<?>> getSubExpressions(
         Maybe<T> input
     ) {
@@ -110,12 +114,14 @@ public abstract class ExpressionSemantics<T> extends Semantics
         //  apparently, we are creating useless sbte instances with
         //  Maybe.nothing() inputs (Maybe.extract() is not conditional)
         return traverse(input)
-            .map(x -> x.getSemantics().getSubExpressions((Maybe) x.getInput()))
+            .map(x -> x.getSemantics().getSubExpressions(x.getInput()))
             .orElseGet(() -> getSubExpressionsInternal(input));
     }
 
+
     protected abstract Stream<SemanticsBoundToExpression<?>>
     getSubExpressionsInternal(Maybe<T> input);
+
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     public final SemanticsBoundToExpression<?> deepTraverse(
@@ -132,6 +138,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         return lastPresent.get();
     }
 
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     public final <TT> boolean subExpressionsAllMatch(
         Maybe<T> input,
@@ -143,6 +150,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
                 sbte.getInput()
             ));
     }
+
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public final <TT> boolean subExpressionsAnyMatch(
@@ -156,6 +164,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
             ));
     }
 
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     public final <TT> boolean subExpressionsNoneMatch(
         Maybe<T> input,
@@ -168,6 +177,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
             ));
     }
 
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     public final <TT, R> Stream<R> mapSubExpressions(
         Maybe<T> input,
@@ -179,6 +189,74 @@ public abstract class ExpressionSemantics<T> extends Semantics
                 sbte.getInput()
             ));
     }
+
+
+    @SuppressWarnings({"unchecked"})
+    public final <S, R> Stream<R> mapSubExpressionsWithState(
+        Maybe<T> input,
+        StaticState state,
+        TriFunction<ExpressionSemantics<S>, Maybe<S>, StaticState, R> getR
+    ) {
+        return Util.accumulateAndMap(
+            getSubExpressions(input).map(
+                sbte -> (SemanticsBoundToExpression<S>) sbte
+            ),
+            state,
+            (sbte, runningState) -> getR.apply(
+                sbte.getSemantics(),
+                sbte.getInput(),
+                runningState
+            ),
+            (sbte, runningState) -> sbte.getSemantics().advance(
+                sbte.getInput(),
+                runningState
+            ),
+            (__, nextSt) -> nextSt
+        );
+    }
+
+
+    @SuppressWarnings({"unchecked"})
+    public final <S, R> Stream<R> mapSubPatternsWithState(
+        PatternMatchInput<T> input,
+        StaticState state,
+        TriFunction<
+            ExpressionSemantics<S>,
+            PatternMatchInput<S>,
+            StaticState,
+            R> getR
+    ) {
+        return Util.accumulateAndMap(
+            getSubExpressions(input.getPattern()).map(
+                sbte -> (SemanticsBoundToExpression<S>) sbte
+            ),
+            state,
+            (sbte, runningState) -> getR.apply(
+                sbte.getSemantics(),
+                input.replacePattern(sbte.getInput()),
+                runningState
+            ),
+            (sbte, runningState) -> sbte.getSemantics().advancePattern(
+                input.replacePattern(sbte.getInput()),
+                runningState
+            ),
+            (__, nextSt) -> nextSt
+        );
+    }
+
+
+    @SuppressWarnings({"unchecked"})
+    public final <S> void forEachSubExpression(
+        Maybe<T> input,
+        BiConsumer<ExpressionSemantics<S>, Maybe<S>> action
+    ) {
+        getSubExpressions(input)
+            .map(sbte -> (SemanticsBoundToExpression<S>) sbte)
+            .forEachOrdered(sbte -> {
+                action.accept(sbte.getSemantics(), sbte.getInput());
+            });
+    }
+
 
     @SuppressWarnings({"unchecked"})
     public final <TT, R> R subExpressionsReduce(
@@ -199,6 +277,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         return result.get();
     }
 
+
     public final <TT, R> R subExpressionsReduceLast(
         Maybe<T> input,
         R identity,
@@ -211,6 +290,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
             (__, r) -> r
         );
     }
+
 
     /**
      * Applies a function to the input AST node and to each of its children
@@ -247,18 +327,18 @@ public abstract class ExpressionSemantics<T> extends Semantics
         return result;
     }
 
+
     /**
      * Produces a String resulting from the direct compilation of the input
      * expression.
      *
      * @param input    the input expression
-     * @param state
+     * @param state    the initial state
      * @param acceptor an acceptor that can be used to produce additional
      *                 statements which will be added as auxiliary
      *                 statements for the expression evaluation
      * @return the corresponding Java expression
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public final String compile(
         Maybe<T> input,
         StaticState state,
@@ -266,7 +346,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
     ) {
         return traverse(input)
             .map(x -> x.getSemantics().compile(
-                (Maybe) x.getInput(),
+                x.getInput(),
                 state,
                 acceptor
             ))
@@ -282,18 +362,19 @@ public abstract class ExpressionSemantics<T> extends Semantics
         StaticState state, CompilationOutputAcceptor acceptor
     );
 
+
     /**
      * Computes the type of the input expression.
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public final IJadescriptType inferType(Maybe<T> input, StaticState state) {
         return traverse(input)
             .map(x -> x.getSemantics().inferType(
-                (Maybe) x.getInput(),
+                x.getInput(),
                 state
             ))
             .orElseGet(() -> inferTypeInternal(input, state));
     }
+
 
     /**
      * @see ExpressionSemantics#inferType(Maybe, StaticState)
@@ -303,8 +384,8 @@ public abstract class ExpressionSemantics<T> extends Semantics
         StaticState state
     );
 
-    //TODO Javadoc
-    @SuppressWarnings({"unchecked", "rawtypes"})
+
+
     public final boolean validate(
         Maybe<T> input,
         StaticState state,
@@ -312,12 +393,13 @@ public abstract class ExpressionSemantics<T> extends Semantics
     ) {
         return traverse(input)
             .map(x -> x.getSemantics().validate(
-                (Maybe) x.getInput(),
+                x.getInput(),
                 state,
                 acceptor
             ))
             .orElseGet(() -> validateInternal(input, state, acceptor));
     }
+
 
     /**
      * @see ExpressionSemantics#validate(Maybe, StaticState, ValidationMessageAcceptor)
@@ -327,18 +409,19 @@ public abstract class ExpressionSemantics<T> extends Semantics
         StaticState state, ValidationMessageAcceptor acceptor
     );
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+
     public final Maybe<ExpressionDescriptor> describeExpression(
         Maybe<T> input,
         StaticState state
     ) {
         return traverse(input)
             .map(x -> x.getSemantics().describeExpression(
-                (Maybe) x.getInput(),
+                x.getInput(),
                 state
             ))
             .orElseGet(() -> describeExpressionInternal(input, state));
     }
+
 
     protected abstract Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<T> input,
@@ -349,7 +432,6 @@ public abstract class ExpressionSemantics<T> extends Semantics
     /**
      * Updates the state as a consequence of the expression evaluation.
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public final StaticState advance(Maybe<T> input, StaticState state) {
         return traverse(input)
             .map(x -> x.getSemantics().advance(x.getInput(), state))
@@ -357,10 +439,12 @@ public abstract class ExpressionSemantics<T> extends Semantics
 
     }
 
+
     protected abstract StaticState advanceInternal(
         Maybe<T> input,
         StaticState state
     );
+
 
     public final StaticState subExpressionsAdvanceAll(
         Maybe<T> input,
@@ -373,6 +457,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         );
     }
 
+
     public final StaticState advancePattern(
         PatternMatchInput<T> input,
         StaticState state
@@ -384,21 +469,23 @@ public abstract class ExpressionSemantics<T> extends Semantics
             )).orElseGet(() -> advancePatternInternal(input, state));
     }
 
+
     protected abstract StaticState advancePatternInternal(
         PatternMatchInput<T> input,
         StaticState state
     );
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+
     @Override
     public List<Effect> computeEffects(Maybe<T> input, StaticState state) {
         return traverse(input)
             .map(x -> x.getSemantics().computeEffects(
-                (Maybe) x.getInput(),
+                x.getInput(),
                 state
             ))
             .orElseGet(() -> computeEffectsInternal(input, state));
     }
+
 
     /**
      * This returns true <i>only if</i> the input expression can be evaluated
@@ -414,29 +501,31 @@ public abstract class ExpressionSemantics<T> extends Semantics
      *
      * @see ExpressionSemantics#subExpressionsAllAlwaysPure(Maybe, StaticState)
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public final boolean isAlwaysPure(Maybe<T> input, StaticState state) {
         return traverse(input)
             .map(x -> x.getSemantics().isAlwaysPure(
-                (Maybe) x.getInput(),
+                x.getInput(),
                 state
             ))
             .orElseGet(() -> isAlwaysPureInternal(input, state));
     }
+
 
     protected abstract boolean isAlwaysPureInternal(
         Maybe<T> input,
         StaticState state
     );
 
+
     public final boolean subExpressionsAllAlwaysPure(
         Maybe<T> input,
         StaticState state
     ) {
-        return subExpressionsAllMatch(
+        return mapSubExpressionsWithState(
             input,
-            (s, i) -> s.isAlwaysPure(i, state)
-        );
+            state,
+            ExpressionSemantics::isAlwaysPure
+        ).anyMatch(b -> b);
     }
 
 
@@ -449,17 +538,16 @@ public abstract class ExpressionSemantics<T> extends Semantics
      * This is usually decided locally, and it depends on syntax, so there is
      * no state abstraction here.
      */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public final boolean isValidLExpr(Maybe<T> input) {
         return traverse(input)
-            .map(x -> x.getSemantics().isValidLExpr((Maybe) x.getInput()))
+            .map(x -> x.getSemantics().isValidLExpr(x.getInput()))
             .orElseGet(() -> isValidLExprInternal(input));
     }
+
 
     protected abstract boolean isValidLExprInternal(Maybe<T> input);
 
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public final boolean isPatternEvaluationPure(
         PatternMatchInput<T> input,
         StaticState state
@@ -479,15 +567,18 @@ public abstract class ExpressionSemantics<T> extends Semantics
         PatternMatchInput<T> input, StaticState state
     );
 
+
     public final boolean subPatternEvaluationsAllPure(
         PatternMatchInput<T> input,
         StaticState state
     ) {
-        return subExpressionsAllMatch(
-            input.getPattern(),
-            (s, i) -> s.isPatternEvaluationPure(input.replacePattern(i), state)
-        );
+        return this.mapSubPatternsWithState(
+            input,
+            state,
+            ExpressionSemantics::isPatternEvaluationPure
+        ).allMatch(b -> b);
     }
+
 
     /**
      * Returns true if this expression contains holes in it e.g., unbounded
@@ -499,24 +590,30 @@ public abstract class ExpressionSemantics<T> extends Semantics
      * expressions which can present holes (without
      * traversing).
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public final boolean isHoled(Maybe<T> input, StaticState state) {
         return traverse(input)
-            .map(x -> x.getSemantics().isHoled((Maybe) x.getInput(), state))
+            .map(x -> x.getSemantics().isHoled(x.getInput(), state))
             .orElseGet(() -> isHoledInternal(input, state));
     }
+
 
     protected abstract boolean isHoledInternal(
         Maybe<T> input,
         StaticState state
     );
 
+
     public final boolean subExpressionsAnyHoled(
         Maybe<T> input,
         StaticState state
     ) {
-        return subExpressionsAnyMatch(input, (s, i) -> s.isHoled(i, state));
+        return mapSubExpressionsWithState(
+            input,
+            state,
+            ExpressionSemantics::isHoled
+        ).anyMatch(b -> b);
     }
+
 
     /**
      * Similar to {@link ExpressionSemantics#isHoled(Maybe, StaticState)},
@@ -530,60 +627,70 @@ public abstract class ExpressionSemantics<T> extends Semantics
      * to the return type of the function
      * referred by the pattern.
      * By design, if this method returns true for a given pattern, then
-     * {@link ExpressionSemantics#inferPatternType(Maybe, PatternMatchMode, StaticState)}
+     * {@link ExpressionSemantics#inferPatternType(Maybe, PatternMatchMode,
+     * StaticState)}
      * should return a
      * {@link PatternType.HoledPatternType}, otherwise a
      * {@link PatternType.SimplePatternType} is expected.
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public final boolean isTypelyHoled(Maybe<T> input, StaticState state) {
         return traverse(input)
             .map(x -> x.getSemantics().isTypelyHoled(
-                (Maybe) x.getInput(),
+                x.getInput(),
                 state
             ))
             .orElseGet(() -> isTypelyHoledInternal(input, state));
     }
+
 
     protected abstract boolean isTypelyHoledInternal(
         Maybe<T> input,
         StaticState state
     );
 
+
     public final boolean subExpressionsAnyTypelyHoled(
         Maybe<T> input,
         StaticState state
     ) {
-        return subExpressionsAnyMatch(
+        return mapSubExpressionsWithState(
             input,
-            (s, i) -> s.isTypelyHoled(i, state)
-        );
+            state,
+            ExpressionSemantics::isTypelyHoled
+        ).anyMatch(b -> b);
     }
+
 
     /**
      * Returns true if this expression contains unbounded names in it.
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public final boolean isUnbound(Maybe<T> input, StaticState state) {
         return traverse(input)
             .map(x -> x.getSemantics().isUnbound(
-                (Maybe) x.getInput(),
+                x.getInput(),
                 state
             ))
             .orElseGet(() -> isUnboundInternal(input, state));
     }
+
 
     protected abstract boolean isUnboundInternal(
         Maybe<T> input,
         StaticState state
     );
 
+
     public final boolean subExpressionsAnyUnbound(
         Maybe<T> input,
         StaticState state
     ) {
-        return subExpressionsAnyMatch(input, (s, i) -> s.isUnbound(i, state));
+        return mapSubExpressionsWithState(
+            input,
+            state,
+            ExpressionSemantics::isUnbound
+        ).anyMatch(b -> b);
     }
+
 
     /**
      * Returns true if this kind of expression can contain holes in order to
@@ -592,14 +699,15 @@ public abstract class ExpressionSemantics<T> extends Semantics
      * <p></p>
      * Decided locally. Not based on static state.
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public final boolean canBeHoled(Maybe<T> input) {
         return traverse(input)
-            .map(x -> x.getSemantics().canBeHoled((Maybe) x.getInput()))
+            .map(x -> x.getSemantics().canBeHoled(x.getInput()))
             .orElseGet(() -> canBeHoledInternal(input));
     }
 
+
     protected abstract boolean canBeHoledInternal(Maybe<T> input);
+
 
     /**
      * Returns true if this kind of expression contains assignable parts (i.e
@@ -608,23 +716,23 @@ public abstract class ExpressionSemantics<T> extends Semantics
      * represent a writeable cell).
      * <p></p>
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public final boolean containsNotHoledAssignableParts(
         Maybe<T> input,
         StaticState state
     ) {
         return traverse(input)
             .map(x -> x.getSemantics().containsNotHoledAssignableParts(
-                (Maybe) x.getInput(),
+                x.getInput(),
                 state
             ))
             .orElseGet(() -> isValidLExpr(input)
                 ? (!canBeHoled(input) || !isHoled(input, state))
-                : subExpressionsAnyMatch(
+                : subExpressionsAnyMatch(//TODO check if state runs
                 input,
                 (s, i) -> s.containsNotHoledAssignableParts(i, state)
             ));
     }
+
 
     private boolean isSubPatternGroundForEquality(
         PatternMatchInput<T> patternMatchInput,
@@ -637,6 +745,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         );
     }
 
+
     private boolean isSubPatternGroundForAssignment(
         PatternMatchInput<T> patternMatchInput,
         StaticState state
@@ -646,6 +755,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
             && !isHoled(patternMatchInput.getPattern(), state)
             && isValidLExpr(patternMatchInput.getPattern());
     }
+
 
     private boolean isSubPatternGroundForEquality(
         Maybe<T> pattern,
@@ -659,6 +769,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         );
     }
 
+
     private boolean isSubPatternGroundForEquality(
         Maybe<T> pattern,
         PatternMatchMode.PatternLocation location,
@@ -667,6 +778,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         return location == PatternMatchMode.PatternLocation.SUB_PATTERN
             && !isHoled(pattern, state);
     }
+
 
     //TODO return PSR
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -687,7 +799,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
             ));
     }
 
-    @SuppressWarnings({"unchecked"})
+
     private PatternMatcher prepareCompilePatternMatch(
         PatternMatchInput<T> input,
         StaticState state,
@@ -712,7 +824,6 @@ public abstract class ExpressionSemantics<T> extends Semantics
     );
 
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public final PatternType inferPatternType(
         Maybe<T> input,
         PatternMatchMode mode,
@@ -720,7 +831,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
     ) {
         return traverse(input)
             .map(x -> x.getSemantics().inferPatternType(
-                (Maybe) x.getInput(),
+                x.getInput(),
                 mode,
                 state
             ))
@@ -730,6 +841,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
                 state
             ));
     }
+
 
     private PatternType prepareInferPatternType(
         Maybe<T> input, PatternMatchMode mode,
@@ -742,17 +854,18 @@ public abstract class ExpressionSemantics<T> extends Semantics
         }
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+
     public final PatternType inferSubPatternType(
         Maybe<T> input,
         StaticState state
     ) {
         return traverse(input)
             .map(x -> x.getSemantics().inferSubPatternType(
-                (Maybe) x.getInput(),
+                x.getInput(),
                 state
             )).orElseGet(() -> prepareInferSubPatternType(input, state));
     }
+
 
     private PatternType prepareInferSubPatternType(
         Maybe<T> input,
@@ -768,6 +881,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
             return inferPatternTypeInternal(input, state);
         }
     }
+
 
     public abstract PatternType inferPatternTypeInternal(
         Maybe<T> input,
@@ -794,7 +908,6 @@ public abstract class ExpressionSemantics<T> extends Semantics
     }
 
 
-    @SuppressWarnings("unchecked")
     private boolean prepareValidatePatternMatch(
         PatternMatchInput<T> input,
         StaticState state,
@@ -901,17 +1014,13 @@ public abstract class ExpressionSemantics<T> extends Semantics
         //TODO check successful match!!
 
 
-        //TODO remove intercept
-
         if (patternGroundForEquality) {
             // This is a non-holed sub pattern: validate it as expression.
-            PSR<Boolean> asExpressionPSR = validate(
+            boolean asExpressionCheck = validate(
                 input.getPattern(),
                 state,
                 acceptor
             );
-            boolean asExpressionCheck = asExpressionPSR.result();
-            StaticState newState = asExpressionPSR.state();
             if (asExpressionCheck == VALID) {
                 // Infer its type as expression, then validate the result type
                 final IJadescriptType patternType =
@@ -932,7 +1041,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
                     asExpressionCheck = INVALID;
                 }
             }
-            return newState.with(asExpressionCheck);
+            return asExpressionCheck;
         } else {
             boolean asPatternCheck = VALID;
             if (!canBeHoled(input.getPattern())) {
@@ -970,16 +1079,18 @@ public abstract class ExpressionSemantics<T> extends Semantics
             if (asPatternCheck == VALID) {
                 return validatePatternMatchInternal(input, state, acceptor);
             } else {
-                return state.INVALID();
+                return INVALID;
             }
         }
     }
+
 
     public abstract boolean validatePatternMatchInternal(
         PatternMatchInput<T> input,
         StaticState state,
         ValidationMessageAcceptor acceptor
     );
+
 
     private boolean validatePatternTypeRelationshipRequirement(
         Maybe<T> pattern,
@@ -1001,6 +1112,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         );
     }
 
+
     private boolean validatePatternTypeRelationshipRequirement(
         PatternMatchInput<T> input,
         IJadescriptType solvedType,
@@ -1019,6 +1131,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         );
     }
 
+
     private boolean validatePatternTypeRelationshipRequirement(
         PatternMatchInput<T> input,
         StaticState state,
@@ -1035,6 +1148,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         );
     }
 
+
     protected final boolean validateExpressionEqualityPatternMatch(
         PatternMatchInput.SubPattern<T, ?> input,
         StaticState state,
@@ -1042,6 +1156,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
     ) {
         return validate(input.getPattern(), state, acceptor);
     }
+
 
     /**
      * Handles the compilation in the case where the pattern is a non-holed
@@ -1052,8 +1167,8 @@ public abstract class ExpressionSemantics<T> extends Semantics
      * sub-expression evaluation.
      *
      * @param input    the subpattern.
-     * @param state
-     * @param acceptor
+     * @param state    the starting state
+     * @param acceptor used to eventually register auxiliary statements
      * @return a pattern matching component that simply checks if the
      * evaluated input expression equals to the evaluated
      * expression given as subpattern.
@@ -1069,18 +1184,18 @@ public abstract class ExpressionSemantics<T> extends Semantics
             state
         ).solve(input.getProvidedInputType());
 
-        final PSR<String> exprPSR = compile(
+        final String compiledExpr = compile(
             input.getPattern(),
             state,
             acceptor
         );
-        StaticState newState = exprPSR.state();
-        String compiledExpr = exprPSR.toString();
-        return newState.with(input.createSingleConditionMethodOutput(
+
+        return input.createSingleConditionMethodOutput(
             solvedPatternType,
             "java.util.Objects.equals(__x, " + compiledExpr + ")"
-        ));
+        );
     }
+
 
     protected final boolean validateExpressionEqualityPatternMatch(
         PatternMatchInput<T> input,
@@ -1119,10 +1234,12 @@ public abstract class ExpressionSemantics<T> extends Semantics
             super(semanticsModule);
         }
 
+
         @Override
         protected boolean mustTraverse(Maybe<T> input) {
             return false;
         }
+
 
         @Override
         protected Optional<? extends SemanticsBoundToExpression<?>> traverse
@@ -1132,11 +1249,13 @@ public abstract class ExpressionSemantics<T> extends Semantics
             return Optional.empty();
         }
 
+
         @Override
         protected Stream<SemanticsBoundToExpression<?>>
         getSubExpressionsInternal(Maybe<T> input) {
             return Stream.of();
         }
+
 
         @Override
         protected String compileInternal(
@@ -1144,8 +1263,9 @@ public abstract class ExpressionSemantics<T> extends Semantics
             StaticState state,
             CompilationOutputAcceptor acceptor
         ) {
-            return state.emptyString();
+            return "";
         }
+
 
         @Override
         protected IJadescriptType inferTypeInternal(
@@ -1155,14 +1275,16 @@ public abstract class ExpressionSemantics<T> extends Semantics
             return this.module.get(TypeHelper.class).NOTHING;
         }
 
+
         @Override
         protected boolean validateInternal(
             Maybe<T> input,
             StaticState state,
             ValidationMessageAcceptor acceptor
         ) {
-            return state.VALID();
+            return VALID;
         }
+
 
         @Override
         protected Maybe<ExpressionDescriptor> describeExpressionInternal(
@@ -1172,6 +1294,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
             return Maybe.nothing();
         }
 
+
         @Override
         protected StaticState advanceInternal(
             Maybe<T> input,
@@ -1179,6 +1302,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         ) {
             return state;
         }
+
 
         @Override
         protected boolean isAlwaysPureInternal(
@@ -1188,10 +1312,12 @@ public abstract class ExpressionSemantics<T> extends Semantics
             return false;
         }
 
+
         @Override
         protected boolean isValidLExprInternal(Maybe<T> input) {
             return false;
         }
+
 
         @Override
         protected boolean isPatternEvaluationPureInternal(
@@ -1201,10 +1327,12 @@ public abstract class ExpressionSemantics<T> extends Semantics
             return false;
         }
 
+
         @Override
         protected boolean isHoledInternal(Maybe<T> input, StaticState state) {
             return false;
         }
+
 
         @Override
         protected boolean isTypelyHoledInternal(
@@ -1214,15 +1342,18 @@ public abstract class ExpressionSemantics<T> extends Semantics
             return false;
         }
 
+
         @Override
         protected boolean isUnboundInternal(Maybe<T> input, StaticState state) {
             return false;
         }
 
+
         @Override
         protected boolean canBeHoledInternal(Maybe<T> input) {
             return false;
         }
+
 
         @Override
         public PatternMatcher compilePatternMatchInternal(
@@ -1230,8 +1361,9 @@ public abstract class ExpressionSemantics<T> extends Semantics
             StaticState state,
             CompilationOutputAcceptor acceptor
         ) {
-            return state.emptyMatcher(input);
+            return input.createEmptyCompileOutput();
         }
+
 
         @Override
         public PatternType inferPatternTypeInternal(
@@ -1241,14 +1373,16 @@ public abstract class ExpressionSemantics<T> extends Semantics
             return PatternType.empty(module);
         }
 
+
         @Override
         public boolean validatePatternMatchInternal(
             PatternMatchInput<T> input,
             StaticState state,
             ValidationMessageAcceptor acceptor
         ) {
-            return state.VALID();
+            return VALID;
         }
+
 
         @Override
         protected StaticState advancePatternInternal(
@@ -1257,6 +1391,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         ) {
             return state;
         }
+
     }
 
     /**
@@ -1264,9 +1399,11 @@ public abstract class ExpressionSemantics<T> extends Semantics
      * expression and s is its associated semantics
      * instance.
      */
-    public static class SemanticsBoundToExpression<T extends EObject> {
+    public static class SemanticsBoundToExpression<T> {
+
         private final ExpressionSemantics<T> semantics;
         private final Maybe<T> input;
+
 
         public SemanticsBoundToExpression(
             ExpressionSemantics<T> semantics,
@@ -1276,9 +1413,11 @@ public abstract class ExpressionSemantics<T> extends Semantics
             this.input = input;
         }
 
+
         public ExpressionSemantics<T> getSemantics() {
             return semantics;
         }
+
 
         public Maybe<T> getInput() {
             return input;

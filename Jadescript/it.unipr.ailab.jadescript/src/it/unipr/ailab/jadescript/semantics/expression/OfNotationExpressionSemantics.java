@@ -28,14 +28,19 @@ import static it.unipr.ailab.maybe.Maybe.*;
  * Created on 01/04/18.
  */
 @Singleton
-public class OfNotationExpressionSemantics extends AssignableExpressionSemantics<OfNotation> {
+public class OfNotationExpressionSemantics
+    extends AssignableExpressionSemantics<OfNotation> {
 
 
     public OfNotationExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
-    private String generateMethodName(String propName, IJadescriptType prevType, boolean isAssignment) {
+    private String generateMethodName(
+        String propName,
+        IJadescriptType prevType,
+        boolean isAssignment
+    ) {
         if (propName.equals("size") || propName.equals("length")) {
             if (module.get(TypeHelper.class).TEXT.isAssignableFrom(prevType)) {
                 return "length";
@@ -43,7 +48,8 @@ public class OfNotationExpressionSemantics extends AssignableExpressionSemantics
                 return "size";
             }
         } else {
-            return (isAssignment ? "set" : "get") + Strings.toFirstUpper(propName);
+            return (isAssignment ? "set" : "get")
+                + Strings.toFirstUpper(propName);
         }
     }
 

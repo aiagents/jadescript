@@ -43,6 +43,8 @@ import static it.unipr.ailab.maybe.Maybe.safeDo;
  */
 public class ValidationHelper implements SemanticsConsts {
 
+    //TODO ensure to always use Utile.extractEObject
+
     protected static final WriterFactory w = WriterFactory.getInstance();
 
     private final SemanticsModule module;

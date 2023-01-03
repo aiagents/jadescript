@@ -50,21 +50,8 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             ));
     }
 
-    private StaticState associativeUseState(
-        List<Maybe<Multiplicative>> operands,
-        List<Maybe<String>> operators,
-        StaticState state
-    ) {
-        StaticState result = module.get(MultiplicativeExpressionSemantics.class)
-            .advance(operands.get(0), state);
-        for (int i = 1; i < operands.size() && i - 1 < operators.size(); i++) {
-            result = useStatePair(
-                result,
-                operands.get(i)
-            );
-        }
-        return result;
-    }
+
+
 
 
     private String associativeCompile(
@@ -81,24 +68,48 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         StaticState op0s = module.get(MultiplicativeExpressionSemantics.class)
             .advance(operands.get(0), state);
         String result = op0c;
-        StaticState resultState = op0s;
+        StaticState runningState = op0s;
         for (int i = 1; i < operands.size() && i - 1 < operators.size(); i++) {
             result = compilePair(
                 result,
-                resultState,
+                runningState,
                 t,
                 operators.get(i - 1),
                 operands.get(i),
                 acceptor
             );
-            resultState = useStatePair(
-                resultState,
+            runningState = advancePair(
+                runningState,
                 operands.get(i)
             );
-            t = inferPair(t, operators.get(i - 1), operands.get(i), state);
+            t = inferPair(
+                t,
+                operators.get(i - 1),
+                operands.get(i),
+                runningState
+            );
         }
         return result;
     }
+
+
+    private StaticState advanceAssociative(
+        List<Maybe<Multiplicative>> operands,
+        StaticState state
+    ) {
+        final MultiplicativeExpressionSemantics mes =
+            module.get(MultiplicativeExpressionSemantics.class);
+
+        StaticState runningState = mes.advance(operands.get(0), state);
+        for (int i = 1; i < operands.size(); i++) {
+            runningState = advancePair(
+                runningState,
+                operands.get(i)
+            );
+        }
+        return runningState;
+    }
+
 
     private IJadescriptType associativeInfer(
         List<Maybe<Multiplicative>> operands,
@@ -114,13 +125,15 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         return t;
     }
 
-    private StaticState useStatePair(
+
+    private StaticState advancePair(
         StaticState op1s,
         Maybe<Multiplicative> op2
     ) {
         return module.get(MultiplicativeExpressionSemantics.class)
             .advance(op2, op1s);
     }
+
 
     private String compilePair(
         String op1c,
@@ -179,6 +192,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             return c1 + " " + op.orElse("+") + " " + c2;
         }
     }
+
 
     private IJadescriptType inferPair(
         IJadescriptType t1, Maybe<String> op,
@@ -244,12 +258,14 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
     }
 
+
     @Override
     protected boolean mustTraverse(Maybe<Additive> input) {
         final List<Maybe<Multiplicative>> operands =
             Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
         return operands.size() == 1;
     }
+
 
     @Override
     protected Optional<? extends SemanticsBoundToExpression<?>>
@@ -266,6 +282,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         ));
     }
 
+
     @Override
     protected boolean isAlwaysPureInternal(
         Maybe<Additive> input,
@@ -274,10 +291,12 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         return subExpressionsAllAlwaysPure(input, state);
     }
 
+
     @Override
     protected boolean isValidLExprInternal(Maybe<Additive> input) {
         return false;
     }
+
 
     @Override
     protected boolean isPatternEvaluationPureInternal(
@@ -287,6 +306,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         return subPatternEvaluationsAllPure(input, state);
     }
 
+
     @Override
     protected boolean isHoledInternal(
         Maybe<Additive> input,
@@ -294,6 +314,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     ) {
         return subExpressionsAnyHoled(input, state);
     }
+
 
     @Override
     protected boolean isTypelyHoledInternal(
@@ -303,6 +324,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         return subExpressionsAnyTypelyHoled(input, state);
     }
 
+
     @Override
     protected boolean isUnboundInternal(
         Maybe<Additive> input,
@@ -310,6 +332,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     ) {
         return subExpressionsAnyUnbound(input, state);
     }
+
 
     @Override
     protected boolean canBeHoledInternal(Maybe<Additive> input) {
@@ -326,6 +349,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         return input.createEmptyCompileOutput();
     }
 
+
     @Override
     public PatternType inferPatternTypeInternal(
         Maybe<Additive> input,
@@ -333,6 +357,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     ) {
         return PatternType.empty(module);
     }
+
 
     @Override
     public boolean validatePatternMatchInternal(
@@ -342,6 +367,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     ) {
         return VALID;
     }
+
 
     private boolean validateAssociative(
         List<Maybe<Multiplicative>> operands,
@@ -373,7 +399,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             if (pairValidation == INVALID) {
                 return INVALID;
             }
-            StaticState pairState = useStatePair(
+            StaticState pairState = advancePair(
                 finalState,
                 op2
             );
@@ -388,6 +414,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         }
         return VALID;
     }
+
 
     private boolean validatePairTypes(
         Maybe<Multiplicative> op1,
@@ -498,6 +525,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         return VALID;
     }
 
+
     private boolean validatePair(
         Maybe<Multiplicative> op1,
         IJadescriptType t1,
@@ -513,7 +541,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             return INVALID;
         }
 
-        //not needed: StaticState op2s = mes.useState(op2, state);
+        //not needed: StaticState op2s = mes.advance(op2, state);
         IJadescriptType t2 = mes.inferType(op2, state);
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
@@ -548,6 +576,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         return validatePairTypes(op1, t1, op2, t2, acceptor);
     }
 
+
     @Override
     protected boolean validateInternal(
         Maybe<Additive> input,
@@ -561,6 +590,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         return validateAssociative(operands, operators, state, acceptor);
     }
 
+
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<Additive> input,
@@ -569,13 +599,18 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         return Maybe.nothing();
     }
 
+
     @Override
     protected StaticState advanceInternal(
         Maybe<Additive> input,
         StaticState state
     ) {
-        return state;
+        final List<Maybe<Multiplicative>> mults = Maybe.toListOfMaybes(
+            input.__(Additive::getMultiplicative)
+        );
+        return advanceAssociative(mults, state);
     }
+
 
     @Override
     protected StaticState advancePatternInternal(
