@@ -9,7 +9,7 @@ import it.unipr.ailab.sonneteer.statement.VariableDeclarationWriter;
 import java.util.function.Consumer;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class UserVariable extends LocalVariable {
 
@@ -30,7 +30,7 @@ public class UserVariable extends LocalVariable {
                 captured.readingType(),
                 captured.canWrite()
         );
-        variable.capturedVariable = of(captured);
+        variable.capturedVariable = some(captured);
         return variable;
     }
 

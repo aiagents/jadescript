@@ -32,7 +32,7 @@ public class TryCatchWriter extends StatementWriter {
     }
 
     public TryCatchWriter setFinallyBranch(BlockWriter finallyBranch){
-        this.finallyBranch = Maybe.of(finallyBranch);
+        this.finallyBranch = Maybe.some(finallyBranch);
         return this;
     }
 

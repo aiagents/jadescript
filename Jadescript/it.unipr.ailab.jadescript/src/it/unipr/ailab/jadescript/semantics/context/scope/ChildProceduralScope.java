@@ -17,6 +17,6 @@ public class ChildProceduralScope extends ProceduralScope {
 
     @Override
     public Maybe<? extends Searcheable> superSearcheable() {
-        return Maybe.of(getOuterScope());
+        return Maybe.some(getOuterScope());
     }
 }

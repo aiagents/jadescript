@@ -92,7 +92,7 @@ public class StaticState
 
     @Override
     public Maybe<? extends Searcheable> superSearcheable() {
-        return Maybe.of(outer);
+        return Maybe.some(outer);
     }
 
     public Searcheable outerContext() {

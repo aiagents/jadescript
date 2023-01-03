@@ -83,7 +83,7 @@ public class SingleIdentifierExpressionSemantics
         //TODO cached resolution?
         Maybe<NamedSymbol> named = resolveAsNamedSymbol(input);
         if (named.isPresent()) {
-            return Maybe.of(new Either.Left<>(named.toNullable()));
+            return Maybe.some(new Either.Left<>(named.toNullable()));
         }
         Maybe<? extends CallableSymbol> callable = module.get(MethodCallSemantics.class).resolve(
                 MethodCall.methodCall(input)

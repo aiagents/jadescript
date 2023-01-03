@@ -174,7 +174,7 @@ public class AgentSemantics extends UsesOntologyEntitySemantics<Agent> {
                             createArgs.add(w.expr(module.get(CompilationHelper.class).getFullyQualifiedName(inputSafe) + ".class"));
 
                             for (FormalParameter parameter : createHandlerSafe.getParameters()) {
-                                Maybe<FormalParameter> mp = of(parameter);
+                                Maybe<FormalParameter> mp = some(parameter);
                                 final String paramName = mp.__(FormalParameter::getName).extract(nullAsEmptyString);
 
                                 mp.safeDo(mpsafe -> {
@@ -182,7 +182,8 @@ public class AgentSemantics extends UsesOntologyEntitySemantics<Agent> {
                                             mpsafe,
                                             paramName,
                                             mp.__(FormalParameter::getType)
-                                                    .__(t -> module.get(TypeExpressionSemantics.class).toJadescriptType(of(t)))
+                                                    .__(t -> module.get(TypeExpressionSemantics.class).toJadescriptType(
+                                                        some(t)))
                                                     .__(IJadescriptType::asJvmTypeReference)
                                                     .orElse(module.get(TypeHelper.class).ANY.asJvmTypeReference())
                                     ));

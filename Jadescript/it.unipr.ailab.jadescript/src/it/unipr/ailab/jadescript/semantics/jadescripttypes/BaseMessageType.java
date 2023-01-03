@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 
 public class BaseMessageType extends ParametricType implements EmptyCreatable {
@@ -104,7 +104,7 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
 
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
-        return of(module.get(TypeHelper.class).ONTOLOGY);
+        return some(module.get(TypeHelper.class).ONTOLOGY);
     }
 
     @Override

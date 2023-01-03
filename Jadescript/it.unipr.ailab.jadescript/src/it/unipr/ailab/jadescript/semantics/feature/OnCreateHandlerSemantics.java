@@ -31,7 +31,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.maybe.Maybe.*;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class OnCreateHandlerSemantics extends FeatureSemantics<OnCreateHandler> {
     public OnCreateHandlerSemantics(SemanticsModule semanticsModule) {
@@ -178,7 +178,8 @@ public class OnCreateHandlerSemantics extends FeatureSemantics<OnCreateHandler> 
                         .map(p -> module.get(JvmTypesBuilder.class).toParameter(
                                 p,
                                 p.getName(),
-                                module.get(TypeExpressionSemantics.class).toJadescriptType(of(p.getType()))
+                                module.get(TypeExpressionSemantics.class).toJadescriptType(
+                                        some(p.getType()))
                                         .asJvmTypeReference()
                         ))
                         .filter(Objects::nonNull)

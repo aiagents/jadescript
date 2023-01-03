@@ -98,7 +98,7 @@ public abstract class AssignableExpressionSemantics<T>
     }
 
     protected abstract StaticState advanceAssignmentInternal(
-        Maybe<T> left,
+        Maybe<T> input,
         IJadescriptType rightType,
         StaticState state
     );
@@ -393,7 +393,7 @@ public abstract class AssignableExpressionSemantics<T>
 
         @Override
         protected StaticState advanceAssignmentInternal(
-            Maybe<X> left,
+            Maybe<X> input,
             IJadescriptType rightType,
             StaticState state
         ) {

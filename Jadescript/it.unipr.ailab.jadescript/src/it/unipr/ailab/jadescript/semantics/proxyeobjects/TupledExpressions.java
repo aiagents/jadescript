@@ -27,7 +27,7 @@ public class TupledExpressions extends ProxyEObject {
         return input.nullIf(i -> i.getExprs() != null && i.getExprs().size() <= 1)
                 .__(i -> new TupledExpressions(
                         i,
-                        Maybe.toListOfMaybes(Maybe.of(i.getExprs()))
+                        Maybe.toListOfMaybes(Maybe.some(i.getExprs()))
                 ));
     }
 

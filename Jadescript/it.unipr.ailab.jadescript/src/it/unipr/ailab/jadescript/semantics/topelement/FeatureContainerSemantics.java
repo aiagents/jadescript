@@ -160,7 +160,7 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                 .filter(Maybe::isPresent)
                 .map(Maybe::toNullable)
                 .flatMap(Functional.filterAndCast(Field.class))
-                .map(Maybe::of)
+                .map(Maybe::some)
                 .forEach(f -> {
                     Maybe<RValueExpression> right = f.__(Field::getRight);
                     Maybe<String> name = f.__(Field::getName);
@@ -190,7 +190,7 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                                         declared.contains(propChain.get(0)),
                                         "FieldForwardDeclaration",
                                         "Unable to resolve name '" + propChain.get(0) + "'",
-                                        of(rightSafe),
+                                        some(rightSafe),
                                         acceptor
                                 );
                             } else if (propChain.size() == 1 && inCurrentClass.contains(propChain.get(0))) {
@@ -198,7 +198,7 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                                         declared.contains(propChain.get(0)),
                                         "FieldForwardDeclaration",
                                         "Unable to resolve name '" + propChain.get(0) + "'",
-                                        of(rightSafe),
+                                        some(rightSafe),
                                         acceptor
                                 );
                             }

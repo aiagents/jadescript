@@ -104,7 +104,7 @@ public class OnPerceptHandlerSemantics extends FeatureSemantics<OnPerceptHandler
 
                 PatternMatchData pmData = generatePatternMatchData(
                         input,
-                        of(savedContext),
+                        some(savedContext),
                         input,
                         false
                 );
@@ -535,7 +535,7 @@ public class OnPerceptHandlerSemantics extends FeatureSemantics<OnPerceptHandler
             return PatternMatchRequest.patternMatchRequest(
                     input,
                     pattern,
-                    of(up),
+                    some(up),
                     true
             );
         } else {

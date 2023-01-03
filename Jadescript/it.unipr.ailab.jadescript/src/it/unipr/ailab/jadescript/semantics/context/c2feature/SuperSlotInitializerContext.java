@@ -47,7 +47,7 @@ public class SuperSlotInitializerContext extends Context implements ScopedContex
 
     @Override
     public Maybe<? extends Searcheable> superSearcheable() {
-        return Maybe.of(outer);
+        return Maybe.some(outer);
     }
 
 

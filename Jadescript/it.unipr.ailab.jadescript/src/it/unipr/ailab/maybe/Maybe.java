@@ -19,7 +19,7 @@ public class Maybe<OfType> {
     }
 
 
-    public static <T> Maybe<T> of(T x) {
+    public static <T> Maybe<T> some(T x) {
         if (x == null) {
             return nothing();
         }
@@ -35,7 +35,7 @@ public class Maybe<OfType> {
     public static <T> Maybe<T> fromOpt(
             @SuppressWarnings("OptionalUsedAsFieldOrParameterType") Optional<T> x
     ) {
-        return x.map(Maybe::of).orElseGet(Maybe::nothing);
+        return x.map(Maybe::some).orElseGet(Maybe::nothing);
     }
 
     public static <T1, T2 extends List<T1>> List<T1> nullAsEmptyList(Maybe<T2> maybeList) {
@@ -132,7 +132,7 @@ public class Maybe<OfType> {
 
             @Override
             public Maybe<T1> next() {
-                return of(iterator.next());
+                return some(iterator.next());
             }
         };
     }
@@ -140,7 +140,7 @@ public class Maybe<OfType> {
     public static <T> List<Maybe<T>> toListOfMaybes(Maybe<? extends List<T>> maybeAList) {
         if (maybeAList.isPresent()) {
             return maybeAList.o.stream()
-                    .map(Maybe::of).collect(Collectors.toCollection(ArrayList::new));
+                    .map(Maybe::some).collect(Collectors.toCollection(ArrayList::new));
         } else {
             return Collections.emptyList();
         }
@@ -148,7 +148,7 @@ public class Maybe<OfType> {
 
     public static <T> List<Maybe<T>> toListOfMaybes(List<T> list) {
         return list.stream()
-                .map(Maybe::of)
+                .map(Maybe::some)
                 .collect(Collectors.toList());
     }
 
@@ -167,7 +167,7 @@ public class Maybe<OfType> {
                 return nothing();
             }
         }
-        return of(result);
+        return some(result);
     }
 
     public static <T1, T2> void eitherDo(
@@ -189,9 +189,9 @@ public class Maybe<OfType> {
             Function<? super T2, ? extends R> c2
     ) {
         if (j1.isPresent()) {
-            return Maybe.of(c1.apply(j1.toNullable()));
+            return Maybe.some(c1.apply(j1.toNullable()));
         } else if (j2.isPresent()) {
-            return Maybe.of(c2.apply(j2.toNullable()));
+            return Maybe.some(c2.apply(j2.toNullable()));
         } else {
             return nothing();
         }
@@ -262,9 +262,9 @@ public class Maybe<OfType> {
         Objects.requireNonNull(nullPolicy);
         Objects.requireNonNull(function);
         if (isPresent()) {
-            return of(function.apply(o));
+            return some(function.apply(o));
         } else {
-            return of(nullPolicy.get());
+            return some(nullPolicy.get());
         }
     }
 
@@ -278,7 +278,7 @@ public class Maybe<OfType> {
     ) {
         Objects.requireNonNull(function);
         if (isPresent()) {
-            return of(function.apply(o));
+            return some(function.apply(o));
         } else {
             return nothing();
         }
@@ -292,9 +292,9 @@ public class Maybe<OfType> {
     ) {
         Objects.requireNonNull(nullPolicy);
         if (isPresent()) {
-            return of(function.apply(o, arg1));
+            return some(function.apply(o, arg1));
         } else {
-            return of(nullPolicy.get());
+            return some(nullPolicy.get());
         }
     }
 
@@ -303,7 +303,7 @@ public class Maybe<OfType> {
             ParType arg1
     ) {
         if (isPresent()) {
-            return of(function.apply(o, arg1));
+            return some(function.apply(o, arg1));
         } else {
             return nothing();
         }
@@ -388,18 +388,18 @@ public class Maybe<OfType> {
     }
 
     public static <R, T extends R> Maybe<R> wrappedSuperCast(Maybe<T> input) {
-        return of(input.toNullable());
+        return some(input.toNullable());
     }
 
     @SuppressWarnings("unchecked")
     public static <T, R extends T> Maybe<R> wrappedSubCast(Maybe<T> input) {
         //noinspection unchecked
-        return of((R) input.toNullable());
+        return some((R) input.toNullable());
     }
 
     @SuppressWarnings("unchecked")
     public <R extends OfType> Maybe<R> wrappedSubCast(){
-        return of((R) this.toNullable());
+        return some((R) this.toNullable());
     }
 
 

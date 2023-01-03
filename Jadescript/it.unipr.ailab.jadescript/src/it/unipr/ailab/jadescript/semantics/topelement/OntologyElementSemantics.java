@@ -653,7 +653,7 @@ public class OntologyElementSemantics extends Semantics {
                     ctorArgNames.add(propName);
 
                     if (slotTypeSet.containsKey(propName)) {//redeclared
-                        ctorArgs.add(of(new SyntheticExpression(new SyntheticExpression.SemanticsMethods() {
+                        ctorArgs.add(some(new SyntheticExpression(new SyntheticExpression.SemanticsMethods() {
                             @Override
                             public String compile() {
                                 return propName;
@@ -703,7 +703,8 @@ public class OntologyElementSemantics extends Semantics {
                             itMethod.setVisibility(JvmVisibility.PRIVATE);
                         }
                         if (inputSafe instanceof FeatureWithSlots) {
-                            for (Maybe<SlotDeclaration> slot : toListOfMaybes(of(((FeatureWithSlots) inputSafe).getSlots()))) {
+                            for (Maybe<SlotDeclaration> slot : toListOfMaybes(
+                                some(((FeatureWithSlots) inputSafe).getSlots()))) {
                                 slot.__(SlotDeclaration::getName).safeDo(slotNameSafe -> {
                                     final JvmTypeReference typeRef = module.get(TypeExpressionSemantics.class)
                                             .toJadescriptType(slot.__(SlotDeclaration::getType)).asJvmTypeReference();
@@ -743,7 +744,7 @@ public class OntologyElementSemantics extends Semantics {
                                 scb.add("true");
                             }
                             if (inputSafe instanceof FeatureWithSlots) {
-                                for (Maybe<SlotDeclaration> slot : iterate(of((FeatureWithSlots) inputSafe)
+                                for (Maybe<SlotDeclaration> slot : iterate(some((FeatureWithSlots) inputSafe)
                                         .__(FeatureWithSlots::getSlots))) {
                                     scb.add(" && ");
                                     scb.add("java.util.Objects.equals(");
@@ -1025,7 +1026,8 @@ public class OntologyElementSemantics extends Semantics {
                                                         .writeSonnet(scb);
                                             }
 
-                                            IJadescriptType type = module.get(TypeExpressionSemantics.class).toJadescriptType(of(slot.getType()));
+                                            IJadescriptType type = module.get(TypeExpressionSemantics.class).toJadescriptType(
+                                                some(slot.getType()));
                                             final String getterCall = "get" + Strings.toFirstUpper(slot.getName()) + "()";
                                             if (module.get(TypeHelper.class).TEXT.isAssignableFrom(type)) {
                                                 w.callStmnt(

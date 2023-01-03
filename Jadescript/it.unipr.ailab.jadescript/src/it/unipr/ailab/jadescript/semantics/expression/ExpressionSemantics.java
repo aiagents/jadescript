@@ -191,6 +191,11 @@ public abstract class ExpressionSemantics<T> extends Semantics
     }
 
 
+    /**
+     * After getting the sub-expressions, compute a stream of results by taking
+     * into account the advancement of the state after the evaluation of each
+     * sub-expression.
+     */
     @SuppressWarnings({"unchecked"})
     public final <S, R> Stream<R> mapSubExpressionsWithState(
         Maybe<T> input,

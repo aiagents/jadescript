@@ -29,6 +29,6 @@ public abstract class TopLevelDeclarationContext
 
     @Override
     public Maybe<? extends Searcheable> superSearcheable() {
-        return Maybe.of(outer);
+        return Maybe.some(outer);
     }
 }

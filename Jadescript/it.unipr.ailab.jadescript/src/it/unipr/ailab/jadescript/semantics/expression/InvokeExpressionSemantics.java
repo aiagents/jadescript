@@ -68,7 +68,7 @@ public class InvokeExpressionSemantics
 
     @Override
     protected StaticState advanceAssignmentInternal(
-        Maybe<InvokeExpression> left,
+        Maybe<InvokeExpression> input,
         IJadescriptType rightType,
         StaticState state
     ) {

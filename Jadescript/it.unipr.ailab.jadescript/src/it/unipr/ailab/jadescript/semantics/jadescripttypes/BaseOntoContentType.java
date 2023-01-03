@@ -10,9 +10,8 @@ import jadescript.content.*;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
 import java.util.List;
-import java.util.Locale;
 
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class BaseOntoContentType extends JadescriptType implements OntoContentType {
 
@@ -96,7 +95,7 @@ public class BaseOntoContentType extends JadescriptType implements OntoContentTy
 
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
-        return of(module.get(TypeHelper.class).ONTOLOGY);
+        return some(module.get(TypeHelper.class).ONTOLOGY);
     }
 
 

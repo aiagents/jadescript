@@ -4,7 +4,7 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class VirtualIdentifier extends ProxyEObject {
     private final String ident;
@@ -16,7 +16,7 @@ public class VirtualIdentifier extends ProxyEObject {
 
     public static Maybe<VirtualIdentifier> virtualIdentifier(Maybe<String> ident, Maybe<? extends EObject> eObject){
         if(ident.isPresent() && eObject.isPresent()){
-            return of(new VirtualIdentifier(ident.toNullable(), eObject.toNullable()));
+            return some(new VirtualIdentifier(ident.toNullable(), eObject.toNullable()));
         }else{
             return nothing();
         }
@@ -24,7 +24,7 @@ public class VirtualIdentifier extends ProxyEObject {
 
     public static Maybe<VirtualIdentifier> virtualIdentifier(String ident, Maybe<? extends EObject> eObject){
         if(eObject.isPresent()){
-            return of(new VirtualIdentifier(ident, eObject.toNullable()));
+            return some(new VirtualIdentifier(ident, eObject.toNullable()));
         }else{
             return nothing();
         }
@@ -32,7 +32,7 @@ public class VirtualIdentifier extends ProxyEObject {
 
     public static Maybe<VirtualIdentifier> virtualIdentifier(Maybe<String> ident, EObject eObject) {
         if(ident.isPresent() ){
-            return of(new VirtualIdentifier(ident.toNullable(), eObject));
+            return some(new VirtualIdentifier(ident.toNullable(), eObject));
         }else{
             return nothing();
         }

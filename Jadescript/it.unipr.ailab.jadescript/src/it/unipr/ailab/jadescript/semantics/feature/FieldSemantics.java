@@ -175,7 +175,7 @@ public class FieldSemantics extends FeatureSemantics<Field> {
             InterceptAcceptor typeValidation = new InterceptAcceptor(acceptor);
             module.get(TypeExpressionSemantics.class).validate(explicitType, , typeValidation);
             if (!typeValidation.thereAreErrors()) {
-                typeDescriptor = Maybe.of(module.get(TypeExpressionSemantics.class).toJadescriptType(explicitType));
+                typeDescriptor = Maybe.some(module.get(TypeExpressionSemantics.class).toJadescriptType(explicitType));
                 typeDescriptor.safeDo(t -> t.validateType(explicitType, acceptor));
             }
         }
@@ -221,7 +221,7 @@ public class FieldSemantics extends FeatureSemantics<Field> {
                     );
 
                     if (typeDescriptor.isNothing()) {
-                        typeDescriptor = Maybe.of(inferredType);
+                        typeDescriptor = Maybe.some(inferredType);
                     }
                 }
             }

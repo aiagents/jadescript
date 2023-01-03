@@ -145,7 +145,7 @@ public class AidLiteralExpressionSemantics
 
     @Override
     protected StaticState advanceAssignmentInternal(
-        Maybe<AidLiteral> left,
+        Maybe<AidLiteral> input,
         IJadescriptType rightType,
         StaticState state
     ) {

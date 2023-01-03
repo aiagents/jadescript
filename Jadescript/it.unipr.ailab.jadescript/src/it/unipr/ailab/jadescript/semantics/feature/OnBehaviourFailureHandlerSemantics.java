@@ -29,7 +29,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class OnBehaviourFailureHandlerSemantics
         extends FeatureSemantics<OnBehaviourFailureHandler> {
@@ -81,7 +81,7 @@ public class OnBehaviourFailureHandlerSemantics
                 Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
                 PatternMatchData pmData = generatePatternMatchData(
                         featureContainer,
-                        of(savedContext),
+                        some(savedContext),
                         input,
                         contentPattern,
                         whenBodyX.__(WhenExpression::getExpr),
@@ -300,7 +300,7 @@ public class OnBehaviourFailureHandlerSemantics
             patternMatchRequest = PatternMatchRequest.patternMatchRequest(
                     input,
                     p,
-                    of(up),
+                    some(up),
                     true
             );
         } else {

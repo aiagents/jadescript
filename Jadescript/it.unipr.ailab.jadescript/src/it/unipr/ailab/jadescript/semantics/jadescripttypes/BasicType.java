@@ -79,7 +79,7 @@ public class BasicType extends JadescriptType implements EmptyCreatable{
 
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
-        return Maybe.of(module.get(TypeHelper.class).ONTOLOGY);
+        return Maybe.some(module.get(TypeHelper.class).ONTOLOGY);
     }
 
     @Override

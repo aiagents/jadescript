@@ -6,24 +6,21 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementConstructorSymbol;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmModelBasedNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public interface OntologyType extends IJadescriptType {
     SearchLocation getLocation();
@@ -92,7 +89,7 @@ public interface OntologyType extends IJadescriptType {
         @Override
         public Maybe<? extends TypeNamespace> getSuperTypeNamespace() {
             if (ontologyType instanceof UserDefinedOntologyType) {
-                return of(((UserDefinedOntologyType) ontologyType).getSuperOntologyType().namespace());//FUTURETODO multiple ontologies
+                return some(((UserDefinedOntologyType) ontologyType).getSuperOntologyType().namespace());//FUTURETODO multiple ontologies
             }
             return nothing();
         }

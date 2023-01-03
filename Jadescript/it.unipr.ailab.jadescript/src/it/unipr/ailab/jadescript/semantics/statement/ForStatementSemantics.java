@@ -238,7 +238,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                             final MapType mapTypeDescriptor = ((MapType) collectionType);
                             IJadescriptType firstVarType = mapTypeDescriptor.getKeyType();
                             IJadescriptType secondVarType = mapTypeDescriptor.getValueType();
-                            validateBody(input, firstVarType, of(secondVarType), acceptor);
+                            validateBody(input, firstVarType, some(secondVarType), acceptor);
                         }
                     } else {
                         IJadescriptType firstVarType;

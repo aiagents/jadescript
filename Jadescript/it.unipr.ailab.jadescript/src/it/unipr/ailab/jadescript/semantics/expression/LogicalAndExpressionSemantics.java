@@ -124,7 +124,7 @@ public class LogicalAndExpressionSemantics
         if (operands.isEmpty()) {
             return Maybe.nothing();
         }
-        return Maybe.of(new ExpressionDescriptor.AndExpression(
+        return Maybe.some(new ExpressionDescriptor.AndExpression(
             operands
         ));
     }

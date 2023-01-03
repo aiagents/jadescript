@@ -1,10 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.ListLiteral;
-import it.unipr.ailab.jadescript.jadescript.Literal;
-import it.unipr.ailab.jadescript.jadescript.MapOrSetLiteral;
-import it.unipr.ailab.jadescript.jadescript.StringLiteralSimple;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -32,7 +29,8 @@ import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
  */
 @SuppressWarnings("restriction")
 @Singleton
-public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
+public class LiteralExpressionSemantics
+    extends AssignableExpressionSemantics<Literal> {
 
 
     public LiteralExpressionSemantics(SemanticsModule semanticsModule) {
@@ -169,7 +167,8 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
     }
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<Literal> input) {
+    protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
+    traverse(Maybe<Literal> input) {
         final Maybe<StringLiteralSimple> string = input.__(Literal::getString);
         final Maybe<ListLiteral> list = input.__(Literal::getList);
         final Maybe<MapOrSetLiteral> mapOrSet = input.__(Literal::getMap);
@@ -204,6 +203,49 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
         return Optional.empty();
 
     }
+
+
+    @Override
+    protected void compileAssignmentInternal(
+        Maybe<Literal> input,
+        String compiledExpression,
+        IJadescriptType exprType,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
+    ) {
+
+    }
+
+
+    @Override
+    protected StaticState advanceAssignmentInternal(
+        Maybe<Literal> input,
+        IJadescriptType rightType,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    public boolean validateAssignmentInternal(
+        Maybe<Literal> input,
+        Maybe<RValueExpression> expression,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return VALID;
+    }
+
+
+    @Override
+    public boolean syntacticValidateLValueInternal(
+        Maybe<Literal> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return INVALID;
+    }
+
 
     @Override
     protected boolean isPatternEvaluationPureInternal(
@@ -313,7 +355,7 @@ public class LiteralExpressionSemantics extends ExpressionSemantics<Literal> {
             return module.get(ValidationHelper.class).emitError(
                 "InvalidNumberFormat",
                 "Invalid number format: " + e.getMessage(),
-                Maybe.of(inputSafe),
+                Maybe.some(inputSafe),
                 acceptor
             );
         }

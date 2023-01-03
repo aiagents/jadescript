@@ -10,7 +10,7 @@ import org.eclipse.xtext.common.types.JvmParameterizedTypeReference;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class BehaviourDefinition extends ProxyEObject implements Behaviour, MemberBehaviour {
 
@@ -113,7 +113,7 @@ public class BehaviourDefinition extends ProxyEObject implements Behaviour, Memb
 
     @Override
     public void setName(String value) {
-        this.name = of(value);
+        this.name = some(value);
     }
 
 
@@ -124,7 +124,7 @@ public class BehaviourDefinition extends ProxyEObject implements Behaviour, Memb
 
     @Override
     public void setAgent(JvmTypeReference value) {
-        this.forAgent = Maybe.of(value);
+        this.forAgent = Maybe.some(value);
     }
 
     @Override
@@ -134,7 +134,7 @@ public class BehaviourDefinition extends ProxyEObject implements Behaviour, Memb
 
     @Override
     public void setType(String value) {
-        this.behaviourType = of(value);
+        this.behaviourType = some(value);
     }
 
     @Override

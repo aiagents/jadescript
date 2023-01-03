@@ -14,7 +14,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.jetbrains.annotations.Nullable;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public abstract class JadescriptType implements SemanticsConsts, IJadescriptType {
     protected final SemanticsModule module;
@@ -107,11 +107,11 @@ public abstract class JadescriptType implements SemanticsConsts, IJadescriptType
     @Override
     public Maybe<IJadescriptType> getElementTypeIfCollection() {
         if (this instanceof MapType) {
-            return of(((MapType) this).getValueType());
+            return some(((MapType) this).getValueType());
         } else if (this instanceof ListType) {
-            return of(((ListType) this).getElementType());
+            return some(((ListType) this).getElementType());
         } else if (this instanceof SetType) {
-            return of(((SetType) this).getElementType());
+            return some(((SetType) this).getElementType());
         } else {
             return nothing();
         }

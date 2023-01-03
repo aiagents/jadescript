@@ -6,7 +6,7 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class MethodCall extends ProxyEObject {
     private final String name;
@@ -36,7 +36,7 @@ public class MethodCall extends ProxyEObject {
             boolean isProcedure
     ) {
         if (input.isPresent() && name.isPresent()) {
-            return of(new MethodCall(input.toNullable(), name.toNullable(), simpleArgs, namedArgs, isProcedure));
+            return some(new MethodCall(input.toNullable(), name.toNullable(), simpleArgs, namedArgs, isProcedure));
         } else {
             return nothing();
         }
@@ -62,7 +62,7 @@ public class MethodCall extends ProxyEObject {
             boolean isProcedure
     ) {
         if (name.isPresent()) {
-            return of(new MethodCall(input, name.toNullable(), simpleArgs, namedArgs, isProcedure));
+            return some(new MethodCall(input, name.toNullable(), simpleArgs, namedArgs, isProcedure));
         } else {
             return nothing();
         }
@@ -76,7 +76,7 @@ public class MethodCall extends ProxyEObject {
             boolean isProcedure
     ) {
         if (input.isPresent()) {
-            return of(new MethodCall(input.toNullable(), name, simpleArgs, namedArgs, isProcedure));
+            return some(new MethodCall(input.toNullable(), name, simpleArgs, namedArgs, isProcedure));
         } else {
             return nothing();
         }

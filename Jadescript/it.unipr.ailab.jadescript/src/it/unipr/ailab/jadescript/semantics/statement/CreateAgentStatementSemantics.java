@@ -430,7 +430,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
 
         input.__(CreateAgentStatement::getAgentNickName).safeDo(exprSafe -> {
             result.add(new ExpressionSemantics.SemanticsBoundToExpression<>(
-                    module.get(RValueExpressionSemantics.class), of(exprSafe)
+                    module.get(RValueExpressionSemantics.class), some(exprSafe)
             ));
         });
         return result;

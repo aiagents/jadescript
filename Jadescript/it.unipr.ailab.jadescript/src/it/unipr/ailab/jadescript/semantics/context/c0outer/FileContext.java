@@ -7,7 +7,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.xtype.XImportDeclaration;
@@ -48,7 +47,7 @@ public class FileContext
 
     @Override
     public Maybe<? extends Searcheable> superSearcheable() {
-        return Maybe.of(outer);
+        return Maybe.some(outer);
     }
 
     public ModuleContext getOuterContextModule(){

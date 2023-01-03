@@ -7,7 +7,9 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.*;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
@@ -26,84 +28,131 @@ import java.util.stream.Stream;
 public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpression> {
 
 
-
     public RValueExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
+
     @Override
-    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(Maybe<RValueExpression> input) {
+    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
+        Maybe<RValueExpression> input
+    ) {
         return Stream.empty();
     }
 
+
     @Override
-    protected String compileInternal(Maybe<RValueExpression> input,
-                                     StaticState state, CompilationOutputAcceptor acceptor) {
+    protected String compileInternal(
+        Maybe<RValueExpression> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
+    ) {
         return "";
     }
 
+
     @Override
-    protected IJadescriptType inferTypeInternal(Maybe<RValueExpression> input, StaticState state) {
+    protected IJadescriptType inferTypeInternal(
+        Maybe<RValueExpression> input,
+        StaticState state
+    ) {
         return module.get(TypeHelper.class).ANY;
     }
 
 
     @Override
     protected boolean mustTraverse(Maybe<RValueExpression> input) {
-        return input.isInstanceOf(SyntheticExpression.class) || input.isInstanceOf(TernaryConditional.class);
+        return input.isInstanceOf(SyntheticExpression.class)
+            || input.isInstanceOf(TernaryConditional.class);
     }
 
+
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(Maybe<RValueExpression> input) {
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
+        Maybe<RValueExpression> input
+    ) {
         if (input.isInstanceOf(SyntheticExpression.class)) {
             return Optional.of(
-                    new SemanticsBoundToExpression<>(
-                            module.get(SyntheticExpressionSemantics.class),
-                            input.__((i -> (SyntheticExpression) i))
-                    ));
+                new SemanticsBoundToExpression<>(
+                    module.get(SyntheticExpressionSemantics.class),
+                    input.__((i -> (SyntheticExpression) i))
+                ));
         }
         if (input.isInstanceOf(TernaryConditional.class)) {
             return Optional.of(
-                    new SemanticsBoundToExpression<>(
-                            module.get(TernaryConditionalExpressionSemantics.class),
-                            input.__((i -> (TernaryConditional) i))
-                    ));
+                new SemanticsBoundToExpression<>(
+                    module.get(TernaryConditionalExpressionSemantics.class),
+                    input.__((i -> (TernaryConditional) i))
+                ));
         }
         return Optional.empty();
     }
 
+
     @Override
-    protected boolean isPatternEvaluationPureInternal(PatternMatchInput<RValueExpression> input, StaticState state) {
+    protected boolean isPatternEvaluationPureInternal(
+        PatternMatchInput<RValueExpression> input,
+        StaticState state
+    ) {
         return true;
     }
 
 
     @Override
-    protected boolean validateInternal(Maybe<RValueExpression> input, StaticState state, ValidationMessageAcceptor acceptor) {
+    protected boolean validateInternal(
+        Maybe<RValueExpression> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ) {
         return VALID;
     }
 
-    @Override
-    protected Maybe<ExpressionDescriptor> describeExpressionInternal(Maybe<RValueExpression> input, StaticState state) {
-        return Collections.emptyList();
-    }
 
     @Override
-    protected StaticState advanceInternal(Maybe<RValueExpression> input,
-                                          StaticState state) {
-        return ExpressionTypeKB.empty();
+    protected Maybe<ExpressionDescriptor> describeExpressionInternal(
+        Maybe<RValueExpression> input,
+        StaticState state
+    ) {
+        return Maybe.nothing();
     }
 
+
     @Override
-    public PatternMatcher
-    compilePatternMatchInternal(PatternMatchInput<RValueExpression> input, StaticState state, CompilationOutputAcceptor acceptor) {
+    protected StaticState advanceInternal(
+        Maybe<RValueExpression> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState advancePatternInternal(
+        PatternMatchInput<RValueExpression> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    public PatternMatcher compilePatternMatchInternal(
+        PatternMatchInput<RValueExpression> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
+    ) {
         return input.createEmptyCompileOutput();
     }
 
+
     @Override
-    public PatternType inferPatternTypeInternal(Maybe<RValueExpression> input, StaticState state) {
+    public PatternType inferPatternTypeInternal(
+        Maybe<RValueExpression> input,
+        StaticState state
+    ) {
         return PatternType.empty(module);
     }
+
 
     @Override
     public boolean validatePatternMatchInternal(
@@ -113,37 +162,52 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
         return VALID;
     }
 
+
     @Override
-    protected boolean isAlwaysPureInternal(Maybe<RValueExpression> input,
-                                           StaticState state) {
+    protected boolean isAlwaysPureInternal(
+        Maybe<RValueExpression> input,
+        StaticState state
+    ) {
         return true;
     }
+
 
     @Override
     protected boolean isValidLExprInternal(Maybe<RValueExpression> input) {
         return false;
     }
 
+
     @Override
-    protected boolean isHoledInternal(Maybe<RValueExpression> input,
-                                      StaticState state) {
+    protected boolean isHoledInternal(
+        Maybe<RValueExpression> input,
+        StaticState state
+    ) {
         return false;
     }
 
+
     @Override
-    protected boolean isTypelyHoledInternal(Maybe<RValueExpression> input,
-                                            StaticState state) {
+    protected boolean isTypelyHoledInternal(
+        Maybe<RValueExpression> input,
+        StaticState state
+    ) {
         return false;
     }
 
+
     @Override
-    protected boolean isUnboundInternal(Maybe<RValueExpression> input,
-                                        StaticState state) {
+    protected boolean isUnboundInternal(
+        Maybe<RValueExpression> input,
+        StaticState state
+    ) {
         return false;
     }
+
 
     @Override
     protected boolean canBeHoledInternal(Maybe<RValueExpression> input) {
         return false;
     }
+
 }

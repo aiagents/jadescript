@@ -17,7 +17,6 @@ import jadescript.lang.Performative;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -115,10 +114,10 @@ public class MessageHandlerWhenExpressionContext
     @Override
     public Maybe<IJadescriptType> upperBoundForInterestedChain(List<String> propertyChain) {
         if (Util.listEquals(propertyChain, List.of("message"))) {
-            return Maybe.of(getMessageType());
+            return Maybe.some(getMessageType());
         } else if (Util.listEquals(propertyChain, List.of("content", "message"))
                 || Util.listEquals(propertyChain, List.of("content"))) {
-            return Maybe.of(getMessageContentType());
+            return Maybe.some(getMessageContentType());
         } else {
             return Maybe.nothing();
         }

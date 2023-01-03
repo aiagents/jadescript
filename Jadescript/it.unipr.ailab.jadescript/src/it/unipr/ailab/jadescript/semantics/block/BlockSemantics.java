@@ -146,7 +146,7 @@ public class BlockSemantics extends Semantics
                         }
 
                         for (int i = 0; i < statementsSafe.size(); i++) {
-                            Maybe<Statement> statement = of(statementsSafe.get(i));
+                            Maybe<Statement> statement = some(statementsSafe.get(i));
                             InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
                             final int finalI = i;
                             module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(statement, (sem) -> {

@@ -67,11 +67,11 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
         } else {
             moduleName = "";
         }
-        module.get(ContextManager.class).enterModule(moduleName, Maybe.of(model));
+        module.get(ContextManager.class).enterModule(moduleName, Maybe.some(model));
         module.get(ContextManager.class).enterFile(
                 model.eResource().getURI().toString(),
                 model.eResource().getURI().trimFileExtension().lastSegment(),
-                Maybe.toListOfMaybes(Maybe.of(model.getImportSection())
+                Maybe.toListOfMaybes(Maybe.some(model.getImportSection())
                         .__(ImportSection::getImportSection)
                         .__(XImportSection::getImportDeclarations))
         );
@@ -154,7 +154,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
     public void validateModel(final Model m) {
         try {
             this._jadescriptCompilerUtils.setAnnotationReferenceBuilder(this._jvmAnnotationReferenceBuilder);
-            boolean _isReservedName = ValidationHelper.isReservedName(Maybe.of(m.getName()));
+            boolean _isReservedName = ValidationHelper.isReservedName(Maybe.some(m.getName()));
             if (_isReservedName) {
                 this.error("invalid module name", m, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX);
             }
@@ -176,7 +176,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
                     SemanticsModule module = createSemanticsModule(m, "Validation");
                     GlobalMethodSemantics gms = module.get(GlobalMethodSemantics.class);
                     for (final GlobalFunctionOrProcedure v : functionsMap.get(k)) {
-                        gms.addMethod(Maybe.of(v));
+                        gms.addMethod(Maybe.some(v));
                     }
 
                     gms.validate(gms.getOriginalMethod(k), this);
@@ -189,19 +189,19 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
                     boolean matched = false;
                     if (element instanceof Agent) {
                         matched = true;
-                        module.get(AgentSemantics.class).validate(Maybe.of(((Agent) element)), this);
+                        module.get(AgentSemantics.class).validate(Maybe.some(((Agent) element)), this);
                     }
                     if (!matched) {
                         if (element instanceof Behaviour) {
                             matched = true;
                             module.get(TopElementBehaviourSemantics.class).validate(
-                                    Maybe.of(((Behaviour) element)), this
+                                    Maybe.some(((Behaviour) element)), this
                             );
                         }
                     }
                     if (!matched) {
                         if (element instanceof Ontology) {
-                            module.get(OntologySemantics.class).validate(Maybe.of(((Ontology) element)), this);
+                            module.get(OntologySemantics.class).validate(Maybe.some(((Ontology) element)), this);
                         }
                     }
                 }

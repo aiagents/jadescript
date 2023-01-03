@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 /**
  * Created on 09/03/18.
@@ -43,7 +43,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
         List<ExpressionSemantics.SemanticsBoundToExpression<?>> result = new ArrayList<>();
         input.__(ActivateStatement::getExpression).safeDo(exprSafe -> {
             result.add(new ExpressionSemantics.SemanticsBoundToExpression<>(
-                    module.get(RValueExpressionSemantics.class), of(exprSafe)
+                    module.get(RValueExpressionSemantics.class), some(exprSafe)
             ));
         });
         return result;

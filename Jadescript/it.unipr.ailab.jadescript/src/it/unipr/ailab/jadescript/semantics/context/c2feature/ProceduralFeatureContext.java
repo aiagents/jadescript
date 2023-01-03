@@ -5,7 +5,6 @@ import it.unipr.ailab.jadescript.semantics.context.Context;
 import it.unipr.ailab.jadescript.semantics.context.scope.ProceduralScope;
 import it.unipr.ailab.jadescript.semantics.context.scope.ScopeManager;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
@@ -33,7 +32,7 @@ public abstract class ProceduralFeatureContext
 
     @Override
     public Maybe<? extends Searcheable> superSearcheable() {
-        return Maybe.of(outer);
+        return Maybe.some(outer);
     }
 
     @Override

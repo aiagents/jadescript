@@ -42,11 +42,11 @@ public class ProceduralFeatureContainerContext
     ) {
         super(module);
         this.outer = outer;
-        this.thisReferenceType = Maybe.of(thisReferenceType);
+        this.thisReferenceType = Maybe.some(thisReferenceType);
         this.featureContainer = featureContainer;
-        this.thisReferenceNamespace = new LazyValue<>(() -> Maybe.of(thisReferenceType.namespace()));
+        this.thisReferenceNamespace = new LazyValue<>(() -> Maybe.some(thisReferenceType.namespace()));
 
-        this.thisReferenceElement = new LazyValue<>(() -> Maybe.of(new ContextGeneratedReference(
+        this.thisReferenceElement = new LazyValue<>(() -> Maybe.some(new ContextGeneratedReference(
                 THIS,
                 thisReferenceType,
                 (__) -> Util.getOuterClassThisReference(featureContainer).orElse(THIS)
@@ -185,7 +185,7 @@ public class ProceduralFeatureContainerContext
 
     @Override
     public Maybe<? extends Searcheable> superSearcheable() {
-        return Maybe.of(outer);
+        return Maybe.some(outer);
     }
 
     @Override

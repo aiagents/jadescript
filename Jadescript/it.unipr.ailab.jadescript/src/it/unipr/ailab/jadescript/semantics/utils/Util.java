@@ -20,7 +20,7 @@ import java.util.function.*;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class Util implements SemanticsConsts {
 
@@ -49,9 +49,9 @@ public class Util implements SemanticsConsts {
     public static <T> Maybe<? extends EObject> extractEObject(Maybe<T> object) {
         final T t = object.toNullable();
         if (t instanceof ProxyEObject) {
-            return of(((ProxyEObject) t).getProxyEObject());
+            return some(((ProxyEObject) t).getProxyEObject());
         } else if (t instanceof EObject) {
-            return of(((EObject) t));
+            return some(((EObject) t));
         } else {
             return nothing();
         }
@@ -166,7 +166,7 @@ public class Util implements SemanticsConsts {
             NamedFeature.class
         );
         if (memberContainer != null) {
-            return of(memberContainer.getName() + "." + THIS);
+            return some(memberContainer.getName() + "." + THIS);
         }
 
         FeatureContainer container = EcoreUtil2.getContainerOfType(
@@ -174,9 +174,9 @@ public class Util implements SemanticsConsts {
             FeatureContainer.class
         );
         if (container != null && !(container instanceof NamedFeature)) {
-            return of(container.getName() + "." + THIS);
+            return some(container.getName() + "." + THIS);
         } else {
-            return of(THIS);
+            return some(THIS);
         }
     }
 

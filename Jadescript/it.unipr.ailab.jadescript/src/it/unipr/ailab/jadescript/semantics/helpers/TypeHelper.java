@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 import static jadescript.lang.Performative.*;
 
 
@@ -416,7 +416,7 @@ public class TypeHelper implements SemanticsConsts {
 
             @Override
             public Maybe<OntologyType> getDeclaringOntology() {
-                return of(ONTOLOGY);
+                return some(ONTOLOGY);
             }
 
             @Override
@@ -501,7 +501,7 @@ public class TypeHelper implements SemanticsConsts {
 
             @Override
             public Maybe<OntologyType> getDeclaringOntology() {
-                return of(ONTOLOGY);
+                return some(ONTOLOGY);
             }
 
             @Override
@@ -1239,7 +1239,7 @@ public class TypeHelper implements SemanticsConsts {
 
         final String qualifiedName = typeReference.getQualifiedName('.');
         if (defaultJVMToDescriptorTable.containsKey(qualifiedName)) {
-            return of(defaultJVMToDescriptorTable.get(qualifiedName));
+            return some(defaultJVMToDescriptorTable.get(qualifiedName));
         } else {
             final String noGenericsTypeName = noGenericsTypeName(qualifiedName);
             if (defaultJVMToGenericDescriptorTable.containsKey(noGenericsTypeName)
@@ -1251,7 +1251,7 @@ public class TypeHelper implements SemanticsConsts {
                 }
                 final Integer expectedArguments = expectedGenericDescriptorArguments.get(noGenericsTypeName);
                 if (expectedArguments != null && expectedArguments == args.size()) {
-                    return of(defaultJVMToGenericDescriptorTable.get(noGenericsTypeName).apply(args));
+                    return some(defaultJVMToGenericDescriptorTable.get(noGenericsTypeName).apply(args));
                 } else {
                     return nothing();
                 }
@@ -1335,9 +1335,9 @@ public class TypeHelper implements SemanticsConsts {
         final OntologyType t1 = mt1.toNullable();
         final OntologyType t2 = mt2.toNullable();
         if (t1.isSuperOrEqualOntology(t2)) {
-            return of(t2);
+            return some(t2);
         } else if (t2.isSuperOrEqualOntology(t1)) {
-            return of(t1);
+            return some(t1);
         } else {
             return nothing();
         }
@@ -2084,7 +2084,7 @@ public class TypeHelper implements SemanticsConsts {
         }
 
         public Maybe<IJadescriptType> getDefaultType(int argumentPosition) {
-            return Maybe.of(argumentToDefault.get(argumentPosition));
+            return Maybe.some(argumentToDefault.get(argumentPosition));
         }
 
         public String compile(int argumentPosition, TypeArgument inputType, String inputExpression) {

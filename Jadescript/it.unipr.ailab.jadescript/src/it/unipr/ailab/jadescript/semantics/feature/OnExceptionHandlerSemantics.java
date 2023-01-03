@@ -29,7 +29,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class OnExceptionHandlerSemantics extends FeatureSemantics<OnExceptionHandler> {
     public OnExceptionHandlerSemantics(SemanticsModule semanticsModule) {
@@ -79,7 +79,7 @@ public class OnExceptionHandlerSemantics extends FeatureSemantics<OnExceptionHan
                 Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
                 PatternMatchData pmData = generatePatternMatchData(
                         featureContainer,
-                        of(savedContext),
+                        some(savedContext),
                         input,
                         contentPattern,
                         whenBodyX.__(WhenExpression::getExpr),
@@ -297,7 +297,7 @@ public class OnExceptionHandlerSemantics extends FeatureSemantics<OnExceptionHan
             patternMatchRequest = PatternMatchRequest.patternMatchRequest(
                     input,
                     contentPattern,
-                    of(up),
+                    some(up),
                     true
             );
         } else {

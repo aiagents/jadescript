@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public interface BehaviourType extends IJadescriptType, UsingOntologyType, ForAgentClausedType {
     SearchLocation getLocation();
@@ -115,7 +115,7 @@ public interface BehaviourType extends IJadescriptType, UsingOntologyType, ForAg
         @Override
         public Maybe<? extends TypeNamespace> getSuperTypeNamespace() {
             if (behaviourType instanceof UserDefinedBehaviourType) {
-                return of(((UserDefinedBehaviourType) behaviourType).getSuperBehaviourType().namespace());
+                return some(((UserDefinedBehaviourType) behaviourType).getSuperBehaviourType().namespace());
             }
             return nothing();
         }

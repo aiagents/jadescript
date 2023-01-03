@@ -38,11 +38,11 @@ public class ReversedTrailerChain {
 
 
     public void addPrimary(Maybe<Primary> atom) {
-        elements.add(Maybe.of(new PrimaryChainElement(module, atom)));
+        elements.add(Maybe.some(new PrimaryChainElement(module, atom)));
     }
 
     public void addSubscription(Maybe<Trailer> currentTrailer) {
-        elements.add(Maybe.of(new SubscriptionElement(
+        elements.add(Maybe.some(new SubscriptionElement(
             module,
             currentTrailer.__(Trailer::getKey)
         )));
@@ -52,7 +52,7 @@ public class ReversedTrailerChain {
         Maybe<Primary> atom,
         Maybe<Trailer> parentheses
     ) {
-        elements.add(Maybe.of(new FunctionCallElement(
+        elements.add(Maybe.some(new FunctionCallElement(
             module,
             atom.__(Primary::getIdentifier),
             parentheses.__(Trailer::getSimpleArgs),

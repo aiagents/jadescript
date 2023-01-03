@@ -3,7 +3,6 @@ package it.unipr.ailab.jadescript.semantics.namespace;
 import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.JvmTypeLocation;
-import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
@@ -68,7 +67,7 @@ public class JvmTypeNamespace extends JvmModelBasedNamespace {
 
     @Override
     public Maybe<JvmType> declarator() {
-        return Maybe.of(jvmDeclaredType);
+        return Maybe.some(jvmDeclaredType);
     }
 
     @Override
@@ -90,7 +89,7 @@ public class JvmTypeNamespace extends JvmModelBasedNamespace {
                         module.get(TypeHelper.class).jtFromJvmTypeRef(argument)
                 ));
             }
-            return Maybe.of(fromTypeReference(
+            return Maybe.some(fromTypeReference(
                     module,
                     module.get(TypeHelper.class).typeRef(
                             jvmDeclaredType.getExtendedClass().getType(),
@@ -101,7 +100,7 @@ public class JvmTypeNamespace extends JvmModelBasedNamespace {
             ));
 
         } else if (jvmDeclaredType.getExtendedClass() != null) {
-            return Maybe.of(new JvmTypeNamespace(
+            return Maybe.some(new JvmTypeNamespace(
                     module,
                     (JvmDeclaredType) jvmDeclaredType.getExtendedClass().getType()
             ));

@@ -22,7 +22,8 @@ import java.util.stream.Stream;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
-public class SetLiteralExpressionSemantics extends ExpressionSemantics<MapOrSetLiteral> {
+public class SetLiteralExpressionSemantics
+    extends ExpressionSemantics<MapOrSetLiteral> {
 
 
     //TODO pipe operator

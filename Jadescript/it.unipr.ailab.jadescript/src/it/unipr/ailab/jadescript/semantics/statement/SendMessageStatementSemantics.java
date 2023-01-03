@@ -472,7 +472,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
                                 .filter(Maybe::isPresent)
                                 .map(Maybe::toNullable)
                                 .flatMap(c -> c.getExpressions().stream())
-                                .map(Maybe::of)
+                                .map(Maybe::some)
                 )
                 .filter(Maybe::isPresent)
                 .map(x -> new ExpressionSemantics.SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), x))

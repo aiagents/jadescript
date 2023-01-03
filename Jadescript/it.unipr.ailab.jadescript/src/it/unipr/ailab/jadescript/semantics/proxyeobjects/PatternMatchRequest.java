@@ -6,7 +6,7 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class PatternMatchRequest extends ProxyEObject{
     private final Maybe<Pattern> pattern;
@@ -32,7 +32,7 @@ public class PatternMatchRequest extends ProxyEObject{
             boolean canDeconstruct
     ) {
         if(input.isPresent()){
-            return of(new PatternMatchRequest(input.toNullable(), pattern, unary, canDeconstruct));
+            return some(new PatternMatchRequest(input.toNullable(), pattern, unary, canDeconstruct));
         }else{
             return nothing();
         }

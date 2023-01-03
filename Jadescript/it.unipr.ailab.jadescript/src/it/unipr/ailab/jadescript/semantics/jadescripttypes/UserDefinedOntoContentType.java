@@ -15,7 +15,6 @@ import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmType;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -23,7 +22,7 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class UserDefinedOntoContentType
         extends UserDefinedType<BaseOntoContentType>
@@ -73,7 +72,7 @@ public class UserDefinedOntoContentType
         if (meta.isPresent()) {
             final IJadescriptType returnType = meta.get().returnType();
             if (returnType instanceof OntologyType) {
-                return of(((OntologyType) returnType));
+                return some(((OntologyType) returnType));
             }
             if (returnType instanceof UnknownJVMType) {
                 //Sometimes, after workspace cleaning, TypeHelper is not able to correctly compute the ontology type
@@ -82,7 +81,7 @@ public class UserDefinedOntoContentType
                 // Note that the ontology-subtyping relationships might still be wrong in this phase, but laziness will
                 // help us by reading the correct super-ontology field only when the underlying JvmTypeReference is
                 // resolved.
-                return of(new UserDefinedOntologyType(
+                return some(new UserDefinedOntologyType(
                         module,
                         returnType.asJvmTypeReference(),
                         module.get(TypeHelper.class).ONTOLOGY
@@ -115,7 +114,7 @@ public class UserDefinedOntoContentType
 
                 @Override
                 public Maybe<? extends TypeNamespace> getSuperTypeNamespace() {
-                    return of(jvmDeclaredType.getExtendedClass()).__(extendedClass ->
+                    return some(jvmDeclaredType.getExtendedClass()).__(extendedClass ->
                             module.get(TypeHelper.class)
                                     .jtFromJvmTypeRef(extendedClass)
                                     .namespace()

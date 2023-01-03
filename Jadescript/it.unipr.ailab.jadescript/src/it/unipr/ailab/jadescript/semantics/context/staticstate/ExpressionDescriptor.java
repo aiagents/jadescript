@@ -114,16 +114,30 @@ public interface ExpressionDescriptor {
 
 
     public static class PropertyChain implements ExpressionDescriptor {
-        private final List<String> properties;
+        private final ImmutableList<String> properties;
 
 
-        public PropertyChain(List<String> properties) {
+        public PropertyChain(ImmutableList<String> properties) {
             if (properties.isEmpty()) {
                 throw new IllegalArgumentException(
                     "Property chain cannot be empty."
                 );
             }
             this.properties = properties;
+        }
+
+        public PropertyChain(String... properties){
+            if(properties.length==0){
+                throw new IllegalArgumentException(
+                    "Property chain cannot be empty."
+                );
+            }
+            this.properties = ImmutableList.of(properties);
+        }
+
+
+        public ImmutableList<String> getProperties() {
+            return properties;
         }
 
 

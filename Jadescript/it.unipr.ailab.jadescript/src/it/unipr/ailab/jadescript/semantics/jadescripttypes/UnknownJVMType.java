@@ -12,7 +12,7 @@ import org.eclipse.xtext.common.types.JvmTypeReference;
 
 import java.util.Optional;
 
-import static it.unipr.ailab.maybe.Maybe.of;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
     private final JvmTypeReference typeReference;
@@ -106,7 +106,7 @@ public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
                     .map(CallableSymbol::returnType);
             if (metadata.isPresent()) {
                 if (metadata.get() instanceof OntologyType) {
-                    return of(((OntologyType) metadata.get()));
+                    return some(((OntologyType) metadata.get()));
                 }
             }
         }

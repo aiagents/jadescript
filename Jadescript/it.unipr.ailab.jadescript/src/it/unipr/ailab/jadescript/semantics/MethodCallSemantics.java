@@ -22,6 +22,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.jadescript.semantics.utils.Util.Tuple2;
 import it.unipr.ailab.maybe.Maybe;
@@ -119,7 +120,7 @@ public class MethodCallSemantics
 
     @Override
     protected StaticState advanceAssignmentInternal(
-        Maybe<MethodCall> left,
+        Maybe<MethodCall> input,
         IJadescriptType rightType,
         StaticState state
     ) {
@@ -459,7 +460,7 @@ public class MethodCallSemantics
             final Map<String, IJadescriptType> argTypes = new HashMap<>();
             StaticState afterArguments = state;
             for (String argName : argNames) {
-                final Maybe<RValueExpression> expr = of(args.get(argName));
+                final Maybe<RValueExpression> expr = some(args.get(argName));
                 String compiled = rves.compile(expr, afterArguments, acceptor);
                 compiledArgs.put(argName, compiled);
                 IJadescriptType type = rves.inferType(expr, afterArguments);
@@ -1307,7 +1308,7 @@ public class MethodCallSemantics
                 advanceStateOnArguments
             );
         if (callableSymbols.size() == 1) {
-            return Maybe.of(callableSymbols.get(0));
+            return Maybe.some(callableSymbols.get(0));
         } else {
             return Maybe.nothing();
         }
@@ -1346,8 +1347,8 @@ public class MethodCallSemantics
         if (noArgs
             && isAlwaysPure(input, state)
             && name.nullIf(String::isBlank).isPresent()) {
-            return Maybe.of(new ExpressionDescriptor.PropertyChain(
-                List.of(name.toNullable())
+            return Maybe.some(new ExpressionDescriptor.PropertyChain(
+                ImmutableList.of(name.toNullable())
             ));
         }
         return Maybe.nothing();

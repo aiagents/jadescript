@@ -20,7 +20,7 @@ public class OntologyElementDeclarationContext extends Context {
 
     @Override
     public Maybe<? extends Searcheable> superSearcheable() {
-        return Maybe.of(outer);
+        return Maybe.some(outer);
     }
 
     @Override

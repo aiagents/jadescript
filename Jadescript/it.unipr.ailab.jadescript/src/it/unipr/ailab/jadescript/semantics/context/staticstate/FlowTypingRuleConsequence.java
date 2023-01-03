@@ -5,8 +5,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 
-import java.util.function.Function;
-
 public class FlowTypingRuleConsequence {
     private final SemanticsModule module;
     private final ExpressionDescriptor forExpression;
@@ -49,7 +47,7 @@ public class FlowTypingRuleConsequence {
         if (!t2.isPresent()) {
             return t1;
         }
-        return Maybe.of(module.get(TypeHelper.class)
+        return Maybe.some(module.get(TypeHelper.class)
             .getGLB(t1.toNullable(), t2.toNullable())
         );
     }
@@ -64,7 +62,7 @@ public class FlowTypingRuleConsequence {
         if (!t2.isPresent()) {
             return t1;
         }
-        return Maybe.of(module.get(TypeHelper.class)
+        return Maybe.some(module.get(TypeHelper.class)
             .getLUB(t1.toNullable(), t2.toNullable())
         );
     }
