@@ -149,7 +149,7 @@ public interface FoPSemantics {
             }
             input.safeDo(inputSafe -> {
                 if (body.isPresent()) {
-                    validationHelper.assertion(
+                    validationHelper.asserting(
                             Util.implication(type.isPresent(), endsWithReturn(body)),
                             "MissingReturnStatement",
                             "Functions must return a value",

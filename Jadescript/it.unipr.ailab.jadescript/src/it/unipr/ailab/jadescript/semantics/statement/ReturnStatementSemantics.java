@@ -59,7 +59,7 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
 
             if (expectedReturn.isPresent()) {
                 if (module.get(TypeHelper.class).VOID.typeEquals(expectedReturn.get())) {
-                    module.get(ValidationHelper.class).assertion(!hasExpr,
+                    module.get(ValidationHelper.class).asserting(!hasExpr,
                             "InvalidReturnStatement",
                             "Cannot return a value from a procedure",
                             input,
@@ -68,7 +68,7 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
                 } else {
                     if (hasExpr) {
                         IJadescriptType actualType = module.get(RValueExpressionSemantics.class).inferType(expr, );
-                        module.get(ValidationHelper.class).assertion(expectedReturn.get().isAssignableFrom(actualType),
+                        module.get(ValidationHelper.class).asserting(expectedReturn.get().isAssignableFrom(actualType),
                                 "InvalidReturnStatement",
                                 "Expected returned value type: " + expectedReturn.get()
                                         + "; found: " + actualType,
@@ -87,7 +87,7 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
                 }
             } else {
                 //just check that has not expr
-                module.get(ValidationHelper.class).assertion(!hasExpr,
+                module.get(ValidationHelper.class).asserting(!hasExpr,
                         "InvalidReturnStatement",
                         "Cannot return values from a procedure",
                         input,

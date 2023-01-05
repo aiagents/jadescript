@@ -186,7 +186,7 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                             if (propChain.size() == 2
                                     && Util.getOuterClassThisReference(input).orElse(THIS).equals(propChain.get(1))
                                     && inCurrentClass.contains(propChain.get(0))) {
-                                module.get(ValidationHelper.class).assertion(
+                                module.get(ValidationHelper.class).asserting(
                                         declared.contains(propChain.get(0)),
                                         "FieldForwardDeclaration",
                                         "Unable to resolve name '" + propChain.get(0) + "'",
@@ -194,7 +194,7 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                                         acceptor
                                 );
                             } else if (propChain.size() == 1 && inCurrentClass.contains(propChain.get(0))) {
-                                module.get(ValidationHelper.class).assertion(
+                                module.get(ValidationHelper.class).asserting(
                                         declared.contains(propChain.get(0)),
                                         "FieldForwardDeclaration",
                                         "Unable to resolve name '" + propChain.get(0) + "'",

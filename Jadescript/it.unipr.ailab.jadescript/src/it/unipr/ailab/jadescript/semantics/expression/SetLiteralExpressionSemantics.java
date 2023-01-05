@@ -234,7 +234,7 @@ public class SetLiteralExpressionSemantics
                 acceptor
             );
         } else {
-            return module.get(ValidationHelper.class).assertion(
+            return module.get(ValidationHelper.class).asserting(
                 !elementsLUB.isErroneous(),
                 "SetLiteralCannotComputeType",
                 "Can not find a valid common parent type of the " +

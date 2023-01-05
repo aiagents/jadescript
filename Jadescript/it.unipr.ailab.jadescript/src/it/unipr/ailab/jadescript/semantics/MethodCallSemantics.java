@@ -651,7 +651,7 @@ public class MethodCallSemantics
 
             final ValidationHelper validationHelper = module.get(
                 ValidationHelper.class);
-            boolean isCorrectOperationKind = validationHelper.assertion(
+            boolean isCorrectOperationKind = validationHelper.asserting(
                 isProcedure == module.get(TypeHelper.class)
                     .VOID.typeEquals(match.returnType()),
                 errorCode,
@@ -775,7 +775,7 @@ public class MethodCallSemantics
             CallableSymbol match = methodsFound.get(0);
 
             boolean isCorrectOperationKind =
-                module.get(ValidationHelper.class).assertion(
+                module.get(ValidationHelper.class).asserting(
                     isProcedure == module.get(TypeHelper.class)
                         .VOID.typeEquals(match.returnType()),
                     errorCode,

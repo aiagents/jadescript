@@ -123,7 +123,7 @@ public class TupleExpressionSemantics
         ValidationMessageAcceptor acceptor,
         int size
     ) {
-        return module.get(ValidationHelper.class).assertion(
+        return module.get(ValidationHelper.class).asserting(
             size <= 20,
             "TupleTooBig",
             "Tuples with more than 20 elements are not supported.",

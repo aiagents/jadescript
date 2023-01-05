@@ -248,7 +248,7 @@ public class MapLiteralExpressionSemantics
             stage1 = stage1 && keyCheck && valCheck;
         }
 
-        stage1 = stage1 && module.get(ValidationHelper.class).assertion(
+        stage1 = stage1 && module.get(ValidationHelper.class).asserting(
             !values.isEmpty() && !values.stream().allMatch(Maybe::isNothing)
                 && !keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing)
                 || hasTypeSpecifiers,
@@ -258,7 +258,7 @@ public class MapLiteralExpressionSemantics
             acceptor
         );
 
-        stage1 = stage1 && module.get(ValidationHelper.class).assertion(
+        stage1 = stage1 && module.get(ValidationHelper.class).asserting(
             values.stream().filter(Maybe::isPresent).count()
                 == keys.stream().filter(Maybe::isPresent).count(),
             "InvalidMapLiteral",
@@ -277,7 +277,7 @@ public class MapLiteralExpressionSemantics
             && !keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing)) {
 
             boolean keysValidation =
-                module.get(ValidationHelper.class).assertion(
+                module.get(ValidationHelper.class).asserting(
                     !keysLub.isErroneous(),
                     "MapLiteralCannotComputeType",
                     "Can not find a valid common parent type of the keys in " +
@@ -305,7 +305,7 @@ public class MapLiteralExpressionSemantics
             }
 
             boolean valsValidation =
-                module.get(ValidationHelper.class).assertion(
+                module.get(ValidationHelper.class).asserting(
                     !valuesLub.isErroneous(),
                     "MapLiteralCannotComputeType",
                     "Can not find a valid common parent type of the values in" +
@@ -866,7 +866,7 @@ public class MapLiteralExpressionSemantics
         final boolean typeCount;
 
         if (isMapT) {
-            typeCount = vh.assertion(
+            typeCount = vh.asserting(
                 isMapV,
                 "InvalidSetOrMap" + Strings.toFirstUpper(literalOrPattern),
                 "Type specifiers of the literal do not match the kind of the " +
@@ -880,7 +880,7 @@ public class MapLiteralExpressionSemantics
         }
 
         if (typeCount && isMapV) {
-            valuesCount = vh.assertion(
+            valuesCount = vh.asserting(
                 values.size() == keys.size(),
                 "InvalidMap" + Strings.toFirstUpper(literalOrPattern),
                 "Non-matching number of keys and values in the map " +

@@ -69,7 +69,7 @@ public class OntologyElementSemantics extends Semantics {
                 && superType.isPresent()) {
             final IJadescriptType contentType = module.get(TypeHelper.class).jtFromJvmTypeRef(superType.toNullable());
             if (contentType instanceof OntoContentType) {
-                module.get(ValidationHelper.class).assertion(
+                module.get(ValidationHelper.class).asserting(
                         ((OntoContentType) contentType).isNativeOntoContentType(),
                         "InvalidExtendedType",
                         "A native type can only extend native types.",
@@ -85,7 +85,7 @@ public class OntologyElementSemantics extends Semantics {
                 && superType.isPresent()) {
             final IJadescriptType contentType = module.get(TypeHelper.class).jtFromJvmTypeRef(superType.toNullable());
             if (contentType instanceof OntoContentType) {
-                module.get(ValidationHelper.class).assertion(
+                module.get(ValidationHelper.class).asserting(
                         !((OntoContentType) contentType).isNativeOntoContentType(),
                         "InvalidExtendedType",
                         "A non-native type can not extend native types.",
@@ -97,7 +97,7 @@ public class OntologyElementSemantics extends Semantics {
         }
 
         if (input.isInstanceOf(it.unipr.ailab.jadescript.jadescript.Predicate.class)) {
-            module.get(ValidationHelper.class).assertion(
+            module.get(ValidationHelper.class).asserting(
                     Maybe.stream(input
                                     .__(i -> (Predicate) i)
                                     .__(FeatureWithSlots::getSlots))
@@ -124,7 +124,7 @@ public class OntologyElementSemantics extends Semantics {
             //force Concepts to NOT extend Actions
             if (input.__(i -> i instanceof Concept).extract(nullAsFalse)) {
                 superType.safeDo(superTypeSafe -> {
-                    module.get(ValidationHelper.class).assertion(
+                    module.get(ValidationHelper.class).asserting(
                             !module.get(TypeHelper.class).isAssignable(jade.content.AgentAction.class, superTypeSafe),
                             "InvalidOntologyElementSupertype",
                             "concepts can not extend agent actions",
@@ -198,7 +198,7 @@ public class OntologyElementSemantics extends Semantics {
                             Maybe<String> argName = argNames.get(i);
 
 
-                            module.get(ValidationHelper.class).assertion(
+                            module.get(ValidationHelper.class).asserting(
                                     module.get(RValueExpressionSemantics.class).isAlwaysPure(args.get(i), ),
                                     "InvalidSuperSlotInitExpression",
                                     "Initialization expressions of super-slots must be pure (without side effects).",
@@ -239,7 +239,7 @@ public class OntologyElementSemantics extends Semantics {
                         InterceptAcceptor consisentInheritedPropertyCheck = new InterceptAcceptor(acceptor);
                         //super-properties cannot be both initialized in the extends section
                         // and re-declared in the parameters section
-                        module.get(ValidationHelper.class).assertion(
+                        module.get(ValidationHelper.class).asserting(
                                 !(isInitialized && isRedeclared),
                                 "InvalidSlotInheritance",
                                 "Super-property '" + propName + "' cannot be initialized and redeclared at the same time",
@@ -248,7 +248,7 @@ public class OntologyElementSemantics extends Semantics {
                         );
 
                         if (superSlotPositionSet.containsKey(propName)) {
-                            module.get(ValidationHelper.class).assertion(
+                            module.get(ValidationHelper.class).asserting(
                                     !(isInitialized && isRedeclared),
                                     "InvalidSlotInheritance",
                                     "Super-property '" + propName + "' cannot be initialized and redeclared at the same time",
@@ -263,7 +263,7 @@ public class OntologyElementSemantics extends Semantics {
                         if (!consisentInheritedPropertyCheck.thereAreErrors()) {
                             //super-properties must be either initialized in the extends section
                             // or re-declared in the parameters section
-                            module.get(ValidationHelper.class).assertion(
+                            module.get(ValidationHelper.class).asserting(
                                     isInitialized || isRedeclared,
                                     "InvalidSlotInheritance",
                                     "Super-property '" + propName + "' must be either initialized or re-declared",
@@ -329,7 +329,7 @@ public class OntologyElementSemantics extends Semantics {
             IJadescriptType slotType = typeExprSem.toJadescriptType(slotTypeExpression);
 
 
-            module.get(ValidationHelper.class).assertion(
+            module.get(ValidationHelper.class).asserting(
                     !slotType.isCollection() ||
                             ((ParametricType) slotType).getTypeArguments().stream()
                                     .map(TypeArgument::ignoreBound)

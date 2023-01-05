@@ -167,7 +167,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             if (!interceptAcceptor.thereAreErrors()) {
 
                 varName.safeDo(varNameSafe -> {
-                    module.get(ValidationHelper.class).assertion(
+                    module.get(ValidationHelper.class).asserting(
                             module.get(ContextManager.class).currentContext().searchAs(
                                     NamedSymbol.Searcher.class,
                                     (NamedSymbol.Searcher s) -> s.searchName(
@@ -209,7 +209,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                 } else {
                     if (input.__(ForStatement::isMapIteration).extract(nullAsFalse)) {
                         var2Name.safeDo(var2NameSafe -> {
-                            module.get(ValidationHelper.class).assertion(
+                            module.get(ValidationHelper.class).asserting(
                                     module.get(ContextManager.class).currentContext().searchAs(
                                             NamedSymbol.Searcher.class,
                                             (NamedSymbol.Searcher s) -> s.searchName(
@@ -226,7 +226,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                             );
                         });
 
-                        module.get(ValidationHelper.class).assertion(
+                        module.get(ValidationHelper.class).asserting(
                                 collectionType instanceof MapType,
                                 "InvalidMapType",
                                 "Invalid collection type, map expected, found: " + collectionType,

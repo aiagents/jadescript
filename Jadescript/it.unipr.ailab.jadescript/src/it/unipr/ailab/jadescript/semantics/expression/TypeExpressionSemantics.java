@@ -192,7 +192,7 @@ public class TypeExpressionSemantics
         List<Maybe<TypeExpression>> subExprs,
         ValidationHelper validationHelper
     ) {
-        boolean result = validationHelper.assertion(
+        boolean result = validationHelper.asserting(
             subExprs.size() <= 20,
             "TooBigTuple",
             "Tuples with more than 20 elements are not supported.",
@@ -268,7 +268,7 @@ public class TypeExpressionSemantics
 
             if (declaringOntology.isPresent()) {
                 IJadescriptType jadescriptType = declaringOntology.get();
-                boolean ontologyAccessible = validationHelper.assertion(
+                boolean ontologyAccessible = validationHelper.asserting(
                     module.get(ContextManager.class).currentContext()
                         .actAs(OntologyAssociationComputer.class)
                         .findFirst()

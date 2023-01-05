@@ -4,7 +4,6 @@ package it.unipr.ailab.jadescript.semantics.helpers;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c0outer.RawTypeReferenceSolverContext;
-import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.FlowTypeInferringTerm;
 import it.unipr.ailab.jadescript.semantics.context.search.JadescriptTypeLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
@@ -1006,19 +1005,7 @@ public class TypeHelper implements SemanticsConsts {
         return messageContentTypeRequirements.get(performative).get();
     }
 
-    public ExpressionTypeKB mergeByGLB(
-            ExpressionTypeKB kb1,
-            ExpressionTypeKB kb2
-    ) {
-        return kb1.mergeWith(kb2, this::getGLB);
-    }
 
-    public ExpressionTypeKB mergeByLUB(
-            ExpressionTypeKB kb1,
-            ExpressionTypeKB kb2
-    ) {
-        return kb1.mergeWith(kb2, this::getLUB);
-    }
 
     private IJadescriptType jtFromJvmTypeRefWithoutReattempts(
             JvmTypeReference reference
@@ -2177,7 +2164,7 @@ public class TypeHelper implements SemanticsConsts {
 
         @Override
         public boolean validateType(Maybe<? extends EObject> input, ValidationMessageAcceptor acceptor) {
-            return module.get(ValidationHelper.class).assertion(
+            return module.get(ValidationHelper.class).asserting(
                     false,
                     "InvalidType",
                     description,

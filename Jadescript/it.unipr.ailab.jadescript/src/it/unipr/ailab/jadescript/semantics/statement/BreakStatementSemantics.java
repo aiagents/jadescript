@@ -60,7 +60,7 @@ public class BreakStatementSemantics extends StatementSemantics<BreakStatement> 
 
     @Override
     public void validate(Maybe<BreakStatement> input, ValidationMessageAcceptor acceptor) {
-        module.get(ValidationHelper.class).assertion(
+        module.get(ValidationHelper.class).asserting(
                 input.__(EcoreUtil2::getContainerOfType, WhileStatement.class).isPresent()
                         || input.__(EcoreUtil2::getContainerOfType, ForStatement.class).isPresent(),
                 "BreakOutsideLoop",

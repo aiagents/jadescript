@@ -208,7 +208,7 @@ public class RelationalComparisonExpressionSemantics
                 acceptor
             );
 
-            boolean otherValidation = validationHelper.assertion(
+            boolean otherValidation = validationHelper.asserting(
                 //implication: if left is NUMBER, right has to be NUMBER too
                 (
                     !th.NUMBER.isAssignableFrom(typeLeft)

@@ -447,7 +447,7 @@ public class OfNotationExpressionSemantics
 
         String prop = propmaybe.toNullable();
 
-        return module.get(ValidationHelper.class).assertion(
+        return module.get(ValidationHelper.class).asserting(
             prevType.namespace().searchAs(
                 NamedSymbol.Searcher.class,
                 s -> s.searchName(prop, null, null)
@@ -485,7 +485,7 @@ public class OfNotationExpressionSemantics
             ).findFirst();
 
 
-        boolean result = module.get(ValidationHelper.class).assertion(
+        boolean result = module.get(ValidationHelper.class).asserting(
             foundProperty.isPresent(),
             "InvalidOfNotation",
             "Can not find property '" + prop + "' in type " +
@@ -498,7 +498,7 @@ public class OfNotationExpressionSemantics
 
         if (result == VALID && foundProperty.isPresent()) {
             final boolean canWriteCheck = module.get(ValidationHelper.class)
-                .assertion(
+                .asserting(
                     foundProperty.get().canWrite(),
                     "InvalidOfNotation",
                     "Cannot assign to read-only property '" + prop + "'",

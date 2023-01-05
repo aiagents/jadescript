@@ -499,7 +499,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         } else {
             // at least one of the two operands has to be TEXT, INTEGER,
             // REAL, DURATION or TIMESTAMP
-            vh.assertion(
+            vh.asserting(
                 th.TEXT.isAssignableFrom(t1) ||
                     th.INTEGER.isAssignableFrom(t1) ||
                     th.REAL.isAssignableFrom(t1) ||
@@ -554,7 +554,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             );
         }
 
-        boolean cannotSumTimestamps = validationHelper.assertion(
+        boolean cannotSumTimestamps = validationHelper.asserting(
             Util.implication(
                 t1.typeEquals(typeHelper.TIMESTAMP)
                     && t2.typeEquals(typeHelper.TIMESTAMP),

@@ -199,7 +199,7 @@ public class SubscriptExpressionSemantics
             return INVALID;
         }
 
-        keyCheck = module.get(ValidationHelper.class).assertion(
+        keyCheck = module.get(ValidationHelper.class).asserting(
             !module.get(TypeHelper.class).TEXT.isAssignableFrom(restType),
             "InvalidAssignment",
             "Invalid assignment; values of 'text' are immutable.",
@@ -458,7 +458,7 @@ public class SubscriptExpressionSemantics
 
             final Optional<Integer> integer = extractIntegerIfAvailable(key);
             boolean indexValidation = module.get(ValidationHelper.class)
-                .assertion(
+                .asserting(
                     integer.isPresent(),
                     "InvalidTupleIndex",
                     "Invalid index for tuples. To access a tuple element via " +
@@ -471,7 +471,7 @@ public class SubscriptExpressionSemantics
 
             if (integer.isPresent()) {
                 final TupleType tupleType = (TupleType) restType;
-                indexValidation = module.get(ValidationHelper.class).assertion(
+                indexValidation = module.get(ValidationHelper.class).asserting(
                     integer.get() >= 0
                         && integer.get() < tupleType.getElementTypes().size(),
                     "InvalidTupleIndex",

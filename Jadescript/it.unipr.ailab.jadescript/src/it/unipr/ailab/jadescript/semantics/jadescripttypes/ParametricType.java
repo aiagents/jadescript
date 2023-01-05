@@ -175,7 +175,7 @@ public abstract class ParametricType extends JadescriptType {
         boolean v2 = VALID;
         boolean v3 = VALID;
         if (upperBounds != null) {
-            v1 = module.get(ValidationHelper.class).assertion(
+            v1 = module.get(ValidationHelper.class).asserting(
                     upperBounds.size() == typeArguments.size(),
                     "InvalidParametricType",
                     "Invalid number of type arguments; expected: " +
@@ -200,7 +200,7 @@ public abstract class ParametricType extends JadescriptType {
 
 
         for (TypeArgument typeArgument : typeArguments) {
-            v3 = module.get(ValidationHelper.class).assertion(
+            v3 = module.get(ValidationHelper.class).asserting(
                     !typeArgument.ignoreBound().isErroneous(),
                     "InvalidParametricType",
                     "Invalid parametric type type: '" + typeArgument.getJadescriptName() + "'.",

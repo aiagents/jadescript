@@ -68,7 +68,7 @@ public class AtomWithTrailersStatementSemantics extends StatementSemantics<AtomE
                 trailers.__(trailersSafe -> trailersSafe.get(trailersSafe.size() - 1));
             InterceptAcceptor interceptAcceptor =
                 new InterceptAcceptor(acceptor);
-            module.get(ValidationHelper.class).assertion(
+            module.get(ValidationHelper.class).asserting(
                 lastTrailer.__(Trailer::isIsACall),
                 "InvalidStatement",
                 "Not a statement",

@@ -419,7 +419,7 @@ public class PrimaryExpressionSemantics
             return module.get(ValidationHelper.class)
                 .assertCanUseAgentReference(input, acceptor);
         } else if (message.isPresent()) {
-            return module.get(ValidationHelper.class).assertion(
+            return module.get(ValidationHelper.class).asserting(
                 module.get(ContextManager.class).currentContext()
                     .actAs(MessageReceivedContext.class)
                     .findFirst()
@@ -430,7 +430,7 @@ public class PrimaryExpressionSemantics
                 acceptor
             );
         } else if (exception.isPresent()) {
-            return module.get(ValidationHelper.class).assertion(
+            return module.get(ValidationHelper.class).asserting(
                 module.get(ContextManager.class).currentContext()
                     .actAs(OnExceptionHandledContext.class)
                     .findFirst()
@@ -441,7 +441,7 @@ public class PrimaryExpressionSemantics
                 acceptor
             );
         } else if (percept.isPresent()) {
-            return module.get(ValidationHelper.class).assertion(
+            return module.get(ValidationHelper.class).asserting(
                 module.get(ContextManager.class).currentContext()
                     .actAs(PerceptPerceivedContext.class)
                     .findFirst()
@@ -452,7 +452,7 @@ public class PrimaryExpressionSemantics
                 acceptor
             );
         } else if (behaviour.isPresent()) {
-            return module.get(ValidationHelper.class).assertion(
+            return module.get(ValidationHelper.class).asserting(
                 module.get(ContextManager.class).currentContext()
                     .actAs(OnBehaviourFailureHandledContext.class)
                     .findFirst()

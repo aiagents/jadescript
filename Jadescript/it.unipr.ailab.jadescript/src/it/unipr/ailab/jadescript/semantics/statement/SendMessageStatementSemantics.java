@@ -71,7 +71,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
             InterceptAcceptor perfValidation = new InterceptAcceptor(subValidations);
 
             //The performative has to be specified
-            module.get(ValidationHelper.class).assertion(
+            module.get(ValidationHelper.class).asserting(
                     !Performative.UNKNOWN.toString().equals(performative.toNullable()),
                     "InvalidMessage",
                     "Can not send messages with unknown performative.",
@@ -92,7 +92,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
                 );
 
                 //The type of the content has to be "sendable" (i.e., should not contain Agents, Behaviours...)
-                module.get(ValidationHelper.class).assertion(
+                module.get(ValidationHelper.class).asserting(
                         adaptedContentType.isSendable(),
                         "InvalidContent",
                         "Values of type '" + adaptedContentType.getJadescriptName() + "' cannot be sent as part of messages.",
@@ -123,7 +123,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
                     ontology = adaptedContentType.getDeclaringOntology();
 
                     // The inferred ontology has to be valid
-                    module.get(ValidationHelper.class).assertion(
+                    module.get(ValidationHelper.class).asserting(
                             ontology.isPresent(),
                             "InvalidInferredOntology",
                             "Can not infer ontology from content type. Please specify a valid ontology " +
@@ -143,7 +143,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
                         final IJadescriptType declaringOntologyType = declaringOntology.toNullable();
 
                         // the specified ontology has to be a subtype-or-equal of the ontology that declared the content type
-                        module.get(ValidationHelper.class).assertion(
+                        module.get(ValidationHelper.class).asserting(
                                 declaringOntologyType.isAssignableFrom(ontologyType),
                                 "OntologyMismatch",
                                 "The type of this content is declared in ontology "
@@ -169,7 +169,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
                                     .collect(Collectors.toList());
 
                     // The ontology has to be used in some way (e.g., direcly used, used by supertypes, used by the agent...)
-                    module.get(ValidationHelper.class).assertion(
+                    module.get(ValidationHelper.class).asserting(
                             !associationsToOntotype.isEmpty(),
                             "OntologyNotUsed",
                             "Ontology " + ontoType.getJadescriptName() + " is not accessible in this context.",
@@ -181,7 +181,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
                     // of a behaviour
                     if (module.get(ContextManager.class).currentContext().actAs(ForAgentDeclarationContext.class)
                             .findFirst().isPresent()) {
-                        module.get(ValidationHelper.class).assertion(
+                        module.get(ValidationHelper.class).asserting(
                                 //implication: if the ontology is directly used it has to be indirectly used too
                                 associationsToOntotype.stream().noneMatch(it -> it instanceof OntologyAssociation.DirectlyUsed)
                                         || associationsToOntotype.stream().anyMatch(it -> it instanceof OntologyAssociation.IndirectlyUsed),

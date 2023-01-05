@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.helpers;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import it.unipr.ailab.jadescript.jadescript.FormalParameter;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
@@ -12,11 +13,11 @@ import it.unipr.ailab.jadescript.semantics.context.clashing.CallableClashValidat
 import it.unipr.ailab.jadescript.semantics.context.clashing.DefinitionClash;
 import it.unipr.ailab.jadescript.semantics.context.clashing.NameClashValidator;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
@@ -36,18 +37,17 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.iterate;
-import static it.unipr.ailab.maybe.Maybe.safeDo;
 
 /**
  * Created on 21/02/2019.
  */
 public class ValidationHelper implements SemanticsConsts {
 
-    //TODO ensure to always use Utile.extractEObject
 
     protected static final WriterFactory w = WriterFactory.getInstance();
 
     private final SemanticsModule module;
+
 
     public ValidationHelper(SemanticsModule module) {
         this.module = module;
@@ -125,20 +125,25 @@ public class ValidationHelper implements SemanticsConsts {
 
 
     public boolean isAccessible(
-            JvmTypeReference containingType,
-            JvmVisibility visibilityOfMember,
-            JvmTypeReference contextOfAccess
+        JvmTypeReference containingType,
+        JvmVisibility visibilityOfMember,
+        JvmTypeReference contextOfAccess
     ) {
         switch (visibilityOfMember) {
             case DEFAULT: //assuming this is package private:
-                //return true only if contextOfAccess is in the same package of containingType
-                return TypeHelper.extractPackageName(containingType).equals(TypeHelper.extractPackageName(contextOfAccess));
+                //return true only if contextOfAccess is in the same package
+                // of containingType
+                return TypeHelper.extractPackageName(containingType)
+                    .equals(TypeHelper.extractPackageName(contextOfAccess));
             case PRIVATE:
                 //return true only if containingType == contextOfAccess
-                return TypeHelper.typeReferenceEquals(containingType, contextOfAccess);
+                return TypeHelper
+                    .typeReferenceEquals(containingType, contextOfAccess);
             case PROTECTED:
-                //return true only if contextOfAccess isAssignable to containingType
-                return module.get(TypeHelper.class).isAssignable(containingType, contextOfAccess);
+                //return true only if contextOfAccess isAssignable to
+                // containingType
+                return module.get(TypeHelper.class)
+                    .isAssignable(containingType, contextOfAccess);
             case PUBLIC:
                 //always return true
                 return true;
@@ -147,219 +152,261 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
-    public void validateFormalParameter(Maybe<FormalParameter> formalParameter, ValidationMessageAcceptor acceptor) {
-        assertNotReservedName(formalParameter.__(FormalParameter::getName), formalParameter,
-                JadescriptPackage.eINSTANCE.getFormalParameter_Name(), acceptor
+    public boolean validateFormalParameter(
+        Maybe<FormalParameter> formalParameter,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return assertNotReservedName(
+            formalParameter.__(FormalParameter::getName),
+            formalParameter,
+            JadescriptPackage.eINSTANCE.getFormalParameter_Name(),
+            acceptor
         );
     }
 
 
     /**
-     * Validator-assertion that checks that the type referred by {@code x} is referrable (i.e., a type reference
-     * to this type is allowed to be created in Jadescript user code).
+     * Validator-asserting that checks that the type referred by {@code x} is
+     * referrable (i.e., a type reference to this type is allowed to be
+     * created in Jadescript user code).
      *
-     * @param input    {@link EObject} used to link the eventual error marker to the portion of code
+     * @param input    {@link EObject} used to link the eventual error marker
+     *                 to the portion of code
      * @param message  custom message for the eventual error marker
      * @param x        type reference
      * @param acceptor acceptor for the eventual error marker
      */
     public boolean assertTypeReferable(
-            Maybe<? extends EObject> input,
-            String message,
-            IJadescriptType x,
-            ValidationMessageAcceptor acceptor
+        Maybe<? extends EObject> input,
+        String message,
+        IJadescriptType x,
+        ValidationMessageAcceptor acceptor
     ) {
-        return assertion(x.isReferrable(), "InvalidType", message, input, acceptor);
+        return asserting(
+            x.isReferrable(),
+            "InvalidType",
+            message,
+            input,
+            acceptor
+        );
     }
+
 
     public boolean assertPropertiesOfTypeAccessible(
-            Maybe<? extends EObject> input,
-            String message,
-            IJadescriptType x,
-            ValidationMessageAcceptor acceptor
+        Maybe<? extends EObject> input,
+        String message,
+        IJadescriptType x,
+        ValidationMessageAcceptor acceptor
     ) {
-
-        if (x instanceof MapType || x instanceof ListType) {
-            return VALID;
-        }
-        return assertion(x.haveProperties(), "InvalidType", message, input, acceptor);
+        return asserting(
+            x.haveProperties(),
+            "InvalidType",
+            message,
+            input,
+            acceptor
+        );
     }
 
+
     public void validateDuplicateParameters(
-            ValidationMessageAcceptor acceptor,
-            Maybe<EList<FormalParameter>> parameters
+        ValidationMessageAcceptor acceptor,
+        Maybe<EList<FormalParameter>> parameters
     ) {
         // checks duplicate formal parameters
-        HashMultimap<String, FormalParameter> multiMap = HashMultimap.create();
+        Multimap<String, Maybe<FormalParameter>> multiMap =
+            HashMultimap.create();
         for (Maybe<FormalParameter> parameter : iterate(parameters)) {
-            safeDo(parameter, parameter.__(FormalParameter::getName),
-                    /* NULLSAFE REGION */(parameterSafe, nameSafe) -> {
-                        // this portion of code is done only if parameter and name
-                        // are != null (and everything in the dotchains that generated them is !=null
-                        // too)
-
-                        multiMap.put(nameSafe, parameterSafe);
-
-                    }/* END NULLSAFE REGION - (parameterSafe, nameSafe) */
-            );
+            final Maybe<String> paramName =
+                parameter.__(FormalParameter::getName);
+            if (paramName.isPresent()) {
+                multiMap.put(paramName.toNullable(), parameter);
+            }
         }
 
-        for (Map.Entry<String, Collection<FormalParameter>> entry : multiMap.asMap().entrySet()) {
-            Collection<FormalParameter> duplicates = entry.getValue();
+        for (Map.Entry<String, Collection<Maybe<FormalParameter>>> entry :
+            multiMap.asMap().entrySet()) {
+            Collection<Maybe<FormalParameter>> duplicates = entry.getValue();
 
             if (duplicates.size() > 1) {
-                for (FormalParameter d : duplicates) {
-                    acceptor.acceptError("Duplicate formal parameter '" + entry.getKey() + "'", d, null,
-                            ValidationMessageAcceptor.INSIGNIFICANT_INDEX, ISSUE_DUPLICATE_ELEMENT
+                for (Maybe<FormalParameter> duplicate : duplicates) {
+                    emitError(
+                        ISSUE_DUPLICATE_ELEMENT,
+                        "Duplicate formal parameter '" + entry.getKey() + "'",
+                        duplicate,
+                        acceptor
                     );
                 }
             }
         }
     }
 
-    public void validateIndexType(
-            IJadescriptType collectionType,
-            Maybe<RValueExpression> indexExpression,
-            InterceptAcceptor subValidations
-    ) {
-        module.get(RValueExpressionSemantics.class).validate(indexExpression, , subValidations);
 
-        assertion(
-                !(collectionType instanceof SetType),
-                "InvalidKeyType",
-                "Unexpected key/index specification in sets.",
-                indexExpression,
-                subValidations
+    //TODO unify with SubscriptExpressionSemantics
+    public boolean validateIndexType(
+        IJadescriptType collectionType,
+        Maybe<RValueExpression> indexExpression,
+        StaticState beforeIndex,
+        ValidationMessageAcceptor subValidations
+    ) {
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        boolean indexCheck = rves.validate(
+            indexExpression,
+            beforeIndex,
+            subValidations
         );
 
-        if (!subValidations.thereAreErrors()) {
+        boolean notSetCheck = asserting(
+            !(collectionType instanceof SetType),
+            "InvalidKeyType",
+            "Unexpected key/index specification in sets.",
+            indexExpression,
+            subValidations
+        );
 
-            if (collectionType instanceof MapType) {
-                assertExpectedType(
-                        ((MapType) collectionType).getKeyType(),
-                        module.get(RValueExpressionSemantics.class).inferType(indexExpression, ),
-                        "InvalidKeyType",
-                        indexExpression,
-                        subValidations
-                );
-            } else {
-                assertExpectedType(
-                        Integer.class,
-                        module.get(RValueExpressionSemantics.class).inferType(indexExpression, ),
-                        "InvalidIndexType",
-                        indexExpression,
-                        subValidations
-                );
-            }
+        if (indexCheck == INVALID || notSetCheck == INVALID) {
+            return INVALID;
         }
+
+        final IJadescriptType indexType =
+            rves.inferType(indexExpression, beforeIndex);
+
+        if (collectionType instanceof MapType) {
+            return assertExpectedType(
+                ((MapType) collectionType).getKeyType(),
+                indexType,
+                "InvalidKeyType",
+                indexExpression,
+                subValidations
+            );
+        } else {
+            return assertExpectedType(
+                Integer.class,
+                rves.inferType(indexExpression, beforeIndex),
+                "InvalidIndexType",
+                indexExpression,
+                subValidations
+            );
+        }
+
     }
 
-    public void validateMethodCompatibility(
-            CallableSymbol toBeAdded,
-            Maybe<? extends EObject> refEObject,
-            ValidationMessageAcceptor acceptor
+
+    public boolean validateMethodCompatibility(
+        CallableSymbol toBeAdded,
+        Maybe<? extends EObject> refEObject,
+        ValidationMessageAcceptor acceptor
     ) {
-        final List<DefinitionClash> clashes = module.get(ContextManager.class).currentContext()
+        final List<DefinitionClash> clashes =
+            module.get(ContextManager.class).currentContext()
                 .actAs(CallableClashValidator.class)
                 .flatMap(ccv -> ccv.checkCallableClash(module, toBeAdded))
                 .filter(dc -> !dc.getAlreadyPresentSymbol().sourceLocation()
-                        .equals(dc.getToBeAddedSymbol().sourceLocation())
+                    .equals(dc.getToBeAddedSymbol().sourceLocation())
                 ).filter(Util.dinstinctBy(dc -> Util.tuple(
-                        dc.getAlreadyPresentSymbol().getSignature(),
-                        dc.getAlreadyPresentSymbol().sourceLocation()
+                    dc.getAlreadyPresentSymbol().getSignature(),
+                    dc.getAlreadyPresentSymbol().sourceLocation()
                 )))
                 .collect(Collectors.toList());
-        assertion(
-                clashes.isEmpty(),
-                "ClashingDeclaration",
-                "Cannot declare operation '" + toBeAdded.name() + "', clashes found.\n" +
-                        DefinitionClash.clashListToString(clashes),
-                refEObject,
-                acceptor
+        return asserting(
+            clashes.isEmpty(),
+            "ClashingDeclaration",
+            "Cannot declare operation '" + toBeAdded.name() +
+                "', clashes found.\n" +
+                DefinitionClash.clashListToString(clashes),
+            refEObject,
+            acceptor
         );
     }
 
+
     public void validateFieldCompatibility(
-            Maybe<String> fieldName,
-            IJadescriptType fieldType,
-            Maybe<? extends EObject> refEObject,
-            SearchLocation currentLocation,
-            ValidationMessageAcceptor acceptor
+        Maybe<String> fieldName,
+        IJadescriptType fieldType,
+        Maybe<? extends EObject> refEObject,
+        SearchLocation currentLocation,
+        ValidationMessageAcceptor acceptor
     ) {
         fieldName.safeDo(fieldNameSafe -> {
-            final List<DefinitionClash> clashes = module.get(ContextManager.class).currentContext()
+            final List<DefinitionClash> clashes =
+                module.get(ContextManager.class).currentContext()
                     .actAs(NameClashValidator.class)
                     .flatMap(ncv -> ncv.checkNameClash(
-                            fieldNameSafe,
-                            new Property(fieldNameSafe, fieldType, false,
-                                    currentLocation
-                            )
+                        fieldNameSafe,
+                        new Property(fieldNameSafe, fieldType, false,
+                            currentLocation
+                        )
                     ))
                     .filter(dc -> !dc.getAlreadyPresentSymbol().sourceLocation()
-                            .equals(dc.getToBeAddedSymbol().sourceLocation())
+                        .equals(dc.getToBeAddedSymbol().sourceLocation())
                     ).filter(Util.dinstinctBy(dc -> Util.tuple(
-                            dc.getAlreadyPresentSymbol().getSignature(),
-                            dc.getAlreadyPresentSymbol().sourceLocation()
+                        dc.getAlreadyPresentSymbol().getSignature(),
+                        dc.getAlreadyPresentSymbol().sourceLocation()
                     )))
                     .collect(Collectors.toList());
-            assertion(
-                    clashes.isEmpty(),
-                    "ClashingDeclaration",
-                    "Cannot declare property with name '" + fieldNameSafe + "', clashes found.\n" +
-                            DefinitionClash.clashListToString(clashes),
-                    refEObject,
-                    acceptor
+            asserting(
+                clashes.isEmpty(),
+                "ClashingDeclaration",
+                "Cannot declare property with name '" + fieldNameSafe +
+                    "', clashes found.\n" +
+                    DefinitionClash.clashListToString(clashes),
+                refEObject,
+                acceptor
             );
         });
     }
 
+
     public boolean assertSupportedPerformative(
-            Maybe<String> performative,
-            Maybe<? extends EObject> eobject,
-            ValidationMessageAcceptor acceptor
+        Maybe<String> performative,
+        Maybe<? extends EObject> eobject,
+        ValidationMessageAcceptor acceptor
     ) {
         if (performative.isPresent()) {
             String perf = performative.toNullable();
-            return assertion(
-                    Stream.of(
-                                    Performative.INFORM_REF,
-                                    Performative.PROPAGATE,
-                                    Performative.QUERY_REF,
-                                    Performative.PROXY,
-                                    Performative.SUBSCRIBE
-                            ).map(Performative.nameByPerformative::get)
-                            .noneMatch(perf::equals),
-                    "UnsupportedPerformative",
-                    "Performative '" + perf + "' is currently unsupported in Jadescript.",
-                    eobject,
-                    acceptor
+            return asserting(
+                Stream.of(
+                        Performative.INFORM_REF,
+                        Performative.PROPAGATE,
+                        Performative.QUERY_REF,
+                        Performative.PROXY,
+                        Performative.SUBSCRIBE
+                    ).map(Performative.nameByPerformative::get)
+                    .noneMatch(perf::equals),
+                "UnsupportedPerformative",
+                "Performative '" + perf +
+                    "' is currently unsupported in Jadescript.",
+                eobject,
+                acceptor
             );
         }
         return VALID;
     }
 
+
     public boolean assertExpectedType(
-            IJadescriptType expected,
-            IJadescriptType actual,
-            String issueCode,
-            Maybe<? extends EObject> object,
-            ValidationMessageAcceptor acceptor
+        IJadescriptType expected,
+        IJadescriptType actual,
+        String issueCode,
+        Maybe<? extends EObject> object,
+        ValidationMessageAcceptor acceptor
     ) {
         expected = expected.postResolve();
-        return assertion(
-                expected.isAssignableFrom(actual),
-                issueCode,
-                "Invalid type; found: '" + actual.getJadescriptName() +
-                        "'; expected: '" + expected.getJadescriptName() + "' or subtype.",
-                object,
-                acceptor
+        return asserting(
+            expected.isAssignableFrom(actual),
+            issueCode,
+            "Invalid type; found: '" + actual.getJadescriptName() +
+                "'; expected: '" + expected.getJadescriptName() +
+                "' or subtype.",
+            object,
+            acceptor
         );
     }
 
 
     private String multiInvalidTypeMessage(
-            List<IJadescriptType> expected,
-            IJadescriptType actual
+        List<IJadescriptType> expected,
+        IJadescriptType actual
     ) {
         StringBuilder sb = new StringBuilder("Invalid type; found: '");
         sb.append(actual.getJadescriptName()).append("'; expected: ");
@@ -374,12 +421,13 @@ public class ValidationHelper implements SemanticsConsts {
         return sb.toString();
     }
 
+
     public boolean assertExpectedTypes(
-            List<IJadescriptType> expected,
-            IJadescriptType actual,
-            String issueCode,
-            Maybe<? extends EObject> object,
-            ValidationMessageAcceptor acceptor
+        List<IJadescriptType> expected,
+        IJadescriptType actual,
+        String issueCode,
+        Maybe<? extends EObject> object,
+        ValidationMessageAcceptor acceptor
     ) {
         if (expected == null || expected.isEmpty()) {
             return VALID;
@@ -389,201 +437,233 @@ public class ValidationHelper implements SemanticsConsts {
             e = e.postResolve();
             b = b || e.isAssignableFrom(actual);
         }
-        return assertion(
-                b,
-                issueCode,
-                multiInvalidTypeMessage(expected, actual),
-                object,
-                acceptor
+        return asserting(
+            b,
+            issueCode,
+            multiInvalidTypeMessage(expected, actual),
+            object,
+            acceptor
         );
     }
 
 
     public boolean assertExpectedType(
-            IJadescriptType expected,
-            IJadescriptType actual,
-            String issueCode,
-            Maybe<? extends EObject> object,
-            EStructuralFeature feature,
-            ValidationMessageAcceptor acceptor
+        IJadescriptType expected,
+        IJadescriptType actual,
+        String issueCode,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        ValidationMessageAcceptor acceptor
     ) {
         expected = expected.postResolve();
-        return assertion(
-                expected.isAssignableFrom(actual),
-                issueCode,
-                "invalid type; found: '" + actual.getJadescriptName() +
-                        "'; expected: '" + expected.getJadescriptName() + "' or subtype",
-                object,
-                feature,
-                acceptor
+        return asserting(
+            expected.isAssignableFrom(actual),
+            issueCode,
+            "invalid type; found: '" + actual.getJadescriptName() +
+                "'; expected: '" + expected.getJadescriptName() +
+                "' or subtype",
+            object,
+            feature,
+            acceptor
         );
 
     }
 
+
     public boolean assertExpectedType(
-            IJadescriptType expected,
-            IJadescriptType actual,
-            String issueCode,
-            Maybe<? extends EObject> object,
-            EStructuralFeature feature,
-            int index,
-            ValidationMessageAcceptor acceptor
+        IJadescriptType expected,
+        IJadescriptType actual,
+        String issueCode,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        int index,
+        ValidationMessageAcceptor acceptor
     ) {
         expected = expected.postResolve();
-        return assertion(
-                expected.isAssignableFrom(actual),
-                issueCode,
-                "invalid type; found: '" + actual.getJadescriptName() +
-                        "'; expected: '" + expected.getJadescriptName() + "' or subtype",
-                object,
-                feature,
-                index,
-                acceptor
-        );
-    }
-
-    public boolean assertExpectedType(
-            Class<?> expected,
-            IJadescriptType actual,
-            String issueCode,
-            Maybe<? extends EObject> object,
-            ValidationMessageAcceptor acceptor
-    ) {
-        Objects.requireNonNull(expected);
-        final IJadescriptType expectedDescriptor = module.get(TypeHelper.class).jtFromClass(expected);
-        return assertion(
-                expectedDescriptor.isAssignableFrom(actual),
-                issueCode,
-                "invalid type; found: '" + actual.getJadescriptName() +
-                        "'; expected: '" + expectedDescriptor.getJadescriptName() + "' or subtype",
-                object,
-                acceptor
+        return asserting(
+            expected.isAssignableFrom(actual),
+            issueCode,
+            "invalid type; found: '" + actual.getJadescriptName() +
+                "'; expected: '" + expected.getJadescriptName() +
+                "' or subtype",
+            object,
+            feature,
+            index,
+            acceptor
         );
     }
 
 
     public boolean assertExpectedType(
-            Class<?> expected,
-            IJadescriptType actual,
-            String issueCode,
-            Maybe<? extends EObject> object,
-            EStructuralFeature feature,
-            ValidationMessageAcceptor acceptor
+        Class<?> expected,
+        IJadescriptType actual,
+        String issueCode,
+        Maybe<? extends EObject> object,
+        ValidationMessageAcceptor acceptor
     ) {
         Objects.requireNonNull(expected);
-        final IJadescriptType expectedDescriptor = module.get(TypeHelper.class).jtFromClass(expected);
-        return assertion(
-                expectedDescriptor.isAssignableFrom(actual),
-                issueCode,
-                "invalid type; found: '" + actual.getJadescriptName() +
-                        "'; expected: '" + expectedDescriptor.getJadescriptName() + "' or subtype",
-                object,
-                feature,
-                acceptor
+        final IJadescriptType expectedType =
+            module.get(TypeHelper.class).jtFromClass(expected);
+        return asserting(
+            expectedType.isAssignableFrom(actual),
+            issueCode,
+            "invalid type; found: '" + actual.getJadescriptName() +
+                "'; expected: '" + expectedType.getJadescriptName() +
+                "' or subtype",
+            object,
+            acceptor
         );
     }
+
 
     public boolean assertExpectedType(
-            Class<?> expected,
-            IJadescriptType actual,
-            String issueCode,
-            Maybe<? extends EObject> object,
-            EStructuralFeature feature,
-            int index,
-            ValidationMessageAcceptor acceptor
+        Class<?> expected,
+        IJadescriptType actual,
+        String issueCode,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        ValidationMessageAcceptor acceptor
     ) {
         Objects.requireNonNull(expected);
-        final IJadescriptType expectedDescriptor = module.get(TypeHelper.class).jtFromClass(expected);
-        return assertion(
-                expectedDescriptor.isAssignableFrom(actual),
-                issueCode,
-                "invalid type; found: '" + actual.getJadescriptName() +
-                        "'; expected: '" + expectedDescriptor.getJadescriptName() + "' or subtype",
-                object,
-                feature,
-                index,
-                acceptor
+        final IJadescriptType expectedType =
+            module.get(TypeHelper.class).jtFromClass(expected);
+        return asserting(
+            expectedType.isAssignableFrom(actual),
+            issueCode,
+            "invalid type; found: '" + actual.getJadescriptName() +
+                "'; expected: '" + expectedType.getJadescriptName() +
+                "' or subtype",
+            object,
+            feature,
+            acceptor
         );
     }
 
 
-    public void assertValueExpected(
-            Maybe<?> value,
-            String name,
-            Maybe<? extends EObject> expressionContainer,
-            ValidationMessageAcceptor acceptor
+    public boolean assertExpectedType(
+        Class<?> expected,
+        IJadescriptType actual,
+        String issueCode,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        int index,
+        ValidationMessageAcceptor acceptor
     ) {
-        assertion(
-                value != null && value.isPresent(),
-                "Missing" + Strings.toFirstUpper(name) + "Value",
-                "Missing mandatory expression for " + name,
-                expressionContainer,
-                acceptor
+        Objects.requireNonNull(expected);
+        final IJadescriptType expectedDescriptor =
+            module.get(TypeHelper.class).jtFromClass(expected);
+        return asserting(
+            expectedDescriptor.isAssignableFrom(actual),
+            issueCode,
+            "invalid type; found: '" + actual.getJadescriptName() +
+                "'; expected: '" + expectedDescriptor.getJadescriptName() +
+                "' or subtype",
+            object,
+            feature,
+            index,
+            acceptor
         );
     }
+
+
+    public boolean assertValueExpected(
+        Maybe<?> value,
+        String name,
+        Maybe<? extends EObject> expressionContainer,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return asserting(
+            value != null && value.isPresent(),
+            "Missing" + Strings.toFirstUpper(name) + "Value",
+            "Missing mandatory expression for " + name,
+            expressionContainer,
+            acceptor
+        );
+    }
+
 
     public boolean assertNotReservedName(
-            Maybe<String> name,
-            Maybe<? extends EObject> input,
-            EStructuralFeature feature,
-            ValidationMessageAcceptor acceptor
+        Maybe<String> name,
+        Maybe<? extends EObject> input,
+        EStructuralFeature feature,
+        ValidationMessageAcceptor acceptor
     ) {
         return assertNotReservedName(
-                name,
-                input,
-                feature,
-                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                acceptor
+            name,
+            input,
+            feature,
+            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+            acceptor
         );
     }
 
+
     public boolean assertNotReservedName(
-            Maybe<String> name,
-            Maybe<? extends EObject> input,
-            EStructuralFeature feature,
-            int index,
-            ValidationMessageAcceptor acceptor
+        Maybe<String> name,
+        Maybe<? extends EObject> input,
+        EStructuralFeature feature,
+        int index,
+        ValidationMessageAcceptor acceptor
     ) {
         if (name != null && name.isPresent()) {
-            return assertion(!isReservedName(name), "ReservedName",
-                    name + " is a reserved Jadescript name. Please use another one.",
-                    input,
-                    feature,
-                    index,
-                    acceptor
+            return asserting(!isReservedName(name), "ReservedName",
+                name + " is a reserved Jadescript name. " +
+                    "Please use another one.",
+                input,
+                feature,
+                index,
+                acceptor
             );
         }
         return VALID;
     }
 
-    public boolean emitError(
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            ValidationMessageAcceptor acceptor
-    ) {
-        return emitError(issueCode, description, object, null, ValidationMessageAcceptor.INSIGNIFICANT_INDEX, acceptor);
-    }
 
     public boolean emitError(
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            EStructuralFeature feature,
-            int index,
-            ValidationMessageAcceptor acceptor
-    ){
-        return assertion(false, issueCode, description, object, feature, index, acceptor);
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return emitError(
+            issueCode,
+            description,
+            object,
+            null,
+            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+            acceptor
+        );
     }
+
+
+    public boolean emitError(
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        int index,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return asserting(
+            false,
+            issueCode,
+            description,
+            object,
+            feature,
+            index,
+            acceptor
+        );
+    }
+
 
     public void emitInfo(
         String issueCode,
         String description,
         Maybe<? extends EObject> object,
         ValidationMessageAcceptor acceptor
-    ){
+    ) {
         final Maybe<? extends EObject> eobject = Util.extractEObject(object);
-        if(eobject.isNothing()){
+        if (eobject.isNothing()) {
             return;
         }
         final EObject eObjectSafe = eobject.toNullable();
@@ -596,255 +676,291 @@ public class ValidationHelper implements SemanticsConsts {
         );
     }
 
-    public boolean assertion(
-            boolean isTrue,
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            EStructuralFeature feature,
-            int index,
-            ValidationMessageAcceptor acceptor
+
+    public boolean asserting(
+        boolean isTrue,
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        int index,
+        ValidationMessageAcceptor acceptor
     ) {
-
         if (!isTrue) {
-
             Util.extractEObject(object).safeDo(value -> {
                 acceptor.acceptError(
-                        description,
-                        value,
-                        feature,
-                        index,
-                        ISSUE_CODE_PREFIX + issueCode
+                    description,
+                    value,
+                    feature,
+                    index,
+                    ISSUE_CODE_PREFIX + issueCode
                 );
             });
             return INVALID;
         }
-
         return VALID;
     }
 
-    public boolean assertion(
-            boolean isTrue,
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            EStructuralFeature feature,
-            ValidationMessageAcceptor acceptor
+
+    public boolean asserting(
+        boolean isTrue,
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        ValidationMessageAcceptor acceptor
     ) {
-        return assertion(
-                isTrue,
-                issueCode,
-                description,
-                object,
-                feature,
-                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                acceptor
+        return asserting(
+            isTrue,
+            issueCode,
+            description,
+            object,
+            feature,
+            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+            acceptor
         );
     }
 
-    public boolean assertion(
-            boolean isTrue,
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            ValidationMessageAcceptor acceptor
+
+    public boolean asserting(
+        boolean isTrue,
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        ValidationMessageAcceptor acceptor
     ) {
-        return assertion(
-                isTrue,
-                issueCode,
-                description,
-                object,
-                null,
-                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                acceptor
+        return asserting(
+            isTrue,
+            issueCode,
+            description,
+            object,
+            null,
+            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+            acceptor
         );
     }
 
-    public void assertionAndThen(
-            boolean isTrue,
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            ValidationMessageAcceptor acceptor,
-            Runnable andThen
+
+    public void assertAndThen(
+        boolean isTrue,
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        ValidationMessageAcceptor acceptor,
+        Runnable andThen
     ) {
         InterceptAcceptor ia = new InterceptAcceptor(acceptor);
-        assertion(isTrue, issueCode, description, object, ia);
-        if (!ia.thereAreErrors()) {
+        boolean check = asserting(isTrue, issueCode, description, object, ia);
+        if (check == VALID) {
             andThen.run();
         }
     }
 
-    public boolean assertion(
-            Maybe<Boolean> isTrue,
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            EStructuralFeature feature,
-            int index,
-            ValidationMessageAcceptor acceptor
-    ) {
-        Optional<? extends EObject> eObject = object.toOpt();
 
+    public boolean asserting(
+        Maybe<Boolean> isTrue,
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        int index,
+        ValidationMessageAcceptor acceptor
+    ) {
+
+        Maybe<? extends EObject> eObject = Util.extractEObject(object);
         if (!isTrue.orElse(true) && eObject.isPresent()) {
-            acceptor.acceptError(description, eObject.get(), feature, index, ISSUE_CODE_PREFIX + issueCode);
+            acceptor.acceptError(
+                description,
+                eObject.toNullable(),
+                feature,
+                index,
+                ISSUE_CODE_PREFIX + issueCode
+            );
             return INVALID;
         } else {
             return VALID;
         }
     }
 
-    public void assertion(
-            Maybe<Boolean> isTrue,
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            EStructuralFeature feature,
-            ValidationMessageAcceptor acceptor
+
+    public boolean asserting(
+        Maybe<Boolean> isTrue,
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        ValidationMessageAcceptor acceptor
     ) {
-        assertion(
-                isTrue,
-                issueCode,
-                description,
-                object,
-                feature,
-                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                acceptor
+        return asserting(
+            isTrue,
+            issueCode,
+            description,
+            object,
+            feature,
+            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+            acceptor
         );
     }
 
-    public boolean assertion(
-            Maybe<Boolean> isTrue,
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            ValidationMessageAcceptor acceptor
+
+    public boolean asserting(
+        Maybe<Boolean> isTrue,
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        ValidationMessageAcceptor acceptor
     ) {
-        return assertion(
-                isTrue,
-                issueCode,
-                description,
-                object,
-                null,
-                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                acceptor
+        return asserting(
+            isTrue,
+            issueCode,
+            description,
+            object,
+            null,
+            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+            acceptor
         );
     }
 
-    public void advice(
-            boolean isTrue,
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            EStructuralFeature feature,
-            int index,
-            ValidationMessageAcceptor acceptor
+
+    public boolean advice(
+        boolean isTrue,
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        int index,
+        ValidationMessageAcceptor acceptor
     ) {
-        Optional<? extends EObject> eObject = object.toOpt();
+        Maybe<? extends EObject> eObject = Util.extractEObject(object);
 
         if (!isTrue && eObject.isPresent()) {
-            acceptor.acceptWarning(description, eObject.get(), feature, index, issueCode);
-        }
-    }
-
-    public void advice(
-            boolean isTrue,
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            EStructuralFeature feature,
-            ValidationMessageAcceptor acceptor
-    ) {
-        advice(
-                isTrue,
-                issueCode,
+            acceptor.acceptWarning(
                 description,
-                object,
+                eObject.toNullable(),
                 feature,
-                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                acceptor
+                index,
+                issueCode
+            );
+            return INVALID;
+        }
+        return VALID;
+    }
+
+
+    public boolean advice(
+        boolean isTrue,
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return advice(
+            isTrue,
+            issueCode,
+            description,
+            object,
+            feature,
+            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+            acceptor
         );
     }
 
-    public void advice(
-            boolean isTrue,
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            ValidationMessageAcceptor acceptor
+
+    public boolean advice(
+        boolean isTrue,
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        ValidationMessageAcceptor acceptor
     ) {
-        advice(
-                isTrue,
-                issueCode,
-                description,
-                object,
-                null,
-                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                acceptor
+        return advice(
+            isTrue,
+            issueCode,
+            description,
+            object,
+            null,
+            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+            acceptor
         );
     }
 
-    public void advice(
-            Maybe<Boolean> isTrue,
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            EStructuralFeature feature,
-            int index,
-            ValidationMessageAcceptor acceptor
+
+    public boolean advice(
+        Maybe<Boolean> isTrue,
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        int index,
+        ValidationMessageAcceptor acceptor
     ) {
-        Optional<? extends EObject> eObject = object.toOpt();
+        Maybe<? extends EObject> eObject = Util.extractEObject(object);
 
         if (!isTrue.orElse(true) && eObject.isPresent()) {
-            acceptor.acceptWarning(description, eObject.get(), feature, index, issueCode);
-        }
-    }
-
-    public void advice(
-            Maybe<Boolean> isTrue,
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            EStructuralFeature feature,
-            ValidationMessageAcceptor acceptor
-    ) {
-        advice(
-                isTrue,
-                issueCode,
+            acceptor.acceptWarning(
                 description,
-                object,
+                eObject.toNullable(),
                 feature,
-                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                acceptor
-        );
+                index,
+                issueCode
+            );
+            return INVALID;
+        }
+        return VALID;
     }
 
-    public void advice(
-            Maybe<Boolean> isTrue,
-            String issueCode,
-            String description,
-            Maybe<? extends EObject> object,
-            ValidationMessageAcceptor acceptor
+
+    public boolean advice(
+        Maybe<Boolean> isTrue,
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        ValidationMessageAcceptor acceptor
     ) {
-        advice(
-                isTrue,
-                issueCode,
-                description,
-                object,
-                null,
-                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                acceptor
+        return advice(
+            isTrue,
+            issueCode,
+            description,
+            object,
+            feature,
+            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+            acceptor
         );
     }
 
 
-    public boolean assertCanUseAgentReference(Maybe<? extends EObject> obj, ValidationMessageAcceptor acceptor) {
-        return assertion(
-                MightUseAgentReference.canUseAgentReference(module.get(ContextManager.class).currentContext()),
-                "AgentNotAccessible",
-                "Agent not accessible from this context.",
-                obj,
-                acceptor
+    public boolean advice(
+        Maybe<Boolean> isTrue,
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return advice(
+            isTrue,
+            issueCode,
+            description,
+            object,
+            null,
+            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+            acceptor
+        );
+    }
+
+
+    public boolean assertCanUseAgentReference(
+        Maybe<? extends EObject> obj,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return asserting(
+            MightUseAgentReference.canUseAgentReference(module.get(
+                ContextManager.class).currentContext()),
+            "AgentNotAccessible",
+            "Agent not accessible from this context.",
+            obj,
+            acceptor
         );
     }
 

@@ -78,7 +78,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
 
             Optional<? extends CallableSymbol> createMethodOpt = getCreateMethod(agentType);
 
-            module.get(ValidationHelper.class).assertion(
+            module.get(ValidationHelper.class).asserting(
                     createMethodOpt.isPresent(),
                     "InvalidAgentCreation",
                     "Cannot create this type of agent: missing 'create' method in generated Java class.",
@@ -93,7 +93,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
                 if (createMethodOpt.isPresent()) {
                     final CallableSymbol createMethod = createMethodOpt.get();
                     final List<IJadescriptType> expectedMethodTypes = createMethod.parameterTypes();
-                    module.get(ValidationHelper.class).assertion(
+                    module.get(ValidationHelper.class).asserting(
                             expectedMethodTypes.size() - 2 == 0,
                             "MissingCreateArguments",
                             "Wrong number of arguments for agent creation; expected: " +
@@ -114,7 +114,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
                 if (createMethodOpt.isPresent()) {
                     final CallableSymbol createMethod = createMethodOpt.get();
                     final List<IJadescriptType> expectedMethodTypes = createMethod.parameterTypes();
-                    module.get(ValidationHelper.class).assertion(
+                    module.get(ValidationHelper.class).asserting(
                             argumentTypes.size() == expectedMethodTypes.size() - 2,
                             "MissingCreateArguments",
                             "Wrong number of arguments for agent creation; expected: " +
@@ -265,7 +265,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
 
         final int argMin = Util.min(argNames.size(), argExprs.size(), argTypes.size());
         final int paramMin = Math.min(paramNames.size(), paramTypes.size());
-        module.get(ValidationHelper.class).assertion(
+        module.get(ValidationHelper.class).asserting(
                 argMin == paramMin,
                 "MissingCreateArguments",
                 "Wrong number of arguments for agent creation; expected: " +
@@ -311,7 +311,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
         reorderings.stream().sorted(Comparator.comparingInt(ArgumentReordering::getNewPosition)).forEach(reordering -> {
             InterceptAcceptor paramPresenceValidation = new InterceptAcceptor(unexpectedArgsValidation);
 
-            module.get(ValidationHelper.class).assertion(
+            module.get(ValidationHelper.class).asserting(
                     !(reordering instanceof InvalidArgument),
                     "InvalidArgumentName",
                     "Unexpected argument with name '" + reordering.paramName + "'",
@@ -341,7 +341,7 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
         });
 
         if (!unexpectedArgsValidation.thereAreErrors()) {
-            module.get(ValidationHelper.class).assertion(
+            module.get(ValidationHelper.class).asserting(
                     notProvidedNames.isEmpty(),
                     "MissingArguments",
                     "Missing arguments for parameters with names: " +

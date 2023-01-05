@@ -46,7 +46,7 @@ public abstract class ExtendingEntitySemantics<T extends ExtendingElement>
         if (!allowedSuperTypes.isEmpty()) {
             for (Maybe<JvmParameterizedTypeReference> declaredSuperType : Maybe.iterate(input.__(ExtendingElement::getSuperTypes))) {
                 declaredSuperType.safeDo(declaredSuperTypeSafe -> {
-                    module.get(ValidationHelper.class).assertion(
+                    module.get(ValidationHelper.class).asserting(
                             allowedSuperTypes.stream().anyMatch(sup -> {
                                 final IJadescriptType sub = module.get(TypeHelper.class).jtFromJvmTypeRef(declaredSuperTypeSafe);
                                 return sup.isAssignableFrom(sub);

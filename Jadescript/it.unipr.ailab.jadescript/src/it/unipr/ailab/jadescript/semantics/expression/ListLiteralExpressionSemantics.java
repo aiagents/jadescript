@@ -600,7 +600,7 @@ public class ListLiteralExpressionSemantics
         }
 
         List<Maybe<RValueExpression>> valuesList = Maybe.toListOfMaybes(values);
-        stage1 = stage1 && module.get(ValidationHelper.class).assertion(
+        stage1 = stage1 && module.get(ValidationHelper.class).asserting(
             (!valuesList.isEmpty()
                 && !valuesList.stream().allMatch(Maybe::isNothing))
                 || hasTypeSpecifier,
@@ -616,7 +616,7 @@ public class ListLiteralExpressionSemantics
             IJadescriptType lub = computeElementsTypeLUB(valuesList, state);
 
             boolean typeValidation =
-                module.get(ValidationHelper.class).assertion(
+                module.get(ValidationHelper.class).asserting(
                     !lub.isErroneous(),
                     "ListLiteralCannotComputeType",
                     "Can not find a valid common parent type of the elements " +

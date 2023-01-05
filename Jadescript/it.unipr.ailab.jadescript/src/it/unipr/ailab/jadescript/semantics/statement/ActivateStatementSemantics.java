@@ -132,7 +132,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
                     && exprType instanceof UserDefinedBehaviourType
                     && !exprValidations.thereAreErrors()) {
                 final IJadescriptType forAgentType = ((UserDefinedBehaviourType) exprType).getForAgentType();
-                module.get(ValidationHelper.class).assertion(
+                module.get(ValidationHelper.class).asserting(
                         forAgentType.isAssignableFrom(agentType.get()),
                         "InvalidBehaviourActivation",
                         "An agent of type '" + agentType.get().getJadescriptName() + "' can not activate a behaviour " +
@@ -155,7 +155,7 @@ public class ActivateStatementSemantics extends StatementSemantics<ActivateState
             );
         }
 
-        module.get(ValidationHelper.class).assertion(
+        module.get(ValidationHelper.class).asserting(
                 Util.implication(period.isPresent(), !th.isAssignable(OneShot.class, exprType)),
                 "InvalidEveryClause",
                 "Can not apply 'every' clause to the activation of a one-shot behaviour",

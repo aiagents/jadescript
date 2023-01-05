@@ -29,11 +29,13 @@ public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
 
     @Override
     public IJadescriptType postResolve() {
-        final JvmTypeReference attemptedResolution = TypeHelper.attemptResolveTypeRef(module, asJvmTypeReference());
+        final JvmTypeReference attemptedResolution =
+            TypeHelper.attemptResolveTypeRef(module, asJvmTypeReference());
         if(attemptedResolution == typeReference){
             return this;
         }
-        return module.get(TypeHelper.class).jtFromJvmTypeRef(attemptedResolution);
+        return module.get(TypeHelper.class)
+            .jtFromJvmTypeRef(attemptedResolution);
     }
 
     @Override

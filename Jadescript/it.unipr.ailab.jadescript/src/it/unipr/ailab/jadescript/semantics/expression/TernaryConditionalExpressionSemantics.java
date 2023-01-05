@@ -246,7 +246,7 @@ public class TernaryConditionalExpressionSemantics
 
         final IJadescriptType computedType = inferType(input, afterC);
         final boolean commonParentTypeValidation =
-            module.get(ValidationHelper.class).assertion(
+            module.get(ValidationHelper.class).asserting(
                 !computedType.isErroneous(),
                 "TernaryConditionalInvalidType",
                 "Can not find a valid common parent type of the types of the " +

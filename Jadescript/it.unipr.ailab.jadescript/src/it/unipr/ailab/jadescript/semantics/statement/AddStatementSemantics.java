@@ -75,7 +75,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
         String inOrTo = input.__(AddStatement::getInOrTo).extract(Maybe.nullAsEmptyString);
         final boolean isAll = input.__(AddStatement::isAll).extract(nullAsFalse);
 
-        module.get(ValidationHelper.class).assertion(
+        module.get(ValidationHelper.class).asserting(
                 Util.implication(putOrAdd.equals("put"), inOrTo.equals("in")),
                 "InvalidPutStatement",
                 "use 'in' when using 'put'",
@@ -83,7 +83,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
                 subValidations
         );
 
-        module.get(ValidationHelper.class).assertion(
+        module.get(ValidationHelper.class).asserting(
                 Util.implication(putOrAdd.equals("add"), inOrTo.equals("to")),
                 "InvalidAddStatement",
                 "use 'to' when using 'add'",
@@ -96,7 +96,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
             IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection, );
 
             //TODO instead of checking the type, check the availability of the operation
-            module.get(ValidationHelper.class).assertion(
+            module.get(ValidationHelper.class).asserting(
                     collectionType instanceof ListType
                             || collectionType instanceof MapType
                             || collectionType instanceof SetType,
@@ -112,7 +112,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
             Maybe<RValueExpression> element = input.__(AddStatement::getElement);
             final IJadescriptType elementType = module.get(RValueExpressionSemantics.class).inferType(element, );
 
-            module.get(ValidationHelper.class).assertion(
+            module.get(ValidationHelper.class).asserting(
                     Util.implication(collectionType instanceof SetType, !isWithIndex),
                     "InvalidPutStatement",
                     "Unexpected 'at' clause for sets.",
@@ -139,7 +139,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
                             element,
                             subValidations
                     );
-                    module.get(ValidationHelper.class).assertion(
+                    module.get(ValidationHelper.class).asserting(
                             !isWithIndex,
                             "InvalidPutStatement",
                             "Unexpected 'at' specification for maps.",

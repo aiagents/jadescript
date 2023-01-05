@@ -407,7 +407,7 @@ public class UnaryPrefixExpressionSemantics
             newState = ones.advance(index, state);
             inferredType = ones.inferType(ofNotation, newState);
 
-            boolean evr = validationHelper.assertion(
+            boolean evr = validationHelper.asserting(
                 inferredType instanceof ListType,
                 "InvalidIndexExpression",
                 "Invalid type; expected: 'list', provided: " +

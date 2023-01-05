@@ -134,7 +134,7 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
 
         final ValidationHelper validationHelper = module.get(ValidationHelper.class);
         if (!subValidations.thereAreErrors()) {
-            validationHelper.assertion(
+            validationHelper.asserting(
                     Util.implication(collectionType instanceof MapType, isWithIndex),
                     "InvalidRemoveStatement",
                     "Expected 'at' with key specification to remove an entry from a map.",
@@ -144,7 +144,7 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
         }
 
         if (!subValidations.thereAreErrors()) {
-            validationHelper.assertion(
+            validationHelper.asserting(
                     Util.implication(!isRetain, !(isAll && isWithIndex)),
                     "InvalidRemoveStatement",
                     "Unexpected 'at' clause in a 'remove all' statement",
@@ -153,7 +153,7 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
             );
         }
         if (!subValidations.thereAreErrors()) {
-            validationHelper.assertion(
+            validationHelper.asserting(
                     Util.implication(isAll, collectionType instanceof ListType
                             || collectionType instanceof SetType),
                     "InvalidRetainStatement",
@@ -172,7 +172,7 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
             final SetType expectedSet = typeHelper.SET.apply(Arrays.asList(
                     collectionType.getElementTypeIfCollection().toNullable()
             ));
-            validationHelper.assertion(
+            validationHelper.asserting(
                     typeHelper.isAssignable(expectedList, elementType)
                             || typeHelper.isAssignable(expectedSet, elementType),
                     "Invalid" + (isRetain ? "Retain" : "Remove") + "Statement",

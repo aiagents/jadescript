@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.MatchesExpression;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.WhenMatchesStatement;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
@@ -21,12 +22,9 @@ import it.unipr.ailab.sonneteer.qualifiers.Visibility;
 import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
 import it.unipr.ailab.sonneteer.statement.VariableDeclarationWriter;
-import it.unipr.ailab.sonneteer.type.ClassDeclarationWriter;
+import it.unipr.ailab.sonneteer.type.ClassDeclarationWriter.ConstructorWriter;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.common.types.JvmDeclaredType;
-import org.eclipse.xtext.common.types.JvmField;
-import org.eclipse.xtext.common.types.JvmFormalParameter;
-import org.eclipse.xtext.common.types.JvmVisibility;
+import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
@@ -36,7 +34,7 @@ import java.util.stream.Collectors;
 
 public class PatternMatchHelper implements SemanticsConsts {
 
-    public static WriterFactory w = WriterFactory.getInstance();
+    public static final WriterFactory w = WriterFactory.getInstance();
 
     private final SemanticsModule module;
 
@@ -68,86 +66,99 @@ public class PatternMatchHelper implements SemanticsConsts {
             return Collections.emptyList();
         }
 
-        JvmTypesBuilder jvmTypesBuilder = module.get(JvmTypesBuilder.class);
-        TypeHelper typeHelper = module.get(TypeHelper.class);
-        CompilationHelper compilationHelper =
-            module.get(CompilationHelper.class);
-
         EObject eobj = sourceEObject.toNullable();
         return auxiliaryStatements.stream()
             .filter(LocalClassStatementWriter.class::isInstance)
             .map(LocalClassStatementWriter.class::cast)
-            .map(localClass -> jvmTypesBuilder.toClass(eobj,
-                localClass.getName(), itClass -> {
-                    for (ClassMemberWriter member : localClass.getMembers()) {
-                        if (member instanceof ClassDeclarationWriter.ConstructorWriter) {
-                            ClassDeclarationWriter.ConstructorWriter ctor =
-                                (ClassDeclarationWriter.ConstructorWriter) member;
-                            itClass.getMembers().add(jvmTypesBuilder.toConstructor(
-                                eobj,
-                                itCtor -> {
-                                    itCtor.setVisibility(convertToJvm(member.getVisibility()));
-                                    for (ParameterWriter parameter :
-                                        ctor.getParameters()) {
-                                        JvmFormalParameter param =
-                                            jvmTypesBuilder.toParameter(
-                                                eobj,
-                                                parameter.getName(),
-                                                typeHelper.typeRef(parameter.getType())
-                                            );
-                                        itCtor.getParameters().add(param);
-                                    }
-                                    compilationHelper.createAndSetBody(
-                                        itCtor,
-                                        ctor.getBody()::writeSonnet
-                                    );
-                                }
-                            ));
-                        } else if (member instanceof FieldWriter) {
-                            FieldWriter field = (FieldWriter) member;
-                            itClass.getMembers().add(jvmTypesBuilder.toField(
-                                eobj
-                                ,
-                                field.getName(),
-                                typeHelper.typeRef(field.getType()),
-                                itField -> {
-                                    itField.setVisibility(convertToJvm(member.getVisibility()));
-                                    if (field.getInitExpression() != null) {
-                                        compilationHelper.createAndSetInitializer(
-                                            itField,
-                                            field.getInitExpression()::writeSonnet
-                                        );
-                                    }
-                                }
-                            ));
-                        } else if (member instanceof MethodWriter) {
-                            MethodWriter method = (MethodWriter) member;
-                            itClass.getMembers().add(
-                                jvmTypesBuilder.toMethod(eobj, method.getName(),
-                                    typeHelper.typeRef(method.getReturnType()),
-                                    itMethod -> {
-                                        itMethod.setVisibility(convertToJvm(
-                                            member.getVisibility()));
-                                        for (ParameterWriter parameter :
-                                            method.getParameters()) {
-                                            JvmFormalParameter param =
-                                                jvmTypesBuilder.toParameter(
-                                                    eobj,
-                                                    parameter.getName(),
-                                                    typeHelper.typeRef(parameter.getType())
-                                                );
-                                            itMethod.getParameters().add(param);
-                                        }
-                                        compilationHelper.createAndSetBody(
-                                            itMethod,
-                                            method.getBody()::writeSonnet
-                                        );
-                                    }
-                                ));
-                        }//else ignore
-                    }
-                }
+            .map(localClass -> convertLocalClassToInnerClass(
+                module,
+                eobj,
+                localClass
             )).collect(Collectors.toList());
+    }
+
+
+    private static JvmGenericType convertLocalClassToInnerClass(
+        SemanticsModule module,
+        EObject eobj,
+        LocalClassStatementWriter localClass
+    ) {
+        JvmTypesBuilder jvmtb = module.get(JvmTypesBuilder.class);
+        TypeHelper typeH = module.get(TypeHelper.class);
+        CompilationHelper compH =
+            module.get(CompilationHelper.class);
+        return jvmtb.toClass(eobj, localClass.getName(), itClass -> {
+            for (ClassMemberWriter member : localClass.getMembers()) {
+                if (member instanceof ConstructorWriter) {
+                    ConstructorWriter ctor = (ConstructorWriter) member;
+                    itClass.getMembers().add(jvmtb.toConstructor(
+                        eobj,
+                        itCtor -> {
+                            itCtor.setVisibility(
+                                convertToJvm(member.getVisibility())
+                            );
+                            for (
+                                ParameterWriter parameter :
+                                ctor.getParameters()
+                            ) {
+                                itCtor.getParameters().add(jvmtb.toParameter(
+                                    eobj,
+                                    parameter.getName(),
+                                    typeH.typeRef(parameter.getType())
+                                ));
+                            }
+                            compH.createAndSetBody(
+                                itCtor,
+                                ctor.getBody()::writeSonnet
+                            );
+                        }
+                    ));
+                } else if (member instanceof FieldWriter) {
+                    FieldWriter field = (FieldWriter) member;
+                    itClass.getMembers().add(jvmtb.toField(
+                        eobj,
+                        field.getName(),
+                        typeH.typeRef(field.getType()),
+                        itField -> {
+                            itField.setVisibility(
+                                convertToJvm(member.getVisibility())
+                            );
+                            if (field.getInitExpression() != null) {
+                                compH.createAndSetInitializer(
+                                    itField,
+                                    field.getInitExpression()::writeSonnet
+                                );
+                            }
+                        }
+                    ));
+                } else if (member instanceof MethodWriter) {
+                    MethodWriter method = (MethodWriter) member;
+                    itClass.getMembers().add(
+                        jvmtb.toMethod(eobj, method.getName(),
+                            typeH.typeRef(method.getReturnType()),
+                            itMethod -> {
+                                itMethod.setVisibility(convertToJvm(
+                                    member.getVisibility()));
+                                for (ParameterWriter parameter :
+                                    method.getParameters()) {
+                                    JvmFormalParameter param =
+                                        jvmtb.toParameter(
+                                            eobj,
+                                            parameter.getName(),
+                                            typeH.typeRef(parameter.getType())
+                                        );
+                                    itMethod.getParameters().add(param);
+                                }
+                                compH.createAndSetBody(
+                                    itMethod,
+                                    method.getBody()::writeSonnet
+                                );
+                            }
+                        )
+                    );
+                }//else ignore
+            }
+        });
     }
 
 
@@ -177,7 +188,9 @@ public class PatternMatchHelper implements SemanticsConsts {
                     itField -> {
                         compilationHelper.createAndSetInitializer(
                             itField,
-                            w.callExpr("new " + variableDeclarationWriter.getType())::writeSonnet
+                            w.callExpr(
+                                "new " + variableDeclarationWriter.getType()
+                            )::writeSonnet
                         );
                     }
                 );
@@ -203,13 +216,14 @@ public class PatternMatchHelper implements SemanticsConsts {
     public PatternMatcher compileWhenMatchesStatementPatternMatching(
         Maybe<RValueExpression> inputExpr,
         Maybe<LValueExpression> pattern,
+        StaticState afterInputExpr,
         CompilationOutputAcceptor acceptor
     ) {
         String localClassName =
             "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
         final String variableName = localClassName + "_obj";
-        final PatternMatchInput.WhenMatchesStatement<LValueExpression> patternMatchInput =
-            new PatternMatchInput.WhenMatchesStatement<>(
+        final WhenMatchesStatement<LValueExpression> patternMatchInput =
+            new WhenMatchesStatement<>(
                 module,
                 inputExpr,
                 pattern,
@@ -218,10 +232,10 @@ public class PatternMatchHelper implements SemanticsConsts {
             );
         final PatternMatcher output =
             module.get(LValueExpressionSemantics.class).compilePatternMatch(
-                patternMatchInput, ,
+                patternMatchInput,
+                afterInputExpr,
                 acceptor
             );
-
 
         final LocalClassStatementWriter localClass =
             w.localClass(localClassName);
@@ -229,8 +243,12 @@ public class PatternMatchHelper implements SemanticsConsts {
         output.getWriters().forEach(localClass::addMember);
 
         acceptor.accept(localClass);
-        acceptor.accept(w.variable(localClassName, variableName, w.expr("new "
-            + localClassName + "()")));
+        acceptor.accept(w.variable(
+            localClassName,
+            variableName,
+            w.expr("new "
+                + localClassName + "()")
+        ));
         return output;
     }
 
@@ -291,7 +309,8 @@ public class PatternMatchHelper implements SemanticsConsts {
             );
         final PatternMatcher output =
             module.get(LValueExpressionSemantics.class).compilePatternMatch(
-                patternMatchInput, ,
+                patternMatchInput,
+                state,
                 acceptor
             );
 
@@ -356,17 +375,17 @@ public class PatternMatchHelper implements SemanticsConsts {
     }
 
 
-    public boolean
-    validateWhenMatchesStatementPatternMatching(
+    public boolean validateWhenMatchesStatementPatternMatching(
         Maybe<RValueExpression> inputExpr,
         Maybe<LValueExpression> pattern,
+        StaticState afterInputExpr,
         ValidationMessageAcceptor acceptor
     ) {
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
+        String localClassName = "__PatternMatcher" +
+            Util.extractEObject(pattern).hashCode();
         final String variableName = localClassName + "_obj";
-        final PatternMatchInput.WhenMatchesStatement<LValueExpression> patternMatchInput =
-            new PatternMatchInput.WhenMatchesStatement<>(
+        final WhenMatchesStatement<LValueExpression> patternMatchInput =
+            new WhenMatchesStatement<>(
                 module,
                 inputExpr,
                 pattern,
@@ -376,7 +395,8 @@ public class PatternMatchHelper implements SemanticsConsts {
 
 
         return module.get(LValueExpressionSemantics.class).validatePatternMatch(
-            patternMatchInput, ,
+            patternMatchInput,
+            afterInputExpr,
             acceptor
         );
     }

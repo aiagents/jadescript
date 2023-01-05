@@ -989,7 +989,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         boolean holesCheck;
         switch (holesAndGroundnessRequirement) {
             case DOES_NOT_ACCEPT_HOLES:
-                holesCheck = module.get(ValidationHelper.class).assertion(
+                holesCheck = module.get(ValidationHelper.class).asserting(
                     !isHoled,
                     "InvalidPattern",
                     "A pattern in this location " + describedLocation +
@@ -1000,7 +1000,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
 
                 break;
             case ACCEPTS_NONVAR_HOLES_ONLY:
-                holesCheck = module.get(ValidationHelper.class).assertion(
+                holesCheck = module.get(ValidationHelper.class).asserting(
                     !isUnbound,
                     "InvalidPattern",
                     "A pattern in this location " + describedLocation + "can " +
@@ -1011,7 +1011,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
                 );
                 break;
             case REQUIRES_FREE_VARS:
-                holesCheck = module.get(ValidationHelper.class).assertion(
+                holesCheck = module.get(ValidationHelper.class).asserting(
                     isUnbound,
                     "InvalidPattern",
                     "A pattern in this location " + describedLocation +
@@ -1023,7 +1023,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
                 break;
 
             case REQUIRES_FREE_OR_ASSIGNABLE_VARS:
-                holesCheck = module.get(ValidationHelper.class).assertion(
+                holesCheck = module.get(ValidationHelper.class).asserting(
                     isUnbound || containsNotHoledAssignableParts,
                     "InvalidPattern",
                     "A pattern in this location " + describedLocation +
@@ -1043,7 +1043,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         boolean purityCheck;
         switch (purityRequirement) {
             case HAS_TO_BE_PURE:
-                purityCheck = module.get(ValidationHelper.class).assertion(
+                purityCheck = module.get(ValidationHelper.class).asserting(
                     isPatternEvaluationPure(input, state),
                     "InvalidPattern",
                     "A pattern in this location " + describedLocation +
@@ -1096,7 +1096,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         } else {
             boolean asPatternCheck = VALID;
             if (!canBeHoled(input.getPattern())) {
-                asPatternCheck = module.get(ValidationHelper.class).assertion(
+                asPatternCheck = module.get(ValidationHelper.class).asserting(
                     !isHoled(input.getPattern(), state),
                     "InvalidPattern",
                     "This kind of expression cannot contain holes to produce " +
@@ -1149,7 +1149,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         IJadescriptType solvedPatternType,
         ValidationMessageAcceptor acceptor
     ) {
-        return module.get(ValidationHelper.class).assertion(
+        return module.get(ValidationHelper.class).asserting(
             requirement.isInstance(actualRelationship),
             "InvalidProvidedInput",
             "Cannot apply here an input of type "
@@ -1259,7 +1259,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        return module.get(ValidationHelper.class).assertion(
+        return module.get(ValidationHelper.class).asserting(
             isAlwaysPure(input, state),
             "InvalidHandlerCondition",
             "Only expressions without side effects can be used as conditions " +

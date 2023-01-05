@@ -57,7 +57,7 @@ public class ClearStatementSemantics extends StatementSemantics<ClearStatement> 
         module.get(RValueExpressionSemantics.class).validate(collection, , subValidation);
         if (!subValidation.thereAreErrors()) {
             IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection, );
-            module.get(ValidationHelper.class).assertion(
+            module.get(ValidationHelper.class).asserting(
                     collectionType.namespace().searchAs(
                             CallableSymbol.Searcher.class,
                             searcher -> searcher.searchCallable(

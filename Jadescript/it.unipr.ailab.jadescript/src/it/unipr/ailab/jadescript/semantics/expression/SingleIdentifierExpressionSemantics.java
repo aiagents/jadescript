@@ -497,7 +497,7 @@ public class SingleIdentifierExpressionSemantics
             final String identifier = input.getPattern()
                 .__(SingleIdentifier::getIdent).orElse("");
             boolean resolutionCheck =
-                module.get(ValidationHelper.class).assertion(
+                module.get(ValidationHelper.class).asserting(
                     input.getMode().getUnification() !=
                         PatternMatchMode.Unification.WITHOUT_VAR_DECLARATION,
                     "InvalidReference",
@@ -555,7 +555,7 @@ public class SingleIdentifierExpressionSemantics
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
             resolve(input, state);
         //TODO validate closure usage when new usage tracking is available
-        return module.get(ValidationHelper.class).assertion(
+        return module.get(ValidationHelper.class).asserting(
             resolved.isPresent(),
             "UnresolvedSymbol",
             "Unresolved symbol: " + ident.orElse("[empty]"),
@@ -641,7 +641,7 @@ public class SingleIdentifierExpressionSemantics
                 (Either.Left<NamedSymbol, CallableSymbol>) resolve.toNullable()
             ).getLeft();
 
-            boolean canWrite = module.get(ValidationHelper.class).assertion(
+            boolean canWrite = module.get(ValidationHelper.class).asserting(
                 variable.canWrite(),
                 "InvalidAssignment",
                 "'" + ident.orElse("[empty]") + "' is read-only.",
@@ -651,7 +651,7 @@ public class SingleIdentifierExpressionSemantics
 
 
             if (canWrite && variable instanceof UserVariable) {
-                canWrite = module.get(ValidationHelper.class).assertion(
+                canWrite = module.get(ValidationHelper.class).asserting(
                     !((UserVariable) variable).isCapturedInAClosure(),
                     "AssigningToCapturedReference",
                     "This local variable is internally captured in a closure," +
