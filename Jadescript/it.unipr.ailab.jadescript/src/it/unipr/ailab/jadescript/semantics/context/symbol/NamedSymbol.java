@@ -1,5 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol;
 
+import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
@@ -30,15 +31,22 @@ public interface NamedSymbol extends Symbol {
         return new NamedSymbolSignature(name(), readingType(), canWrite());
     }
 
+    NamedSymbol intersectWith(NamedSymbol other, SemanticsModule module);
+
     default void debugDumpNamedSymbol(SourceCodeBuilder scb) {
-        scb.open("NamedSymbol(concrete class=" + this.getClass().getName() + ") {");
+        scb.open("NamedSymbol(concrete class=" + this.getClass().getName() +
+            ") {");
         scb.line("sourceLocation = " + sourceLocation());
         scb.line("name =" + name());
         scb.line("readingType = " + readingType().getDebugPrint());
         scb.line("writingType = " + writingType().getDebugPrint());
         scb.line("canWrite = " + canWrite());
-        scb.line("compileRead  -> " + compileRead("<dereferencePrefix>"));
-        scb.line("compileWrite -> " + compileWrite("<dereferencePrefix>", "<setvalue>"));
+        scb.line("compileRead  -> " + compileRead(
+            "<dereferencePrefix>"
+        ));
+        scb.line("compileWrite -> " + compileWrite(
+            "<dereferencePrefix>", "<setvalue>"
+        ));
         scb.close("}");
     }
 

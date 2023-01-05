@@ -48,7 +48,8 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
     public void validate(Maybe<Assignment> input, ValidationMessageAcceptor acceptor) {
         final Maybe<RValueExpression> right = input.__(Assignment::getRexpr);
         final Maybe<LValueExpression> left = input.__(Assignment::getLexpr);
-        boolean syntacticSubValidation = module.get(LValueExpressionSemantics.class).syntacticValidateLValue(
+        boolean syntacticSubValidation =
+            module.get(LValueExpressionSemantics.class).syntacticValidateLValue(
                 input.__(Assignment::getLexpr),
                 acceptor
         );

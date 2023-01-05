@@ -178,8 +178,11 @@ public class SetType extends ParametricType implements EmptyCreatable, DeclaresO
 
     @Override
     public String compileNewEmptyInstance() {
-        return "new jadescript.util.JadescriptSet<" + getElementType().compileToJavaTypeReference() + ">()";
+        return "new jadescript.util.JadescriptSet<" +
+            getElementType().compileToJavaTypeReference() + ">()";
     }
+
+
 
     private Map<String, Property> getBuiltinProperties() {
         initBuiltinProperties();

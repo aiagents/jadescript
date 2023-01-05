@@ -471,7 +471,7 @@ public class OnPerceptHandlerSemantics extends FeatureSemantics<OnPerceptHandler
                 .searchAs(
                         NamedSymbol.Searcher.class,
                         s -> s.searchName((Predicate<String>) null, null, null)
-                                .filter(ne -> ne instanceof PatternMatchAutoDeclaredVariable)
+                                .filter(ne -> ne instanceof PatternMatchUnifiedVariable)
                 ).collect(Collectors.toList());
 
 

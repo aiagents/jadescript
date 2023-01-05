@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.context.c0outer.ModuleContext;
 import it.unipr.ailab.jadescript.semantics.context.c1toplevel.TopLevelDeclarationContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.*;
 import it.unipr.ailab.jadescript.semantics.context.scope.ProceduralScope;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -361,6 +362,7 @@ public class ContextManager {
         this.restore(saved);
         return this;
     }
+
 
     public void debugDump(SourceCodeBuilder scb) {
         scb.line("****** CONTEXT DUMP: BEGIN ******");

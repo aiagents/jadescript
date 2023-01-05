@@ -47,7 +47,9 @@ public class AtomWithTrailersStatementSemantics extends StatementSemantics<AtomE
         Maybe<EList<Trailer>> trailers = input.__(AtomExpr::getTrailers);
         if (trailers.__(List::isEmpty).extract(Maybe.nullAsTrue)) {
             if (atom.isPresent()) {
-                module.get(PrimaryExpressionSemantics.class).syntacticValidateStatement(atom, acceptor);
+                module.get(PrimaryExpressionSemantics.class)
+                    .validateAsStatementTraversing(atom, ,acceptor
+                );
             } else {
                 input.safeDo(inputSafe -> {
 

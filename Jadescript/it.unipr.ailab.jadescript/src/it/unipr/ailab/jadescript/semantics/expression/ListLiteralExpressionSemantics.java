@@ -34,7 +34,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
  */
 @Singleton
 public class ListLiteralExpressionSemantics
-    extends ExpressionSemantics<ListLiteral> {
+    extends AssignableExpressionSemantics<ListLiteral> {
 
 
     private static final String PROVIDED_TYPE_TO_PATTERN_IS_NOT_LIST_MESSAGE =
@@ -46,9 +46,11 @@ public class ListLiteralExpressionSemantics
             "closing bracket, or make sure that the input is narrowed to a " +
             "valid list type.";
 
+
     public ListLiteralExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
+
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
@@ -64,6 +66,7 @@ public class ListLiteralExpressionSemantics
             .map(x -> new SemanticsBoundToExpression<>(
                 module.get(RValueExpressionSemantics.class), x));
     }
+
 
     @Override
     protected String compileInternal(
@@ -112,6 +115,7 @@ public class ListLiteralExpressionSemantics
         return "new java.util.ArrayList<>(" + sb + ")";
     }
 
+
     @Override
     protected IJadescriptType inferTypeInternal(
         Maybe<ListLiteral> input,
@@ -157,6 +161,7 @@ public class ListLiteralExpressionSemantics
 
     }
 
+
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<ListLiteral> input,
@@ -164,6 +169,7 @@ public class ListLiteralExpressionSemantics
     ) {
         return Maybe.nothing();
     }
+
 
     @Override
     protected StaticState advanceInternal(
@@ -192,6 +198,7 @@ public class ListLiteralExpressionSemantics
 
         return newState;
     }
+
 
     private IJadescriptType computeElementsTypeLUB(
         List<Maybe<RValueExpression>> valuesList,
@@ -224,17 +231,19 @@ public class ListLiteralExpressionSemantics
         );
     }
 
+
     @Override
     protected boolean mustTraverse(Maybe<ListLiteral> input) {
         return false;
     }
 
+
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
-        Maybe<ListLiteral> input
-    ) {
+    protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
+    traverse(Maybe<ListLiteral> input) {
         return Optional.empty();
     }
+
 
     @Override
     protected boolean isPatternEvaluationPureInternal(
@@ -253,6 +262,7 @@ public class ListLiteralExpressionSemantics
         return subExpressionsAnyHoled(input, state);
     }
 
+
     @Override
     protected boolean isTypelyHoledInternal(
         Maybe<ListLiteral> input,
@@ -269,6 +279,7 @@ public class ListLiteralExpressionSemantics
         }
     }
 
+
     @Override
     protected boolean isUnboundInternal(
         Maybe<ListLiteral> input,
@@ -276,6 +287,7 @@ public class ListLiteralExpressionSemantics
     ) {
         return subExpressionsAnyUnbound(input, state);
     }
+
 
     @Override
     protected StaticState advancePatternInternal(
@@ -291,11 +303,7 @@ public class ListLiteralExpressionSemantics
             input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse)
                 && rest.isPresent();
         int prePipeElementCount = values.size();
-        PatternType patternType = inferPatternType(
-            input.getPattern(),
-            input.getMode(),
-            state
-        );
+        PatternType patternType = inferPatternType(input, state);
         IJadescriptType solvedPatternType =
             patternType.solve(input.getProvidedInputType());
 
@@ -351,6 +359,7 @@ public class ListLiteralExpressionSemantics
         }
     }
 
+
     @Override
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<ListLiteral> input,
@@ -365,11 +374,7 @@ public class ListLiteralExpressionSemantics
             input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse)
                 && rest.isPresent();
         int prePipeElementCount = values.size();
-        PatternType patternType = inferPatternType(
-            input.getPattern(),
-            input.getMode(),
-            state
-        );
+        PatternType patternType = inferPatternType(input, state);
         IJadescriptType solvedPatternType =
             patternType.solve(input.getProvidedInputType());
 
@@ -473,12 +478,13 @@ public class ListLiteralExpressionSemantics
 
     }
 
+
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<ListLiteral> input,
+        PatternMatchInput<ListLiteral> input,
         StaticState state
     ) {
-        if (isTypelyHoled(input, state)) {
+        if (isTypelyHoled(input.getPattern(), state)) {
             // Has no type specifier and it is typely holed.
             return PatternType.holed(inputType -> {
                 final TypeHelper typeHelper = module.get(TypeHelper.class);
@@ -493,25 +499,27 @@ public class ListLiteralExpressionSemantics
                 }
             });
         } else {
-            return PatternType.simple(inferType(input, state));
+            return PatternType.simple(inferType(input.getPattern(), state));
         }
     }
+
 
     @Override
     public boolean validatePatternMatchInternal(
         PatternMatchInput<ListLiteral> input,
-        StaticState state, ValidationMessageAcceptor acceptor
+        StaticState state,
+        ValidationMessageAcceptor acceptor
     ) {
         List<Maybe<RValueExpression>> values =
             toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
         Maybe<RValueExpression> rest =
             input.getPattern().__(ListLiteral::getRest);
-        boolean isWithPipe =
-            input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse) && rest.isPresent();
+        boolean isWithPipe = input.getPattern()
+            .__(ListLiteral::isWithPipe)
+            .extract(nullAsFalse)
+            && rest.isPresent();
         int prePipeElementCount = values.size();
-        PatternType patternType = inferPatternType(input.getPattern(),
-            input.getMode(), state
-        );
+        PatternType patternType = inferPatternType(input, state);
         IJadescriptType solvedPatternType =
             patternType.solve(input.getProvidedInputType());
 
@@ -646,6 +654,7 @@ public class ListLiteralExpressionSemantics
         return stage1;
     }
 
+
     @Override
     protected boolean isAlwaysPureInternal(
         Maybe<ListLiteral> input,
@@ -654,15 +663,58 @@ public class ListLiteralExpressionSemantics
         return subExpressionsAllAlwaysPure(input, state);
     }
 
+
     @Override
     protected boolean isValidLExprInternal(Maybe<ListLiteral> input) {
         return false;
     }
+
 
     @Override
     protected boolean canBeHoledInternal(Maybe<ListLiteral> input) {
         return true;
     }
 
+
+    @Override
+    protected void compileAssignmentInternal(
+        Maybe<ListLiteral> input,
+        String compiledExpression,
+        IJadescriptType exprType,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
+    ) {
+
+    }
+
+
+    @Override
+    protected StaticState advanceAssignmentInternal(
+        Maybe<ListLiteral> input,
+        IJadescriptType rightType,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    public boolean validateAssignmentInternal(
+        Maybe<ListLiteral> input,
+        Maybe<RValueExpression> expression,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return errorNotLvalue(input, acceptor);
+    }
+
+
+    @Override
+    public boolean syntacticValidateLValueInternal(
+        Maybe<ListLiteral> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return errorNotLvalue(input, acceptor);
+    }
 
 }

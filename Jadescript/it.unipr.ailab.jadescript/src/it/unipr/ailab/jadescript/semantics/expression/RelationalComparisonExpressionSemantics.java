@@ -155,7 +155,7 @@ public class RelationalComparisonExpressionSemantics
 
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<RelationalComparison> input,
+        PatternMatchInput<RelationalComparison> input,
         StaticState state
     ) {
         return PatternType.empty(module);
@@ -212,12 +212,12 @@ public class RelationalComparisonExpressionSemantics
                 //implication: if left is NUMBER, right has to be NUMBER too
                 (
                     !th.NUMBER.isAssignableFrom(typeLeft)
-                    || th.NUMBER.isAssignableFrom(typeRight)
+                        || th.NUMBER.isAssignableFrom(typeRight)
                 ) && (
                     //implication: if left is DURATION,
                     // right has to be DURATION too
-                        !th.DURATION.isAssignableFrom(typeLeft)
-                    || th.DURATION.isAssignableFrom(typeRight)
+                    !th.DURATION.isAssignableFrom(typeLeft)
+                        || th.DURATION.isAssignableFrom(typeRight)
                 ) && (
                     //implication: if left is TIMESTAMP,
                     // right has to be TIMESTAMP too

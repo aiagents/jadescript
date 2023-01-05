@@ -4,7 +4,6 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TernaryConditional;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.flowtyping.ExpressionTypeKB;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
@@ -16,7 +15,6 @@ import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -25,7 +23,8 @@ import java.util.stream.Stream;
  * Created on 27/12/16.
  */
 @Singleton
-public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpression> {
+public class RValueExpressionSemantics
+    extends ExpressionSemantics<RValueExpression> {
 
 
     public RValueExpressionSemantics(SemanticsModule semanticsModule) {
@@ -147,7 +146,7 @@ public class RValueExpressionSemantics extends ExpressionSemantics<RValueExpress
 
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<RValueExpression> input,
+        PatternMatchInput<RValueExpression> input,
         StaticState state
     ) {
         return PatternType.empty(module);

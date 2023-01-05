@@ -19,6 +19,7 @@ import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -36,6 +37,7 @@ public class LogicalAndExpressionSemantics
         super(semanticsModule);
     }
 
+
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<LogicalAnd> input
@@ -47,6 +49,7 @@ public class LogicalAndExpressionSemantics
                 sbte
             ));
     }
+
 
     @Override
     protected String compileInternal(
@@ -97,11 +100,11 @@ public class LogicalAndExpressionSemantics
         Maybe<LogicalAnd> input,
         StaticState state
     ) {
-        ImmutableList<ExpressionDescriptor> operands = new ImmutableList<>();
 
         List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(
             input.__(LogicalAnd::getEqualityComparison)
         );
+        List<ExpressionDescriptor> operands = new ArrayList<>(equs.size());
 
         final EqualityComparisonExpressionSemantics eces =
             module.get(EqualityComparisonExpressionSemantics.class);
@@ -114,7 +117,7 @@ public class LogicalAndExpressionSemantics
             newState = eces.advance(equ, newState);
 
             if (thisExpr.isPresent()) {
-                operands = operands.add(thisExpr.toNullable());
+                operands.add(thisExpr.toNullable());
                 newState = newState.assertEvaluation(
                     thisExpr.toNullable(),
                     FlowTypingRuleCondition.ReturnedTrue.INSTANCE
@@ -125,9 +128,10 @@ public class LogicalAndExpressionSemantics
             return Maybe.nothing();
         }
         return Maybe.some(new ExpressionDescriptor.AndExpression(
-            operands
+            ImmutableList.from(operands)
         ));
     }
+
 
     @Override
     protected StaticState advanceInternal(
@@ -137,6 +141,7 @@ public class LogicalAndExpressionSemantics
         final StaticState newState = advanceCommon(input, state);
         return addOverallTrueRule(input, newState);
     }
+
 
     private StaticState addOverallTrueRule(
         Maybe<LogicalAnd> input,
@@ -186,6 +191,7 @@ public class LogicalAndExpressionSemantics
         );
     }
 
+
     private StaticState advanceCommon(
         Maybe<LogicalAnd> input,
         StaticState state
@@ -227,6 +233,7 @@ public class LogicalAndExpressionSemantics
         return state;
     }
 
+
     @Override
     protected IJadescriptType inferTypeInternal(
         Maybe<LogicalAnd> input,
@@ -243,6 +250,7 @@ public class LogicalAndExpressionSemantics
         return equs.size() == 1;
     }
 
+
     @Override
     protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
         Maybe<LogicalAnd> input
@@ -258,6 +266,7 @@ public class LogicalAndExpressionSemantics
         }
         return Optional.empty();
     }
+
 
     @Override
     protected boolean isPatternEvaluationPureInternal(
@@ -313,6 +322,7 @@ public class LogicalAndExpressionSemantics
 
     }
 
+
     @Override
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<LogicalAnd> input,
@@ -322,13 +332,15 @@ public class LogicalAndExpressionSemantics
         return input.createEmptyCompileOutput();
     }
 
+
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<LogicalAnd> input,
+        PatternMatchInput<LogicalAnd> input,
         StaticState state
     ) {
         return PatternType.empty(module);
     }
+
 
     @Override
     public boolean validatePatternMatchInternal(
@@ -348,10 +360,12 @@ public class LogicalAndExpressionSemantics
         return subExpressionsAllAlwaysPure(input, state);
     }
 
+
     @Override
     protected boolean isValidLExprInternal(Maybe<LogicalAnd> input) {
         return false;
     }
+
 
     @Override
     protected boolean isHoledInternal(
@@ -361,6 +375,7 @@ public class LogicalAndExpressionSemantics
         return false;
     }
 
+
     @Override
     protected boolean isTypelyHoledInternal(
         Maybe<LogicalAnd> input,
@@ -369,6 +384,7 @@ public class LogicalAndExpressionSemantics
         return false;
     }
 
+
     @Override
     protected boolean isUnboundInternal(
         Maybe<LogicalAnd> input,
@@ -376,6 +392,7 @@ public class LogicalAndExpressionSemantics
     ) {
         return false;
     }
+
 
     @Override
     protected boolean canBeHoledInternal(Maybe<LogicalAnd> input) {

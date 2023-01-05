@@ -21,8 +21,8 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.TupledExpressions;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.VirtualIdentifier;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
@@ -371,7 +371,7 @@ public class PrimaryExpressionSemantics
             } else if (identifier.isPresent()) {
                 return Optional.of(new SemanticsBoundToAssignableExpression<>(
                     module.get(SingleIdentifierExpressionSemantics.class),
-                    VirtualIdentifier.virtualIdentifier(identifier, input)
+                    SingleIdentifier.singleIdentifier(identifier, input)
                 ));
             } else if (invoke.isPresent()) {
                 return Optional.of(new SemanticsBoundToAssignableExpression<>(
@@ -530,8 +530,9 @@ public class PrimaryExpressionSemantics
     }
 
 
-    public boolean syntacticValidateStatement(
+    public boolean validateAsStatementTraversing(
         Maybe<Primary> input,
+        StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
         final Maybe<String> identifier = input.__(Primary::getIdentifier);
@@ -541,8 +542,9 @@ public class PrimaryExpressionSemantics
             return VALID;
         } else if (identifier.isPresent()) {
             return module.get(SingleIdentifierExpressionSemantics.class)
-                .syntacticValidateStatement(
-                    VirtualIdentifier.virtualIdentifier(identifier, input),
+                .validateAsStatementTraversing(
+                    SingleIdentifier.singleIdentifier(identifier, input),
+                    state,
                     acceptor
                 );
         } else {
@@ -627,34 +629,38 @@ public class PrimaryExpressionSemantics
 
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<Primary> input,
+        PatternMatchInput<Primary> input,
         StaticState state
     ) {
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final List<Maybe<RValueExpression>> exprs = Maybe.toListOfMaybes(
+                input.getPattern().__(Primary::getExprs)
+            ).stream()
+            .filter(Maybe::isPresent)
+            .collect(Collectors.toList());
         final Maybe<RValueExpression> parenthesizedExpression;
         if (exprs.size() == 1) {
             parenthesizedExpression = exprs.get(0);
         } else {
             parenthesizedExpression = nothing();
         }
-        final Maybe<String> agent = input.__(Primary::getAgent);
-        final Maybe<String> message = input.__(Primary::getMessage);
-        final Maybe<String> percept = input.__(Primary::getPercept);
-        final Maybe<String> exception = input.__(Primary::getException);
-        final Maybe<String> behaviour = input.__(Primary::getBehaviour);
+        final Maybe<String> agent = input.getPattern().__(Primary::getAgent);
+        final Maybe<String> message =
+            input.getPattern().__(Primary::getMessage);
+        final Maybe<String> percept =
+            input.getPattern().__(Primary::getPercept);
+        final Maybe<String> exception =
+            input.getPattern().__(Primary::getException);
+        final Maybe<String> behaviour =
+            input.getPattern().__(Primary::getBehaviour);
         if (parenthesizedExpression.isPresent()) {
-            return module.get(RValueExpressionSemantics.class)
-                .inferPatternType(
-                    parenthesizedExpression,
-                    state
-                );
+            return module.get(RValueExpressionSemantics.class).inferPatternType(
+                input.replacePattern(parenthesizedExpression),
+                state
+            );
         } else if (agent.isPresent()
             || message.isPresent() || percept.isPresent()
             || exception.isPresent() || behaviour.isPresent()) {
-            return PatternType.simple(inferType(input, state));
+            return PatternType.simple(inferType(input.getPattern(), state));
         } else {
 
             return PatternType.empty(module);

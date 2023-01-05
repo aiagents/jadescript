@@ -576,6 +576,26 @@ public class ValidationHelper implements SemanticsConsts {
         return assertion(false, issueCode, description, object, feature, index, acceptor);
     }
 
+    public void emitInfo(
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        ValidationMessageAcceptor acceptor
+    ){
+        final Maybe<? extends EObject> eobject = Util.extractEObject(object);
+        if(eobject.isNothing()){
+            return;
+        }
+        final EObject eObjectSafe = eobject.toNullable();
+        acceptor.acceptInfo(
+            description,
+            eObjectSafe,
+            null,
+            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+            issueCode
+        );
+    }
+
     public boolean assertion(
             boolean isTrue,
             String issueCode,

@@ -35,16 +35,19 @@ import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 public class SubscriptExpressionSemantics
     extends AssignableExpressionSemantics<Subscript> {
+
     public SubscriptExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
-    private static Boolean noRest(Maybe<Subscript> input) {
+
+    private static boolean noRest(Maybe<Subscript> input) {
         return input.__(Subscript::getRest)
             .__(ReversedTrailerChain::getElements)
             .__(List::isEmpty)
             .extract(nullAsFalse);
     }
+
 
     private Maybe<SemanticsBoundToAssignableExpression<?>> restSBTE(
         Maybe<Subscript> input
@@ -53,6 +56,7 @@ public class SubscriptExpressionSemantics
             .__(Subscript::getRest)
             .flatMap(ReversedTrailerChain::resolveChain);
     }
+
 
     @SuppressWarnings({"unchecked"})
     private <T, X extends EObject> T doOnRest(
@@ -78,6 +82,7 @@ public class SubscriptExpressionSemantics
         return func.apply(semantics, rest);
     }
 
+
     @Override
     protected void compileAssignmentInternal(
         Maybe<Subscript> input,
@@ -90,20 +95,24 @@ public class SubscriptExpressionSemantics
             input,
             (s, i) -> s.inferType(i, state)
         );
-        final PSR<String> restPSR = this.doOnRest(
+        String restCompiled = doOnRest(
             input,
             (s, i) -> s.compile(i, state, acceptor)
         );
 
-        final String restCompiled = restPSR.result();
-        final StaticState afterRest = restPSR.state();
 
+        final StaticState afterRest = doOnRest(
+            input,
+            (s, i) -> s.advance(i, state)
+        );
 
-        final PSR<String> keyPSR = module.get(RValueExpressionSemantics.class)
+        final String keyCompiled = module.get(RValueExpressionSemantics.class)
             .compile(input.__(Subscript::getKey), afterRest, acceptor);
 
-        final String keyCompiled = keyPSR.result();
-        final StaticState afterKey = keyPSR.state();
+        //NOT NEEDED
+//        final StaticState afterKey =
+//            module.get(RValueExpressionSemantics.class)
+//                .advance(input.__(Subscript::getKey), afterRest);
 
         if (restType instanceof ListType) {
             acceptor.accept(w.simpleStmt(
@@ -121,9 +130,24 @@ public class SubscriptExpressionSemantics
                     + "] = " + compiledExpression
             ));
         }
-
-        return afterKey;
     }
+
+
+    @Override
+    protected StaticState advanceAssignmentInternal(
+        Maybe<Subscript> input,
+        IJadescriptType rightType,
+        StaticState state
+    ) {
+        final StaticState afterRest = doOnRest(
+            input,
+            (s, i) -> s.advance(i, state)
+        );
+        return module.get(RValueExpressionSemantics.class)
+            .advance(input.__(Subscript::getKey), afterRest);
+
+    }
+
 
     @Override
     public boolean validateAssignmentInternal(
@@ -134,57 +158,59 @@ public class SubscriptExpressionSemantics
     ) {
 
 
-        PSR<Boolean> rightPSR = module.get(RValueExpressionSemantics.class)
-            .validate(expression, state, acceptor);
-        boolean rightValidation = rightPSR.result();
-        StaticState afterRight = rightPSR.state();
-        if (rightValidation == INVALID) {
-            return rightPSR;
-        }
-        IJadescriptType rightType = module.get(RValueExpressionSemantics.class)
-            .inferType(expression, state);
+        final RValueExpressionSemantics rves = module.get(
+            RValueExpressionSemantics.class);
+        boolean rightCheck = rves.validate(expression, state, acceptor);
 
-        PSR<Boolean> restPSR = doOnRest(
+        if (rightCheck == INVALID) {
+            return INVALID;
+        }
+        IJadescriptType rightType = rves.inferType(expression, state);
+        StaticState afterRight = rves.advance(expression, state);
+
+        boolean restCheck = doOnRest(
             input,
             (s, i) -> s.validate(i, afterRight, acceptor)
         );
-        boolean restValidation = restPSR.result();
-        StaticState afterRest = restPSR.state();
-        if (restValidation == INVALID) {
-            return restPSR;
+        if (restCheck == INVALID) {
+            return INVALID;
         }
         IJadescriptType restType = doOnRest(
             input,
             (s, i) -> s.inferType(i, afterRight)
         );
+        StaticState afterRest = doOnRest(
+            input,
+            (s, i) -> s.advance(i, afterRight)
+        );
 
         Maybe<RValueExpression> key = input.__(Subscript::getKey);
 
-        PSR<Boolean> keyPSR = module.get(RValueExpressionSemantics.class)
-            .validate(key, afterRest, acceptor);
-        boolean keyValidation = keyPSR.result();
-        StaticState afterKey = keyPSR.state();
-        if (keyValidation == INVALID) {
-            return keyPSR;
+        boolean keyCheck = rves.validate(key, afterRest, acceptor);
+
+        if (keyCheck == INVALID) {
+            return INVALID;
         }
+
+        //NOT NEEDED
+//        StaticState afterKey = rves.advance(key, afterRest);
 
         if (noRest(input)) {
-            return afterKey.INVALID();
+            return INVALID;
         }
 
-        keyValidation = module.get(ValidationHelper.class).assertion(
+        keyCheck = module.get(ValidationHelper.class).assertion(
             !module.get(TypeHelper.class).TEXT.isAssignableFrom(restType),
             "InvalidAssignment",
             "Invalid assignment; values of 'text' are immutable.",
             key,
             acceptor
         );
-        if (keyValidation == INVALID) {
-            return afterKey.INVALID();
+        if (keyCheck == INVALID) {
+            return INVALID;
         }
 
-        IJadescriptType keyType = module.get(RValueExpressionSemantics.class)
-            .inferType(key, afterRest);
+        IJadescriptType keyType = rves.inferType(key, afterRest);
 
 
         if (restType instanceof ListType || restType instanceof MapType) {
@@ -210,34 +236,33 @@ public class SubscriptExpressionSemantics
                 ).collect(Collectors.toList());
 
             if (matchesFound.size() != 1) {
-                return afterKey.with(
-                    module.get(ValidationHelper.class).emitError(
-                        "InvalidElementAccessOperation",
-                        "Cannot perform '[]' subscript on values of type " +
-                            restType.getJadescriptName() +
-                            ", with index of type " +
-                            keyType.getJadescriptName() +
-                            ", assigning values of type " +
-                            rightType.getJadescriptName() + ".",
-                        key,
-                        acceptor
-                    )
+                return module.get(ValidationHelper.class).emitError(
+                    "InvalidElementAccessOperation",
+                    "Cannot perform '[]' subscript on values of type " +
+                        restType.getJadescriptName() +
+                        ", with index of type " +
+                        keyType.getJadescriptName() +
+                        ", assigning values of type " +
+                        rightType.getJadescriptName() + ".",
+                    key,
+                    acceptor
                 );
             } else {
-                return afterKey.VALID();
+                return INVALID;
             }
         } else {
-            return afterKey.with(module.get(ValidationHelper.class).emitError(
+            return module.get(ValidationHelper.class).emitError(
                 "InvalidSubscriptOperation",
                 "[] operator cannot be used on types that are " +
                     "not list, map, or text. Type found: " +
                     restType.getJadescriptName(),
                 key,
                 acceptor
-            ));
+            );
         }
 
     }
+
 
     @Override
     public boolean syntacticValidateLValueInternal(
@@ -248,10 +273,12 @@ public class SubscriptExpressionSemantics
         return VALID;
     }
 
+
     @Override
     protected boolean mustTraverse(Maybe<Subscript> input) {
         return false;
     }
+
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
@@ -266,6 +293,7 @@ public class SubscriptExpressionSemantics
         );
     }
 
+
     @Override
     protected String compileInternal(
         Maybe<Subscript> input,
@@ -276,35 +304,39 @@ public class SubscriptExpressionSemantics
             input,
             (s, i) -> s.inferType(i, state)
         );
-        final PSR<String> restPSR = doOnRest(
+        final String restCompiled = doOnRest(
             input,
             (s, i) -> s.compile(i, state, acceptor)
         );
-        final StaticState afterRest = restPSR.state();
-        final String restCompiled = restPSR.result();
+        final StaticState afterRest = doOnRest(
+            input,
+            (s, i) -> s.advance(i, state)
+        );
 
         final Maybe<RValueExpression> key = input.__(Subscript::getKey);
-        final PSR<String> keyPSR = module.get(RValueExpressionSemantics.class)
+        final String keyCompiled = module.get(RValueExpressionSemantics.class)
             .compile(key, afterRest, acceptor);
-        final StaticState afterKey = keyPSR.state();
-        final String keyCompiled = keyPSR.result();
+        //NOT NEEDED:
+//        final StaticState afterKey =
+//            module.get(RValueExpressionSemantics.class)
+//                .advance(key, afterRest);
 
 
         if (module.get(TypeHelper.class).TEXT.isAssignableFrom(restType)) {
-            return afterKey.with("(\"\"+" + restCompiled +
-                ".charAt(" + keyCompiled + "))");
+            return "(\"\"+" + restCompiled + ".charAt(" + keyCompiled + "))";
         } else if (restType instanceof TupleType) {
             final Optional<Integer> integer = extractIntegerIfAvailable(key);
             if (integer.isPresent()) {
-                return afterKey.with(((TupleType) restType).compileGet(
+                return ((TupleType) restType).compileGet(
                     restCompiled,
                     integer.get()
-                ));
+                );
             }
         }
 
-        return afterKey.with(restCompiled + ".get(" + keyCompiled + ")");
+        return restCompiled + ".get(" + keyCompiled + ")";
     }
+
 
     private Optional<Integer> extractIntegerIfAvailable(
         Maybe<RValueExpression> key
@@ -367,44 +399,48 @@ public class SubscriptExpressionSemantics
         );
     }
 
+
     @Override
     protected boolean validateInternal(
         Maybe<Subscript> input,
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
         if (noRest(input)) {
-            return state.INVALID();
+            return INVALID;
         }
-        PSR<Boolean> restPSR = doOnRest(
+        boolean restCheck = doOnRest(
             input,
             (s, i) -> s.validate(i, state, acceptor)
         );
-        boolean restValidation = restPSR.result();
-        StaticState afterRest = restPSR.state();
 
-        if (restValidation == INVALID) {
-            return restPSR;
+        if (restCheck == INVALID) {
+            return INVALID;
         }
-
 
         IJadescriptType restType = doOnRest(
             input,
             (s, i) -> s.inferType(i, state)
         );
+        StaticState afterRest = doOnRest(
+            input,
+            (s, i) -> s.advance(i, state)
+        );
 
         final Maybe<RValueExpression> key = input.__(Subscript::getKey);
 
-        PSR<Boolean> keyPSR = module.get(RValueExpressionSemantics.class)
+        boolean keyCheck = module.get(RValueExpressionSemantics.class)
             .validate(key, afterRest, acceptor);
-        boolean keyValidation = keyPSR.result();
-        StaticState afterKey = keyPSR.state();
 
-        if (keyValidation == INVALID) {
-            return keyPSR;
+        if (keyCheck == INVALID) {
+            return INVALID;
         }
-
         IJadescriptType keyType = module.get(RValueExpressionSemantics.class)
             .inferType(key, state);
+
+        //NOT NEEDED:
+//        StaticState afterKey = module.get(RValueExpressionSemantics.class)
+//            .advance(key, afterRest);
+
 
         if (restType instanceof TupleType) {
             boolean indexTypeValidation =
@@ -417,7 +453,7 @@ public class SubscriptExpressionSemantics
                 );
 
             if (indexTypeValidation == INVALID) {
-                return afterKey.INVALID();
+                return INVALID;
             }
 
             final Optional<Integer> integer = extractIntegerIfAvailable(key);
@@ -426,11 +462,9 @@ public class SubscriptExpressionSemantics
                     integer.isPresent(),
                     "InvalidTupleIndex",
                     "Invalid index for tuples. To access a tuple element via " +
-                        "index number, only" +
-                        " index expressions whose value is trivially known at" +
-                        " " +
-                        "compile time can be used." +
-                        " Please use an integer literal constant.",
+                        "index number, only index expressions whose value is " +
+                        "trivially known at compile time can be used. Please " +
+                        "use an integer literal constant.",
                     key,
                     acceptor
                 );
@@ -448,18 +482,17 @@ public class SubscriptExpressionSemantics
                 );
             }
 
-            return afterKey.with(indexValidation);
+            return indexValidation;
 
         } else if (module.get(TypeHelper.class).TEXT
             .isAssignableFrom(restType)) {
-            return afterKey.with(module.get(ValidationHelper.class)
-                .assertExpectedType(
-                    module.get(TypeHelper.class).INTEGER,
-                    keyType,
-                    "InvalidStringSubscription",
-                    key,
-                    acceptor
-                ));
+            return module.get(ValidationHelper.class).assertExpectedType(
+                module.get(TypeHelper.class).INTEGER,
+                keyType,
+                "InvalidStringSubscription",
+                key,
+                acceptor
+            );
         } else if (restType instanceof MapType
             || restType instanceof ListType) {
             final List<? extends CallableSymbol> matchesFound =
@@ -475,32 +508,32 @@ public class SubscriptExpressionSemantics
 
             if (matchesFound.size() != 1) {
 
-                return afterKey.with(module.get(ValidationHelper.class)
-                    .emitError(
-                        "InvalidElementAccessOperation",
-                        "Cannot perform '[]' operator on values of type "
-                            + restType.getJadescriptName() + ", using values " +
-                            "of type" + keyType.getJadescriptName() +
-                            "as index.",
-                        key,
-                        acceptor
-                    ));
+                return module.get(ValidationHelper.class).emitError(
+                    "InvalidElementAccessOperation",
+                    "Cannot perform '[]' operator on values of type "
+                        + restType.getJadescriptName() + ", using values " +
+                        "of type" + keyType.getJadescriptName() +
+                        "as index.",
+                    key,
+                    acceptor
+                );
             } else {
-                return afterKey.VALID();
+                return VALID;
             }
         } else {
             //It's neither an array nor a list/map... error!
-            return afterKey.with(module.get(ValidationHelper.class).emitError(
+            return module.get(ValidationHelper.class).emitError(
                 "InvalidElementAccessOperation",
                 "[] operator cannot be used on types that are " +
                     "not list, map, or text. Type found: " +
                     restType.getJadescriptName(),
                 key,
                 acceptor
-            ));
+            );
         }
 
     }
+
 
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
@@ -510,13 +543,21 @@ public class SubscriptExpressionSemantics
         return Maybe.nothing();
     }
 
+
     @Override
     protected StaticState advanceInternal(
         Maybe<Subscript> input,
         StaticState state
     ) {
-        return state;
+        final StaticState afterRest = doOnRest(
+            input,
+            (s, i) -> s.advance(i, state)
+        );
+
+        return module.get(RValueExpressionSemantics.class)
+            .advance(input.__(Subscript::getKey), afterRest);
     }
+
 
     @Override
     protected boolean isAlwaysPureInternal(
@@ -526,10 +567,12 @@ public class SubscriptExpressionSemantics
         return subExpressionsAllAlwaysPure(input, state);
     }
 
+
     @Override
     protected boolean isValidLExprInternal(Maybe<Subscript> input) {
         return true;
     }
+
 
     @Override
     protected boolean isPatternEvaluationPureInternal(
@@ -538,6 +581,7 @@ public class SubscriptExpressionSemantics
     ) {
         return false;
     }
+
 
     @Override
     protected boolean isHoledInternal(
@@ -548,6 +592,7 @@ public class SubscriptExpressionSemantics
         return false;
     }
 
+
     @Override
     protected boolean isTypelyHoledInternal(
         Maybe<Subscript> input,
@@ -556,6 +601,7 @@ public class SubscriptExpressionSemantics
         // Subscript expressions cannot be holed by design.
         return false;
     }
+
 
     @Override
     protected boolean isUnboundInternal(
@@ -566,11 +612,13 @@ public class SubscriptExpressionSemantics
         return false;
     }
 
+
     @Override
     protected boolean canBeHoledInternal(Maybe<Subscript> input) {
         // Subscript expressions cannot be holed by design.
         return false;
     }
+
 
     @Override
     public PatternMatcher compilePatternMatchInternal(
@@ -578,16 +626,18 @@ public class SubscriptExpressionSemantics
         StaticState state,
         CompilationOutputAcceptor acceptor
     ) {
-        return state.emptyMatcher(input);
+        return input.createEmptyCompileOutput();
     }
+
 
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<Subscript> input,
+        PatternMatchInput<Subscript> input,
         StaticState state
     ) {
         return PatternType.empty(module);
     }
+
 
     @Override
     public boolean validatePatternMatchInternal(
@@ -595,7 +645,18 @@ public class SubscriptExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        return state.VALID();
+        return VALID;
     }
+
+
+    @Override
+    protected StaticState advancePatternInternal(
+        PatternMatchInput<Subscript> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
 
 }

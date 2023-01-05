@@ -9,11 +9,13 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableMap;
+import it.unipr.ailab.jadescript.semantics.utils.ImmutableMultiMap;
+import it.unipr.ailab.jadescript.semantics.utils.ImmutableSet;
 import it.unipr.ailab.maybe.Maybe;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -29,12 +31,15 @@ public class StaticState
     private final Searcheable outer;
 
     private final
-    ImmutableList<NamedSymbol> namedSymbols;
+    ImmutableMap<String, NamedSymbol> namedSymbols;
     private final
     ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds;
     private final
-    ImmutableMap<ExpressionDescriptor, ImmutableList<FlowTypingRule>>
-        rules;
+    ImmutableMap<
+        ExpressionDescriptor,
+        ImmutableMultiMap<FlowTypingRuleCondition, FlowTypingRule>
+        > rules;
+
 
     private StaticState(
         SemanticsModule module,
@@ -42,19 +47,22 @@ public class StaticState
     ) {
         this.module = module;
         this.outer = outer;
-        this.namedSymbols = new ImmutableList<>();
+        this.namedSymbols = new ImmutableMap<>();
         this.upperBounds = new ImmutableMap<>();
         this.rules = new ImmutableMap<>();
     }
 
+
     private StaticState(
         SemanticsModule module,
         Searcheable outer,
-        ImmutableList<NamedSymbol> namedSymbols,
+        ImmutableMap<String, NamedSymbol> namedSymbols,
         ImmutableMap<ExpressionDescriptor, IJadescriptType>
             upperBounds,
-        ImmutableMap<ExpressionDescriptor, ImmutableList<FlowTypingRule>>
-            rules
+        ImmutableMap<
+            ExpressionDescriptor,
+            ImmutableMultiMap<FlowTypingRuleCondition, FlowTypingRule>
+            > rules
     ) {
         this.module = module;
         this.outer = outer;
@@ -62,6 +70,7 @@ public class StaticState
         this.upperBounds = upperBounds;
         this.rules = rules;
     }
+
 
     public static StaticState beginningOfOperation(SemanticsModule module) {
         return new StaticState(
@@ -77,7 +86,7 @@ public class StaticState
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite
     ) {
-        Stream<? extends NamedSymbol> result = namedSymbols.stream();
+        Stream<? extends NamedSymbol> result = namedSymbols.streamValues();
 
         result = safeFilter(result, NamedSymbol::name, name);
         result = safeFilter(result, NamedSymbol::readingType, readingType);
@@ -86,27 +95,33 @@ public class StaticState
         return result;
     }
 
+
     public SemanticsModule getModule() {
         return module;
     }
+
 
     @Override
     public Maybe<? extends Searcheable> superSearcheable() {
         return Maybe.some(outer);
     }
 
+
     public Searcheable outerContext() {
         return outer;
     }
+
 
     @Override
     public SearchLocation currentLocation() {
         return UserLocalDefinition.getInstance();
     }
 
-    public ImmutableList<NamedSymbol> getNamedSymbols() {
+
+    public ImmutableMap<String, NamedSymbol> getNamedSymbols() {
         return namedSymbols;
     }
+
 
     public ImmutableMap<ExpressionDescriptor, IJadescriptType>
     getFlowTypingUpperBounds() {
@@ -114,11 +129,13 @@ public class StaticState
     }
 
 
-
-    public ImmutableMap<ExpressionDescriptor, ImmutableList<FlowTypingRule>>
-    getFlowTyipingRules() {
+    public ImmutableMap<
+        ExpressionDescriptor,
+        ImmutableMultiMap<FlowTypingRuleCondition, FlowTypingRule>
+        > getFlowTyipingRules() {
         return rules;
     }
+
 
     /**
      * Asserts that a certain expression (described by an
@@ -153,6 +170,14 @@ public class StaticState
     }
 
 
+    public IJadescriptType getUpperBound(
+        ExpressionDescriptor forExpression
+    ) {
+        return upperBounds.get(forExpression)
+            .orElseGet(() -> module.get(TypeHelper.class).ANY);
+    }
+
+
     @Override
     public Stream<? extends IJadescriptType> getUpperBound(
         @Nullable Predicate<ExpressionDescriptor> forExpression,
@@ -174,22 +199,25 @@ public class StaticState
         );
     }
 
+
     @Override
     public Stream<? extends FlowTypingRule> getRule(
         @Nullable Predicate<ExpressionDescriptor> forExpression,
         @Nullable Predicate<FlowTypingRule> rule
     ) {
-        final ImmutableMap<ExpressionDescriptor, ImmutableList<FlowTypingRule>>
-            rules = getFlowTyipingRules();
+        final ImmutableMap<
+            ExpressionDescriptor,
+            ImmutableMultiMap<FlowTypingRuleCondition, FlowTypingRule>
+            > rules = getFlowTyipingRules();
 
         Stream<ExpressionDescriptor> result = safeFilter(
             rules.streamKeys(),
             forExpression
         );
 
-        final Stream<FlowTypingRule> rulesList =
-            result.map(ed -> rules.get(ed).orElse(new ImmutableList<>()))
-                .flatMap(ImmutableList::stream);
+        final Stream<FlowTypingRule> rulesList = result
+            .map(ed -> rules.get(ed).orElseGet(ImmutableMultiMap::empty))
+            .flatMap(ImmutableMultiMap::streamValues);
         return safeFilter(rulesList, rule);
     }
 
@@ -202,7 +230,7 @@ public class StaticState
             this.getModule(),
             this.outerContext(),
             this.getNamedSymbols(),
-            this.getFlowTypingUpperBounds().merge(
+            this.getFlowTypingUpperBounds().mergeAdd(
                 expressionDescriptor,
                 bound,
                 module.get(TypeHelper.class)::getGLB
@@ -210,6 +238,7 @@ public class StaticState
             this.getFlowTyipingRules()
         );
     }
+
 
     public StaticState assertExpressionsEqual(
         Maybe<ExpressionDescriptor> ed1,
@@ -222,7 +251,25 @@ public class StaticState
             return this;
         }
 
+        final ExpressionDescriptor e1 = ed1.toNullable();
+        final ExpressionDescriptor e2 = ed2.toNullable();
+
+        if (e1.equals(e2)) {
+            return this;
+        }
+
+        final IJadescriptType e1Upper = getUpperBound(e1);
+        final IJadescriptType e2Upper = getUpperBound(e2);
+
+        return this.assertFlowTypingUpperBound(
+            e2,
+            e1Upper
+        ).assertFlowTypingUpperBound(
+            e1,
+            e2Upper
+        );
     }
+
 
     public StaticState pushScope() {
         return new StaticState(
@@ -231,25 +278,32 @@ public class StaticState
         );
     }
 
+
     public StaticState popScope() {
         if (outer instanceof StaticState) {
             return ((StaticState) outer);
         } else {
-            throw new RuntimeException("Tried to pop the last procedural " +
-                "scope.");
+            throw new RuntimeException(
+                "Tried to pop the last procedural scope."
+            );
         }
     }
 
 
-    public StaticState addNamedSymbol(NamedSymbol ns) {
+    public StaticState assertNamedSymbol(NamedSymbol ns) {
         return new StaticState(
             this.getModule(),
             this.outerContext(),
-            this.getNamedSymbols().add(ns),
+            this.getNamedSymbols().mergeAdd(
+                ns.name(),
+                ns,
+                (n1, __) -> n1 //Ignoring redeclarations
+            ),
             this.getFlowTypingUpperBounds(),
             this.getFlowTyipingRules()
         );
     }
+
 
     public StaticState addRule(
         ExpressionDescriptor forExpression,
@@ -261,12 +315,121 @@ public class StaticState
             this.outerContext(),
             this.getNamedSymbols(),
             this.getFlowTypingUpperBounds(),
-            this.getFlowTyipingRules().merge(
+            this.getFlowTyipingRules().mergeAdd(
                 forExpression,
-                new ImmutableList<FlowTypingRule>().add(rule),
-                ImmutableList::concat
+                ImmutableSet.of(rule).associateKey(
+                    FlowTypingRule::getRuleCondition
+                ),
+                (previousIMM, newIMM) -> previousIMM.foldMergeAllSets(
+                    newIMM,
+                    ImmutableSet::union
+                )
             )
         );
+    }
+
+
+    /**
+     * Intersect a state with another state.
+     * Useful to generate a state which is the consequence of two
+     * alternative courses of events (e.g., the two branches of a ternary
+     * operator).
+     * All common symbols/bounds with same type are kept in the resulting state.
+     * All common symbols/bounds with different type are widened to their LUB.
+     * All symbols/bounds not appearing on both input states, will be absent
+     * in the resulting state.
+     */
+    public StaticState intersect(StaticState other) {
+        return new StaticState(
+            this.getModule(),
+            this.outerContext(),
+            this.intersectSymbols(other),
+            this.intersectUpperBounds(other),
+            this.intersectRules(other)
+        );
+    }
+
+
+    private ImmutableMap<String, NamedSymbol> intersectSymbols(
+        StaticState other
+    ) {
+        ImmutableMap<String, NamedSymbol> a = this.getNamedSymbols();
+        ImmutableMap<String, NamedSymbol> b = other.getNamedSymbols();
+
+        ImmutableSet<String> keys = a.getKeys().intersection(b.getKeys());
+        return keys.associate(
+            key -> a.getUnsafe(key).intersectWith(b.getUnsafe(key), module)
+        );
+    }
+
+
+    private ImmutableMap<ExpressionDescriptor, IJadescriptType>
+    intersectUpperBounds(
+        StaticState other
+    ) {
+        ImmutableMap<ExpressionDescriptor, IJadescriptType> a =
+            this.getFlowTypingUpperBounds();
+        ImmutableMap<ExpressionDescriptor, IJadescriptType> b =
+            other.getFlowTypingUpperBounds();
+
+        ImmutableSet<ExpressionDescriptor> keys =
+            a.getKeys().intersection(b.getKeys());
+
+        final TypeHelper th = module.get(TypeHelper.class);
+        return keys.associate(
+            key -> th.getLUB(a.getUnsafe(key), b.getUnsafe(key))
+        );
+    }
+
+
+    private ImmutableMap<
+        ExpressionDescriptor,
+        ImmutableMultiMap<FlowTypingRuleCondition, FlowTypingRule>
+        > intersectRules(StaticState other) {
+
+        ImmutableMap<
+            ExpressionDescriptor,
+            ImmutableMultiMap<FlowTypingRuleCondition, FlowTypingRule>
+            > a = this.getFlowTyipingRules();
+
+        ImmutableMap<
+            ExpressionDescriptor,
+            ImmutableMultiMap<FlowTypingRuleCondition, FlowTypingRule>
+            > b = other.getFlowTyipingRules();
+
+        ImmutableSet<ExpressionDescriptor> keys =
+            a.getKeys().intersection(b.getKeys());
+
+
+        //The only rules that survive are the ones that are equal in both
+        // states.
+        return keys.associateOpt(key1 -> {
+            ImmutableMultiMap<FlowTypingRuleCondition, FlowTypingRule> aMM =
+                a.getUnsafe(key1);
+
+            ImmutableMultiMap<FlowTypingRuleCondition, FlowTypingRule> bMM =
+                b.getUnsafe(key1);
+
+            Map<FlowTypingRuleCondition, Set<FlowTypingRule>> mutResult
+                = new HashMap<>();
+
+            aMM.streamValues()
+                .filter(ftr -> bMM.containsKey(ftr.getRuleCondition()))
+                .filter(ftr -> bMM.getValues(ftr.getRuleCondition())
+                    .contains(ftr))
+                .forEach(ftr -> {
+                    mutResult.computeIfAbsent(
+                        ftr.getRuleCondition(),
+                        (__) -> new HashSet<>()
+                    ).add(ftr);
+                });
+
+            if (mutResult.isEmpty()) {
+                return Optional.empty();
+            } else {
+                return Optional.of(ImmutableMultiMap.from(mutResult));
+            }
+        });
     }
 
 

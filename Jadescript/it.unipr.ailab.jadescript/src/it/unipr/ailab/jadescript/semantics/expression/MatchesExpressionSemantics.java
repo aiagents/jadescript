@@ -25,11 +25,10 @@ import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
  * Created on 2019-08-18.
@@ -42,6 +41,7 @@ public class MatchesExpressionSemantics
     public MatchesExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
+
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
@@ -57,6 +57,7 @@ public class MatchesExpressionSemantics
         //TODO should include whole subpatterns (since they are likely
         // evaluated as expressions)?
     }
+
 
     @Override
     protected String compileInternal(
@@ -103,22 +104,36 @@ public class MatchesExpressionSemantics
         return output.operationInvocationText(compiledInputExpr);
     }
 
+
     private boolean isInHandlerWhenExpression() {
         return module.get(ContextManager.class).currentContext()
             .actAs(HandlerWhenExpressionContext.class)
             .findFirst().isPresent();
     }
 
+
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<Matches> input,
         StaticState state
     ) {
-        //TODO how to uniquely represent a matches expression?
-        //  -> MatchesDescriptor(inputExpr, patternDescriptor)
-        return Collections.emptyList();
+
+        final Maybe<UnaryPrefix> inputExpr = input.__(Matches::getUnaryExpr);
+        final Maybe<LValueExpression> pattern = input.__(Matches::getPattern)
+            .__(i -> (LValueExpression) i);
+        final Maybe<ExpressionDescriptor> inputExprDesc =
+            module.get(UnaryPrefixExpressionSemantics.class)
+                .describeExpression(inputExpr, state);
+        if (inputExprDesc.isPresent()) {
+            return some(new ExpressionDescriptor.MatchesDescriptor(
+                inputExprDesc.toNullable(),
+                pattern
+            ));
+        }
+        return nothing();
 
     }
+
 
     @Override
     protected StaticState advanceInternal(
@@ -140,6 +155,7 @@ public class MatchesExpressionSemantics
         }
     }
 
+
     @Override
     protected StaticState advancePatternInternal(
         PatternMatchInput<Matches> input,
@@ -147,6 +163,7 @@ public class MatchesExpressionSemantics
     ) {
         return state;
     }
+
 
     private StaticState advanceCommon(
         Maybe<Matches> input,
@@ -168,21 +185,21 @@ public class MatchesExpressionSemantics
         final IJadescriptType inputExprType = upes.inferType(inputExpr, state);
 
         StaticState result;
+        final PatternMatchHelper patternMatchHelper = module.get(
+            PatternMatchHelper.class);
         if (handlerHeaderContext.isPresent()) {
             //We are in a handler header, probably in a when-expression
-            result = module.get(PatternMatchHelper.class)
-                .advanceHeaderPatternMatching(
-                    inputExprType,
-                    pattern,
-                    afterLeft
-                );
+            result = patternMatchHelper.advanceHeaderPatternMatching(
+                inputExprType,
+                pattern,
+                afterLeft
+            );
         } else {
-            result = module.get(PatternMatchHelper.class)
-                .advanceMatchesExpressionPatternMatching(
-                    inputExprType,
-                    pattern,
-                    afterLeft
-                );
+            result = patternMatchHelper.advanceMatchesExpressionPatternMatching(
+                inputExprType,
+                pattern,
+                afterLeft
+            );
         }
 
         if (addTypeCheckRule) {
@@ -192,15 +209,23 @@ public class MatchesExpressionSemantics
                 describeExpression(input, state);
             if (overallDescriptor.isPresent()
                 && inputExprDescriptor.isPresent()) {
-                final IJadescriptType solvedPatternType =
-                    module.get(LValueExpressionSemantics.class)
-                        .inferPatternType(
-                            pattern,
-                            handlerHeaderContext.isPresent()
-                                ? PatternMatchInput.HandlerHeader.MODE
-                                : PatternMatchInput.MatchesExpression.MODE,
+
+                final IJadescriptType solvedPatternType;
+                if (handlerHeaderContext.isPresent()) {
+                    solvedPatternType = patternMatchHelper
+                        .inferHandlerHeaderPatternType(
+                            inputExprType, pattern,
                             afterLeft
-                        ).solve(inputExprType);
+                        );
+                } else {
+                    solvedPatternType = patternMatchHelper
+                        .inferMatchesExpressionPatternType(
+                            inputExprType,
+                            pattern,
+                            afterLeft
+                        );
+
+                }
 
                 result = result.addRule(
                     overallDescriptor.toNullable(),
@@ -227,6 +252,7 @@ public class MatchesExpressionSemantics
         return module.get(TypeHelper.class).BOOLEAN;
     }
 
+
     @Override
     protected boolean mustTraverse(Maybe<Matches> input) {
         final Maybe<Pattern> pattern = input.__(Matches::getPattern);
@@ -234,6 +260,7 @@ public class MatchesExpressionSemantics
             input.__(Matches::isMatches).extract(nullAsFalse);
         return !isMatches || pattern.isNothing();
     }
+
 
     @Override
     protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
@@ -245,6 +272,7 @@ public class MatchesExpressionSemantics
         ));
     }
 
+
     @Override
     protected boolean isPatternEvaluationPureInternal(
         PatternMatchInput<Matches> input,
@@ -253,6 +281,7 @@ public class MatchesExpressionSemantics
         // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
         return true;
     }
+
 
     @Override
     protected boolean validateInternal(
@@ -313,14 +342,16 @@ public class MatchesExpressionSemantics
         return input.createEmptyCompileOutput();
     }
 
+
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<Matches> input,
+        PatternMatchInput<Matches> input,
         StaticState state
     ) {
         // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
         return PatternType.empty(module);
     }
+
 
     @Override
     public boolean validatePatternMatchInternal(
@@ -384,16 +415,19 @@ public class MatchesExpressionSemantics
             .isPatternEvaluationPure(pmi, afterInputExpr);
     }
 
+
     @Override
     protected boolean isValidLExprInternal(Maybe<Matches> input) {
         return false;
     }
+
 
     @Override
     protected boolean isHoledInternal(Maybe<Matches> input, StaticState state) {
         // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
         return false;
     }
+
 
     @Override
     protected boolean isTypelyHoledInternal(
@@ -404,6 +438,7 @@ public class MatchesExpressionSemantics
         return false;
     }
 
+
     @Override
     protected boolean isUnboundInternal(
         Maybe<Matches> input,
@@ -413,9 +448,11 @@ public class MatchesExpressionSemantics
         return false;
     }
 
+
     @Override
     protected boolean canBeHoledInternal(Maybe<Matches> input) {
         // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
         return false;
     }
+
 }

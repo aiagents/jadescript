@@ -1,7 +1,10 @@
 package it.unipr.ailab.jadescript.semantics.context.staticstate;
 
+import it.unipr.ailab.jadescript.jadescript.LValueExpression;
+import it.unipr.ailab.jadescript.jadescript.Pattern;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
+import it.unipr.ailab.maybe.Maybe;
 
 import java.util.List;
 import java.util.Objects;
@@ -110,6 +113,56 @@ public interface ExpressionDescriptor {
                 : 0);
             return result;
         }
+    }
+
+    public static class MatchesDescriptor implements ExpressionDescriptor {
+        private final ExpressionDescriptor expressionChecked;
+        private final Maybe<LValueExpression> pattern;
+
+
+        public MatchesDescriptor(
+            ExpressionDescriptor expressionChecked,
+            Maybe<LValueExpression> pattern
+        ) {
+            this.expressionChecked = expressionChecked;
+            this.pattern = pattern;
+        }
+
+
+        public ExpressionDescriptor getExpressionChecked() {
+            return expressionChecked;
+        }
+
+
+        public Maybe<LValueExpression> getPattern() {
+            return pattern;
+        }
+
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof MatchesDescriptor)) return false;
+
+            MatchesDescriptor that = (MatchesDescriptor) o;
+
+            if (getExpressionChecked() != null
+                ? !getExpressionChecked().equals(that.getExpressionChecked())
+                : that.getExpressionChecked() != null)
+                return false;
+            return getPattern().equals(that.getPattern());
+        }
+
+
+        @Override
+        public int hashCode() {
+            int result = getExpressionChecked() != null
+                ? getExpressionChecked().hashCode()
+                : 0;
+            result = 31 * result + getPattern().hashCode();
+            return result;
+        }
+
     }
 
 

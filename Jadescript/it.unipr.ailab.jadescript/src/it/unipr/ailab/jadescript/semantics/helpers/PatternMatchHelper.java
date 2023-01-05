@@ -2,11 +2,9 @@ package it.unipr.ailab.jadescript.semantics.helpers;
 
 import it.unipr.ailab.jadescript.jadescript.LValueExpression;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.jadescript.UnaryPrefix;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.UnaryPrefixExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.MatchesExpression;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -37,13 +35,16 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class PatternMatchHelper implements SemanticsConsts {
+
     public static WriterFactory w = WriterFactory.getInstance();
 
     private final SemanticsModule module;
 
+
     public PatternMatchHelper(SemanticsModule module) {
         this.module = module;
     }
+
 
     /**
      * Converts a list of {@link LocalClassStatementWriter} into a list of
@@ -82,27 +83,32 @@ public class PatternMatchHelper implements SemanticsConsts {
                         if (member instanceof ClassDeclarationWriter.ConstructorWriter) {
                             ClassDeclarationWriter.ConstructorWriter ctor =
                                 (ClassDeclarationWriter.ConstructorWriter) member;
-                            itClass.getMembers().add(jvmTypesBuilder.toConstructor(eobj, itCtor -> {
-                                itCtor.setVisibility(convertToJvm(member.getVisibility()));
-                                for (ParameterWriter parameter :
-                                    ctor.getParameters()) {
-                                    JvmFormalParameter param =
-                                        jvmTypesBuilder.toParameter(
-                                            eobj,
-                                            parameter.getName(),
-                                            typeHelper.typeRef(parameter.getType())
-                                        );
-                                    itCtor.getParameters().add(param);
+                            itClass.getMembers().add(jvmTypesBuilder.toConstructor(
+                                eobj,
+                                itCtor -> {
+                                    itCtor.setVisibility(convertToJvm(member.getVisibility()));
+                                    for (ParameterWriter parameter :
+                                        ctor.getParameters()) {
+                                        JvmFormalParameter param =
+                                            jvmTypesBuilder.toParameter(
+                                                eobj,
+                                                parameter.getName(),
+                                                typeHelper.typeRef(parameter.getType())
+                                            );
+                                        itCtor.getParameters().add(param);
+                                    }
+                                    compilationHelper.createAndSetBody(
+                                        itCtor,
+                                        ctor.getBody()::writeSonnet
+                                    );
                                 }
-                                compilationHelper.createAndSetBody(
-                                    itCtor,
-                                    ctor.getBody()::writeSonnet
-                                );
-                            }));
+                            ));
                         } else if (member instanceof FieldWriter) {
                             FieldWriter field = (FieldWriter) member;
-                            itClass.getMembers().add(jvmTypesBuilder.toField(eobj
-                                , field.getName(),
+                            itClass.getMembers().add(jvmTypesBuilder.toField(
+                                eobj
+                                ,
+                                field.getName(),
                                 typeHelper.typeRef(field.getType()),
                                 itField -> {
                                     itField.setVisibility(convertToJvm(member.getVisibility()));
@@ -120,7 +126,8 @@ public class PatternMatchHelper implements SemanticsConsts {
                                 jvmTypesBuilder.toMethod(eobj, method.getName(),
                                     typeHelper.typeRef(method.getReturnType()),
                                     itMethod -> {
-                                        itMethod.setVisibility(convertToJvm(member.getVisibility()));
+                                        itMethod.setVisibility(convertToJvm(
+                                            member.getVisibility()));
                                         for (ParameterWriter parameter :
                                             method.getParameters()) {
                                             JvmFormalParameter param =
@@ -142,6 +149,7 @@ public class PatternMatchHelper implements SemanticsConsts {
                 }
             )).collect(Collectors.toList());
     }
+
 
     public static List<JvmField> getPatternMatcherFieldDeclarations(
         List<BlockWriterElement> auxiliaryStatements,
@@ -176,6 +184,7 @@ public class PatternMatchHelper implements SemanticsConsts {
             }).collect(Collectors.toList());
     }
 
+
     private static JvmVisibility convertToJvm(Visibility visibility) {
         switch (visibility) {
             case PUBLIC:
@@ -189,6 +198,7 @@ public class PatternMatchHelper implements SemanticsConsts {
                 return JvmVisibility.DEFAULT;
         }
     }
+
 
     public PatternMatcher compileWhenMatchesStatementPatternMatching(
         Maybe<RValueExpression> inputExpr,
@@ -224,6 +234,7 @@ public class PatternMatchHelper implements SemanticsConsts {
         return output;
     }
 
+
     public PatternMatcher compileMatchesExpressionPatternMatching(
         IJadescriptType inputExprType,
         Maybe<LValueExpression> pattern,
@@ -257,6 +268,7 @@ public class PatternMatchHelper implements SemanticsConsts {
             + localClassName + "()")));
         return output;
     }
+
 
     public PatternMatcher compileHeaderPatternMatching(
         IJadescriptType contentUpperBound,
@@ -295,6 +307,7 @@ public class PatternMatchHelper implements SemanticsConsts {
         return output;
     }
 
+
     public StaticState advanceMatchesExpressionPatternMatching(
         IJadescriptType inputExprType,
         Maybe<LValueExpression> pattern,
@@ -316,6 +329,7 @@ public class PatternMatchHelper implements SemanticsConsts {
             state
         );
     }
+
 
     public StaticState advanceHeaderPatternMatching(
         IJadescriptType contentUpperBound,
@@ -341,6 +355,7 @@ public class PatternMatchHelper implements SemanticsConsts {
         );
     }
 
+
     public boolean
     validateWhenMatchesStatementPatternMatching(
         Maybe<RValueExpression> inputExpr,
@@ -365,6 +380,7 @@ public class PatternMatchHelper implements SemanticsConsts {
             acceptor
         );
     }
+
 
     public boolean validateMatchesExpressionPatternMatching(
         IJadescriptType inputExprType,
@@ -393,6 +409,7 @@ public class PatternMatchHelper implements SemanticsConsts {
         );
     }
 
+
     public boolean
     validateHeaderPatternMatching(
         IJadescriptType contentUpperBound,
@@ -420,23 +437,48 @@ public class PatternMatchHelper implements SemanticsConsts {
         );
     }
 
+
     public IJadescriptType inferMatchesExpressionPatternType(
+        IJadescriptType inputExprType,
         Maybe<LValueExpression> pattern,
-        Maybe<UnaryPrefix> unary
+        StaticState state
     ) {
-        return module.get(LValueExpressionSemantics.class).inferPatternType(
-            pattern,
-            PatternMatchInput.MatchesExpression.MODE,
-            ).solve(module.get(UnaryPrefixExpressionSemantics.class).inferType(unary, ));
+        String localClassName =
+            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
+        final String variableName = localClassName + "_obj";
+        final MatchesExpression<LValueExpression> patternMatchInput =
+            new MatchesExpression<>(
+                module,
+                inputExprType,
+                pattern,
+                "__",
+                variableName
+            );
+        return module.get(LValueExpressionSemantics.class)
+            .inferPatternType(patternMatchInput, state)
+            .solve(inputExprType);
     }
 
+
     public IJadescriptType inferHandlerHeaderPatternType(
-        Maybe<LValueExpression> pattern,
-        IJadescriptType contentUpperBound
+        IJadescriptType contentUpperBound, Maybe<LValueExpression> pattern,
+        StaticState state
     ) {
-        return module.get(LValueExpressionSemantics.class).inferPatternType(
-            pattern,
-            PatternMatchInput.HandlerHeader.MODE,
-            ).solve(contentUpperBound);
+        String localClassName = "__PatternMatcher" +
+            Util.extractEObject(pattern).hashCode();
+        final String variableName = localClassName + "_obj";
+        PatternMatchInput.HandlerHeader<LValueExpression> patternMatchInput =
+            new PatternMatchInput.HandlerHeader<>(
+                module,
+                contentUpperBound,
+                pattern,
+                "__",
+                variableName
+            );
+
+        return module.get(LValueExpressionSemantics.class)
+            .inferPatternType(patternMatchInput, state)
+            .solve(contentUpperBound);
     }
+
 }

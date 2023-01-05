@@ -887,7 +887,8 @@ public class OntologyElementSemantics extends Semantics {
                                 if (i < superDestTypes.size()) {
                                     nullable = superDestTypes.get(i);
                                 }
-                                String lambdaCompiled = module.get(CompilationHelper.class)
+                                String lambdaCompiled =
+                                    module.get(CompilationHelper.class)
                                         .compileRValueAsLambdaSupplier(
                                                 superArgument,
                                                 nullable

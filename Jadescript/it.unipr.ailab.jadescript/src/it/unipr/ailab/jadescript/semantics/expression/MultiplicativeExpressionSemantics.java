@@ -518,7 +518,7 @@ public class MultiplicativeExpressionSemantics
 
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<Multiplicative> input,
+        PatternMatchInput<Multiplicative> input,
         StaticState state
     ) {
         return PatternType.empty(module);

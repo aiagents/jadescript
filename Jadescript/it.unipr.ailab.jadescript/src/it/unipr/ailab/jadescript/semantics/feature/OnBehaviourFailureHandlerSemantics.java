@@ -237,7 +237,7 @@ public class OnBehaviourFailureHandlerSemantics
                 .searchAs(
                         NamedSymbol.Searcher.class,
                         s -> s.searchName((Predicate<String>) null, null, null)
-                                .filter(ne -> ne instanceof PatternMatchAutoDeclaredVariable)
+                                .filter(ne -> ne instanceof PatternMatchUnifiedVariable)
                 ).collect(Collectors.toList());
 
         module.get(ContextManager.class).exit();

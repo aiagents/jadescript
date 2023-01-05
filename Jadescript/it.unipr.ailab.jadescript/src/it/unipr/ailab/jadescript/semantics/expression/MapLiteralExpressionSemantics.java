@@ -35,12 +35,13 @@ import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
 public class MapLiteralExpressionSemantics
-    extends ExpressionSemantics<MapOrSetLiteral> {
+    extends AssignableExpressionSemantics<MapOrSetLiteral> {
 
     //TODO pipe operator
     public MapLiteralExpressionSemantics(SemanticsModule module) {
         super(module);
     }
+
 
     private static String PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE(
         String keyOrValue
@@ -53,6 +54,7 @@ public class MapLiteralExpressionSemantics
             "s by adding 'of TYPE' after the closing curly bracket, or make " +
             "sure that the input is narrowed to a valid map type.";
     }
+
 
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<MapOrSetLiteral> input
@@ -81,6 +83,7 @@ public class MapLiteralExpressionSemantics
                 ))
         );
     }
+
 
     @Override
     protected String compileInternal(
@@ -136,6 +139,7 @@ public class MapLiteralExpressionSemantics
             + "))";
     }
 
+
     @Override
     protected IJadescriptType inferTypeInternal(
         Maybe<MapOrSetLiteral> input,
@@ -190,6 +194,7 @@ public class MapLiteralExpressionSemantics
             lubValues
         ));
     }
+
 
     @Override
     protected boolean validateInternal(
@@ -333,6 +338,7 @@ public class MapLiteralExpressionSemantics
         return VALID;
     }
 
+
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<MapOrSetLiteral> input,
@@ -340,6 +346,7 @@ public class MapLiteralExpressionSemantics
     ) {
         return Maybe.nothing();
     }
+
 
     @Override
     protected StaticState advanceInternal(
@@ -361,17 +368,19 @@ public class MapLiteralExpressionSemantics
         return newState;
     }
 
+
     @Override
     protected boolean mustTraverse(Maybe<MapOrSetLiteral> input) {
         return false;
     }
 
+
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
-        Maybe<MapOrSetLiteral> input
-    ) {
+    protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
+    traverse(Maybe<MapOrSetLiteral> input) {
         return Optional.empty();
     }
+
 
     @Override
     protected boolean isPatternEvaluationPureInternal(
@@ -380,6 +389,7 @@ public class MapLiteralExpressionSemantics
     ) {
         return subPatternEvaluationsAllPure(input, state);
     }
+
 
     @Override
     protected boolean isHoledInternal(
@@ -406,6 +416,7 @@ public class MapLiteralExpressionSemantics
 
         return isWithPipe && rest.isPresent() && rves.isHoled(rest, newState);
     }
+
 
     @Override
     protected boolean isTypelyHoledInternal(
@@ -445,6 +456,7 @@ public class MapLiteralExpressionSemantics
         }
     }
 
+
     @Override
     protected boolean isUnboundInternal(
         Maybe<MapOrSetLiteral> input,
@@ -473,6 +485,7 @@ public class MapLiteralExpressionSemantics
             && rves.isUnbound(rest, newState);
     }
 
+
     @Override
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<MapOrSetLiteral> input,
@@ -488,11 +501,7 @@ public class MapLiteralExpressionSemantics
         final List<Maybe<RValueExpression>> values =
             toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
         int prePipeElementCount = Math.min(keys.size(), values.size());
-        PatternType patternType = inferPatternType(
-            input.getPattern(),
-            input.getMode(),
-            state
-        );
+        PatternType patternType = inferPatternType(input, state);
         IJadescriptType solvedPatternType =
             patternType.solve(input.getProvidedInputType());
 
@@ -642,36 +651,38 @@ public class MapLiteralExpressionSemantics
         }
     }
 
+
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<MapOrSetLiteral> input,
+        PatternMatchInput<MapOrSetLiteral> input,
         StaticState state
     ) {
-        if (isTypelyHoled(input, state)) {
-            //TODO treat the two type parameters separately?
-            return PatternType.holed(inputType -> {
-                final TypeHelper typeHelper = module.get(TypeHelper.class);
-                if (inputType instanceof MapType) {
-                    final IJadescriptType keyType =
-                        ((MapType) inputType).getKeyType();
-                    final IJadescriptType valType =
-                        ((MapType) inputType).getValueType();
-                    return typeHelper.MAP.apply(List.of(keyType, valType));
-                } else {
-                    return typeHelper.MAP.apply(List.of(
-                        typeHelper.TOP.apply(
-                            PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("key")
-                        ),
-                        typeHelper.TOP.apply(
-                            PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
-                        )
-                    ));
-                }
-            });
-        } else {
-            return PatternType.simple(inferType(input, state));
+        if (!isTypelyHoled(input.getPattern(), state)) {
+            return PatternType.simple(inferType(input.getPattern(), state));
         }
+
+        //TODO treat the two type parameters separately
+        return PatternType.holed(inputType -> {
+            final TypeHelper typeHelper = module.get(TypeHelper.class);
+            if (inputType instanceof MapType) {
+                final IJadescriptType keyType =
+                    ((MapType) inputType).getKeyType();
+                final IJadescriptType valType =
+                    ((MapType) inputType).getValueType();
+                return typeHelper.MAP.apply(List.of(keyType, valType));
+            } else {
+                return typeHelper.MAP.apply(List.of(
+                    typeHelper.TOP.apply(
+                        PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("key")
+                    ),
+                    typeHelper.TOP.apply(
+                        PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
+                    )
+                ));
+            }
+        });
     }
+
 
     @Override
     public boolean validatePatternMatchInternal(
@@ -687,11 +698,7 @@ public class MapLiteralExpressionSemantics
         final List<Maybe<RValueExpression>> values =
             toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
         int prePipeElementCount = Math.min(keys.size(), values.size());
-        PatternType patternType = inferPatternType(
-            input.getPattern(),
-            input.getMode(),
-            state
-        );
+        PatternType patternType = inferPatternType(input, state);
         IJadescriptType solvedPatternType =
             patternType.solve(input.getProvidedInputType());
 
@@ -789,11 +796,7 @@ public class MapLiteralExpressionSemantics
         final List<Maybe<RValueExpression>> values =
             toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
         int prePipeElementCount = Math.min(keys.size(), values.size());
-        PatternType patternType = inferPatternType(
-            input.getPattern(),
-            input.getMode(),
-            state
-        );
+        PatternType patternType = inferPatternType(input, state);
         IJadescriptType solvedPatternType =
             patternType.solve(input.getProvidedInputType());
 
@@ -842,6 +845,7 @@ public class MapLiteralExpressionSemantics
 
         return newState;
     }
+
 
     private boolean syntaxValidation(
         Maybe<MapOrSetLiteral> input,
@@ -892,9 +896,11 @@ public class MapLiteralExpressionSemantics
         return typeCount && valuesCount;
     }
 
+
     public boolean isMap(Maybe<MapOrSetLiteral> input) {
         return isMapT(input) || isMapV(input);
     }
+
 
     /**
      * When true, the input is a map because the literal type specification
@@ -906,6 +912,7 @@ public class MapLiteralExpressionSemantics
         return input.__(MapOrSetLiteral::isIsMapT).extract(nullAsFalse)
             || input.__(MapOrSetLiteral::getValueTypeParameter).isPresent();
     }
+
 
     /**
      * When true, the input is a map because at least one of the 'things'
@@ -925,15 +932,59 @@ public class MapLiteralExpressionSemantics
         return subExpressionsAllAlwaysPure(input, state);
     }
 
+
     @Override
     protected boolean isValidLExprInternal(Maybe<MapOrSetLiteral> input) {
         return false;
     }
+
 
     @Override
     protected boolean canBeHoledInternal(Maybe<MapOrSetLiteral> input) {
         return true;
     }
 
+
+    @Override
+    protected void compileAssignmentInternal(
+        Maybe<MapOrSetLiteral> input,
+        String compiledExpression,
+        IJadescriptType exprType,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
+    ) {
+
+    }
+
+
+    @Override
+    protected StaticState advanceAssignmentInternal(
+        Maybe<MapOrSetLiteral> input,
+        IJadescriptType rightType,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    public boolean validateAssignmentInternal(
+        Maybe<MapOrSetLiteral> input,
+        Maybe<RValueExpression> expression,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return errorNotLvalue(input, acceptor);
+    }
+
+
+    @Override
+    public boolean syntacticValidateLValueInternal(
+        Maybe<MapOrSetLiteral> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return errorNotLvalue(input, acceptor);
+
+    }
 
 }

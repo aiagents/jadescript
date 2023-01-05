@@ -20,6 +20,7 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -28,6 +29,9 @@ import java.util.stream.Stream;
 /**
  * Created on 28/12/16.
  */
+
+//TODO correct state advancement semantics: not 'then' but
+// 'fork-alternatives-merge'
 @Singleton
 public class LogicalOrExpressionSemantics
     extends ExpressionSemantics<LogicalOr> {
@@ -36,6 +40,7 @@ public class LogicalOrExpressionSemantics
     public LogicalOrExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
+
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
@@ -49,6 +54,7 @@ public class LogicalOrExpressionSemantics
                 x
             ));
     }
+
 
     @Override
     protected String compileInternal(
@@ -91,29 +97,30 @@ public class LogicalOrExpressionSemantics
         return result.toString();
     }
 
+
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<LogicalOr> input,
         StaticState state
     ) {
-        ImmutableList<ExpressionDescriptor> operands = new ImmutableList<>();
 
         List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(
             input.__(LogicalOr::getLogicalAnd)
         );
+        List<ExpressionDescriptor> operands = new ArrayList<>(ands.size());
 
         final LogicalAndExpressionSemantics laes =
             module.get(LogicalAndExpressionSemantics.class);
 
-        StaticState newState = state;
+
         for (Maybe<LogicalAnd> and : ands) {
             Maybe<ExpressionDescriptor> thisExpr =
-                laes.describeExpression(and, newState);
+                laes.describeExpression(and, state);
 
-            newState = laes.advance(and, newState);
+//            newState = laes.advance(and, newState);
 
             if (thisExpr.isPresent()) {
-                operands = operands.add(thisExpr.toNullable());
+                operands.add(thisExpr.toNullable());
                 //TODO this does not assert, but proposes an alternative
 //                 newState = newState.assertEvaluation(
 //                    thisExpr.toNullable(),
@@ -125,9 +132,10 @@ public class LogicalOrExpressionSemantics
             return Maybe.nothing();
         }
         return Maybe.some(new ExpressionDescriptor.OrExpression(
-            operands
+            ImmutableList.from(operands)
         ));
     }
+
 
     @Override
     protected StaticState advanceInternal(
@@ -137,6 +145,7 @@ public class LogicalOrExpressionSemantics
         return subExpressionsAdvanceAll(input, state);
     }
 
+
     @Override
     protected StaticState advancePatternInternal(
         PatternMatchInput<LogicalOr> input,
@@ -144,6 +153,7 @@ public class LogicalOrExpressionSemantics
     ) {
         return state;
     }
+
 
     @Override
     protected IJadescriptType inferTypeInternal(
@@ -162,6 +172,7 @@ public class LogicalOrExpressionSemantics
         return ands.size() == 1;
     }
 
+
     @Override
     protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
         Maybe<LogicalOr> input
@@ -176,6 +187,7 @@ public class LogicalOrExpressionSemantics
         return Optional.empty();
     }
 
+
     @Override
     protected boolean isPatternEvaluationPureInternal(
         PatternMatchInput<LogicalOr> input,
@@ -183,6 +195,7 @@ public class LogicalOrExpressionSemantics
     ) {
         return true;
     }
+
 
     @Override
     protected boolean validateInternal(
@@ -220,6 +233,7 @@ public class LogicalOrExpressionSemantics
 
     }
 
+
     @Override
     public PatternMatcher
     compilePatternMatchInternal(
@@ -230,13 +244,15 @@ public class LogicalOrExpressionSemantics
         return input.createEmptyCompileOutput();
     }
 
+
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<LogicalOr> input,
+        PatternMatchInput<LogicalOr> input,
         StaticState state
     ) {
         return PatternType.empty(module);
     }
+
 
     @Override
     public boolean validatePatternMatchInternal(
@@ -255,10 +271,12 @@ public class LogicalOrExpressionSemantics
         return subExpressionsAllAlwaysPure(input, state);
     }
 
+
     @Override
     protected boolean isValidLExprInternal(Maybe<LogicalOr> input) {
         return false;
     }
+
 
     @Override
     protected boolean isHoledInternal(
@@ -268,6 +286,7 @@ public class LogicalOrExpressionSemantics
         return false;
     }
 
+
     @Override
     protected boolean isTypelyHoledInternal(
         Maybe<LogicalOr> input,
@@ -276,6 +295,7 @@ public class LogicalOrExpressionSemantics
         return false;
     }
 
+
     @Override
     protected boolean isUnboundInternal(
         Maybe<LogicalOr> input,
@@ -283,6 +303,7 @@ public class LogicalOrExpressionSemantics
     ) {
         return false;
     }
+
 
     @Override
     protected boolean canBeHoledInternal(Maybe<LogicalOr> input) {

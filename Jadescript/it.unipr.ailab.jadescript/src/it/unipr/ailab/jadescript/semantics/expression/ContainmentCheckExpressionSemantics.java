@@ -43,6 +43,7 @@ public class ContainmentCheckExpressionSemantics
         super(semanticsModule);
     }
 
+
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<ContainmentCheck> input
@@ -66,6 +67,7 @@ public class ContainmentCheckExpressionSemantics
         return Maybe.nothing();
     }
 
+
     @Override
     protected StaticState advanceInternal(
         Maybe<ContainmentCheck> input,
@@ -84,6 +86,7 @@ public class ContainmentCheckExpressionSemantics
             .advance(element, afterCollection);
     }
 
+
     @Override
     protected StaticState advancePatternInternal(
         PatternMatchInput<ContainmentCheck> input,
@@ -91,6 +94,7 @@ public class ContainmentCheckExpressionSemantics
     ) {
         return state;
     }
+
 
     @Override
     protected boolean isAlwaysPureInternal(
@@ -100,10 +104,12 @@ public class ContainmentCheckExpressionSemantics
         return subExpressionsAllAlwaysPure(input, state);
     }
 
+
     @Override
     protected boolean isValidLExprInternal(Maybe<ContainmentCheck> input) {
         return false;
     }
+
 
     @Override
     protected String compileInternal(
@@ -195,6 +201,7 @@ public class ContainmentCheckExpressionSemantics
 
     }
 
+
     @Override
     protected IJadescriptType inferTypeInternal(
         Maybe<ContainmentCheck> input
@@ -203,11 +210,13 @@ public class ContainmentCheckExpressionSemantics
         return module.get(TypeHelper.class).BOOLEAN;
     }
 
+
     @Override
     protected boolean mustTraverse(Maybe<ContainmentCheck> input) {
         return input.__(ContainmentCheck::isContains).__(not)
             .extract(Maybe.nullAsFalse);
     }
+
 
     @Override
     protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
@@ -223,6 +232,7 @@ public class ContainmentCheckExpressionSemantics
         }
     }
 
+
     @Override
     protected boolean isPatternEvaluationPureInternal(
         PatternMatchInput<ContainmentCheck> input,
@@ -231,6 +241,7 @@ public class ContainmentCheckExpressionSemantics
         // CANNOT BE HOLED
         return true;
     }
+
 
     @Override
     protected boolean isHoledInternal(
@@ -241,6 +252,7 @@ public class ContainmentCheckExpressionSemantics
         return false;
     }
 
+
     @Override
     protected boolean isTypelyHoledInternal(
         Maybe<ContainmentCheck> input,
@@ -250,6 +262,7 @@ public class ContainmentCheckExpressionSemantics
         return false;
     }
 
+
     @Override
     protected boolean isUnboundInternal(
         Maybe<ContainmentCheck> input,
@@ -258,6 +271,7 @@ public class ContainmentCheckExpressionSemantics
         // CANNOT BE HOLED
         return false;
     }
+
 
     @Override
     protected boolean canBeHoledInternal(Maybe<ContainmentCheck> input) {
@@ -276,9 +290,10 @@ public class ContainmentCheckExpressionSemantics
         return input.createEmptyCompileOutput();
     }
 
+
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<ContainmentCheck> input
+        PatternMatchInput<ContainmentCheck> input
         , StaticState state
     ) {
         return PatternType.empty(module);

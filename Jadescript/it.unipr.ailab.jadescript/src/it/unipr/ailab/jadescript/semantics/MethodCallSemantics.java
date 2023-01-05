@@ -992,11 +992,8 @@ public class MethodCallSemantics
                 );
             }
 
-            IJadescriptType solvedPatternType = inferPatternType(
-                input.getPattern(),
-                input.getMode(),
-                state
-            ).solve(input.getProvidedInputType());
+            IJadescriptType solvedPatternType = inferPatternType(input, state)
+                .solve(input.getProvidedInputType());
 
             List<String> compiledSubInputs =
                 new ArrayList<>(m.parameterNames().size());
@@ -1071,11 +1068,11 @@ public class MethodCallSemantics
 
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<MethodCall> input,
+        PatternMatchInput<MethodCall> input,
         StaticState state
     ) {
         final Maybe<? extends CallableSymbol> method = resolve(
-            input,
+            input.getPattern(),
             state,
             false
         );
@@ -1185,10 +1182,10 @@ public class MethodCallSemantics
                 IJadescriptType upperBound = patternTermTypes.get(i);
                 final SubPattern<RValueExpression, MethodCall> termSubPattern =
                     input.subPattern(
-                    upperBound,
-                    __ -> term.toNullable(),
-                    "_" + i
-                );
+                        upperBound,
+                        __ -> term.toNullable(),
+                        "_" + i
+                    );
                 boolean argCheck = rves.validatePatternMatch(
                     termSubPattern,
                     runningState,
@@ -1204,7 +1201,6 @@ public class MethodCallSemantics
             return allArgsCheck;
         }
     }
-
 
 
     public List<? extends CallableSymbol> resolveCandidates(

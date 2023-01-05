@@ -34,6 +34,7 @@ public class AtomWithTrailersExpressionSemantics
         return true;
     }
 
+
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
     traverse(
@@ -49,6 +50,7 @@ public class AtomWithTrailersExpressionSemantics
     ) {
         return buildChain(input).resolveChain();
     }
+
 
     private ReversedTrailerChain buildChain(Maybe<AtomExpr> input) {
         ReversedTrailerChain chain = new ReversedTrailerChain(module);
@@ -75,4 +77,5 @@ public class AtomWithTrailersExpressionSemantics
         }
         return chain;
     }
+
 }

@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.jvmmodel.JadescriptCompilerUtils;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
@@ -36,6 +37,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 import org.eclipse.xtext.xbase.typesystem.references.LightweightTypeReference;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -242,9 +244,10 @@ public class CompilationHelper implements IQualifiedNameProvider {
      * @param expr
      */
     public String compileRValueAsLambdaSupplier(
-        Maybe<RValueExpression> expr
+        Maybe<RValueExpression> expr,
+        StaticState beforExpr
     ) {
-        return compileRValueAsLambdaSupplier(expr, null);
+        return compileRValueAsLambdaSupplier(expr, beforExpr, null);
     }
 
     /**
@@ -264,17 +267,21 @@ public class CompilationHelper implements IQualifiedNameProvider {
      */
     public String compileRValueAsLambdaSupplier(
         Maybe<RValueExpression> expr,
-        IJadescriptType destinationType
+        StaticState beforeExpr,
+        @Nullable IJadescriptType destinationType
     ) {
         final LambdaWithBlockWriter lambda = w.blockLambda();
         final IJadescriptType type;
         final String returnExpr;
 
-        final IJadescriptType startType =
-            module.get(RValueExpressionSemantics.class).inferType(expr, );
-        final String compiled =
-            module.get(RValueExpressionSemantics.class).compile(expr, ,
-                lambda.getBody()::add);
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        final IJadescriptType startType = rves.inferType(expr, beforeExpr);
+        final String compiled = rves.compile(
+            expr,
+            beforeExpr,
+            lambda.getBody()::add
+        );
 
         if (destinationType == null) {
             returnExpr = compiled;

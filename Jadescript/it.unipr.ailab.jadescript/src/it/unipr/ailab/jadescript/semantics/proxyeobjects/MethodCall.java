@@ -43,11 +43,11 @@ public class MethodCall extends ProxyEObject {
     }
 
     public static Maybe<MethodCall> methodCall(
-            Maybe<VirtualIdentifier> fromIdentifier
+            Maybe<SingleIdentifier> fromIdentifier
     ){
         return methodCall(
                 fromIdentifier.__(ProxyEObject::getProxyEObject),
-                fromIdentifier.__(VirtualIdentifier::getIdent),
+                fromIdentifier.__(SingleIdentifier::getIdent),
                 nothing(),
                 nothing(),
                 false

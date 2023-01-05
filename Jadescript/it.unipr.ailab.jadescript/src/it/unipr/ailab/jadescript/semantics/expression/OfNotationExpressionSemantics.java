@@ -112,7 +112,7 @@ public class OfNotationExpressionSemantics
 
 
         return some(new ExpressionDescriptor.PropertyChain(
-            ImmutableList.copyFrom(result)
+            ImmutableList.from(result)
         ));
     }
 
@@ -534,18 +534,6 @@ public class OfNotationExpressionSemantics
         Maybe<OfNotation> input,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
-        final List<Maybe<String>> properties =
-            Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
-        final Maybe<AidLiteral> aidLiteral =
-            input.__(OfNotation::getAidLiteral);
-        if (properties.isEmpty()) {
-            return module.get(AidLiteralExpressionSemantics.class)
-                .syntacticValidateLValue(
-                    aidLiteral,
-                    acceptor
-                );
-        }
         return VALID;
     }
 
@@ -642,7 +630,7 @@ public class OfNotationExpressionSemantics
 
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<OfNotation> input,
+        PatternMatchInput<OfNotation> input,
         StaticState state
     ) {
         return PatternType.empty(module);

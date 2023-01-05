@@ -3,10 +3,14 @@ package it.unipr.ailab.jadescript.semantics;
 import it.unipr.ailab.jadescript.semantics.context.symbol.LocalVariable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 
-public class PatternMatchAutoDeclaredVariable extends LocalVariable {
+public class PatternMatchUnifiedVariable extends LocalVariable {
     private final String prefixDereference;
 
-    public PatternMatchAutoDeclaredVariable(String name, IJadescriptType type, String prefixDereference) {
+    public PatternMatchUnifiedVariable(
+        String name,
+        IJadescriptType type,
+        String prefixDereference
+    ) {
         super(name, type, false);
         this.prefixDereference = prefixDereference;
     }

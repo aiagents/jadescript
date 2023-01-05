@@ -32,6 +32,7 @@ public class AidLiteralExpressionSemantics
         super(module);
     }
 
+
     @Override
     protected boolean validateInternal(
         Maybe<AidLiteral> input,
@@ -78,6 +79,7 @@ public class AidLiteralExpressionSemantics
             && rightValidation && rightTypeValidation;
     }
 
+
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<AidLiteral> input,
@@ -85,6 +87,7 @@ public class AidLiteralExpressionSemantics
     ) {
         return Maybe.nothing();
     }
+
 
     @Override
     protected StaticState advanceInternal(
@@ -103,6 +106,7 @@ public class AidLiteralExpressionSemantics
 
         return finalState;
     }
+
 
     @Override
     protected StaticState advancePatternInternal(
@@ -132,6 +136,7 @@ public class AidLiteralExpressionSemantics
         return newState;
     }
 
+
     @Override
     public void compileAssignmentInternal(
         Maybe<AidLiteral> input,
@@ -143,6 +148,7 @@ public class AidLiteralExpressionSemantics
         // CANNOT BE L-EXPRESSION
     }
 
+
     @Override
     protected StaticState advanceAssignmentInternal(
         Maybe<AidLiteral> input,
@@ -152,6 +158,7 @@ public class AidLiteralExpressionSemantics
         // CANNOT BE L-EXPRESSION
         return state;
     }
+
 
     @Override
     public boolean validateAssignmentInternal(
@@ -173,10 +180,12 @@ public class AidLiteralExpressionSemantics
         return errorNotLvalue(input, acceptor);
     }
 
+
     @Override
     protected boolean isValidLExprInternal(Maybe<AidLiteral> input) {
         return false;
     }
+
 
     @Override
     protected boolean isPatternEvaluationPureInternal(
@@ -185,10 +194,12 @@ public class AidLiteralExpressionSemantics
         return subPatternEvaluationsAllPure(input, state);
     }
 
+
     @Override
     protected boolean canBeHoledInternal(Maybe<AidLiteral> input) {
         return true;
     }
+
 
     @Override
     protected boolean isHoledInternal(
@@ -197,6 +208,7 @@ public class AidLiteralExpressionSemantics
     ) {
         return subExpressionsAnyHoled(input, state);
     }
+
 
     @Override
     protected boolean isUnboundInternal(
@@ -215,6 +227,7 @@ public class AidLiteralExpressionSemantics
         return subExpressionsAnyHoled(input, state);
     }
 
+
     @Override
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<AidLiteral> input,
@@ -229,8 +242,7 @@ public class AidLiteralExpressionSemantics
         List<PatternMatcher> subResults = new ArrayList<>(2);
 
         final IJadescriptType patternType = inferPatternType(
-            input.getPattern(),
-            input.getMode(),
+            input,
             state
         ).solve(input.getProvidedInputType());
 
@@ -280,13 +292,15 @@ public class AidLiteralExpressionSemantics
         );
     }
 
+
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<AidLiteral> input,
+        PatternMatchInput<AidLiteral> input,
         StaticState state
     ) {
         return PatternType.simple(module.get(TypeHelper.class).AID);
     }
+
 
     @Override
     public boolean validatePatternMatchInternal(
@@ -336,6 +350,7 @@ public class AidLiteralExpressionSemantics
         return localNameCheck && hapCheck;
     }
 
+
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<AidLiteral> input
@@ -356,6 +371,7 @@ public class AidLiteralExpressionSemantics
         }
         return result;
     }
+
 
     @Override
     protected String compileInternal(
@@ -392,6 +408,7 @@ public class AidLiteralExpressionSemantics
 
     }
 
+
     @Override
     protected IJadescriptType inferTypeInternal(
         Maybe<AidLiteral> input,
@@ -400,10 +417,12 @@ public class AidLiteralExpressionSemantics
         return module.get(TypeHelper.class).AID;
     }
 
+
     @Override
     protected boolean mustTraverse(Maybe<AidLiteral> input) {
         return !input.__(AidLiteral::isIsAidExpr).extract(nullAsTrue);
     }
+
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
@@ -417,6 +436,7 @@ public class AidLiteralExpressionSemantics
         }
 
     }
+
 
     @Override
     protected boolean isAlwaysPureInternal(

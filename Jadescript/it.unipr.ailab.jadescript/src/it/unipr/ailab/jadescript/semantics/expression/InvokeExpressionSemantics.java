@@ -27,6 +27,7 @@ import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
  * Created on 2019-05-20.
  */
 @Singleton
+//TODO ICAART23 updates
 public class InvokeExpressionSemantics
     extends AssignableExpressionSemantics<InvokeExpression> {
 
@@ -34,6 +35,7 @@ public class InvokeExpressionSemantics
     public InvokeExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
+
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
@@ -55,6 +57,7 @@ public class InvokeExpressionSemantics
 
     }
 
+
     @Override
     public void compileAssignmentInternal(
         Maybe<InvokeExpression> input,
@@ -66,6 +69,7 @@ public class InvokeExpressionSemantics
         //CANNOT ASSIGN TO AN INVOKE EXPRESSION
     }
 
+
     @Override
     protected StaticState advanceAssignmentInternal(
         Maybe<InvokeExpression> input,
@@ -75,6 +79,7 @@ public class InvokeExpressionSemantics
         //CANNOT ASSIGN TO AN INVOKE EXPRESSION
         return state;
     }
+
 
     @Override
     public boolean validateAssignmentInternal(
@@ -89,6 +94,7 @@ public class InvokeExpressionSemantics
         return errorNotLvalue(input, acceptor);
     }
 
+
     @Override
     public boolean syntacticValidateLValueInternal(
         Maybe<InvokeExpression> input,
@@ -97,11 +103,13 @@ public class InvokeExpressionSemantics
         return errorNotLvalue(input, acceptor);
     }
 
+
     @Override
     protected boolean isValidLExprInternal(Maybe<InvokeExpression> input) {
         //CANNOT ASSIGN TO AN INVOKE-EXPRESSION
         return false;
     }
+
 
     @Override
     protected boolean isPatternEvaluationPureInternal(
@@ -111,6 +119,7 @@ public class InvokeExpressionSemantics
         return false;
     }
 
+
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<InvokeExpression> input,
@@ -118,6 +127,7 @@ public class InvokeExpressionSemantics
     ) {
         return Maybe.nothing();
     }
+
 
     @Override
     protected StaticState advanceInternal(
@@ -160,6 +170,7 @@ public class InvokeExpressionSemantics
         return newState;
     }
 
+
     @Override
     protected StaticState advancePatternInternal(
         PatternMatchInput<InvokeExpression> input,
@@ -167,6 +178,7 @@ public class InvokeExpressionSemantics
     ) {
         return state;
     }
+
 
     @Override
     protected String compileInternal(
@@ -243,7 +255,7 @@ public class InvokeExpressionSemantics
                 acceptor
             ));
 
-            if(i < argValues.size() - 1) { //Excluding last
+            if (i < argValues.size() - 1) { //Excluding last
                 newState = rves.advance(
                     argumentValue,
                     newState
@@ -257,6 +269,7 @@ public class InvokeExpressionSemantics
         return sb.toString();
     }
 
+
     @Override
     protected IJadescriptType inferTypeInternal(
         Maybe<InvokeExpression> input
@@ -264,6 +277,7 @@ public class InvokeExpressionSemantics
     ) {
         return module.get(TypeHelper.class).ANY;
     }
+
 
     public String debox(String typeName) {
         switch (typeName) {
@@ -289,16 +303,19 @@ public class InvokeExpressionSemantics
         }
     }
 
+
     @Override
     protected boolean mustTraverse(Maybe<InvokeExpression> input) {
         return false;
     }
+
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
     traverse(Maybe<InvokeExpression> input) {
         return Optional.empty();
     }
+
 
     @Override
     public PatternMatcher
@@ -307,16 +324,18 @@ public class InvokeExpressionSemantics
         StaticState state,
         CompilationOutputAcceptor acceptor
     ) {
-        return state.emptyMatcher(input);
+        return input.createEmptyCompileOutput();
     }
+
 
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<InvokeExpression> input
+        PatternMatchInput<InvokeExpression> input
         , StaticState state
     ) {
         return PatternType.empty(module);
     }
+
 
     @Override
     public boolean validatePatternMatchInternal(
@@ -324,8 +343,9 @@ public class InvokeExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        return state.VALID();
+        return VALID;
     }
+
 
     @Override
     protected boolean validateInternal(
@@ -334,25 +354,23 @@ public class InvokeExpressionSemantics
         ValidationMessageAcceptor acceptor
     ) {
         if (input == null) {
-            return state.VALID();
+            return VALID;
         }
         final boolean isStatic = input.__(InvokeExpression::isStatic)
             .extract(nullAsFalse);
-        final Maybe<String> className = input
-            .__(InvokeExpression::getClassName);
+
         final Maybe<RValueExpression> expr = input
             .__(InvokeExpression::getExpr);
 
-        StaticState newState;
+        StaticState runningState;
         boolean result = VALID;
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
         if (isStatic) {
-            newState = state;
+            runningState = state;
         } else {
-            final PSR<Boolean> instancePSR =
-                module.get(RValueExpressionSemantics.class)
-                    .validate(expr, state, acceptor);
-            newState = instancePSR.state();
-            result = instancePSR.result();
+            result = rves.validate(expr, state, acceptor);
+            runningState = rves.advance(expr, state);
         }
 
         final boolean isArgs =
@@ -362,15 +380,18 @@ public class InvokeExpressionSemantics
             final List<Maybe<RValueExpression>> argValues =
                 toListOfMaybes(input.__(InvokeExpression::getArgumentValues));
             for (Maybe<RValueExpression> argumentValue : argValues) {
-                final PSR<Boolean> argPSR =
-                    module.get(RValueExpressionSemantics.class).validate(
-                        argumentValue, newState, acceptor);
-                result = result && argPSR.result();
-                newState = argPSR.state();
+                final boolean argCheck = rves.validate(
+                    argumentValue,
+                    runningState,
+                    acceptor
+                );
+                result = result && argCheck;
+                runningState = rves.advance(expr, runningState);
             }
         }
-        return newState.with(result);
+        return result;
     }
+
 
     @Override
     protected boolean isAlwaysPureInternal(
@@ -381,6 +402,7 @@ public class InvokeExpressionSemantics
         return false;
     }
 
+
     @Override
     protected boolean isHoledInternal(
         Maybe<InvokeExpression> input,
@@ -389,6 +411,7 @@ public class InvokeExpressionSemantics
         // CANNOT BE HOLED
         return false;
     }
+
 
     @Override
     protected boolean isTypelyHoledInternal(
@@ -399,6 +422,7 @@ public class InvokeExpressionSemantics
         return false;
     }
 
+
     @Override
     protected boolean isUnboundInternal(
         Maybe<InvokeExpression> input,
@@ -407,6 +431,7 @@ public class InvokeExpressionSemantics
         // CANNOT BE HOLED
         return false;
     }
+
 
     @Override
     protected boolean canBeHoledInternal(Maybe<InvokeExpression> input) {

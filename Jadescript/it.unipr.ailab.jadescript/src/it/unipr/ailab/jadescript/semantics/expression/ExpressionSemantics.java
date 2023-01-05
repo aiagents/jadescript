@@ -50,6 +50,75 @@ public abstract class ExpressionSemantics<T> extends Semantics
     }
 
 
+    //TODO move to helper?
+    @SuppressWarnings({"unchecked"})
+    public static <S, R> Stream<R> mapExpressionsWithState(
+        Stream<SemanticsBoundToExpression<?>> expressions,
+        StaticState state,
+        TriFunction<ExpressionSemantics<S>, Maybe<S>, StaticState, R> getR
+    ) {
+        return Util.accumulateAndMap(
+            expressions.map(
+                sbte -> (SemanticsBoundToExpression<S>) sbte
+            ),
+            state,
+            (sbte, runningState) -> getR.apply(
+                sbte.getSemantics(),
+                sbte.getInput(),
+                runningState
+            ),
+            (sbte, runningState) -> sbte.getSemantics().advance(
+                sbte.getInput(),
+                runningState
+            ),
+            (__, nextSt) -> nextSt
+        );
+    }
+
+
+    public static <S, R> Stream<R> mapExpressionsWithState(
+        ExpressionSemantics<S> semantics,
+        Stream<Maybe<S>> inputs,
+        StaticState startingState,
+        BiFunction<Maybe<S>, StaticState, R> map
+    ) {
+        return Util.accumulateAndMap(
+            inputs,
+            startingState,
+            map,
+            semantics::advance,
+            (__, nextSt) -> nextSt
+        );
+    }
+
+
+    public static <S, R> R reduceSeqExpressions(
+        Stream<Maybe<S>> inputs,
+        R identity,
+        BiFunction<R, Maybe<S>, R> biFunction
+    ) {
+        return inputs.reduce(
+            identity,
+            biFunction,
+            (__, next) -> next
+        );
+
+    }
+
+
+    public static <S> StaticState advanceAllExpressions(
+        ExpressionSemantics<S> semantics,
+        Stream<Maybe<S>> inputs,
+        StaticState startingState
+    ) {
+        return reduceSeqExpressions(
+            inputs,
+            startingState,
+            (runningState, input) -> semantics.advance(input, runningState)
+        );
+    }
+
+
     //TODO use it to handle Maybe.nothing() inputs
     @SuppressWarnings("unchecked")
     public final <X> ExpressionSemantics<X> emptySemantics() {
@@ -77,6 +146,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
      * (see {@link ExpressionSemantics#traverse(Maybe)}).
      */
     protected abstract boolean mustTraverse(Maybe<T> input);
+
 
     /**
      * Returns a {@link SemanticsBoundToExpression} instance if the input
@@ -196,28 +266,13 @@ public abstract class ExpressionSemantics<T> extends Semantics
      * into account the advancement of the state after the evaluation of each
      * sub-expression.
      */
-    @SuppressWarnings({"unchecked"})
+
     public final <S, R> Stream<R> mapSubExpressionsWithState(
         Maybe<T> input,
         StaticState state,
         TriFunction<ExpressionSemantics<S>, Maybe<S>, StaticState, R> getR
     ) {
-        return Util.accumulateAndMap(
-            getSubExpressions(input).map(
-                sbte -> (SemanticsBoundToExpression<S>) sbte
-            ),
-            state,
-            (sbte, runningState) -> getR.apply(
-                sbte.getSemantics(),
-                sbte.getInput(),
-                runningState
-            ),
-            (sbte, runningState) -> sbte.getSemantics().advance(
-                sbte.getInput(),
-                runningState
-            ),
-            (__, nextSt) -> nextSt
-        );
+        return mapExpressionsWithState(getSubExpressions(input), state, getR);
     }
 
 
@@ -283,7 +338,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
     }
 
 
-    public final <TT, R> R subExpressionsReduceLast(
+    public final <TT, R> R subExpressionsReduceSeq(
         Maybe<T> input,
         R identity,
         TriFunction<R, ExpressionSemantics<TT>, Maybe<TT>, R> triFunction
@@ -390,7 +445,6 @@ public abstract class ExpressionSemantics<T> extends Semantics
     );
 
 
-
     public final boolean validate(
         Maybe<T> input,
         StaticState state,
@@ -455,7 +509,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
         Maybe<T> input,
         StaticState state
     ) {
-        return subExpressionsReduceLast(
+        return subExpressionsReduceSeq(
             input,
             state,
             (st, sem, inp) -> sem.advance(inp, st)
@@ -632,8 +686,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
      * to the return type of the function
      * referred by the pattern.
      * By design, if this method returns true for a given pattern, then
-     * {@link ExpressionSemantics#inferPatternType(Maybe, PatternMatchMode,
-     * StaticState)}
+     * {@link ExpressionSemantics#inferPatternType(PatternMatchInput, StaticState)}
      * should return a
      * {@link PatternType.HoledPatternType}, otherwise a
      * {@link PatternType.SimplePatternType} is expected.
@@ -830,30 +883,27 @@ public abstract class ExpressionSemantics<T> extends Semantics
 
 
     public final PatternType inferPatternType(
-        Maybe<T> input,
-        PatternMatchMode mode,
+        PatternMatchInput<T> input,
         StaticState state
     ) {
-        return traverse(input)
+        return traverse(input.getPattern())
             .map(x -> x.getSemantics().inferPatternType(
-                x.getInput(),
-                mode,
+                input.replacePattern(x.getInput()),
                 state
             ))
             .orElseGet(() -> prepareInferPatternType(
                 input,
-                mode,
                 state
             ));
     }
 
 
     private PatternType prepareInferPatternType(
-        Maybe<T> input, PatternMatchMode mode,
+        PatternMatchInput<T> input,
         StaticState state
     ) {
-        if (isSubPatternGroundForEquality(input, mode, state)) {
-            return PatternType.simple(inferType(input, state));
+        if (isSubPatternGroundForEquality(input, state)) {
+            return PatternType.simple(inferType(input.getPattern(), state));
         } else {
             return inferPatternTypeInternal(input, state);
         }
@@ -861,27 +911,23 @@ public abstract class ExpressionSemantics<T> extends Semantics
 
 
     public final PatternType inferSubPatternType(
-        Maybe<T> input,
+        PatternMatchInput<T> input,
         StaticState state
     ) {
-        return traverse(input)
+        return traverse(input.getPattern())
             .map(x -> x.getSemantics().inferSubPatternType(
-                x.getInput(),
+                input.replacePattern(x.getInput()),
                 state
             )).orElseGet(() -> prepareInferSubPatternType(input, state));
     }
 
 
     private PatternType prepareInferSubPatternType(
-        Maybe<T> input,
+        PatternMatchInput<T> input,
         StaticState state
     ) {
-        if (isSubPatternGroundForEquality(
-            input,
-            PatternMatchMode.PatternLocation.SUB_PATTERN,
-            state
-        )) {
-            return PatternType.simple(inferType(input, state));
+        if (isSubPatternGroundForEquality(input, state)) {
+            return PatternType.simple(inferType(input.getPattern(), state));
         } else {
             return inferPatternTypeInternal(input, state);
         }
@@ -889,7 +935,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
 
 
     public abstract PatternType inferPatternTypeInternal(
-        Maybe<T> input,
+        PatternMatchInput<T> input,
         StaticState state
     );
 
@@ -1061,11 +1107,9 @@ public abstract class ExpressionSemantics<T> extends Semantics
             }
 
             if (asPatternCheck == VALID) {
-                final IJadescriptType patternType = inferPatternType(
-                    input.getPattern(),
-                    input.getMode(),
-                    state
-                ).solve(input.getProvidedInputType());
+                final IJadescriptType patternType =
+                    inferPatternType(input, state)
+                        .solve(input.getProvidedInputType());
                 boolean patternTypeCheck = patternType.validateType(
                     eObject,
                     acceptor
@@ -1144,11 +1188,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
     ) {
         return validatePatternTypeRelationshipRequirement(
             input,
-            inferPatternType(
-                input.getPattern(),
-                input.getMode(),
-                state
-            ).solve(input.getProvidedInputType()),
+            inferPatternType(input, state).solve(input.getProvidedInputType()),
             acceptor
         );
     }
@@ -1183,11 +1223,8 @@ public abstract class ExpressionSemantics<T> extends Semantics
         StaticState state,
         CompilationOutputAcceptor acceptor
     ) {
-        IJadescriptType solvedPatternType = inferPatternType(
-            input.getPattern(),
-            input.getMode(),
-            state
-        ).solve(input.getProvidedInputType());
+        IJadescriptType solvedPatternType = inferPatternType(input, state)
+            .solve(input.getProvidedInputType());
 
         final String compiledExpr = compile(
             input.getPattern(),
@@ -1372,7 +1409,7 @@ public abstract class ExpressionSemantics<T> extends Semantics
 
         @Override
         public PatternType inferPatternTypeInternal(
-            Maybe<T> input,
+            PatternMatchInput<T> input,
             StaticState state
         ) {
             return PatternType.empty(module);
@@ -1430,12 +1467,5 @@ public abstract class ExpressionSemantics<T> extends Semantics
 
     }
 
-
-    //ALSO TODO ensure that each pattern matching is evaluated inside its own
-    // subscope
-    //          this is because a pattern could introduce variables that are
-    //          used in the same pattern
-    //          - then remember to populate the resulting context with the
-    //          variables given by the output object
 
 }

@@ -168,7 +168,7 @@ public class PlaceholderExpressionSemantics
         Maybe<Primary> input,
         ValidationMessageAcceptor acceptor
     ) {
-        return INVALID;
+        return errorNotLvalue(input, acceptor);
     }
 
 
@@ -194,7 +194,7 @@ public class PlaceholderExpressionSemantics
 
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<Primary> input,
+        PatternMatchInput<Primary> input,
         StaticState state
     ) {
         return PatternType.holed(t -> t);

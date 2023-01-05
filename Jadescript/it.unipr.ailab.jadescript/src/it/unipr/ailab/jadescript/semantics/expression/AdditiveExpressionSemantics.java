@@ -51,9 +51,6 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     }
 
 
-
-
-
     private String associativeCompile(
         List<Maybe<Multiplicative>> operands,
         List<Maybe<String>> operators,
@@ -352,7 +349,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
     @Override
     public PatternType inferPatternTypeInternal(
-        Maybe<Additive> input,
+        PatternMatchInput<Additive> input,
         StaticState state
     ) {
         return PatternType.empty(module);

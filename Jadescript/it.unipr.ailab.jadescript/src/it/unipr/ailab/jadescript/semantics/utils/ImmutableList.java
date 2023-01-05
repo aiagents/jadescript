@@ -29,11 +29,11 @@ public class ImmutableList<E>
 
     @SafeVarargs
     public static <T> ImmutableList<T> of(T... args) {
-        return copyFrom(Arrays.asList(args));
+        return from(Arrays.asList(args));
     }
 
 
-    public static <T> ImmutableList<T> copyFrom(Collection<? extends T> args) {
+    public static <T> ImmutableList<T> from(Collection<? extends T> args) {
         final ImmutableList<T> ts = new ImmutableList<>();
         ts.inner.addAll(args);
         return ts;
