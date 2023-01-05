@@ -4,6 +4,7 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.LogStatement;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
@@ -25,13 +26,17 @@ public class LogStatementSemantics extends StatementSemantics<LogStatement> {
     }
 
     @Override
-    public void validate(Maybe<LogStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<LogStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         module.get(RValueExpressionSemantics.class).validate(input.__(LogStatement::getExpr), , acceptor);
         //apparently nothing to validate, other than the validity of the sub-expression
     }
 
     @Override
-    public void compileStatement(Maybe<LogStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<LogStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
 //        String logger =  "jade.util.Logger.getMyLogger(this.getClass().getName())";
         String logger = "jadescript.core.Agent.doLog";
 

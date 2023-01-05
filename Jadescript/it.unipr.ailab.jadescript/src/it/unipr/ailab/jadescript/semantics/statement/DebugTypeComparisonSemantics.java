@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.statement;
 import it.unipr.ailab.jadescript.jadescript.DebugTypeComparison;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -17,7 +18,9 @@ public class DebugTypeComparisonSemantics extends StatementSemantics<DebugTypeCo
     }
 
     @Override
-    public void validate(Maybe<DebugTypeComparison> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<DebugTypeComparison> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         final Maybe<TypeExpression> typEx1 = input.__(DebugTypeComparison::getType1);
         final Maybe<TypeExpression> typEx2 = input.__(DebugTypeComparison::getType2);
         final IJadescriptType type1 = module.get(TypeExpressionSemantics.class).toJadescriptType(typEx1);
@@ -55,7 +58,9 @@ public class DebugTypeComparisonSemantics extends StatementSemantics<DebugTypeCo
     }
 
     @Override
-    public void compileStatement(Maybe<DebugTypeComparison> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<DebugTypeComparison> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         final Maybe<TypeExpression> typEx1 = input.__(DebugTypeComparison::getType1);
         final Maybe<TypeExpression> typEx2 = input.__(DebugTypeComparison::getType2);
         final IJadescriptType type1 = module.get(TypeExpressionSemantics.class).toJadescriptType(typEx1);

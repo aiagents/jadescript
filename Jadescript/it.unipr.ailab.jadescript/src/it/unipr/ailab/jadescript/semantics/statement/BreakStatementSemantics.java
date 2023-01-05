@@ -28,7 +28,9 @@ public class BreakStatementSemantics extends StatementSemantics<BreakStatement> 
     }
 
     @Override
-    public void compileStatement(Maybe<BreakStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<BreakStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
 
         StatementWriter result;
 
@@ -59,7 +61,9 @@ public class BreakStatementSemantics extends StatementSemantics<BreakStatement> 
     }
 
     @Override
-    public void validate(Maybe<BreakStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<BreakStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         module.get(ValidationHelper.class).asserting(
                 input.__(EcoreUtil2::getContainerOfType, WhileStatement.class).isPresent()
                         || input.__(EcoreUtil2::getContainerOfType, ForStatement.class).isPresent(),

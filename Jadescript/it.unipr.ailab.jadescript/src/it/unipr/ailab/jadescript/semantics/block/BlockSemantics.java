@@ -99,7 +99,7 @@ public class BlockSemantics extends Semantics
                 List<BlockWriterElement> deferStatements = new ArrayList<>();
 
                 module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(statement, sem -> {
-                    sem.compileStatement(wrappedSubCast(statement), new CompilationOutputAcceptor() {
+                    sem.compileStatement(wrappedSubCast(statement), , new CompilationOutputAcceptor() {
                         @Override
                         public void accept(BlockWriterElement element) {
                             compiledStatements.add(CompilationHelper.inputStatementComment(
@@ -150,7 +150,9 @@ public class BlockSemantics extends Semantics
                             InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
                             final int finalI = i;
                             module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(statement, (sem) -> {
-                                sem.validate(wrappedSubCast(statement), interceptAcceptor);
+                                sem.validateStatement(wrappedSubCast(statement), ,
+                                    interceptAcceptor
+                                );
                                 List<Effect> effects = sem.computeEffects(wrappedSubCast(statement), );
                                 if (effects.stream().anyMatch(e -> e instanceof Effect.JumpsAwayFromIteration)) {
                                     if (!interceptAcceptor.thereAreErrors() && finalI < statementsSafe.size() - 1) {

@@ -3,18 +3,17 @@ package it.unipr.ailab.jadescript.semantics.statement;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.ActivateStatement;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociated;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedBehaviourType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import jade.core.behaviours.Behaviour;
@@ -31,165 +30,228 @@ import static it.unipr.ailab.maybe.Maybe.some;
  * Created on 09/03/18.
  */
 @Singleton
-public class ActivateStatementSemantics extends StatementSemantics<ActivateStatement> {
+public class ActivateStatementSemantics
+    extends StatementSemantics<ActivateStatement> {
 
 
     public ActivateStatementSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
+
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<ActivateStatement> input) {
-        List<ExpressionSemantics.SemanticsBoundToExpression<?>> result = new ArrayList<>();
+    public List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    includedExpressions(Maybe<ActivateStatement> input) {
+        List<ExpressionSemantics.SemanticsBoundToExpression<?>> result =
+            new ArrayList<>();
         input.__(ActivateStatement::getExpression).safeDo(exprSafe -> {
             result.add(new ExpressionSemantics.SemanticsBoundToExpression<>(
-                    module.get(RValueExpressionSemantics.class), some(exprSafe)
+                module.get(RValueExpressionSemantics.class), some(exprSafe)
             ));
         });
         return result;
     }
 
+
     @Override
-    public void compileStatement(Maybe<ActivateStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(
+        Maybe<ActivateStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
+    ) {
 
-
-        Maybe<RValueExpression> expr = input.__(ActivateStatement::getExpression);
-        Maybe<RValueExpression> period = input.__(ActivateStatement::getPeriod);
-        Maybe<RValueExpression> delay = input.__(ActivateStatement::getDelay);
-        Maybe<RValueExpression> start = input.__(ActivateStatement::getStartTime);
+        Maybe<RValueExpression> behaviour =
+            input.__(ActivateStatement::getExpression);
+        Maybe<RValueExpression> period =
+            input.__(ActivateStatement::getPeriod);
+        Maybe<RValueExpression> delay =
+            input.__(ActivateStatement::getDelay);
+        Maybe<RValueExpression> start =
+            input.__(ActivateStatement::getStartTime);
         String methodName = "activate";
+
         List<ExpressionWriter> params = new ArrayList<>();
 
-        final String compiledBehaviour = module.get(RValueExpressionSemantics.class).compile(
-                expr, ,
-                acceptor
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        StaticState runningState = state;
+        final String compiledBehaviour = rves.compile(
+            behaviour,
+            runningState,
+            acceptor
+        );
+        runningState = rves.advance(
+            behaviour,
+            runningState
         );
 
         params.add(w.expr(THE_AGENT + "()"));
         if (delay.isPresent()) {
             methodName += "_after";
-            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
-                    delay, ,
-                    acceptor
-            )));
+            final String delayCompiled = rves.compile(
+                delay,
+                runningState,
+                acceptor
+            );
+            runningState = rves.advance(delay, runningState);
+            params.add(w.expr(delayCompiled));
         }
 
         if (start.isPresent()) {
             methodName += "_at";
-            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
-                    start, ,
-                    acceptor
-            )));
+            final String compiledStart = rves.compile(
+                start,
+                runningState,
+                acceptor
+            );
+            runningState = rves.advance(start, runningState);
+            params.add(w.expr(compiledStart));
         }
 
         if (period.isPresent()) {
             methodName += "_every";
-            params.add(w.expr(module.get(RValueExpressionSemantics.class).compile(
-                    period, ,
-                    acceptor
-            )));
+            final String compiledPeriod = rves.compile(
+                period,
+                runningState,
+                acceptor
+            );
+            runningState = rves.advance(period, runningState);
+            params.add(w.expr(compiledPeriod));
         }
 
 
         acceptor.accept(w.callStmnt(
-                compiledBehaviour + "." + methodName,
-                params
+            compiledBehaviour + "." + methodName,
+            params
         ));
+
+        return runningState;
     }
 
+
     @Override
-    public void validate(Maybe<ActivateStatement> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
-        Maybe<RValueExpression> expr = input.__(ActivateStatement::getExpression);
-        Maybe<RValueExpression> period = input.__(ActivateStatement::getPeriod);
-        Maybe<RValueExpression> delay = input.__(ActivateStatement::getDelay);
-        Maybe<RValueExpression> start = input.__(ActivateStatement::getStartTime);
-        InterceptAcceptor exprValidations = new InterceptAcceptor(acceptor);
-        module.get(RValueExpressionSemantics.class).validate(expr, , exprValidations);
-        IJadescriptType exprType = module.get(RValueExpressionSemantics.class).inferType(expr, );
-        if (!exprValidations.thereAreErrors()) {
-            module.get(ValidationHelper.class).assertExpectedType(Behaviour.class, exprType,
-                    "InvalidBehaviourExpressionType",
-                    expr,
-                    acceptor
+    public StaticState validateStatement(
+        Maybe<ActivateStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ) {
+        if (input == null) return state;
+        Maybe<RValueExpression> expr =
+            input.__(ActivateStatement::getExpression);
+        Maybe<RValueExpression> period =
+            input.__(ActivateStatement::getPeriod);
+        Maybe<RValueExpression> delay =
+            input.__(ActivateStatement::getDelay);
+        Maybe<RValueExpression> start =
+            input.__(ActivateStatement::getStartTime);
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+        final boolean behaviourCheck = rves.validate(expr, state, acceptor);
+        StaticState runningState = state;
+        IJadescriptType exprType = rves.inferType(expr, state);
+        if (behaviourCheck == VALID) {
+            validationHelper.assertExpectedType(
+                Behaviour.class,
+                exprType,
+                "InvalidBehaviourExpressionType",
+                expr,
+                acceptor
             );
-
+            runningState = rves.advance(expr, state);
         }
 
-        module.get(ValidationHelper.class).assertCanUseAgentReference(expr, acceptor);
+
+        validationHelper.assertCanUseAgentReference(expr, acceptor);
+
+
         final TypeHelper th = module.get(TypeHelper.class);
-        if (input.isPresent()) {
-            final Optional<IJadescriptType> agentType = module.get(ContextManager.class).currentContext().actAs(
-                    AgentAssociated.class
-            ).findFirst().flatMap(agentAssociated ->
-                    agentAssociated.computeAllAgentAssociations().sorted()
-                            .findFirst()
-                            .map(AgentAssociation::getAgent)
+
+        final Optional<IJadescriptType> agentType = module.get(
+            ContextManager.class).currentContext().actAs(
+            AgentAssociated.class
+        ).findFirst().flatMap(agentAssociated ->
+            agentAssociated.computeAllAgentAssociations()
+                .sorted()
+                .findFirst()
+                .map(AgentAssociation::getAgent)
+        );
+
+
+        if (agentType.isPresent()
+            && exprType instanceof UserDefinedBehaviourType
+            && behaviourCheck == VALID) {
+            final IJadescriptType forAgentType =
+                ((UserDefinedBehaviourType) exprType).getForAgentType();
+            validationHelper.asserting(
+                forAgentType.isAssignableFrom(agentType.get()),
+                "InvalidBehaviourActivation",
+                "An agent of type '" + agentType.get().getJadescriptName() +
+                    "' can not activate a behaviour " +
+                    "designed for agents of type '" +
+                    forAgentType.getJadescriptName() + "'.",
+                expr,
+                acceptor
             );
-
-
-            if (agentType.isPresent()
-                    && exprType instanceof UserDefinedBehaviourType
-                    && !exprValidations.thereAreErrors()) {
-                final IJadescriptType forAgentType = ((UserDefinedBehaviourType) exprType).getForAgentType();
-                module.get(ValidationHelper.class).asserting(
-                        forAgentType.isAssignableFrom(agentType.get()),
-                        "InvalidBehaviourActivation",
-                        "An agent of type '" + agentType.get().getJadescriptName() + "' can not activate a behaviour " +
-                                "designed for agents of type '" + forAgentType.getJadescriptName() + "'.",
-                        expr,
-                        acceptor
-                );
-            }
         }
 
-        module.get(RValueExpressionSemantics.class).validate(period, , exprValidations);
-        if (!exprValidations.thereAreErrors()) {
-            IJadescriptType periodType = module.get(RValueExpressionSemantics.class).inferType(period, );
-            module.get(ValidationHelper.class).assertExpectedType(
+        if (period.isPresent()) {
+            boolean periodCheck = rves.validate(period, runningState, acceptor);
+            if(periodCheck == VALID) {
+                IJadescriptType periodType = rves.inferType(
+                    period,
+                    runningState
+                );
+                validationHelper.assertExpectedType(
                     th.DURATION,
                     periodType,
                     "InvalidPeriodType",
                     period,
                     acceptor
+                );
+                runningState = rves.advance(period, runningState);
+            }
+            validationHelper.asserting(
+                !th.isAssignable(OneShot.class, exprType),
+                "InvalidEveryClause",
+                "Can not apply 'every' clause to the activation of a" +
+                    " one-shot behaviour",
+                period,
+                acceptor
             );
         }
 
-        module.get(ValidationHelper.class).asserting(
-                Util.implication(period.isPresent(), !th.isAssignable(OneShot.class, exprType)),
-                "InvalidEveryClause",
-                "Can not apply 'every' clause to the activation of a one-shot behaviour",
-                period,
-                acceptor
-        );
 
         if (delay.isPresent()) {
-            module.get(RValueExpressionSemantics.class).validate(delay, , exprValidations);
-            if (!exprValidations.thereAreErrors()) {
-                module.get(ValidationHelper.class).assertExpectedType(
-                        th.DURATION,
-                        module.get(RValueExpressionSemantics.class).inferType(delay, ),
-                        "InvalidDelayType",
-                        delay,
-                        acceptor
+            boolean delayCheck = rves.validate(delay, runningState, acceptor);
+            if (delayCheck == VALID) {
+                validationHelper.assertExpectedType(
+                    th.DURATION,
+                    rves.inferType(delay, runningState),
+                    "InvalidDelayType",
+                    delay,
+                    acceptor
                 );
+                runningState = rves.advance(delay, runningState);
             }
         }
 
         if (start.isPresent()) {
-            module.get(RValueExpressionSemantics.class).validate(start, , exprValidations);
-            if (!exprValidations.thereAreErrors()) {
-                module.get(ValidationHelper.class).assertExpectedType(
-                        th.TIMESTAMP,
-                        module.get(RValueExpressionSemantics.class).inferType(start, ),
-                        "InvalidDelayType",
-                        start,
-                        acceptor
+            boolean startCheck = rves.validate(start, runningState, acceptor);
+            if (startCheck == VALID) {
+                validationHelper.assertExpectedType(
+                    th.TIMESTAMP,
+                    rves.inferType(start, runningState),
+                    "InvalidDelayType",
+                    start,
+                    acceptor
                 );
             }
+            runningState = rves.advance(start, runningState);
         }
 
-
+        return runningState;
     }
 
 

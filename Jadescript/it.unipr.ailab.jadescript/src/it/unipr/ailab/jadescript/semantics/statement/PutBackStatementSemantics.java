@@ -4,6 +4,7 @@ import it.unipr.ailab.jadescript.jadescript.PutbackStatement;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -29,7 +30,9 @@ public class PutBackStatementSemantics extends StatementSemantics<PutbackStateme
     }
 
     @Override
-    public void compileStatement(Maybe<PutbackStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<PutbackStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         if(input!=null) {
             input.safeDo(inputSafe -> {
                 acceptor.accept(
@@ -44,7 +47,9 @@ public class PutBackStatementSemantics extends StatementSemantics<PutbackStateme
     }
 
     @Override
-    public void validate(Maybe<PutbackStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<PutbackStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         if (input == null) return;
         InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
 

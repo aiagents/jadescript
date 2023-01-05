@@ -31,7 +31,9 @@ public class DeactivateStatementSemantics extends StatementSemantics<DeactivateS
     }
 
     @Override
-    public void compileStatement(Maybe<DeactivateStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<DeactivateStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> target = input.__(DeactivateStatement::getTarget);
         Maybe<RValueExpression> delay = input.__(DeactivateStatement::getDelay);
         Maybe<RValueExpression> end = input.__(DeactivateStatement::getEndTime);
@@ -60,7 +62,9 @@ public class DeactivateStatementSemantics extends StatementSemantics<DeactivateS
     }
 
     @Override
-    public void validate(Maybe<DeactivateStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<DeactivateStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         Maybe<RValueExpression> target = input.__(DeactivateStatement::getTarget);
         Maybe<RValueExpression> delay = input.__(DeactivateStatement::getDelay);
         Maybe<RValueExpression> end = input.__(DeactivateStatement::getEndTime);

@@ -10,6 +10,7 @@ import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
@@ -39,7 +40,9 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
     }
 
     @Override
-    public void compileStatement(Maybe<ForStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<ForStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> collection = input.__(ForStatement::getCollection);
         Maybe<String> varName = input.__(ForStatement::getVarName);
         Maybe<String> var2Name = input.__(ForStatement::getVar2Name);
@@ -137,7 +140,9 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
     }
 
     @Override
-    public void validate(Maybe<ForStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<ForStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         if (input == null) return;
 
         if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)

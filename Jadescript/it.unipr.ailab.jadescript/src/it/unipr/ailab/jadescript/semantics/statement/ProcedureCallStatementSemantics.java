@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.jadescript.ProcedureCallStatement;
 import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
 import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
 import it.unipr.ailab.maybe.Maybe;
@@ -26,7 +27,9 @@ public class ProcedureCallStatementSemantics extends StatementSemantics<Procedur
     }
 
     @Override
-    public void compileStatement(Maybe<ProcedureCallStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<ProcedureCallStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
 
         if (input.__(ProcedureCallStatement::isIsNothing).extract(Maybe.nullAsTrue)) {
             acceptor.accept(w.commentStmt("do nothing;"));
@@ -65,7 +68,9 @@ public class ProcedureCallStatementSemantics extends StatementSemantics<Procedur
     }
 
     @Override
-    public void validate(Maybe<ProcedureCallStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<ProcedureCallStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         if (input.__(ProcedureCallStatement::isIsNothing).extract(Maybe.nullAsTrue)) {
             //do nothing
         } else {

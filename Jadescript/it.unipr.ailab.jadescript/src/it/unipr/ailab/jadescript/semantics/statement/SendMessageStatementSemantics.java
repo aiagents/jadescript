@@ -8,6 +8,7 @@ import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c1toplevel.ForAgentDeclarationContext;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociation;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
@@ -50,7 +51,9 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
     }
 
     @Override
-    public void validate(Maybe<SendMessageStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<SendMessageStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         InterceptAcceptor subValidations = new InterceptAcceptor(acceptor);
 
         Maybe<RValueExpression> content = input.__(SendMessageStatement::getContent);
@@ -206,7 +209,9 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
     }
 
     @Override
-    public void compileStatement(Maybe<SendMessageStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<SendMessageStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         String messageName = hashBasedName("_synthesizedMessage", input.toNullable());
 
 

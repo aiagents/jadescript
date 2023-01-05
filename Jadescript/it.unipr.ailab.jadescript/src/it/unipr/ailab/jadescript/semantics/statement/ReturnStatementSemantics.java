@@ -34,7 +34,9 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
     }
 
     @Override
-    public void validate(Maybe<ReturnStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<ReturnStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         //the check for unreachable statements is done in BlockSemantics
 
 
@@ -99,7 +101,9 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
     }
 
     @Override
-    public void compileStatement(Maybe<ReturnStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<ReturnStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> expr = input.__(ReturnStatement::getExpr);
 
         String compiledExpression = module.get(RValueExpressionSemantics.class).compile(expr, , acceptor).toString();

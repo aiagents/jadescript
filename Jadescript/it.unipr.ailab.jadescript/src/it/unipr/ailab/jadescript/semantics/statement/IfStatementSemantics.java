@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -39,7 +40,9 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
 
     @Override
-    public void compileStatement(Maybe<IfStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<IfStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> condition = input.__(IfStatement::getCondition);
         Maybe<OptionalBlock> thenBranch = input.__(IfStatement::getThenBranch);
 
@@ -84,7 +87,9 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
     }
 
     @Override
-    public void validate(Maybe<IfStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<IfStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         Maybe<RValueExpression> condition = input.__(IfStatement::getCondition);
         Maybe<OptionalBlock> thenBranch = input.__(IfStatement::getThenBranch);
 

@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.jadescript.Primary;
 import it.unipr.ailab.jadescript.jadescript.Trailer;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.AtomWithTrailersExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.PrimaryExpressionSemantics;
@@ -29,9 +30,9 @@ public class AtomWithTrailersStatementSemantics extends StatementSemantics<AtomE
     }
 
     @Override
-    public void compileStatement(
+    public StaticState compileStatement(
         Maybe<AtomExpr> input,
-        CompilationOutputAcceptor acceptor
+        StaticState state, CompilationOutputAcceptor acceptor
     ) {
         acceptor.accept(w.simpleStmt(
             module.get(AtomWithTrailersExpressionSemantics.class).compile(
@@ -40,8 +41,8 @@ public class AtomWithTrailersStatementSemantics extends StatementSemantics<AtomE
     }
 
     @Override
-    public void validate(Maybe<AtomExpr> input,
-                         ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<AtomExpr> input,
+        StaticState state, ValidationMessageAcceptor acceptor) {
         if (input == null) return;
         Maybe<Primary> atom = input.__(AtomExpr::getAtom);
         Maybe<EList<Trailer>> trailers = input.__(AtomExpr::getTrailers);

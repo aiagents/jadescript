@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -36,7 +37,9 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
 
 
     @Override
-    public void compileStatement(Maybe<AddStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<AddStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
 
         boolean isSetCollection = module.get(RValueExpressionSemantics.class)
                 .inferType(input.__(AddStatement::getCollection), ) instanceof SetType;
@@ -62,7 +65,9 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
     }
 
     @Override
-    public void validate(Maybe<AddStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<AddStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         if (input == null) return;
         InterceptAcceptor subValidations = new InterceptAcceptor(acceptor);
         Maybe<RValueExpression> collection = input.__(AddStatement::getCollection);

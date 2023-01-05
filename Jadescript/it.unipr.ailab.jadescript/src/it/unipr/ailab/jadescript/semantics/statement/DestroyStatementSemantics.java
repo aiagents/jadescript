@@ -31,7 +31,9 @@ public class DestroyStatementSemantics extends StatementSemantics<DestroyStateme
     }
 
     @Override
-    public void compileStatement(Maybe<DestroyStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<DestroyStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> target = input.__(DestroyStatement::getTarget);
 
         acceptor.accept(w.callStmnt(
@@ -43,7 +45,9 @@ public class DestroyStatementSemantics extends StatementSemantics<DestroyStateme
     }
 
     @Override
-    public void validate(Maybe<DestroyStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<DestroyStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         Maybe<RValueExpression> target = input.__(DestroyStatement::getTarget);
         InterceptAcceptor exprValidations = new InterceptAcceptor(acceptor);
         module.get(RValueExpressionSemantics.class).validate(target, , exprValidations);

@@ -22,7 +22,9 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
     }
 
     @Override
-    public void compileStatement(Maybe<FailStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<FailStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         Maybe<RValueExpression> target = input.__(FailStatement::getTarget);
         Maybe<RValueExpression> reason = input.__(FailStatement::getReason);
         acceptor.accept(w.callStmnt(
@@ -34,7 +36,9 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
     }
 
     @Override
-    public void validate(Maybe<FailStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<FailStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         Maybe<RValueExpression> target = input.__(FailStatement::getTarget);
         Maybe<RValueExpression> reason = input.__(FailStatement::getReason);
         InterceptAcceptor exprValidations = new InterceptAcceptor(acceptor);

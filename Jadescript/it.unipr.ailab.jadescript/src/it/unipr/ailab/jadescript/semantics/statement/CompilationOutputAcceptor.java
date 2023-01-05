@@ -1,6 +1,5 @@
 package it.unipr.ailab.jadescript.semantics.statement;
 
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;

@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.RemoveStatement;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -83,7 +84,9 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
     }
 
     @Override
-    public void compileStatement(Maybe<RemoveStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<RemoveStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         final Maybe<RValueExpression> collection = input.__(RemoveStatement::getCollection);
         String collectionCompiled = module.get(RValueExpressionSemantics.class).compile(collection, , acceptor);
         final boolean isRetain = input.__(RemoveStatement::isRetain).extract(nullAsFalse);
@@ -114,7 +117,9 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
 
 
     @Override
-    public void validate(Maybe<RemoveStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<RemoveStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         if (input == null)
             return;
         InterceptAcceptor subValidations = new InterceptAcceptor(acceptor);

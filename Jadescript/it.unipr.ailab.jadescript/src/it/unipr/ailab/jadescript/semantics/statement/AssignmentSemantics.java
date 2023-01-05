@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.statement;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
@@ -25,7 +26,9 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
     }
 
     @Override
-    public void compileStatement(Maybe<Assignment> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<Assignment> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         final Maybe<LValueExpression> left = input.__(Assignment::getLexpr);
         final Maybe<RValueExpression> right = input.__(Assignment::getRexpr);
 
@@ -45,7 +48,9 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
 
 
     @Override
-    public void validate(Maybe<Assignment> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<Assignment> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         final Maybe<RValueExpression> right = input.__(Assignment::getRexpr);
         final Maybe<LValueExpression> left = input.__(Assignment::getLexpr);
         boolean syntacticSubValidation =

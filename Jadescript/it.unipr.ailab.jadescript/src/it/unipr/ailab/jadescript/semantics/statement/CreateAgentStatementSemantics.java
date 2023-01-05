@@ -4,6 +4,7 @@ import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
@@ -29,7 +30,9 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
     }
 
     @Override
-    public void validate(Maybe<CreateAgentStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<CreateAgentStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         final List<Maybe<RValueExpression>> namedArgsValues = Maybe.toListOfMaybes(input
                 .__(CreateAgentStatement::getNamedArgs)
                 .__(NamedArgumentList::getParameterValues)
@@ -360,7 +363,9 @@ public class CreateAgentStatementSemantics extends StatementSemantics<CreateAgen
     }
 
     @Override
-    public void compileStatement(Maybe<CreateAgentStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<CreateAgentStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         List<Maybe<RValueExpression>> args;
         if (input.__(CreateAgentStatement::getNamedArgs).isPresent()) {
             args = Maybe.toListOfMaybes(input

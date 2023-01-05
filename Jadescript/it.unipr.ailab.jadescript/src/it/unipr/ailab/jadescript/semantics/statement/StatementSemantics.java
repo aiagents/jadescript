@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.statement;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.maybe.Maybe;
@@ -16,28 +17,41 @@ import java.util.List;
  */
 @Singleton
 public abstract class StatementSemantics<T>
-        extends Semantics
-        implements EffectfulOperationSemantics<T> {
+    extends Semantics
+    implements EffectfulOperationSemantics<T> {
 
 
     public StatementSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
+
     /**
-     * Compiles the statement into {@link BlockWriterElement} instances, which are used to generate the actual Java
+     * Compiles the statement into {@link BlockWriterElement} instances,
+     * which are used to generate the actual Java
      * code.
      *
      * @param input    the input statement
-     * @param acceptor acceptor used to collect the resulting {@link BlockWriterElement}s
+     * @param state    the static-state before evaluating the statement
+     * @param acceptor acceptor used to collect the resulting
+     *                 {@link BlockWriterElement}s
+     * @return the static-state after the statement evaluation
      */
-    public abstract void compileStatement(
-            Maybe<T> input,
-            CompilationOutputAcceptor acceptor
+    public abstract StaticState compileStatement(
+        Maybe<T> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
     );
 
-    public abstract List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<T> input);
 
-    public abstract void validate(Maybe<T> input, ValidationMessageAcceptor acceptor);
+    public abstract List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    includedExpressions(Maybe<T> input);
+
+
+    public abstract StaticState validateStatement(
+        Maybe<T> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    );
 
 }

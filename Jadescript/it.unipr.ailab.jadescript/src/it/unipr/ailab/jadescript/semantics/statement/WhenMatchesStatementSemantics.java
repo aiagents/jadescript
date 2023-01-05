@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -32,7 +33,9 @@ public class WhenMatchesStatementSemantics extends StatementSemantics<WhenMatche
     }
 
     @Override
-    public void compileStatement(Maybe<WhenMatchesStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<WhenMatchesStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         final Maybe<RValueExpression> inputExpr = input.__(WhenMatchesStatement::getInputExpr);
         final List<Maybe<LValueExpression>> patterns = toListOfMaybes(input.__(WhenMatchesStatement::getPatterns))
                 .stream()
@@ -97,7 +100,9 @@ public class WhenMatchesStatementSemantics extends StatementSemantics<WhenMatche
     }
 
     @Override
-    public void validate(Maybe<WhenMatchesStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<WhenMatchesStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         final Maybe<RValueExpression> inputExpr = input.__(WhenMatchesStatement::getInputExpr);
         final List<Maybe<LValueExpression>> patterns = toListOfMaybes(input.__(WhenMatchesStatement::getPatterns))
                 .stream()

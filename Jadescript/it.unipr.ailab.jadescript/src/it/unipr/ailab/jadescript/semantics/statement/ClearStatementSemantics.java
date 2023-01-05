@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
@@ -37,7 +38,9 @@ public class ClearStatementSemantics extends StatementSemantics<ClearStatement> 
     }
 
     @Override
-    public void compileStatement(Maybe<ClearStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<ClearStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
         if (input != null) {
             acceptor.accept(w.callStmnt(
                     module.get(RValueExpressionSemantics.class).compile(
@@ -49,7 +52,9 @@ public class ClearStatementSemantics extends StatementSemantics<ClearStatement> 
     }
 
     @Override
-    public void validate(Maybe<ClearStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<ClearStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         if (input == null) return;
         InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
 

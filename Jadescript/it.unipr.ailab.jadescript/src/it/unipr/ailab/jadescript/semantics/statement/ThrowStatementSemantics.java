@@ -22,7 +22,9 @@ public class ThrowStatementSemantics extends StatementSemantics<ThrowStatement> 
     }
 
     @Override
-    public void validate(Maybe<ThrowStatement> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validateStatement(Maybe<ThrowStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor) {
         if (input == null) return;
         InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
 
@@ -43,7 +45,9 @@ public class ThrowStatementSemantics extends StatementSemantics<ThrowStatement> 
     }
 
     @Override
-    public void compileStatement(Maybe<ThrowStatement> input, CompilationOutputAcceptor acceptor) {
+    public StaticState compileStatement(Maybe<ThrowStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor) {
 
         acceptor.accept(w.callStmnt(
                 EXCEPTION_THROWER_NAME+".__throw",
