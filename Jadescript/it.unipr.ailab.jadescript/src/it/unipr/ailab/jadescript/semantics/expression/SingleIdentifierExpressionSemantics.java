@@ -731,7 +731,8 @@ public class SingleIdentifierExpressionSemantics
     }
 
 
-    public boolean validateAsStatementTraversing(
+    @Override
+    protected boolean validateAsStatementInternal(
         Maybe<SingleIdentifier> input,
         StaticState state,
         ValidationMessageAcceptor acceptor
@@ -740,15 +741,10 @@ public class SingleIdentifierExpressionSemantics
             = resolve(input, state);
         if (resolved.isPresent() &&
             resolved.toNullable() instanceof Either.Right) {
-            // nullary function call: ok as statement
-            return VALID;
+            // nullary function call: ok as statement, validate it
+            return validate(input, state, acceptor);
         } else {
-            return module.get(ValidationHelper.class).emitError(
-                "InvalidStatement",
-                "Not a statement.",
-                input,
-                acceptor
-            );
+            return errorNotStatement(input, acceptor);
         }
     }
 

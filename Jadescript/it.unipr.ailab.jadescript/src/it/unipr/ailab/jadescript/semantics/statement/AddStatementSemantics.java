@@ -4,14 +4,16 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.AddStatement;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -37,152 +39,252 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
 
 
     @Override
-    public StaticState compileStatement(Maybe<AddStatement> input,
+    public StaticState compileStatement(
+        Maybe<AddStatement> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor) {
-
-        boolean isSetCollection = module.get(RValueExpressionSemantics.class)
-                .inferType(input.__(AddStatement::getCollection), ) instanceof SetType;
-        String element = module.get(RValueExpressionSemantics.class)
-                .compile(input.__(AddStatement::getElement), , acceptor);
-        String collection = module.get(RValueExpressionSemantics.class)
-                .compile(input.__(AddStatement::getCollection), , acceptor);
-        String putOrAdd = input.__(AddStatement::getPutOrAdd).extract(Maybe.nullAsEmptyString);
-        if(isSetCollection){
+        CompilationOutputAcceptor acceptor
+    ) {
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        final Maybe<RValueExpression> element =
+            input.__(AddStatement::getElement);
+        String elementCompiled = rves.compile(
+            element,
+            state,
+            acceptor
+        );
+        final StaticState afterElement = rves.advance(
+            element,
+            state
+        );
+        final Maybe<RValueExpression> collection =
+            input.__(AddStatement::getCollection);
+        String collectionCompiled = rves.compile(
+            collection,
+            afterElement,
+            acceptor
+        );
+        final StaticState afterCollection = rves.advance(
+            collection,
+            afterElement
+        );
+        String putOrAdd = input.__(AddStatement::getPutOrAdd)
+            .extract(Maybe.nullAsEmptyString);
+        final IJadescriptType colellectionType = rves.inferType(
+            collection,
+            state
+        );
+        boolean isSetCollection = colellectionType instanceof SetType;
+        if (isSetCollection) {
             putOrAdd = "add"; //overrides "put" if it's a set
         }
-        String all = input.__(AddStatement::isAll).extract(nullAsFalse)?"All":"";
-        final String methodName = collection + "." + putOrAdd + all;
+        String all = input.__(AddStatement::isAll).extract(nullAsFalse)
+            ? "All"
+            : "";
+        final String methodName = collectionCompiled + "." + putOrAdd + all;
+        final StaticState result;
         if (!input.__(AddStatement::isWithIndex).extract(nullAsFalse)) {
-            acceptor.accept(w.callStmnt(methodName, w.expr(element)));
+            acceptor.accept(w.callStmnt(methodName, w.expr(elementCompiled)));
+            result = afterCollection;
         } else {
-            String index = module.get(RValueExpressionSemantics.class).compile(
-                    input.__(AddStatement::getIndex), ,
-                    acceptor
+            final Maybe<RValueExpression> index =
+                input.__(AddStatement::getIndex);
+            String indexCompiled = rves.compile(
+                index,
+                afterCollection,
+                acceptor
             );
-            acceptor.accept(w.callStmnt(methodName, w.expr(index), w.expr(element)));
+            acceptor.accept(w.callStmnt(
+                methodName,
+                w.expr(indexCompiled),
+                w.expr(elementCompiled)
+            ));
+            result = rves.advance(
+                index,
+                afterCollection
+            );
         }
+        return result;
     }
 
+
     @Override
-    public StaticState validateStatement(Maybe<AddStatement> input,
+    public StaticState validateStatement(
+        Maybe<AddStatement> input,
         StaticState state,
-        ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
-        InterceptAcceptor subValidations = new InterceptAcceptor(acceptor);
-        Maybe<RValueExpression> collection = input.__(AddStatement::getCollection);
-        module.get(RValueExpressionSemantics.class).validate(collection, , subValidations);
-        module.get(RValueExpressionSemantics.class).validate(input.__(AddStatement::getElement), , subValidations);
-        module.get(RValueExpressionSemantics.class).validate(input.__(AddStatement::getIndex), , subValidations);
+        ValidationMessageAcceptor acceptor
+    ) {
+        Maybe<RValueExpression> collection =
+            input.__(AddStatement::getCollection);
+        final Maybe<RValueExpression> element =
+            input.__(AddStatement::getElement);
+        final Maybe<RValueExpression> index =
+            input.__(AddStatement::getIndex);
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
 
-        String putOrAdd = input.__(AddStatement::getPutOrAdd).extract(Maybe.nullAsEmptyString);
-        boolean isWithIndex = input.__(AddStatement::isWithIndex).extract(nullAsFalse);
-        String inOrTo = input.__(AddStatement::getInOrTo).extract(Maybe.nullAsEmptyString);
-        final boolean isAll = input.__(AddStatement::isAll).extract(nullAsFalse);
+        boolean elementCheck = rves.validate(element, state, acceptor);
 
-        module.get(ValidationHelper.class).asserting(
-                Util.implication(putOrAdd.equals("put"), inOrTo.equals("in")),
-                "InvalidPutStatement",
-                "use 'in' when using 'put'",
-                input,
-                subValidations
+
+        StaticState afterElement = rves.advance(element, state);
+
+        final boolean collectionCheck = rves.validate(
+            collection,
+            afterElement,
+            acceptor
         );
 
-        module.get(ValidationHelper.class).asserting(
-                Util.implication(putOrAdd.equals("add"), inOrTo.equals("to")),
-                "InvalidAddStatement",
-                "use 'to' when using 'add'",
-                input,
-                subValidations
+        StaticState afterCollection = rves.advance(collection, state);
+
+        final boolean indexCheck;
+        StaticState afterIndex;
+        if (index.isPresent()) {
+            indexCheck = rves.validate(index, afterCollection, acceptor);
+            afterIndex = rves.advance(index, afterCollection);
+        } else {
+            indexCheck = VALID;
+            afterIndex = afterCollection;
+        }
+
+        String putOrAdd = input.__(AddStatement::getPutOrAdd)
+            .extract(Maybe.nullAsEmptyString);
+        boolean isWithIndex = input.__(AddStatement::isWithIndex)
+            .extract(nullAsFalse);
+        String inOrTo = input.__(AddStatement::getInOrTo)
+            .extract(Maybe.nullAsEmptyString);
+        final boolean isAll = input.__(AddStatement::isAll)
+            .extract(nullAsFalse);
+
+        boolean putInCheck = module.get(ValidationHelper.class).asserting(
+            Util.implication(putOrAdd.equals("put"), inOrTo.equals("in")),
+            "InvalidPutStatement",
+            "use 'in' when using 'put'",
+            input,
+            acceptor
         );
 
-        if (!subValidations.thereAreErrors()) {
+        boolean addToCheck = module.get(ValidationHelper.class).asserting(
+            Util.implication(putOrAdd.equals("add"), inOrTo.equals("to")),
+            "InvalidAddStatement",
+            "use 'to' when using 'add'",
+            input,
+            acceptor
+        );
 
-            IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection, );
+        if (elementCheck == VALID
+            && collectionCheck == VALID
+            && indexCheck == VALID
+            && putInCheck == VALID
+            && addToCheck == VALID) {
 
-            //TODO instead of checking the type, check the availability of the operation
+            IJadescriptType collectionType = rves.inferType(
+                collection,
+                afterElement
+            );
+
+            //TODO instead of checking the type, check the availability of
+            // the operation
             module.get(ValidationHelper.class).asserting(
-                    collectionType instanceof ListType
-                            || collectionType instanceof MapType
-                            || collectionType instanceof SetType,
-                    "InvalidCollection",
-                    "This is not a valid collection: " + collectionType.getJadescriptName(),
-                    collection,
-                    acceptor
+                collectionType instanceof ListType
+                    || collectionType instanceof MapType
+                    || collectionType instanceof SetType,
+                "InvalidCollection",
+                "This is not a valid collection: " +
+                    collectionType.getJadescriptName(),
+                collection,
+                acceptor
             );
 
 
-            IJadescriptType expectedElementType = collectionType.getElementTypeIfCollection()
+            IJadescriptType expectedElementType =
+                collectionType.getElementTypeIfCollection()
                     .orElse(module.get(TypeHelper.class).NOTHING);
-            Maybe<RValueExpression> element = input.__(AddStatement::getElement);
-            final IJadescriptType elementType = module.get(RValueExpressionSemantics.class).inferType(element, );
+            ;
+            final IJadescriptType elementType = rves.inferType(element, state);
 
             module.get(ValidationHelper.class).asserting(
-                    Util.implication(collectionType instanceof SetType, !isWithIndex),
-                    "InvalidPutStatement",
-                    "Unexpected 'at' clause for sets.",
-                    input,
-                    JadescriptPackage.eINSTANCE.getAddStatement_WithIndex(),
-                    acceptor
+                Util.implication(
+                    collectionType instanceof SetType,
+                    !isWithIndex
+                ),
+                "InvalidPutStatement",
+                "Unexpected 'at' clause for sets.",
+                input,
+                JadescriptPackage.eINSTANCE.getAddStatement_WithIndex(),
+                acceptor
             );
 
-            if(isAll){
-                if(collectionType instanceof ListType || collectionType instanceof SetType) {
+            if (isAll) {
+                if (collectionType instanceof ListType
+                    || collectionType instanceof SetType) {
                     module.get(ValidationHelper.class).assertExpectedType(
-                            module.get(TypeHelper.class).jtFromClass(Collection.class, expectedElementType),
-                            elementType,
-                            "InvalidCollectionType",
-                            element,
-                            subValidations
+                        module.get(TypeHelper.class).jtFromClass(
+                            Collection.class,
+                            expectedElementType
+                        ),
+                        elementType,
+                        "InvalidCollectionType",
+                        element,
+                        acceptor
                     );
 
-                } else if(collectionType instanceof MapType){
+                } else if (collectionType instanceof MapType) {
                     module.get(ValidationHelper.class).assertExpectedType(
-                            collectionType,
-                            elementType,
-                            "InvalidMapType",
-                            element,
-                            subValidations
+                        collectionType,
+                        elementType,
+                        "InvalidMapType",
+                        element,
+                        acceptor
                     );
                     module.get(ValidationHelper.class).asserting(
-                            !isWithIndex,
-                            "InvalidPutStatement",
-                            "Unexpected 'at' specification for maps.",
-                            input.__(AddStatement::getIndex),
-                            subValidations
+                        !isWithIndex,
+                        "InvalidPutStatement",
+                        "Unexpected 'at' specification for maps.",
+                        index,
+                        acceptor
                     );
                 }
-            }else {
+            } else {
                 module.get(ValidationHelper.class).assertExpectedType(
-                        expectedElementType,
-                        elementType,
-                        "InvalidComponentType",
-                        element,
-                        subValidations
+                    expectedElementType,
+                    elementType,
+                    "InvalidComponentType",
+                    element,
+                    acceptor
                 );
                 if (isWithIndex) {
                     module.get(ValidationHelper.class).validateIndexType(
-                            module.get(RValueExpressionSemantics.class).inferType(collection, ),
-                            input.__(AddStatement::getIndex),
-                            subValidations
+                        collectionType,
+                        index,
+                        afterCollection,
+                        acceptor
                     );
                 }
             }
 
-
-
         }
+        return afterIndex;
+
     }
 
+
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<AddStatement> input) {
-        Maybe<RValueExpression> collection = input.__(AddStatement::getCollection);
+    public List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    includedExpressions(
+        Maybe<AddStatement> input
+    ) {
+        Maybe<RValueExpression> collection =
+            input.__(AddStatement::getCollection);
         Maybe<RValueExpression> element = input.__(AddStatement::getElement);
         Maybe<RValueExpression> index = input.__(AddStatement::getIndex);
         return Stream.of(collection, element, index)
-                .filter(Maybe::isPresent)
-                .map(it -> new ExpressionSemantics.SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), it))
-                .collect(Collectors.toList());
+            .filter(Maybe::isPresent)
+            .map(it -> new ExpressionSemantics.SemanticsBoundToExpression<>(
+                module.get(RValueExpressionSemantics.class),
+                it
+            ))
+            .collect(Collectors.toList());
 
     }
+
 }

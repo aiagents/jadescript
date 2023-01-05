@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.AssignmentDeconstruction;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.MatchesExpression;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.WhenMatchesStatement;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -213,6 +214,45 @@ public class PatternMatchHelper implements SemanticsConsts {
     }
 
 
+    public PatternMatcher compileAssignmentDeconstructionPatternMatching(
+        IJadescriptType rightType,
+        Maybe<LValueExpression> pattern,
+        StaticState afterInputExpr,
+        CompilationOutputAcceptor acceptor
+    ) {
+        String localClassName =
+            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
+        final String variableName = localClassName + "_obj";
+        final AssignmentDeconstruction<LValueExpression> patternMatchInput =
+            new AssignmentDeconstruction<>(
+                module,
+                rightType,
+                pattern,
+                "__",
+                variableName
+            );
+        final PatternMatcher output =
+            module.get(LValueExpressionSemantics.class).compilePatternMatch(
+                patternMatchInput,
+                afterInputExpr,
+                acceptor
+            );
+
+        final LocalClassStatementWriter localClass =
+            w.localClass(localClassName);
+
+        output.getWriters().forEach(localClass::addMember);
+
+        acceptor.accept(localClass);
+        acceptor.accept(w.variable(
+            localClassName,
+            variableName,
+            w.expr("new "
+                + localClassName + "()")
+        ));
+        return output;
+    }
+
     public PatternMatcher compileWhenMatchesStatementPatternMatching(
         Maybe<RValueExpression> inputExpr,
         Maybe<LValueExpression> pattern,
@@ -374,6 +414,30 @@ public class PatternMatchHelper implements SemanticsConsts {
         );
     }
 
+    public StaticState advanceAssignmentDeconstructionPatternMatching(
+        IJadescriptType rightType,
+        Maybe<LValueExpression> left,
+        StaticState afterRight
+    ) {
+
+        String localClassName =
+            "__PatternMatcher" + Util.extractEObject(left).hashCode();
+        final String variableName = localClassName + "_obj";
+        final PatternMatchInput.AssignmentDeconstruction<LValueExpression>
+            patternMatchInput =
+            new PatternMatchInput.AssignmentDeconstruction<>(
+                module,
+                rightType,
+                left,
+                "__",
+                variableName
+            );
+        return module.get(LValueExpressionSemantics.class).advancePattern(
+            patternMatchInput,
+            afterRight
+        );
+    }
+
 
     public boolean validateWhenMatchesStatementPatternMatching(
         Maybe<RValueExpression> inputExpr,
@@ -425,6 +489,32 @@ public class PatternMatchHelper implements SemanticsConsts {
         return module.get(LValueExpressionSemantics.class).validatePatternMatch(
             patternMatchInput,
             state,
+            acceptor
+        );
+    }
+    public boolean validateAssignmentDeconstructionPatternMatching(
+        IJadescriptType rightType,
+        Maybe<LValueExpression> leftPattern,
+        StaticState afterRight,
+        ValidationMessageAcceptor acceptor
+    ) {
+
+        String localClassName =
+            "__PatternMatcher" + Util.extractEObject(leftPattern).hashCode();
+        final String variableName = localClassName + "_obj";
+        final AssignmentDeconstruction<LValueExpression> patternMatchInput =
+            new AssignmentDeconstruction<>(
+                module,
+                rightType,
+                leftPattern,
+                "__",
+                variableName
+            );
+
+
+        return module.get(LValueExpressionSemantics.class).validatePatternMatch(
+            patternMatchInput,
+            afterRight,
             acceptor
         );
     }

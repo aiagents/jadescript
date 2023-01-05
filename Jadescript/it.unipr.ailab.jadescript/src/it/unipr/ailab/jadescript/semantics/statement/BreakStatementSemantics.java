@@ -21,22 +21,26 @@ import java.util.List;
  * Created on 26/04/18.
  */
 @Singleton
-public class BreakStatementSemantics extends StatementSemantics<BreakStatement> {
+public class BreakStatementSemantics
+    extends StatementSemantics<BreakStatement> {
 
     public BreakStatementSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
+
     @Override
-    public StaticState compileStatement(Maybe<BreakStatement> input,
+    public StaticState compileStatement(
+        Maybe<BreakStatement> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor) {
+        CompilationOutputAcceptor acceptor
+    ) {
 
         StatementWriter result;
 
         switch (input
-                .__(BreakStatement::getKeyword)
-                .extract(Maybe.nullAsEmptyString)) {
+            .__(BreakStatement::getKeyword)
+            .extract(Maybe.nullAsEmptyString)) {
             case "break": {
                 result = w.breakStmnt();
             }
@@ -51,34 +55,64 @@ public class BreakStatementSemantics extends StatementSemantics<BreakStatement> 
         }
 
         acceptor.accept(result);
+        boolean inLoop = input.__(
+            EcoreUtil2::getContainerOfType,
+            WhileStatement.class
+        ).isPresent()
+            || input.__(
+            EcoreUtil2::getContainerOfType,
+            ForStatement.class
+        ).isPresent();
+        if (!inLoop) {
+            return state;
+        }
+        return state.invalidateUntilExitLoop();
     }
 
+
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(
-            Maybe<BreakStatement> input
-    ) {
+    public List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    includedExpressions(Maybe<BreakStatement> input) {
         return Collections.emptyList();
     }
 
+
     @Override
-    public StaticState validateStatement(Maybe<BreakStatement> input,
+    public StaticState validateStatement(
+        Maybe<BreakStatement> input,
         StaticState state,
-        ValidationMessageAcceptor acceptor) {
-        module.get(ValidationHelper.class).asserting(
-                input.__(EcoreUtil2::getContainerOfType, WhileStatement.class).isPresent()
-                        || input.__(EcoreUtil2::getContainerOfType, ForStatement.class).isPresent(),
-                "BreakOutsideLoop",
-                "'" + input.__(BreakStatement::getKeyword).extract(
-                        Maybe.nullAsEmptyString) + "' statement outside loop",
-                input,
-                acceptor
+        ValidationMessageAcceptor acceptor
+    ) {
+        final String keyword = input.__(BreakStatement::getKeyword)
+            .extract(Maybe.nullAsEmptyString);
+        boolean inLoop = module.get(ValidationHelper.class).asserting(
+            input.__(
+                EcoreUtil2::getContainerOfType,
+                WhileStatement.class
+            ).isPresent()
+                || input.__(
+                EcoreUtil2::getContainerOfType,
+                ForStatement.class
+            ).isPresent(),
+            "BreakOutsideLoop",
+            "'" + keyword + "' statement outside loop",
+            input,
+            acceptor
         );
+        if (!inLoop) {
+            return state;
+        }
+
+        return state.invalidateUntilExitLoop();
     }
 
 
     @Override
-    public List<Effect> computeEffectsInternal(Maybe<BreakStatement> input,
-                                               StaticState state) {
+    public List<Effect> computeEffectsInternal(
+        Maybe<BreakStatement> input,
+        StaticState state
+    ) {
         return Effect.JumpsAwayFromIteration.INSTANCE.toList();
     }
+
 }

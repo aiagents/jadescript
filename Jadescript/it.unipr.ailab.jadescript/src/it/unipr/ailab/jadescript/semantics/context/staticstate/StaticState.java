@@ -433,4 +433,12 @@ public class StaticState
     }
 
 
+    /**
+     * Creates a state which is invalidated until the scope is exited up to
+     * the innermost loop (used for break semantics).
+     */
+    public StaticState invalidateUntilExitLoop() {
+        //TODO
+    }
+
 }

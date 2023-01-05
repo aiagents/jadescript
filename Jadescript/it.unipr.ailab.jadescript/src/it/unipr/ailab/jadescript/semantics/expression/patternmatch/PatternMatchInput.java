@@ -395,24 +395,24 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
                 PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
         );
-        private final Maybe<RValueExpression> inputExpr;
+        private final IJadescriptType rightType;
 
         public AssignmentDeconstruction(
                 SemanticsModule module,
-                Maybe<RValueExpression> inputExpr,
-                Maybe<T> pattern,
+                IJadescriptType rightType,
+                Maybe<T> leftPattern,
                 String termID,
                 String rootPatternMatchVariableName
         ) {
-            super(module, MODE, pattern, termID, rootPatternMatchVariableName);
-            this.inputExpr = inputExpr;
+            super(module, MODE, leftPattern, termID, rootPatternMatchVariableName);
+            this.rightType = rightType;
         }
 
         @Override
         public <R> AssignmentDeconstruction<R> mapPattern(Function<T, R> function) {
             return new AssignmentDeconstruction<>(
                     module,
-                    inputExpr,
+                    rightType,
                     getPattern().__(function),
                     getTermID(),
                     getRootPatternMatchVariableName()
@@ -422,7 +422,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
         @Override
         public IJadescriptType getProvidedInputType() {
-            return module.get(RValueExpressionSemantics.class).inferType(inputExpr, );
+            return rightType;
         }
 
 

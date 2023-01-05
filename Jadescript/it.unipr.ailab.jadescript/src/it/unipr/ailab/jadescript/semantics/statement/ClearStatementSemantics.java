@@ -29,55 +29,83 @@ public class ClearStatementSemantics extends StatementSemantics<ClearStatement> 
         super(semanticsModule);
     }
 
+
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<ClearStatement> input) {
-        return Collections.singletonList(new ExpressionSemantics.SemanticsBoundToExpression<>(
+    public List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    includedExpressions(Maybe<ClearStatement> input) {
+        return Collections.singletonList(
+            new ExpressionSemantics.SemanticsBoundToExpression<>(
                 module.get(RValueExpressionSemantics.class),
                 input.__(ClearStatement::getCollection)
-        ));
-    }
-
-    @Override
-    public StaticState compileStatement(Maybe<ClearStatement> input,
-        StaticState state,
-        CompilationOutputAcceptor acceptor) {
-        if (input != null) {
-            acceptor.accept(w.callStmnt(
-                    module.get(RValueExpressionSemantics.class).compile(
-                            input.__(ClearStatement::getCollection), ,
-                        acceptor
-                    ) + ".clear"
             ));
-        }
     }
+
 
     @Override
-    public StaticState validateStatement(Maybe<ClearStatement> input,
+    public StaticState compileStatement(
+        Maybe<ClearStatement> input,
         StaticState state,
-        ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
-        InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
-
-        Maybe<RValueExpression> collection = input.__(ClearStatement::getCollection);
-        module.get(RValueExpressionSemantics.class).validate(collection, , subValidation);
-        if (!subValidation.thereAreErrors()) {
-            IJadescriptType collectionType = module.get(RValueExpressionSemantics.class).inferType(collection, );
-            module.get(ValidationHelper.class).asserting(
-                    collectionType.namespace().searchAs(
-                            CallableSymbol.Searcher.class,
-                            searcher -> searcher.searchCallable(
-                                    "clear",
-                                    null,
-                                    (s, n) -> s == 0,
-                                    (s, t) -> s == 0
-                            )
-                    ).findAny().isPresent(),
-                    "NotClearableCollection",
-                    "Cannot perform 'clear' on this type of collection - '" + collectionType + "'.",
-                    input,
-                    JadescriptPackage.eINSTANCE.getClearStatement_Collection(),
-                    acceptor
-            );
+        CompilationOutputAcceptor acceptor
+    ) {
+        if (input == null) {
+            return state;
         }
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        final Maybe<RValueExpression> collection =
+            input.__(ClearStatement::getCollection);
+        acceptor.accept(w.callStmnt(
+            rves.compile(
+                collection,
+                state,
+                acceptor
+            ) + ".clear"
+        ));
+        return rves.advance(collection, state);
     }
+
+
+    @Override
+    public StaticState validateStatement(
+        Maybe<ClearStatement> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ) {
+        if (input == null) {
+            return state;
+        }
+
+        Maybe<RValueExpression> collection =
+            input.__(ClearStatement::getCollection);
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        boolean collectionCheck = rves.validate(collection, state, acceptor);
+        if (collectionCheck == INVALID) {
+            return state;
+        }
+
+
+        IJadescriptType collectionType = rves.inferType(collection, state);
+        StaticState afterCollection = rves.advance(collection, state);
+        module.get(ValidationHelper.class).asserting(
+            collectionType.namespace().searchAs(
+                CallableSymbol.Searcher.class,
+                searcher -> searcher.searchCallable(
+                    "clear",
+                    null,
+                    (s, n) -> s == 0,
+                    (s, t) -> s == 0
+                )
+            ).findAny().isPresent(),
+            "NotClearableCollection",
+            "Cannot perform 'clear' on this type of collection - '" +
+                collectionType + "'.",
+            input,
+            JadescriptPackage.eINSTANCE.getClearStatement_Collection(),
+            acceptor
+        );
+
+        return afterCollection;
+    }
+
 }

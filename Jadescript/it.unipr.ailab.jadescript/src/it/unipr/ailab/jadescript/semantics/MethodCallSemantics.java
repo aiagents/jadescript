@@ -1314,9 +1314,9 @@ public class MethodCallSemantics
     public boolean resolves(
         Maybe<MethodCall> input,
         StaticState state,
-        boolean runningState
+        boolean advanceStateOnArguments
     ) {
-        return resolve(input, state, runningState).isPresent();
+        return resolve(input, state, advanceStateOnArguments).isPresent();
     }
 
 
@@ -1348,6 +1348,21 @@ public class MethodCallSemantics
             ));
         }
         return Maybe.nothing();
+    }
+
+
+    @Override
+    protected boolean validateAsStatementInternal(
+        Maybe<MethodCall> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ) {
+
+        if(resolves(input, state, true)){
+            return validate(input, state, acceptor);
+        }else{
+            return errorNotStatement(input, acceptor);
+        }
     }
 
 }

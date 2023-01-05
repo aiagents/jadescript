@@ -530,28 +530,6 @@ public class PrimaryExpressionSemantics
     }
 
 
-    public boolean validateAsStatementTraversing(
-        Maybe<Primary> input,
-        StaticState state,
-        ValidationMessageAcceptor acceptor
-    ) {
-        final Maybe<String> identifier = input.__(Primary::getIdentifier);
-        final Maybe<InvokeExpression> invoke =
-            input.__(Primary::getInvokeExpression);
-        if (invoke.isPresent()) {
-            return VALID;
-        } else if (identifier.isPresent()) {
-            return module.get(SingleIdentifierExpressionSemantics.class)
-                .validateAsStatementTraversing(
-                    SingleIdentifier.singleIdentifier(identifier, input),
-                    state,
-                    acceptor
-                );
-        } else {
-            return errorNotStatement(input, acceptor);
-        }
-    }
-
 
     @Override
     protected boolean isHoledInternal(Maybe<Primary> input, StaticState state) {

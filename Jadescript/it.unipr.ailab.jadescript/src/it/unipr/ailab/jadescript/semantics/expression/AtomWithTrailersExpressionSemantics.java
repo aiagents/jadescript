@@ -2,11 +2,15 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.AtomExpr;
+import it.unipr.ailab.jadescript.jadescript.InvokeExpression;
 import it.unipr.ailab.jadescript.jadescript.Primary;
 import it.unipr.ailab.jadescript.jadescript.Trailer;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.trailersexprchain.ReversedTrailerChain;
+import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
 import it.unipr.ailab.maybe.Maybe;
+import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.List;
 import java.util.Optional;
@@ -50,7 +54,6 @@ public class AtomWithTrailersExpressionSemantics
     ) {
         return buildChain(input).resolveChain();
     }
-
 
     private ReversedTrailerChain buildChain(Maybe<AtomExpr> input) {
         ReversedTrailerChain chain = new ReversedTrailerChain(module);

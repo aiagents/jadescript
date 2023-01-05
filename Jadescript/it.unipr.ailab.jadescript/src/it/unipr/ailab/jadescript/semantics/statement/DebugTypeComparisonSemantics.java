@@ -12,39 +12,54 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.List;
 
-public class DebugTypeComparisonSemantics extends StatementSemantics<DebugTypeComparison> {
+public class DebugTypeComparisonSemantics
+    extends StatementSemantics<DebugTypeComparison> {
+
     public DebugTypeComparisonSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
+
     @Override
-    public StaticState validateStatement(Maybe<DebugTypeComparison> input,
+    public StaticState validateStatement(
+        Maybe<DebugTypeComparison> input,
         StaticState state,
-        ValidationMessageAcceptor acceptor) {
-        final Maybe<TypeExpression> typEx1 = input.__(DebugTypeComparison::getType1);
-        final Maybe<TypeExpression> typEx2 = input.__(DebugTypeComparison::getType2);
-        final IJadescriptType type1 = module.get(TypeExpressionSemantics.class).toJadescriptType(typEx1);
-        final IJadescriptType type2 = module.get(TypeExpressionSemantics.class).toJadescriptType(typEx2);
+        ValidationMessageAcceptor acceptor
+    ) {
+        final Maybe<TypeExpression> typEx1 =
+            input.__(DebugTypeComparison::getType1);
+        final Maybe<TypeExpression> typEx2 =
+            input.__(DebugTypeComparison::getType2);
+        final IJadescriptType type1 =
+            module.get(TypeExpressionSemantics.class).toJadescriptType(typEx1);
+        final IJadescriptType type2 =
+            module.get(TypeExpressionSemantics.class).toJadescriptType(typEx2);
 
         input.safeDo(inputSafe -> acceptor.acceptInfo(
                 getComparisonMessage(type1, type2),
-                        inputSafe,
-                        null,
-                        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                        "DEBUG"
-                )
+                inputSafe,
+                null,
+                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+                "DEBUG"
+            )
         );
 
+        return state;
     }
 
-    private String getComparisonMessage(IJadescriptType type1, IJadescriptType type2) {
+
+    private String getComparisonMessage(
+        IJadescriptType type1,
+        IJadescriptType type2
+    ) {
         String result = "Comparison of types.\n" +
-                "Type A: " + type1.getDebugPrint() + "\n" +
-                "Type B: " + type2.getDebugPrint() + "\n" +
-                "\n";
+            "Type A: " + type1.getDebugPrint() + "\n" +
+            "Type B: " + type2.getDebugPrint() + "\n" +
+            "\n";
 
         if (type1.typeEquals(type2)) {
-            result += "TypeA(" + type1 + ") and TypeB(" + type2 + ") are equal.\n";
+            result += "TypeA(" + type1 + ") and TypeB(" + type2 +
+                ") are equal.\n";
         }
 
         if (type1.isAssignableFrom(type2)) {
@@ -57,19 +72,32 @@ public class DebugTypeComparisonSemantics extends StatementSemantics<DebugTypeCo
         return result;
     }
 
-    @Override
-    public StaticState compileStatement(Maybe<DebugTypeComparison> input,
-        StaticState state,
-        CompilationOutputAcceptor acceptor) {
-        final Maybe<TypeExpression> typEx1 = input.__(DebugTypeComparison::getType1);
-        final Maybe<TypeExpression> typEx2 = input.__(DebugTypeComparison::getType2);
-        final IJadescriptType type1 = module.get(TypeExpressionSemantics.class).toJadescriptType(typEx1);
-        final IJadescriptType type2 = module.get(TypeExpressionSemantics.class).toJadescriptType(typEx2);
-        acceptor.accept(w.simpleStmt("/*"+getComparisonMessage(type1, type2)+"*/"));
-    }
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<DebugTypeComparison> input) {
+    public StaticState compileStatement(
+        Maybe<DebugTypeComparison> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
+    ) {
+        final Maybe<TypeExpression> typEx1 =
+            input.__(DebugTypeComparison::getType1);
+        final Maybe<TypeExpression> typEx2 =
+            input.__(DebugTypeComparison::getType2);
+        final IJadescriptType type1 =
+            module.get(TypeExpressionSemantics.class).toJadescriptType(typEx1);
+        final IJadescriptType type2 =
+            module.get(TypeExpressionSemantics.class).toJadescriptType(typEx2);
+        acceptor.accept(
+            w.simpleStmt("/*" + getComparisonMessage(type1, type2) + "*/")
+        );
+        return state;
+    }
+
+
+    @Override
+    public List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    includedExpressions(Maybe<DebugTypeComparison> input) {
         return List.of();
     }
+
 }

@@ -163,6 +163,31 @@ public abstract class AssignableExpressionSemantics<T>
         ValidationMessageAcceptor acceptor
     );
 
+    public final boolean validateAsStatement(
+        Maybe<T> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ){
+        return traverse(input)
+            .map(x -> x.getSemantics().validateAsStatement(
+                x.getInput(),
+                state,
+                acceptor
+            )).orElseGet(() -> validateAsStatementInternal(
+                input,
+                state,
+                acceptor
+            ));
+    }
+
+
+    protected boolean validateAsStatementInternal(
+        Maybe<T> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ){
+        return errorNotStatement(input, acceptor);
+    }
 
     /**
      * Produces an error validator message that notifies that the input
