@@ -14,7 +14,7 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collections;
-import java.util.List;
+import java.util.stream.Stream;
 
 public class PutBackStatementSemantics extends StatementSemantics<PutbackStatement> {
     public PutBackStatementSemantics(SemanticsModule semanticsModule) {
@@ -22,7 +22,7 @@ public class PutBackStatementSemantics extends StatementSemantics<PutbackStateme
     }
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<PutbackStatement> input) {
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<PutbackStatement> input) {
         return Collections.singletonList(new ExpressionSemantics.SemanticsBoundToExpression<>(
                 module.get(RValueExpressionSemantics.class),
                 input.__(PutbackStatement::getMessage)

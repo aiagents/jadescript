@@ -6,7 +6,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Comparator;
 
-public class BehaviourAssociation implements Comparable<BehaviourAssociation>, Association{
+public class BehaviourAssociation
+    implements Comparable<BehaviourAssociation>, Association{
     private final IJadescriptType behaviour;
     private final BehaviourAssociationKind associationKind;
 

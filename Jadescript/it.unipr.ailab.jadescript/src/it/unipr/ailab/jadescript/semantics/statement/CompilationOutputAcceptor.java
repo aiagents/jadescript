@@ -8,6 +8,7 @@ import org.eclipse.emf.ecore.EObject;
 
 import java.util.List;
 
+//TODO change package
 public interface CompilationOutputAcceptor {
 
     static final WriterFactory w = WriterFactory.getInstance();

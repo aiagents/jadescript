@@ -17,7 +17,6 @@ import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -212,7 +211,7 @@ public class RemoveStatementSemantics extends StatementSemantics<RemoveStatement
 
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<RemoveStatement> input) {
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<RemoveStatement> input) {
         return Stream.of(
                         input.__(RemoveStatement::getCollection),
                         input.__(RemoveStatement::getElement),

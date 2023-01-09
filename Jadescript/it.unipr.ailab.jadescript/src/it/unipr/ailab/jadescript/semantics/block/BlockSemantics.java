@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsDispatchHelper;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
@@ -64,7 +65,10 @@ public class BlockSemantics extends Semantics
         super(semanticsModule);
     }
 
-    public BlockWriter compileOptionalBlock(Maybe<OptionalBlock> input) {
+    public PSR<BlockWriter> compileOptionalBlock(
+        Maybe<OptionalBlock> input,
+        StaticState state
+    ) {
         if (input.isPresent() && input.toNullable().isNothing()) {
             return EMPTY_BLOCK.compile(input.__(OptionalBlock::getBlock));
         } else {
@@ -72,7 +76,12 @@ public class BlockSemantics extends Semantics
         }
     }
 
-    public void validateOptionalBlock(Maybe<OptionalBlock> input, ValidationMessageAcceptor acceptor) {
+
+
+    public StaticState validateOptionalBlock(
+        Maybe<OptionalBlock> input,
+        StaticState state, ValidationMessageAcceptor acceptor
+    ) {
         if (!input.isPresent() || !input.toNullable().isNothing()) {
             validate(input.__(OptionalBlock::getBlock), acceptor);
         }

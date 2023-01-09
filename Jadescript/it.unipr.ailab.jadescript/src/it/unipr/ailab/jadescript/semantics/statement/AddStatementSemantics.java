@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -19,7 +20,6 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -199,7 +199,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
             IJadescriptType expectedElementType =
                 collectionType.getElementTypeIfCollection()
                     .orElse(module.get(TypeHelper.class).NOTHING);
-            ;
+
             final IJadescriptType elementType = rves.inferType(element, state);
 
             module.get(ValidationHelper.class).asserting(
@@ -269,7 +269,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
 
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>>
     includedExpressions(
         Maybe<AddStatement> input
     ) {
@@ -277,13 +277,11 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
             input.__(AddStatement::getCollection);
         Maybe<RValueExpression> element = input.__(AddStatement::getElement);
         Maybe<RValueExpression> index = input.__(AddStatement::getIndex);
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
         return Stream.of(collection, element, index)
             .filter(Maybe::isPresent)
-            .map(it -> new ExpressionSemantics.SemanticsBoundToExpression<>(
-                module.get(RValueExpressionSemantics.class),
-                it
-            ))
-            .collect(Collectors.toList());
+            .map(it -> new SemanticsBoundToExpression<>(rves, it));
 
     }
 

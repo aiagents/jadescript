@@ -468,7 +468,7 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
 
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(
             Maybe<SendMessageStatement> input
     ) {
         return Stream.concat(

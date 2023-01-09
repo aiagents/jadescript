@@ -130,7 +130,7 @@ public class ReturnStatementSemantics extends StatementSemantics<ReturnStatement
     }
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<ReturnStatement> input) {
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<ReturnStatement> input) {
         return Collections.singletonList(new ExpressionSemantics.SemanticsBoundToExpression<>(
                 module.get(RValueExpressionSemantics.class),
                 input.__(ReturnStatement::getExpr)

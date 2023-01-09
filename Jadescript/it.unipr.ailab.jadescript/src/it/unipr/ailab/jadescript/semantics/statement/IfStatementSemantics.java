@@ -77,7 +77,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
     }
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<IfStatement> input) {
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<IfStatement> input) {
         Maybe<RValueExpression> condition = input.__(IfStatement::getCondition);
         List<Maybe<RValueExpression>> elseIfConditions = toListOfMaybes(input.__(IfStatement::getElseIfConditions));
         return Stream.concat(Stream.of(condition), elseIfConditions.stream())

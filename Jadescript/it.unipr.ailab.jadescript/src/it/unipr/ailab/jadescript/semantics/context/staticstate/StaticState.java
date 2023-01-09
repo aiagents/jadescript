@@ -434,10 +434,20 @@ public class StaticState
 
 
     /**
-     * Creates a state which is invalidated until the scope is exited up to
-     * the innermost loop (used for break semantics).
+     * Creates a sequent state which is invalidated until the scope is exited up
+     * to the innermost loop's body (used for break-continue semantics).
      */
     public StaticState invalidateUntilExitLoop() {
+        //TODO
+    }
+
+
+    /**
+     * Creates a sequent state which is invalidated until the scope is exited up
+     * to the operation's body. Used for semantics of return, throw, fail-this,
+     * destroy-this, deactivate-this.
+     */
+    public StaticState invalidateUntilExitOperation() {
         //TODO
     }
 

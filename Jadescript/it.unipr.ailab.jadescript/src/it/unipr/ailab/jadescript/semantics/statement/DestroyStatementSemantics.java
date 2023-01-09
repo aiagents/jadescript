@@ -11,11 +11,12 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.SingleIdentifierExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Created on 2019-07-11.
@@ -74,10 +75,10 @@ public class DestroyStatementSemantics
 
 
     @Override
-    public List<SemanticsBoundToExpression<?>> includedExpressions(
+    public Stream<SemanticsBoundToExpression<?>> includedExpressions(
         Maybe<DestroyStatement> input
     ) {
-        return Collections.singletonList(new SemanticsBoundToExpression<>(
+        return Util.buildStream(() -> new SemanticsBoundToExpression<>(
             module.get(RValueExpressionSemantics.class),
             input.__(DestroyStatement::getTarget)
         ));

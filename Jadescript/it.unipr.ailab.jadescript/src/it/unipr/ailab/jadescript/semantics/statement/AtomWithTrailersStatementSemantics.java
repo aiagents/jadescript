@@ -6,11 +6,12 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.AtomWithTrailersExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collections;
-import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Created on 21/08/18.
@@ -60,10 +61,11 @@ public class AtomWithTrailersStatementSemantics
 
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>>
     includedExpressions(Maybe<AtomExpr> input) {
-        return Collections.singletonList(
-            new ExpressionSemantics.SemanticsBoundToExpression<>(
+
+        return Util.buildStream(
+            () -> new ExpressionSemantics.SemanticsBoundToExpression<>(
                 module.get(AtomWithTrailersExpressionSemantics.class),
                 input
             )

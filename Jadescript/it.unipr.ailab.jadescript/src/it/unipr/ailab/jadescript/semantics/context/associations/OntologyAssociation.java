@@ -6,50 +6,96 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Comparator;
 
-public class OntologyAssociation implements Comparable<OntologyAssociation>, Association{
+public class OntologyAssociation implements Comparable<OntologyAssociation>,
+    Association {
+
     private final IJadescriptType ontology;
     private final OntologyAssociationKind associationKind;
 
+
     public OntologyAssociation(
-            IJadescriptType ontology,
-            OntologyAssociationKind associationKind
+        IJadescriptType ontology,
+        OntologyAssociationKind associationKind
     ) {
         this.ontology = ontology;
         this.associationKind = associationKind;
     }
 
-    @Override
-    public String toString() {
-        return "OntologyAssociation{" +
-                "ontology=" + ontology +
-                ", associationKind=" + associationKind.getClass().getSimpleName() +
-                '}';
+
+    public static OntologyAssociation applyExtends(OntologyAssociation o) {
+        return new OntologyAssociation(
+            o.getOntology(),
+            applyExtends(o.getAssociationKind())
+        );
     }
 
-    public void debugDump(SourceCodeBuilder scb) {
-        scb.open("OntologyAssociation{");
-        scb.line("ontology=" + ontology.getDebugPrint());
-        scb.line("associationKind= " + associationKind.getClass().getSimpleName());
-        scb.close("}");
+
+    public static OntologyAssociation applyUsesOntology(OntologyAssociation o) {
+        return new OntologyAssociation(
+            o.getOntology(),
+            applyUsesOntology(o.getAssociationKind())
+        );
     }
 
-    public IJadescriptType getOntology() {
-        return ontology;
+
+    public static OntologyAssociation applyForClause(OntologyAssociation o) {
+        return new OntologyAssociation(
+            o.getOntology(),
+            applyForClause(o.getAssociationKind())
+        );
     }
 
-    public OntologyAssociationKind getAssociationKind() {
-        return associationKind;
+
+    public static OntologyAssociationKind applyExtends(
+        OntologyAssociationKind input
+    ) {
+        if (input instanceof O) {
+            return SO.INSTANCE;
+        } else if (input instanceof U_O) {
+            return SU_O.INSTANCE;
+        } else if (input instanceof F_U_O) {
+            return SF_U_O.INSTANCE;
+        } else if (input instanceof F_SU_O) {
+            return SF_SU_O.INSTANCE;
+        } else if (input instanceof U_SO) {
+            return SU_SO.INSTANCE;
+        } else if (input instanceof F_U_SO) {
+            return SF_U_SO.INSTANCE;
+        } else if (input instanceof F_SU_SO) {
+            return SF_SU_SO.INSTANCE;
+        } else {
+            return input;
+        }
     }
 
-    @Override
-    public int compareTo(@NotNull OntologyAssociation o) {
-        return Comparator.<OntologyAssociation>comparingInt(a -> a.getAssociationKind().distanceOrdinal())
-                .compare(this, o);
+
+    public static OntologyAssociationKind applyUsesOntology(
+        OntologyAssociationKind input
+    ) {
+        if (input instanceof O) {
+            return U_O.INSTANCE;
+        } else if (input instanceof SO) {
+            return U_SO.INSTANCE;
+        } else {
+            return input;
+        }
     }
 
-    @Override
-    public IJadescriptType getAssociatedType() {
-        return getOntology();
+
+    public static OntologyAssociationKind applyForClause(
+        OntologyAssociationKind input
+    ) {
+        if (input instanceof U_O) {
+            return F_U_O.INSTANCE;
+        } else if (input instanceof SU_O) {
+            return F_SU_O.INSTANCE;
+        } else if (input instanceof U_SO) {
+            return F_U_SO.INSTANCE;
+        } else if (input instanceof SU_SO) {
+            return F_SU_SO.INSTANCE;
+        } else {
+            return input;
+        }
     }
 
 
@@ -72,18 +118,48 @@ SF_SU_O
 SF_SU_SO
      */
 
-    public interface OntologyAssociationKind {
-        int distanceOrdinal();
+
+    @Override
+    public String toString() {
+        return "OntologyAssociation{" +
+            "ontology=" + ontology +
+            ", associationKind=" + associationKind.getClass().getSimpleName() +
+            '}';
     }
 
-    public interface Used extends OntologyAssociationKind {
+
+    public void debugDump(SourceCodeBuilder scb) {
+        scb.open("OntologyAssociation{");
+        scb.line("ontology=" + ontology.getDebugPrint());
+        scb.line("associationKind= " +
+            associationKind.getClass().getSimpleName());
+        scb.close("}");
     }
 
-    public interface DirectlyUsed extends Used {
+
+    public IJadescriptType getOntology() {
+        return ontology;
     }
 
-    public interface IndirectlyUsed extends Used {
+
+    public OntologyAssociationKind getAssociationKind() {
+        return associationKind;
     }
+
+
+    @Override
+    public int compareTo(@NotNull OntologyAssociation o) {
+        return Comparator.<OntologyAssociation>comparingInt(a ->
+                a.getAssociationKind().distanceOrdinal())
+            .compare(this, o);
+    }
+
+
+    @Override
+    public IJadescriptType getAssociatedType() {
+        return getOntology();
+    }
+
 
     /**
      * Is the ontology being declared
@@ -94,7 +170,9 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum O implements OntologyAssociationKind {INSTANCE;
+    public enum O implements OntologyAssociationKind {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
@@ -115,14 +193,15 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum U_O implements DirectlyUsed {INSTANCE;
+    public enum U_O implements DirectlyUsed {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
             return 2;
         }
     }
-
 
     /**
      * Is used ('uses ontology' clause) by a supertype of the declaration
@@ -139,7 +218,9 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum SU_O implements DirectlyUsed {INSTANCE;
+    public enum SU_O implements DirectlyUsed {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
@@ -147,9 +228,9 @@ SF_SU_SO
         }
     }
 
-
     /**
-     * Is used ('uses ontology' clause) by the type for which this declaration is designed for ('for agent' clause)
+     * Is used ('uses ontology' clause) by the type for which this
+     * declaration is designed for ('for agent' clause)
      * <pre>
      * {@code
      * ontology O <- THE ONTOLOGY
@@ -163,7 +244,9 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum F_U_O implements IndirectlyUsed {INSTANCE;
+    public enum F_U_O implements IndirectlyUsed {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
@@ -172,7 +255,8 @@ SF_SU_SO
     }
 
     /**
-     * Is used ('uses ontology' clause) by a supertype of the type for which this declaration is
+     * Is used ('uses ontology' clause) by a supertype of the type for which
+     * this declaration is
      * designed for ('for agent' clause)
      * <pre>
      * {@code
@@ -190,7 +274,9 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum F_SU_O implements IndirectlyUsed {INSTANCE;
+    public enum F_SU_O implements IndirectlyUsed {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
@@ -199,7 +285,8 @@ SF_SU_SO
     }
 
     /**
-     * Is used ('uses ontology' clause) by the type for which a supertype of this declaration is
+     * Is used ('uses ontology' clause) by the type for which a supertype of
+     * this declaration is
      * designed for ('for agent' clause)
      * <pre>
      * {@code
@@ -217,7 +304,9 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum SF_U_O implements IndirectlyUsed {INSTANCE;
+    public enum SF_U_O implements IndirectlyUsed {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
@@ -225,8 +314,10 @@ SF_SU_SO
         }
     }
 
+
     /**
-     * Is used ('uses ontology' clause) by a super type of the type for which a supertype of this declaration
+     * Is used ('uses ontology' clause) by a super type of the type for which
+     * a supertype of this declaration
      * is designed for ('for agent' clause)
      * <pre>
      * {@code
@@ -247,13 +338,16 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum SF_SU_O implements IndirectlyUsed {INSTANCE;
+    public enum SF_SU_O implements IndirectlyUsed {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
             return 12;
         }
     }
+
 
     /**
      * Is a superontology of the ontology being declared
@@ -267,7 +361,9 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum SO implements OntologyAssociationKind {INSTANCE;
+    public enum SO implements OntologyAssociationKind {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
@@ -277,7 +373,8 @@ SF_SU_SO
 
 
     /**
-     * Is a superontology of the ontology used ('uses ontology' clause) by the declaration
+     * Is a superontology of the ontology used ('uses ontology' clause) by
+     * the declaration
      * <pre>
      * {@code
      * ontology SO <- THE ONTOLOGY
@@ -291,7 +388,9 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum U_SO implements DirectlyUsed {INSTANCE;
+    public enum U_SO implements DirectlyUsed {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
@@ -299,9 +398,9 @@ SF_SU_SO
         }
     }
 
-
     /**
-     * Is a superontology of the ontology used ('uses ontology' clause) by a supertype of the declaration
+     * Is a superontology of the ontology used ('uses ontology' clause) by a
+     * supertype of the declaration
      * <pre>
      * {@code
      * ontology SO <- THE ONTOLOGY
@@ -318,7 +417,9 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum SU_SO implements DirectlyUsed {INSTANCE;
+    public enum SU_SO implements DirectlyUsed {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
@@ -326,9 +427,9 @@ SF_SU_SO
         }
     }
 
-
     /**
-     * Is a superontology of the ontology used ('uses ontology' clause) by the type for which this declaration
+     * Is a superontology of the ontology used ('uses ontology' clause) by
+     * the type for which this declaration
      * is designed for ('for agent' clause)
      * <pre>
      * {@code
@@ -346,7 +447,9 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum F_U_SO implements IndirectlyUsed {INSTANCE;
+    public enum F_U_SO implements IndirectlyUsed {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
@@ -355,7 +458,8 @@ SF_SU_SO
     }
 
     /**
-     * Is a superontology of the ontology used ('uses ontology' clause) by a supertype of the type for which this
+     * Is a superontology of the ontology used ('uses ontology' clause) by a
+     * supertype of the type for which this
      * declaration is designed for ('for agent' clause)
      * <pre>
      * {@code
@@ -376,7 +480,9 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum F_SU_SO implements IndirectlyUsed {INSTANCE;
+    public enum F_SU_SO implements IndirectlyUsed {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
@@ -384,8 +490,10 @@ SF_SU_SO
         }
     }
 
+
     /**
-     * Is a superontology of the ontology used ('uses ontology' clause) by the type for which a supertype of this
+     * Is a superontology of the ontology used ('uses ontology' clause) by
+     * the type for which a supertype of this
      * declaration is designed for ('for agent' clause)
      * <pre>
      * {@code
@@ -406,7 +514,9 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum SF_U_SO implements IndirectlyUsed {INSTANCE;
+    public enum SF_U_SO implements IndirectlyUsed {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
@@ -414,8 +524,10 @@ SF_SU_SO
         }
     }
 
+
     /**
-     * Is a superontology of the ontology used ('uses ontology' clause) by a super type of the type for which a
+     * Is a superontology of the ontology used ('uses ontology' clause) by a
+     * super type of the type for which a
      * supertype of this declaration is designed for ('for agent' clause)
      * <pre>
      * {@code
@@ -439,7 +551,9 @@ SF_SU_SO
      * }
      * </pre>
      */
-    public enum SF_SU_SO implements IndirectlyUsed {INSTANCE;
+    public enum SF_SU_SO implements IndirectlyUsed {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
@@ -447,59 +561,26 @@ SF_SU_SO
         }
     }
 
-    public static OntologyAssociation applyExtends(OntologyAssociation o) {
-        return new OntologyAssociation(o.getOntology(), applyExtends(o.getAssociationKind()));
+
+    public interface OntologyAssociationKind {
+
+        int distanceOrdinal();
+
     }
 
-    public static OntologyAssociation applyUsesOntology(OntologyAssociation o) {
-        return new OntologyAssociation(o.getOntology(), applyUsesOntology(o.getAssociationKind()));
+
+    public interface Used extends OntologyAssociationKind {
+
     }
 
-    public static OntologyAssociation applyForClause(OntologyAssociation o) {
-        return new OntologyAssociation(o.getOntology(), applyForClause(o.getAssociationKind()));
+
+    public interface DirectlyUsed extends Used {
+
     }
 
-    public static OntologyAssociationKind applyExtends(OntologyAssociationKind input) {
-        if (input instanceof O) {
-            return SO.INSTANCE;
-        } else if (input instanceof U_O) {
-            return SU_O.INSTANCE;
-        } else if (input instanceof F_U_O) {
-            return SF_U_O.INSTANCE;
-        } else if (input instanceof F_SU_O) {
-            return SF_SU_O.INSTANCE;
-        } else if (input instanceof U_SO) {
-            return SU_SO.INSTANCE;
-        } else if (input instanceof F_U_SO) {
-            return SF_U_SO.INSTANCE;
-        } else if (input instanceof F_SU_SO) {
-            return SF_SU_SO.INSTANCE;
-        } else {
-            return input;
-        }
+
+    public interface IndirectlyUsed extends Used {
+
     }
 
-    public static OntologyAssociationKind applyUsesOntology(OntologyAssociationKind input) {
-        if (input instanceof O) {
-            return U_O.INSTANCE;
-        } else if (input instanceof SO) {
-            return U_SO.INSTANCE;
-        } else {
-            return input;
-        }
-    }
-
-    public static OntologyAssociationKind applyForClause(OntologyAssociationKind input) {
-        if (input instanceof U_O) {
-            return F_U_O.INSTANCE;
-        } else if (input instanceof SU_O) {
-            return F_SU_O.INSTANCE;
-        } else if (input instanceof U_SO) {
-            return F_U_SO.INSTANCE;
-        } else if (input instanceof SU_SO) {
-            return F_SU_SO.INSTANCE;
-        } else {
-            return input;
-        }
-    }
 }

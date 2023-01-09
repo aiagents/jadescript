@@ -12,7 +12,7 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collections;
-import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Created on 26/04/18.
@@ -67,7 +67,7 @@ public class LogStatementSemantics extends StatementSemantics<LogStatement> {
     }
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<LogStatement> input) {
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<LogStatement> input) {
         return Collections.singletonList(new ExpressionSemantics.SemanticsBoundToExpression<>(
                 module.get(RValueExpressionSemantics.class),
                 input.__(LogStatement::getExpr)

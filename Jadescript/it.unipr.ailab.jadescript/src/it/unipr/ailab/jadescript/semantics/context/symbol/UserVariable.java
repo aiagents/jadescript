@@ -13,7 +13,8 @@ import static it.unipr.ailab.maybe.Maybe.some;
 
 public class UserVariable extends LocalVariable {
 
-    private VariableCompilationMode compilationMode = VariableCompilationMode.LOCALVAR;
+    private VariableCompilationMode compilationMode =
+        VariableCompilationMode.LOCALVAR;
     private boolean neverOverwritten = true;
     private boolean neverRead = true;
     private Maybe<UserVariable> capturedVariable = nothing();

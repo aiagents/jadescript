@@ -18,6 +18,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.*;
 
@@ -90,7 +91,7 @@ public class WhenMatchesStatementSemantics extends StatementSemantics<WhenMatche
 
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<WhenMatchesStatement> input) {
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<WhenMatchesStatement> input) {
 
         final Maybe<RValueExpression> inputExpr = input.__(WhenMatchesStatement::getInputExpr);
         return Collections.singletonList(new ExpressionSemantics.SemanticsBoundToExpression<>(

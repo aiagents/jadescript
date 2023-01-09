@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -21,8 +22,9 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nullAsEmptyList;
 
 public class CreateAgentStatementSemantics
     extends StatementSemantics<CreateAgentStatement> {
@@ -543,30 +545,30 @@ public class CreateAgentStatementSemantics
 
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>>
     includedExpressions(Maybe<CreateAgentStatement> input) {
-        List<ExpressionSemantics.SemanticsBoundToExpression<?>> result =
-            new ArrayList<>();
-        for (Maybe<RValueExpression> arg : toListOfMaybes(input
-            .__(CreateAgentStatement::getSimpleArgs)
-            .__(SimpleArgumentList::getExpressions))) {
-            result.add(new ExpressionSemantics.SemanticsBoundToExpression<>(
-                module.get(RValueExpressionSemantics.class), arg
-            ));
+
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+
+        List<Maybe<RValueExpression>> args;
+        if (input.__(CreateAgentStatement::getNamedArgs).isPresent()) {
+            args = Maybe.toListOfMaybes(input
+                .__(CreateAgentStatement::getNamedArgs)
+                .__(NamedArgumentList::getParameterValues)
+            );
+        } else {
+            args = Maybe.toListOfMaybes(input
+                .__(CreateAgentStatement::getSimpleArgs)
+                .__(SimpleArgumentList::getExpressions)
+            );
         }
-        for (Maybe<RValueExpression> arg : toListOfMaybes(input
-            .__(CreateAgentStatement::getNamedArgs)
-            .__(NamedArgumentList::getParameterValues))) {
-            result.add(new ExpressionSemantics.SemanticsBoundToExpression<>(
-                module.get(RValueExpressionSemantics.class), arg
-            ));
-        }
-        input.__(CreateAgentStatement::getAgentNickName).safeDo(exprSafe -> {
-            result.add(new ExpressionSemantics.SemanticsBoundToExpression<>(
-                module.get(RValueExpressionSemantics.class), some(exprSafe)
-            ));
-        });
-        return result;
+
+        return Stream.concat(
+                Stream.of(input.__(CreateAgentStatement::getAgentNickName)),
+                args.stream()
+            ).filter(Maybe::isPresent)
+            .map(i -> new SemanticsBoundToExpression<>(rves, i));
     }
 
 }

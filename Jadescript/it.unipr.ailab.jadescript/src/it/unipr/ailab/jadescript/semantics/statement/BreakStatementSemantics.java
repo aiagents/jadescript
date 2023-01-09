@@ -16,6 +16,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Created on 26/04/18.
@@ -71,9 +72,9 @@ public class BreakStatementSemantics
 
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>>
     includedExpressions(Maybe<BreakStatement> input) {
-        return Collections.emptyList();
+        return Stream.empty();
     }
 
 

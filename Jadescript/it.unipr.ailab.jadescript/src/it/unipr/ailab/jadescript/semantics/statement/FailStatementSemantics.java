@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.SingleIdentifierExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -14,6 +15,7 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 public class FailStatementSemantics extends StatementSemantics<FailStatement> {
 
@@ -87,16 +89,15 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
 
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    public Stream<SemanticsBoundToExpression<?>>
     includedExpressions(Maybe<FailStatement> input) {
-        Maybe<RValueExpression> target = input.__(FailStatement::getTarget);
-        Maybe<RValueExpression> reason = input.__(FailStatement::getReason);
-        final RValueExpressionSemantics rves = module.get(
-            RValueExpressionSemantics.class);
-        return List.of(
-            new ExpressionSemantics.SemanticsBoundToExpression<>(rves, target),
-            new ExpressionSemantics.SemanticsBoundToExpression<>(rves, reason)
-        );
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        return Stream.of(
+                input.__(FailStatement::getTarget),
+                input.__(FailStatement::getReason)
+            ).filter(Maybe::isPresent)
+            .map(i -> new SemanticsBoundToExpression<>(rves, i));
     }
 
 
@@ -107,7 +108,7 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
     ) {
         Maybe<RValueExpression> target = input.__(FailStatement::getTarget);
 
-        final ExpressionSemantics.SemanticsBoundToExpression<?> deepSemantics =
+        final SemanticsBoundToExpression<?> deepSemantics =
             module.get(RValueExpressionSemantics.class).deepTraverse(target);
         //noinspection unchecked,rawtypes
         if (deepSemantics.getSemantics()

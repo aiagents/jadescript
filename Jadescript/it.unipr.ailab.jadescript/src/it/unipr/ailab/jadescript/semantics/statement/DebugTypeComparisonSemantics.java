@@ -11,6 +11,7 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 public class DebugTypeComparisonSemantics
     extends StatementSemantics<DebugTypeComparison> {
@@ -95,9 +96,9 @@ public class DebugTypeComparisonSemantics
 
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>>
     includedExpressions(Maybe<DebugTypeComparison> input) {
-        return List.of();
+        return Stream.empty();
     }
 
 }

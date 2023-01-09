@@ -13,7 +13,7 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Created on 29/04/18.
@@ -56,7 +56,7 @@ public class ProcedureCallStatementSemantics extends StatementSemantics<Procedur
 
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(
             Maybe<ProcedureCallStatement> input
     ) {
         Maybe<String> name = input.__(ProcedureCallStatement::getName);

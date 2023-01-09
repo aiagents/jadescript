@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociated;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -23,6 +24,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.some;
 
@@ -40,16 +42,17 @@ public class ActivateStatementSemantics
 
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>>
     includedExpressions(Maybe<ActivateStatement> input) {
-        List<ExpressionSemantics.SemanticsBoundToExpression<?>> result =
-            new ArrayList<>();
-        input.__(ActivateStatement::getExpression).safeDo(exprSafe -> {
-            result.add(new ExpressionSemantics.SemanticsBoundToExpression<>(
-                module.get(RValueExpressionSemantics.class), some(exprSafe)
-            ));
-        });
-        return result;
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        return Stream.of(
+                input.__(ActivateStatement::getExpression),
+                input.__(ActivateStatement::getPeriod),
+                input.__(ActivateStatement::getDelay),
+                input.__(ActivateStatement::getStartTime)
+            ).filter(Maybe::isPresent)
+            .map(i -> new SemanticsBoundToExpression<>(rves, i));
     }
 
 
@@ -198,7 +201,7 @@ public class ActivateStatementSemantics
 
         if (period.isPresent()) {
             boolean periodCheck = rves.validate(period, runningState, acceptor);
-            if(periodCheck == VALID) {
+            if (periodCheck == VALID) {
                 IJadescriptType periodType = rves.inferType(
                     period,
                     runningState

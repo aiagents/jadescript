@@ -11,6 +11,7 @@ import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Created on 26/04/18.
@@ -44,7 +45,7 @@ public abstract class StatementSemantics<T>
     );
 
 
-    public abstract List<ExpressionSemantics.SemanticsBoundToExpression<?>>
+    public abstract Stream<ExpressionSemantics.SemanticsBoundToExpression<?>>
     includedExpressions(Maybe<T> input);
 
 

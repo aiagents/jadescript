@@ -15,6 +15,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class ThrowStatementSemantics extends StatementSemantics<ThrowStatement> {
     public ThrowStatementSemantics(SemanticsModule semanticsModule) {
@@ -59,7 +60,7 @@ public class ThrowStatementSemantics extends StatementSemantics<ThrowStatement> 
     }
 
     @Override
-    public List<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<ThrowStatement> input) {
+    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(Maybe<ThrowStatement> input) {
         return Collections.singletonList(new ExpressionSemantics.SemanticsBoundToExpression<>(
                 module.get(RValueExpressionSemantics.class),
                 input.__(ThrowStatement::getReason)

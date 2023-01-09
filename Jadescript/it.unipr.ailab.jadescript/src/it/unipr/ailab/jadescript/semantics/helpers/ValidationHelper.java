@@ -662,6 +662,24 @@ public class ValidationHelper implements SemanticsConsts {
         Maybe<? extends EObject> object,
         ValidationMessageAcceptor acceptor
     ) {
+        emitInfo(
+            issueCode,
+            description,
+            object,
+            null,
+            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+            acceptor
+        );
+    }
+
+    public void emitInfo(
+        String issueCode,
+        String description,
+        Maybe<? extends EObject> object,
+        EStructuralFeature feature,
+        int index,
+        ValidationMessageAcceptor acceptor
+    ){
         final Maybe<? extends EObject> eobject = Util.extractEObject(object);
         if (eobject.isNothing()) {
             return;
@@ -670,8 +688,8 @@ public class ValidationHelper implements SemanticsConsts {
         acceptor.acceptInfo(
             description,
             eObjectSafe,
-            null,
-            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+            feature,
+            index,
             issueCode
         );
     }
