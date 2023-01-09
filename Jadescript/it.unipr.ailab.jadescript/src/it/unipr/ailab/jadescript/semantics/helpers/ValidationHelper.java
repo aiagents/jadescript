@@ -242,7 +242,7 @@ public class ValidationHelper implements SemanticsConsts {
 
 
     //TODO unify with SubscriptExpressionSemantics
-    public boolean validateIndexType(
+    public boolean validateIndex(
         IJadescriptType collectionType,
         Maybe<RValueExpression> indexExpression,
         StaticState beforeIndex,
@@ -423,24 +423,24 @@ public class ValidationHelper implements SemanticsConsts {
 
 
     public boolean assertExpectedTypes(
-        List<IJadescriptType> expected,
+        List<IJadescriptType> alternatives,
         IJadescriptType actual,
         String issueCode,
         Maybe<? extends EObject> object,
         ValidationMessageAcceptor acceptor
     ) {
-        if (expected == null || expected.isEmpty()) {
+        if (alternatives == null || alternatives.isEmpty()) {
             return VALID;
         }
         boolean b = false;
-        for (IJadescriptType e : expected) {
+        for (IJadescriptType e : alternatives) {
             e = e.postResolve();
             b = b || e.isAssignableFrom(actual);
         }
         return asserting(
             b,
             issueCode,
-            multiInvalidTypeMessage(expected, actual),
+            multiInvalidTypeMessage(alternatives, actual),
             object,
             acceptor
         );

@@ -2,14 +2,12 @@ package it.unipr.ailab.jadescript.semantics.statement;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
-import it.unipr.ailab.jadescript.semantics.context.c1toplevel.ForAgentDeclarationContext;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociation;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -33,369 +31,569 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociation.OntologyAssociationKind;
 import static it.unipr.ailab.maybe.Maybe.iterate;
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
 /**
  * Created on 11/03/18.
- *
- * 
  */
 @SuppressWarnings("restriction")
 @Singleton
-public class SendMessageStatementSemantics extends StatementSemantics<SendMessageStatement> {
+public class SendMessageStatementSemantics
+    extends StatementSemantics<SendMessageStatement> {
 
 
     public SendMessageStatementSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
+
     @Override
-    public StaticState validateStatement(Maybe<SendMessageStatement> input,
+    public StaticState validateStatement(
+        Maybe<SendMessageStatement> input,
         StaticState state,
-        ValidationMessageAcceptor acceptor) {
-        InterceptAcceptor subValidations = new InterceptAcceptor(acceptor);
+        ValidationMessageAcceptor acceptor
+    ) {
 
-        Maybe<RValueExpression> content = input.__(SendMessageStatement::getContent);
-        Maybe<String> performative = input.__(SendMessageStatement::getPerformative);
-        Maybe<CommaSeparatedListOfRExpressions> receivers = input.__(SendMessageStatement::getReceivers);
+        Maybe<RValueExpression> content =
+            input.__(SendMessageStatement::getContent);
+        Maybe<String> performative =
+            input.__(SendMessageStatement::getPerformative);
+        Maybe<CommaSeparatedListOfRExpressions> receivers =
+            input.__(SendMessageStatement::getReceivers);
 
-        module.get(ValidationHelper.class).assertCanUseAgentReference(input, acceptor);
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
 
-        module.get(ValidationHelper.class).assertValueExpected(content, "content", input, subValidations);
-        module.get(ValidationHelper.class).assertValueExpected(performative, "performative", input, subValidations);
-        module.get(ValidationHelper.class).assertValueExpected(receivers, "receivers", input, subValidations);
+        validationHelper.assertCanUseAgentReference(input, acceptor);
 
-        module.get(ValidationHelper.class).assertSupportedPerformative(performative, input, subValidations);
-
-        if (!subValidations.thereAreErrors()) {
-            //The content has to be valid
-            module.get(RValueExpressionSemantics.class).validate(content, , subValidations);
-            InterceptAcceptor perfValidation = new InterceptAcceptor(subValidations);
-
-            //The performative has to be specified
-            module.get(ValidationHelper.class).asserting(
-                    !Performative.UNKNOWN.toString().equals(performative.toNullable()),
-                    "InvalidMessage",
-                    "Can not send messages with unknown performative.",
-                    input,
-                    JadescriptPackage.eINSTANCE.getSendMessageStatement_Performative(),
-                    perfValidation
+        final boolean hasContentCheck = validationHelper.assertValueExpected(
+            content,
+            "content",
+            input,
+            acceptor
+        );
+        final boolean hasPerfCheck = validationHelper.assertValueExpected(
+            performative,
+            "performative",
+            input,
+            acceptor
+        );
+        final boolean hasRecCheck = validationHelper.assertValueExpected(
+            receivers,
+            "receivers",
+            input,
+            acceptor
+        );
+        final boolean supportedPerfCheck =
+            validationHelper.assertSupportedPerformative(
+                performative,
+                input,
+                acceptor
             );
 
-            if (!perfValidation.thereAreErrors()) {
-                final IJadescriptType inputContentType = module.get(RValueExpressionSemantics.class).inferType(content, );
-                final IJadescriptType adaptedContentType = module.get(TypeHelper.class).adaptMessageContentDefaultTypes(
-                        performative,
-                        inputContentType
-                );
+        boolean valuesChecks = hasContentCheck && hasPerfCheck
+            && hasRecCheck && supportedPerfCheck;
 
-                final IJadescriptType contentBound = module.get(TypeHelper.class).getContentBound(
-                        Performative.performativeByName.get(performative.toNullable())
-                );
 
-                //The type of the content has to be "sendable" (i.e., should not contain Agents, Behaviours...)
-                module.get(ValidationHelper.class).asserting(
-                        adaptedContentType.isSendable(),
-                        "InvalidContent",
-                        "Values of type '" + adaptedContentType.getJadescriptName() + "' cannot be sent as part of messages.",
-                        content,
-                        acceptor
-                );
+        //The content has to be valid
+        boolean contentCheck = rves.validate(content, state, acceptor);
 
-                //The type of the content has to be within the bounds of the performative expected types
-                module.get(ValidationHelper.class).assertExpectedType(
-                        contentBound, adaptedContentType,
-                        "InvalidContent",
-                        content,
-                        acceptor
-                );
+        //The performative has to be specified
+        boolean performativeCheck = validationHelper.asserting(
+            !Performative.UNKNOWN.toString()
+                .equals(performative.toNullable()),
+            "InvalidMessage",
+            "Can not send messages with unknown performative.",
+            input,
+            JadescriptPackage.eINSTANCE
+                .getSendMessageStatement_Performative(),
+            acceptor
+        );
 
-                //Check if the ontology is specified explicitly by the user
-                final Maybe<JvmTypeReference> ontologyRef = input.__(SendMessageStatement::getOntology);
-                Maybe<OntologyType> ontology = ontologyRef
-                        .__(module.get(TypeHelper.class)::jtFromJvmTypeRef)
-                        .nullIf(it -> !(it instanceof OntologyType))
-                        .__(it -> (OntologyType) it);
 
-                InterceptAcceptor ontoAcceptor = new InterceptAcceptor(acceptor);
-
-                // If the ontology is not specified...
-                if (ontology.isNothing()) {
-                    //... attempt to infer it from the content
-                    ontology = adaptedContentType.getDeclaringOntology();
-
-                    // The inferred ontology has to be valid
-                    module.get(ValidationHelper.class).asserting(
-                            ontology.isPresent(),
-                            "InvalidInferredOntology",
-                            "Can not infer ontology from content type. Please specify a valid ontology " +
-                                    "with 'with ontology = ' followed by the ontology name, on a " +
-                                    "new indented line.",
-                            ontologyRef,
-                            ontoAcceptor
-                    );
-                } else {
-                    // If the ontology is specified
-
-                    final Maybe<OntologyType> declaringOntology = adaptedContentType.getDeclaringOntology();
-
-                    if (declaringOntology.isPresent()) {
-                        // and an ontology can be inferred from the content
-                        final IJadescriptType ontologyType = ontology.toNullable();
-                        final IJadescriptType declaringOntologyType = declaringOntology.toNullable();
-
-                        // the specified ontology has to be a subtype-or-equal of the ontology that declared the content type
-                        module.get(ValidationHelper.class).asserting(
-                                declaringOntologyType.isAssignableFrom(ontologyType),
-                                "OntologyMismatch",
-                                "The type of this content is declared in ontology "
-                                        + declaringOntologyType.getJadescriptName()
-                                        + ", but this operation requires a content declared in ontology "
-                                        + ontologyType.getJadescriptName() + ".",
-                                content,
-                                ontoAcceptor
-                        );
-                    }
-                }
-                if (!ontoAcceptor.thereAreErrors() && ontology.isPresent()) {
-
-                    final IJadescriptType ontoType = ontology.toNullable();
-                    final Maybe<? extends EObject> maybeEobject = ontologyRef.isPresent() ? ontologyRef : input;
-                    final List<OntologyAssociation.OntologyAssociationKind> associationsToOntotype =
-                            module.get(ContextManager.class).currentContext()
-                                    .actAs(OntologyAssociationComputer.class)
-                                    .findFirst().orElse(OntologyAssociationComputer.EMPTY_ONTOLOGY_ASSOCIATIONS)
-                                    .computeAllOntologyAssociations()
-                                    .filter(oa -> oa.getOntology().typeEquals(ontoType))
-                                    .map(OntologyAssociation::getAssociationKind)
-                                    .collect(Collectors.toList());
-
-                    // The ontology has to be used in some way (e.g., direcly used, used by supertypes, used by the agent...)
-                    module.get(ValidationHelper.class).asserting(
-                            !associationsToOntotype.isEmpty(),
-                            "OntologyNotUsed",
-                            "Ontology " + ontoType.getJadescriptName() + " is not accessible in this context.",
-                            maybeEobject,
-                            acceptor
-                    );
-
-                    // The specified/inferred ontology has to be used also by the agent, if we are in the context
-                    // of a behaviour
-                    if (module.get(ContextManager.class).currentContext().actAs(ForAgentDeclarationContext.class)
-                            .findFirst().isPresent()) {
-                        module.get(ValidationHelper.class).asserting(
-                                //implication: if the ontology is directly used it has to be indirectly used too
-                                associationsToOntotype.stream().noneMatch(it -> it instanceof OntologyAssociation.DirectlyUsed)
-                                        || associationsToOntotype.stream().anyMatch(it -> it instanceof OntologyAssociation.IndirectlyUsed),
-                                "OntologyNotUsed",
-                                "Ontology " + ontoType.getJadescriptName() + " cannot be used to send a message: the " +
-                                        "agent type this behaviour is for does not use the specified ontology.",
-                                maybeEobject,
-                                acceptor
-                        );
-                    }
-                }
-            }
-
+        if (valuesChecks == INVALID
+            || contentCheck == INVALID
+            || performativeCheck == INVALID) {
+            //Just validate the receivers
+            return validateReceivers(receivers, state, acceptor);
         }
 
-        Maybe<EList<RValueExpression>> rexprs = receivers.__(CommaSeparatedListOfRExpressions::getExpressions);
-        for (Maybe<RValueExpression> receiverExpr : iterate(rexprs)) {
-            module.get(RValueExpressionSemantics.class).validate(receiverExpr, , subValidations);
-        }
+        final IJadescriptType inputContentType =
+            rves.inferType(content, state);
 
 
-    }
-
-    @Override
-    public StaticState compileStatement(Maybe<SendMessageStatement> input,
-        StaticState state,
-        CompilationOutputAcceptor acceptor) {
-        String messageName = hashBasedName("_synthesizedMessage", input.toNullable());
+        final StaticState afterContent =
+            rves.advance(content, state);
 
 
-        Maybe<String> performative = input.__(SendMessageStatement::getPerformative);
-        Maybe<CommaSeparatedListOfRExpressions> receivers = input.__(SendMessageStatement::getReceivers);
-
-        final Maybe<RValueExpression> contentExpr = input.__(SendMessageStatement::getContent);
-
-        acceptor.accept(w.callStmnt(
-                "jadescript.util.SendMessageUtils.validatePerformative",
-                w.expr("\"" + performative.orElse("null") + "\"")
-        ));
-
-        final String contentVarName = hashBasedName("_contentToBeSent", input.toNullable());
-        final RValueExpressionSemantics rves = module.get(RValueExpressionSemantics.class);
-        final IJadescriptType inputContentType = rves.inferType(contentExpr, );
-        final IJadescriptType adaptedContentType = module.get(TypeHelper.class).adaptMessageContentDefaultTypes(
+        final IJadescriptType adaptedContentType =
+            typeHelper.adaptMessageContentDefaultTypes(
                 performative,
                 inputContentType
+            );
+
+        final IJadescriptType contentBound = typeHelper.getContentBound(
+            Performative.performativeByName.get(performative.toNullable())
         );
-        final String adaptedCompiledContent = module.get(TypeHelper.class).adaptMessageContentDefaultCompile(
+
+        //The type of the content has to be "sendable" (i.e., should
+        // not contain Agents, Behaviours...)
+        validationHelper.asserting(
+            adaptedContentType.isSendable(),
+            "InvalidContent",
+            "Values of type '" + adaptedContentType.getJadescriptName() + "' " +
+                "cannot be sent as part of messages.",
+            content,
+            acceptor
+        );
+
+        //The type of the content has to be within the bounds of the
+        // performative expected types
+        validationHelper.assertExpectedType(
+            contentBound,
+            adaptedContentType,
+            "InvalidContent",
+            content,
+            acceptor
+        );
+
+        //Check if the ontology is specified explicitly by the user
+        final Maybe<JvmTypeReference> ontologyRef =
+            input.__(SendMessageStatement::getOntology);
+
+        final StaticState afterReceivers =
+            validateReceivers(receivers, afterContent, acceptor);
+
+        Maybe<OntologyType> maybeOntologyType = ontologyRef
+            .__(typeHelper::jtFromJvmTypeRef)
+            .nullIf(it -> !(it instanceof OntologyType))
+            .__(it -> (OntologyType) it);
+
+
+        boolean ontoCheck = VALID;
+
+        if (maybeOntologyType.isNothing()) {
+            // If the ontology is not specified, attempt to infer it
+            // from the content
+            maybeOntologyType = adaptedContentType.getDeclaringOntology();
+
+            // The inferred ontology has to be valid
+            ontoCheck = validationHelper.asserting(
+                maybeOntologyType.isPresent(),
+                "InvalidInferredOntology",
+                "Can not infer ontology from content type. Please " +
+                    "specify a valid ontology " +
+                    "with 'with ontology = ' followed by the ontology" +
+                    " name, on a " +
+                    "new indented line.",
+                ontologyRef,
+                acceptor
+            );
+        } else {
+            // If the ontology is specified
+            final Maybe<OntologyType> declaringOntology =
+                adaptedContentType.getDeclaringOntology();
+
+
+            if (declaringOntology.isPresent()) {
+                // ... and an ontology can be inferred from the content
+                final IJadescriptType ontologyType =
+                    maybeOntologyType.toNullable();
+
+                final IJadescriptType declaringOntologyType =
+                    declaringOntology.toNullable();
+
+                // the specified ontology has to be a
+                // subtype-or-equal of the ontology that declared the
+                // content type
+                ontoCheck = validationHelper.asserting(
+                    declaringOntologyType.isAssignableFrom(ontologyType),
+                    "OntologyMismatch",
+                    "The type of this content is declared in ontology "
+                        + declaringOntologyType.getJadescriptName()
+                        + ", but this operation requires a content " +
+                        "declared in ontology "
+                        + ontologyType.getJadescriptName() + ".",
+                    content,
+                    acceptor
+                );
+            }
+        }
+
+
+        if (ontoCheck == VALID && maybeOntologyType.isPresent()) {
+
+            final IJadescriptType ontoType = maybeOntologyType.toNullable();
+
+            final Maybe<? extends EObject> maybeEobject =
+                ontologyRef.isPresent() ? ontologyRef : input;
+
+            // Get all associations to the ontology declaring the content
+            final List<OntologyAssociationKind>
+                associationsToOntotype = module.get(ContextManager.class)
+                .currentContext()
+                .actAs(OntologyAssociationComputer.class)
+                .findFirst()
+                .orElse(OntologyAssociationComputer
+                    .EMPTY_ONTOLOGY_ASSOCIATIONS)
+                .computeAllOntologyAssociations()
+                .filter(oa -> oa.getOntology().typeEquals(ontoType))
+                .map(OntologyAssociation::getAssociationKind)
+                .collect(Collectors.toList());
+
+            // The ontology has to be used in some way (e.g., direcly
+            // used, used by supertypes, used by the agent...)
+            validationHelper.asserting(
+                !associationsToOntotype.isEmpty(),
+                "OntologyNotUsed",
+                "Ontology " + ontoType.getJadescriptName() + " is not" +
+                    " accessible in this context.",
+                maybeEobject,
+                acceptor
+            );
+        }
+
+        return afterReceivers;
+    }
+
+
+    private StaticState validateReceivers(
+        Maybe<CommaSeparatedListOfRExpressions> receivers,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ) {
+        RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final List<IJadescriptType> validReceiverTypes = List.of(
+            typeHelper.AID,
+            typeHelper.LIST.apply(List.of(typeHelper.AID)),
+            typeHelper.SET.apply(List.of(typeHelper.AID))
+        );
+        Maybe<EList<RValueExpression>> rexprs = receivers.__(
+            CommaSeparatedListOfRExpressions::getExpressions);
+        StaticState runningState = state;
+        for (Maybe<RValueExpression> receiverExpr : iterate(rexprs)) {
+            boolean receiverCheck = rves.validate(
+                receiverExpr,
+                state,
+                acceptor
+            );
+            if (receiverCheck == VALID) {
+                IJadescriptType receiverType = rves.inferType(
+                    receiverExpr,
+                    runningState
+                );
+                runningState = rves.advance(receiverExpr, runningState);
+                validationHelper.assertExpectedTypes(
+                    validReceiverTypes,
+                    receiverType,
+                    "InvalidReceiver",
+                    receiverExpr,
+                    acceptor
+                );
+            }
+        }
+        return runningState;
+    }
+
+
+    @Override
+    public StaticState compileStatement(
+        Maybe<SendMessageStatement> input,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
+    ) {
+        String messageName = hashBasedName(
+            "_synthesizedMessage",
+            input.toNullable()
+        );
+
+        Maybe<String> performative =
+            input.__(SendMessageStatement::getPerformative);
+        Maybe<CommaSeparatedListOfRExpressions> receivers =
+            input.__(SendMessageStatement::getReceivers);
+
+        final Maybe<RValueExpression> contentExpr =
+            input.__(SendMessageStatement::getContent);
+
+        acceptor.accept(w.callStmnt(
+            "jadescript.util.SendMessageUtils.validatePerformative",
+            w.expr("\"" + performative.orElse("null") + "\"")
+        ));
+
+
+        final String contentVarName = hashBasedName(
+            "_contentToBeSent",
+            input.toNullable()
+        );
+
+
+        final RValueExpressionSemantics rves = module.get(
+            RValueExpressionSemantics.class);
+
+
+        final IJadescriptType inputContentType = rves.inferType(
+            contentExpr,
+            state
+        );
+        final IJadescriptType adaptedContentType =
+            module.get(TypeHelper.class).adaptMessageContentDefaultTypes(
+                performative,
+                inputContentType
+            );
+        final String adaptedCompiledContent =
+            module.get(TypeHelper.class).adaptMessageContentDefaultCompile(
                 performative,
                 inputContentType,
-                rves.compile(contentExpr, , acceptor).toString()
-        );
+                rves.compile(contentExpr, state, acceptor)
+            );
 
-        acceptor.accept(w.variable("java.lang.Object", contentVarName, w.expr(adaptedCompiledContent)));
+        final StaticState afterContent = rves.advance(contentExpr, state);
 
         acceptor.accept(w.variable(
-                "jadescript.core.message.Message",
-                messageName,
-                w.callExpr(
-                        "new jadescript.core.message.Message",
-                        w.expr("jadescript.core.message.Message." +
-                                performative.__(String::toUpperCase)
-                                        .extract(nullAsEmptyString)
-                        )
+            "java.lang.Object",
+            contentVarName,
+            w.expr(adaptedCompiledContent)
+        ));
+
+        acceptor.accept(w.variable(
+            "jadescript.core.message.Message",
+            messageName,
+            w.callExpr(
+                "new jadescript.core.message.Message",
+                w.expr("jadescript.core.message.Message." +
+                    performative.__(String::toUpperCase)
+                        .extract(nullAsEmptyString)
                 )
+            )
         ));
 
 
         // _msg1.setOntology(Onto.getInstance().getName());
-        acceptor.accept(w.simpleStmt(setOntology(input, contentVarName, adaptedContentType, messageName)));
+        acceptor.accept(w.simpleStmt(setOntology(
+            input,
+            contentVarName,
+            adaptedContentType,
+            messageName
+        )));
 
         // _msg1.setLanguage(_codec1);
         acceptor.accept(w.simpleStmt(setLanguage(messageName)));
 
         // _receiversList = ...
         // for (AID r : _receiversList) _msg1.addReceiver(r);
-        addReceivers(input, receivers, messageName, acceptor);
+        StaticState afterReceivers = addReceivers(
+            input,
+            receivers,
+            messageName,
+            afterContent,
+            acceptor
+        );
 
 
-        //this.myAgent.getContentManager().fillContent(_msg1, Onto.received(counter));
-        fillContent(input, adaptedContentType, contentVarName, messageName, performative, acceptor);
+        //this.myAgent.getContentManager().fillContent(_msg1, Onto.received
+        // (counter));
+        fillContent(
+            input,
+            adaptedContentType,
+            contentVarName,
+            messageName,
+            performative,
+            acceptor
+        );
 
 
         //this.myAgent.send(_msg1);
-        acceptor.accept(w.callStmnt(THE_AGENT + "().send", w.expr(messageName)));
+        acceptor.accept(w.callStmnt(
+            THE_AGENT + "().send",
+            w.expr(messageName)
+        ));
+
+        return afterReceivers;
     }
 
-    private void addReceivers(
-            Maybe<SendMessageStatement> input,
-            Maybe<CommaSeparatedListOfRExpressions> receivers,
-            String messageName,
-            CompilationOutputAcceptor acceptor
+
+    private StaticState addReceivers(
+        Maybe<SendMessageStatement> input,
+        Maybe<CommaSeparatedListOfRExpressions> receivers,
+        String messageName,
+        StaticState afterContent,
+        CompilationOutputAcceptor acceptor
     ) {
         Maybe<EList<RValueExpression>> rexprs = receivers
-                .__(CommaSeparatedListOfRExpressions::getExpressions);
+            .__(CommaSeparatedListOfRExpressions::getExpressions);
 
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        StaticState runningState = afterContent;
         for (Maybe<RValueExpression> receiver : iterate(rexprs)) {
-            IJadescriptType receiversType = module.get(RValueExpressionSemantics.class).inferType(receiver, );
-            if (receiversType instanceof ListType || receiversType instanceof SetType) {
-                String receiversTypeName = receiversType.compileToJavaTypeReference();
-                IJadescriptType receiversComponentType = receiversType.getElementTypeIfCollection()
-                        .orElse(module.get(TypeHelper.class).ANY);
+            IJadescriptType receiversType =
+                rves.inferType(receiver, runningState);
+
+            if (receiversType instanceof ListType
+                || receiversType instanceof SetType) {
+
+                String receiversTypeName =
+                    receiversType.compileToJavaTypeReference();
+                IJadescriptType receiversComponentType =
+                    receiversType.getElementTypeIfCollection()
+                        .orElse(typeHelper.ANY);
+
                 setReceiverCollection(
-                        input,
-                        receiver,
-                        messageName,
-                        receiversComponentType.compileToJavaTypeReference(),
-                        receiversTypeName,
-                        acceptor
+                    input,
+                    receiver,
+                    messageName,
+                    receiversComponentType.compileToJavaTypeReference(),
+                    receiversTypeName,
+                    runningState,
+                    acceptor
                 );
-            } else if (module.get(TypeHelper.class).AID.isAssignableFrom(receiversType)) {
-                setReceiver(receiver, messageName, acceptor);
+
+            } else if (typeHelper.AID.isAssignableFrom(
+
+                receiversType)) {
+                setReceiver(receiver, messageName, runningState, acceptor);
+
             }
+            runningState = rves.advance(receiver, runningState);
         }
+
+        return runningState;
     }
 
 
     private void setReceiverCollection(
-            Maybe<SendMessageStatement> input,
-            Maybe<RValueExpression> receiversExpr,
-            String messageName,
-            String componentType,
-            String receiversTypeName,
-            CompilationOutputAcceptor acceptor
+        Maybe<SendMessageStatement> input,
+        Maybe<RValueExpression> receiversExpr,
+        String messageName,
+        String componentType,
+        String receiversTypeName,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
     ) {
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
         input.safeDo(inputSafe -> {
             String receiversListName = synthesizeReceiverListName(inputSafe);
             String receiverName = "__receiver";
-            boolean doAIDConversion = !Objects.equals(componentType, "jade.core.AID");
+            boolean doAIDConversion = !Objects.equals(
+                componentType,
+                "jade.core.AID"
+            );
 
             if (receiversExpr != null) {
                 acceptor.accept(w.variable(
-                        receiversTypeName,
-                        receiversListName,
-                        w.expr(module.get(RValueExpressionSemantics.class).compile(receiversExpr, , acceptor).toString())
+                    receiversTypeName,
+                    receiversListName,
+                    w.expr(rves.compile(receiversExpr, state, acceptor))
                 ));
-                acceptor.accept(w.foreach(componentType, receiverName, w.expr(receiversListName), doAIDConversion ?
-                                w.block().addStatement(w.callStmnt(
-                                        messageName + ".addReceiver",
-                                        w.callExpr(
-                                                "new jade.core.AID",
-                                                w.callExpr(receiverName + ".toString"), //TODO use javaapi's converter
-                                                w.expr("false")
-                                        )
-                                ))
-                                : w.block().addStatement(w.callStmnt(
-                                messageName + ".addReceiver",
-                                w.expr(receiverName)
+                if (doAIDConversion) {
+                    acceptor.accept(w.foreach(
+                        componentType,
+                        receiverName,
+                        w.expr(receiversListName),
+                        w.block().addStatement(w.callStmnt(
+                            messageName + ".addReceiver",
+                            w.callExpr(
+                                "new jade.core.AID",
+                                w.callExpr(receiverName + ".toString"),
+                                w.expr("false")
+                            )
                         ))
-                ));
+                    ));
+                } else {
+                    acceptor.accept(w.foreach(
+                        componentType,
+                        receiverName,
+                        w.expr(receiversListName),
+                        w.block().addStatement(w.callStmnt(
+                            messageName + ".addReceiver",
+                            w.expr(receiverName)
+                        ))
+                    ));
+                }
             }
         });
 
     }
 
+
     private void setReceiver(
-            Maybe<RValueExpression> re,
-            String messageName,
-            CompilationOutputAcceptor acceptor
+        Maybe<RValueExpression> re,
+        String messageName,
+        StaticState state,
+        CompilationOutputAcceptor acceptor
     ) {
-        IJadescriptType componentType = module.get(RValueExpressionSemantics.class).inferType(re, );
-        String argOfAddReceiver = module.get(RValueExpressionSemantics.class).compile(re, , acceptor).toString();
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
 
-        boolean doAIDConversion = !module.get(TypeHelper.class).AID.typeEquals(componentType);
+        IJadescriptType componentType = rves.inferType(re, state);
+        String argOfAddReceiver = rves.compile(re, state, acceptor);
+
+        boolean doAIDConversion = !module.get(TypeHelper.class).AID
+            .typeEquals(componentType);
+
         acceptor.accept(doAIDConversion ?
-                w.callStmnt(
-                        messageName + ".addReceiver",
-                        w.callExpr(
-                                "new jade.core.AID",
-                                w.callExpr(argOfAddReceiver + ".toString"), //TODO use javaapi's converter
-                                w.expr("false")
-                        )
+            w.callStmnt(
+                messageName + ".addReceiver",
+                w.callExpr(
+                    "new jade.core.AID",
+                    w.callExpr(argOfAddReceiver + ".toString"),
+                    w.expr("false")
                 )
-                :
-                w.callStmnt(messageName + ".addReceiver", w.expr(argOfAddReceiver)));
-
+            )
+            : w.callStmnt(
+                messageName + ".addReceiver",
+                w.expr(argOfAddReceiver)
+            )
+        );
     }
 
 
     private String setOntology(
-            Maybe<SendMessageStatement> input,
-            String contentVarName,
-            IJadescriptType contentType,
-            String messageName
+        Maybe<SendMessageStatement> input,
+        String contentVarName,
+        IJadescriptType contentType,
+        String messageName
     ) {
         Maybe<String> ontology = input.__(SendMessageStatement::getOntology)
-                .__(typeReference -> typeReference.getQualifiedName('.'));
+            .__(typeReference -> typeReference.getQualifiedName('.'));
 
         String onto = ontology
-                .__(s -> s + ".getInstance()")
-                .orElse("jadescript.util.SendMessageUtils.getDeclaringOntology(" +
-                        contentVarName +
-                        "," +
-                        contentType.getDeclaringOntology()
-                                .__(x -> x)
-                                .__(TypeArgument::compileToJavaTypeReference)
-                                .__(t -> t + ".getInstance()")
-                                .orElse("null") +
-                        "," +
-                        module.get(ContextManager.class)
-                                .currentContext().searchAs(
-                                        OntologyAssociationComputer.class,
-                                        OntologyAssociationComputer::computeAllOntologyAssociations
-                                ).sorted().findFirst()//FUTURETODO multiple ontologies
-                                .map(oa -> oa.getOntology().compileToJavaTypeReference())
-                                .map(s -> s + ".getInstance()")
-                                .orElse("null") +
-                        ")");
+            .__(s -> s + ".getInstance()")
+            .orElse("jadescript.util.SendMessageUtils.getDeclaringOntology(" +
+                contentVarName +
+                "," +
+                contentType.getDeclaringOntology()
+                    .__(x -> x)
+                    .__(TypeArgument::compileToJavaTypeReference)
+                    .__(t -> t + ".getInstance()")
+                    .orElse("null") +
+                "," +
+                module.get(ContextManager.class)
+                    .currentContext().searchAs(
+                        OntologyAssociationComputer.class,
+                        OntologyAssociationComputer
+                            ::computeAllOntologyAssociations
+                    ).sorted().findFirst()//FUTURETODO multiple ontologies
+                    .map(oa -> oa.getOntology().compileToJavaTypeReference())
+                    .map(s -> s + ".getInstance()")
+                    .orElse("null") +
+                ")");
 
         return messageName + ".setOntology(" + onto + ".getName());";
     }
+
 
     private String setLanguage(String messageName) {
         return messageName + ".setLanguage(" + CODEC_VAR_NAME + ".getName());";
@@ -403,64 +601,76 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
 
 
     private void fillContent(
-            Maybe<SendMessageStatement> input,
-            IJadescriptType contentType,
-            String contentVarName,
-            String messageName,
-            Maybe<String> performative,
-            CompilationOutputAcceptor acceptor
+        Maybe<SendMessageStatement> input,
+        IJadescriptType contentType,
+        String contentVarName,
+        String messageName,
+        Maybe<String> performative,
+        CompilationOutputAcceptor acceptor
     ) {
 
         Maybe<UsesOntologyElement> container = input.__(
-                EcoreUtil2::getContainerOfType,
-                UsesOntologyElement.class
+            EcoreUtil2::getContainerOfType,
+            UsesOntologyElement.class
         );
 
 
-        //this one down here is the functional equivalent, by applying the maybe monad on container, of:
+        //this one down here is the functional equivalent, by applying the
+        // maybe monad on container, of:
         //    typeSafe = toLightWeightTypeReference(contentType, container)
         container.__(
-                Functional.partial1(module.get(CompilationHelper.class)::toLightweightTypeReference, contentType)
+            Functional.partial1(
+                module.get(CompilationHelper.class)::toLightweightTypeReference,
+                contentType
+            )
         ).safeDo(typeSafe -> {
 
             if (typeSafe.isType(String.class)) {
-                acceptor.accept(w.callStmnt(messageName + ".setContent", w.expr(contentVarName)));
+                acceptor.accept(w.callStmnt(
+                    messageName + ".setContent",
+                    w.expr(contentVarName)
+                ));
 
             } else if (typeSafe.isSubtypeOf(Serializable.class)
-                    || typeSafe.isSubtypeOf(ContentElement.class)
-                    || typeSafe.isSubtypeOf(AbsContentElement.class)) {
+                || typeSafe.isSubtypeOf(ContentElement.class)
+                || typeSafe.isSubtypeOf(AbsContentElement.class)) {
                 BlockWriter tryBranch;
 
-                if (performative.isPresent() && (typeSafe.isSubtypeOf(ContentElement.class)
-                        || typeSafe.isSubtypeOf(AbsContentElement.class))) {
+                if (performative.isPresent() && (typeSafe.isSubtypeOf(
+                    ContentElement.class)
+                    || typeSafe.isSubtypeOf(AbsContentElement.class))) {
                     tryBranch = w.block().addStatement(w.callStmnt(
-                            THE_AGENT + "().getContentManager().fillContent",
-                            w.expr(messageName),
-                            w.callExpr(
-                                    "jadescript.content.onto.MessageContent.prepareContent",
-                                    w.expr("(jade.content.ContentElement) " + contentVarName),
-                                    w.expr("\"" + performative.toNullable() + "\"")
-                            )
+                        THE_AGENT + "().getContentManager().fillContent",
+                        w.expr(messageName),
+                        w.callExpr(
+                            "jadescript.content.onto.MessageContent" +
+                                ".prepareContent",
+                            w.expr("(jade.content.ContentElement) " +
+                                contentVarName),
+                            w.expr("\"" + performative.toNullable() + "\"")
+                        )
                     ));
-                } else if (typeSafe.isSubtypeOf(Serializable.class) || performative.isNothing()) {
+                } else if (typeSafe.isSubtypeOf(Serializable.class)
+                    || performative.isNothing()) {
                     tryBranch = w.block().addStatement(w.callStmnt(
-                            messageName + ".setContentObject",
-                            w.expr("(java.io.Serializable) " + contentVarName)
+                        messageName + ".setContentObject",
+                        w.expr("(java.io.Serializable) " + contentVarName)
                     ));
                 } else {
                     tryBranch = w.block();
                 }
 
                 acceptor.accept(w.tryCatch(tryBranch)
-                        .addCatchBranch("java.lang.Throwable", "_t",
-                                w.block().addStatement(w.callStmnt("_t.printStackTrace"))
-                        )
+                    .addCatchBranch("java.lang.Throwable", "_t",
+                        w.block().addStatement(w.callStmnt("_t" +
+                            ".printStackTrace"))
+                    )
                 );
 
             } else {
                 acceptor.accept(w.callStmnt(
-                        messageName + ".setByteSequenceContent",
-                        w.expr(contentVarName)
+                    messageName + ".setByteSequenceContent",
+                    w.expr(contentVarName)
                 ));
             }
         });
@@ -468,19 +678,21 @@ public class SendMessageStatementSemantics extends StatementSemantics<SendMessag
 
 
     @Override
-    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>> includedExpressions(
-            Maybe<SendMessageStatement> input
+    public Stream<SemanticsBoundToExpression<?>> includedExpressions(
+        Maybe<SendMessageStatement> input
     ) {
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+
         return Stream.concat(
-                        Stream.of(input.__(SendMessageStatement::getContent)),
-                        Stream.of(input.__(SendMessageStatement::getReceivers))
-                                .filter(Maybe::isPresent)
-                                .map(Maybe::toNullable)
-                                .flatMap(c -> c.getExpressions().stream())
-                                .map(Maybe::some)
-                )
-                .filter(Maybe::isPresent)
-                .map(x -> new ExpressionSemantics.SemanticsBoundToExpression<>(module.get(RValueExpressionSemantics.class), x))
-                .collect(Collectors.toList());
+                Stream.of(input.__(SendMessageStatement::getContent)),
+                Stream.of(input.__(SendMessageStatement::getReceivers))
+                    .filter(Maybe::isPresent)
+                    .map(Maybe::toNullable)
+                    .flatMap(c -> c.getExpressions().stream())
+                    .map(Maybe::some)
+            ).filter(Maybe::isPresent)
+            .map(i -> new SemanticsBoundToExpression<>(rves, i));
     }
+
 }

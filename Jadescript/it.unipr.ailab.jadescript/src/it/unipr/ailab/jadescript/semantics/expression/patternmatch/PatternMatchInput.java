@@ -264,24 +264,24 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
                 PatternMatchMode.PatternLocation.STATEMENT_GUARD
         );
-        private final Maybe<RValueExpression> inputExpr;
+        private final IJadescriptType inputExprType;
 
         public WhenMatchesStatement(
                 SemanticsModule module,
-                Maybe<RValueExpression> inputExpr,
+                IJadescriptType inputExprType,
                 Maybe<T> pattern,
                 String termID,
                 String rootPatternMatchVariableName
         ) {
             super(module, MODE, pattern, termID, rootPatternMatchVariableName);
-            this.inputExpr = inputExpr;
+            this.inputExprType = inputExprType;
         }
 
         @Override
         public <R> WhenMatchesStatement<R> mapPattern(Function<T, R> function) {
             return new WhenMatchesStatement<>(
                     module,
-                    inputExpr,
+                    getProvidedInputType(),
                     getPattern().__(function),
                     getTermID(),
                     getRootPatternMatchVariableName()
@@ -291,7 +291,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
         @Override
         public IJadescriptType getProvidedInputType() {
-            return module.get(RValueExpressionSemantics.class).inferType(inputExpr, );
+            return inputExprType;
         }
 
 

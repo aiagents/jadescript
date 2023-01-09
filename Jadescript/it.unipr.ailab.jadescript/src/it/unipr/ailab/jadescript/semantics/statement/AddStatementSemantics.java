@@ -20,7 +20,6 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collection;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
@@ -253,7 +252,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
                     acceptor
                 );
                 if (isWithIndex) {
-                    module.get(ValidationHelper.class).validateIndexType(
+                    module.get(ValidationHelper.class).validateIndex(
                         collectionType,
                         index,
                         afterCollection,

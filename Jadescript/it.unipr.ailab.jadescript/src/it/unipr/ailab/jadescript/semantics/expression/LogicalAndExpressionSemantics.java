@@ -214,14 +214,14 @@ public class LogicalAndExpressionSemantics
 
             //The evaluation of next operands can be done with the assumption
             // that this operand returned true (short-circuit semantics).
-            if (i < equs.size() - 1 && exprDesc.isPresent()) { // excluding last
+            if (i < equs.size() - 1 ) { // excluding last
                 newState = newState.assertEvaluation(
-                    exprDesc.toNullable(),
+                    exprDesc,
                     FlowTypingRuleCondition.ReturnedTrue.INSTANCE
                 );
             }
         }
-        return newState;
+        return newState; //TODO not all operands did evaluate!
     }
 
 

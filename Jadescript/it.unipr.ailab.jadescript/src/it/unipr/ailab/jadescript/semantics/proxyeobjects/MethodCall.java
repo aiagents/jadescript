@@ -9,6 +9,10 @@ import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public class MethodCall extends ProxyEObject {
+
+    public static final boolean IS_FUNCTION = false;
+    public static final boolean IS_PROCEDURE = true;
+
     private final String name;
     private final Maybe<SimpleArgumentList> simpleArgs;
     private final Maybe<NamedArgumentList> namedArgs;

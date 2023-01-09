@@ -41,6 +41,7 @@ public interface CompilationOutputAcceptor {
             String compiledExpression
     ) {
         final Maybe<Integer> hash = Util.extractEObject(eObject).__(EObject::hashCode);
+
         final String finalName = "__auxvar_" + codeName + "_" + hash.orElse(0);
         accept(w.variable(
                 type,

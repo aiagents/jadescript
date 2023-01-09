@@ -13,14 +13,20 @@ import it.unipr.ailab.jadescript.semantics.utils.ImmutableMap;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableMultiMap;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableSet;
 import it.unipr.ailab.maybe.Maybe;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
+/**
+ * Monotonic knowledge base for flow-sensitive analysis and scope management
+ * inside procedural blocks.
+ */
 public class StaticState
     implements Searcheable,
     NamedSymbol.Searcher,
@@ -169,6 +175,17 @@ public class StaticState
         );
     }
 
+    public StaticState assertEvaluation(
+        Maybe<ExpressionDescriptor> evaluated,
+        FlowTypingRuleCondition caused
+    ){
+        if(evaluated.isPresent()){
+            return assertEvaluation(evaluated.toNullable(), caused);
+        }else{
+            return this;
+        }
+    }
+
 
     public IJadescriptType getUpperBound(
         ExpressionDescriptor forExpression
@@ -237,6 +254,20 @@ public class StaticState
             ),
             this.getFlowTyipingRules()
         );
+    }
+
+    public StaticState assertFlowTypingUpperBound(
+        Maybe<ExpressionDescriptor>expressionDescriptorMaybe,
+        IJadescriptType bound
+    ){
+        if(expressionDescriptorMaybe.isPresent()){
+            return assertFlowTypingUpperBound(
+                expressionDescriptorMaybe.toNullable(),
+                bound
+            );
+        }else{
+            return this;
+        }
     }
 
 
@@ -349,6 +380,21 @@ public class StaticState
         );
     }
 
+
+    public StaticState intersectAll(
+        @NotNull Collection<StaticState> others
+    ){
+        return others.stream().reduce(this, StaticState::intersect);
+    }
+
+    public static StaticState intersectAll(
+        @NotNull Collection<StaticState> states,
+        Supplier<?extends StaticState> ifEmpty
+    ){
+        return states.stream().reduce(
+            StaticState::intersect
+        ).orElseGet(ifEmpty);
+    }
 
     private ImmutableMap<String, NamedSymbol> intersectSymbols(
         StaticState other

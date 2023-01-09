@@ -253,8 +253,9 @@ public class PatternMatchHelper implements SemanticsConsts {
         return output;
     }
 
+
     public PatternMatcher compileWhenMatchesStatementPatternMatching(
-        Maybe<RValueExpression> inputExpr,
+        IJadescriptType inputExprType,
         Maybe<LValueExpression> pattern,
         StaticState afterInputExpr,
         CompilationOutputAcceptor acceptor
@@ -265,7 +266,7 @@ public class PatternMatchHelper implements SemanticsConsts {
         final WhenMatchesStatement<LValueExpression> patternMatchInput =
             new WhenMatchesStatement<>(
                 module,
-                inputExpr,
+                inputExprType,
                 pattern,
                 "__",
                 variableName
@@ -367,6 +368,29 @@ public class PatternMatchHelper implements SemanticsConsts {
     }
 
 
+    public StaticState advanceWhenMatchesStatementPatternMatching(
+        IJadescriptType inputExprType,
+        Maybe<LValueExpression> pattern,
+        StaticState afterInputExpr
+    ) {
+        String localClassName =
+            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
+        final String variableName = localClassName + "_obj";
+        final WhenMatchesStatement<LValueExpression> patternMatchInput =
+            new PatternMatchInput.WhenMatchesStatement<>(
+                module,
+                inputExprType,
+                pattern,
+                "__",
+                variableName
+            );
+        return module.get(LValueExpressionSemantics.class).advancePattern(
+            patternMatchInput,
+            afterInputExpr
+        );
+    }
+
+
     public StaticState advanceMatchesExpressionPatternMatching(
         IJadescriptType inputExprType,
         Maybe<LValueExpression> pattern,
@@ -413,6 +437,7 @@ public class PatternMatchHelper implements SemanticsConsts {
             state
         );
     }
+
 
     public StaticState advanceAssignmentDeconstructionPatternMatching(
         IJadescriptType rightType,
@@ -492,6 +517,8 @@ public class PatternMatchHelper implements SemanticsConsts {
             acceptor
         );
     }
+
+
     public boolean validateAssignmentDeconstructionPatternMatching(
         IJadescriptType rightType,
         Maybe<LValueExpression> leftPattern,
@@ -558,6 +585,27 @@ public class PatternMatchHelper implements SemanticsConsts {
         final String variableName = localClassName + "_obj";
         final MatchesExpression<LValueExpression> patternMatchInput =
             new MatchesExpression<>(
+                module,
+                inputExprType,
+                pattern,
+                "__",
+                variableName
+            );
+        return module.get(LValueExpressionSemantics.class)
+            .inferPatternType(patternMatchInput, state)
+            .solve(inputExprType);
+    }
+
+    public IJadescriptType inferWhenMatchesExpressionPatternType(
+        IJadescriptType inputExprType,
+        Maybe<LValueExpression> pattern,
+        StaticState state
+    ){
+        String localClassName =
+            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
+        final String variableName = localClassName + "_obj";
+        final WhenMatchesStatement<LValueExpression> patternMatchInput =
+            new WhenMatchesStatement<>(
                 module,
                 inputExprType,
                 pattern,

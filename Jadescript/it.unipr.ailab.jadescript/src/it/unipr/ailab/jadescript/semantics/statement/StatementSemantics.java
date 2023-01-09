@@ -10,7 +10,6 @@ import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.List;
 import java.util.stream.Stream;
 
 /**
