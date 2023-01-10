@@ -1,8 +1,8 @@
 package it.unipr.ailab.jadescript.semantics.context.staticstate;
 
-public interface FlowTypingRuleCondition {
+public interface EvaluationResult {
 
-    interface Returned extends FlowTypingRuleCondition {
+    interface Returned extends EvaluationResult {
         Returned INSTANCE = new Returned() {
         };
     }
@@ -14,11 +14,6 @@ public interface FlowTypingRuleCondition {
 
     interface ReturnedTrue extends Returned {
         ReturnedTrue INSTANCE = new ReturnedTrue() {
-        };
-    }
-
-    interface DidImpossible extends FlowTypingRuleCondition {
-        DidImpossible INSTANCE = new DidImpossible() {
         };
     }
 }

@@ -6,6 +6,8 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.MatchingResult;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.SubPattern;
@@ -31,8 +33,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.google.common.collect.Streams.zip;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
-import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 public class MapLiteralExpressionSemantics
     extends AssignableExpressionSemantics<MapOrSetLiteral> {
@@ -349,6 +350,19 @@ public class MapLiteralExpressionSemantics
 
 
     @Override
+    protected Maybe<PatternDescriptor> describePatternInternal(
+        PatternMatchInput<MapOrSetLiteral> input,
+        StaticState state
+    ) {
+        return some(PatternDescriptor.ComposedPattern.from(
+            this,
+            input,
+            state
+        ));
+    }
+
+
+    @Override
     protected StaticState advanceInternal(
         Maybe<MapOrSetLiteral> input,
         StaticState state
@@ -524,7 +538,10 @@ public class MapLiteralExpressionSemantics
             final List<StatementWriter> auxStatements =
                 new ArrayList<>(prePipeElementCount);
 
-            StaticState newState = state;
+            final List<Maybe<PatternDescriptor>> subPatternDescriptors
+                = new ArrayList<>();
+
+            StaticState runningState = state;
             if (prePipeElementCount > 0) {
                 IJadescriptType keyType;
                 IJadescriptType valueType;
@@ -545,7 +562,7 @@ public class MapLiteralExpressionSemantics
                     Maybe<RValueExpression> kterm = keys.get(i);
                     Maybe<RValueExpression> vterm = values.get(i);
                     String compiledKey = rves.compile(kterm, state, acceptor);
-                    newState = rves.advance(kterm, newState);
+                    runningState = rves.advance(kterm, runningState);
 
                     final String keyReferenceName = "__key" + i;
                     keyReferences.add(keyReferenceName);
@@ -563,18 +580,35 @@ public class MapLiteralExpressionSemantics
                                 keyReferenceName + ")"
                         );
                     subResults.add(keyOutput);
+
+
                     final SubPattern<RValueExpression, MapOrSetLiteral>
                         valueSubpattern = input.subPattern(
                         valueType,
                         __ -> vterm.toNullable(),
                         "_" + i
                     );
+
+                    subPatternDescriptors.add(
+                        rves.describePattern(
+                            valueSubpattern,
+                            runningState
+                        )
+                    );
+
+                    if(i > 0){
+                        runningState = runningState.assertMatching(
+                            subPatternDescriptors.get(i - 1),
+                            MatchingResult.DidMatch.INSTANCE
+                        );
+                    }
+
                     final PatternMatcher valOutput = rves.compilePatternMatch(
                         valueSubpattern,
-                        newState,
+                        runningState,
                         acceptor
                     );
-                    newState = rves.advancePattern(valueSubpattern, newState);
+                    runningState = rves.advancePattern(valueSubpattern, runningState);
                     subResults.add(valOutput);
                 }
             }
@@ -587,13 +621,26 @@ public class MapLiteralExpressionSemantics
                         __ -> rest.toNullable(),
                         "_rest"
                     );
+
+                if(!subPatternDescriptors.isEmpty()){
+                    runningState = runningState.assertMatching(
+                        subPatternDescriptors.get(
+                            subPatternDescriptors.size() - 1
+                        ),
+                        MatchingResult.DidMatch.INSTANCE
+                    );
+                }
+
                 final PatternMatcher restOutput = rves.compilePatternMatch(
                     restSubpattern,
-                    newState,
+                    runningState,
                     acceptor
                 );
                 // Not needed:
-//                newState = rves.advancePattern(restSubpattern, newState);
+//                runningState = rves.advancePattern(
+//                    restSubpattern,
+//                    runningState
+//                );
                 subResults.add(restOutput);
             }
 
@@ -712,8 +759,12 @@ public class MapLiteralExpressionSemantics
             return INVALID;
         }
 
-        StaticState newState = state;
+        StaticState runningState = state;
         boolean allEntriesCheck = VALID;
+
+        List<Maybe<PatternDescriptor>> subPatternDescriptors
+            = new ArrayList<>();
+
         if (prePipeElementCount > 0) {
             IJadescriptType keyType;
             IJadescriptType valueType;
@@ -738,8 +789,8 @@ public class MapLiteralExpressionSemantics
                         keyType,
                         __ -> kterm.toNullable(),
                         "_key" + i
-                    ), newState, acceptor);
-                newState = rves.advance(kterm, state);
+                    ), runningState, acceptor);
+                runningState = rves.advance(kterm, state);
 
                 final SubPattern<RValueExpression, MapOrSetLiteral>
                     valueSubpattern =
@@ -748,12 +799,30 @@ public class MapLiteralExpressionSemantics
                         __ -> vterm.toNullable(),
                         "_" + i
                     );
+
+                subPatternDescriptors.add(
+                    rves.describePattern(
+                        valueSubpattern,
+                        runningState
+                    )
+                );
+
+                if(i > 0){
+                    runningState = runningState.assertMatching(
+                        subPatternDescriptors.get(i - 1),
+                        MatchingResult.DidMatch.INSTANCE
+                    );
+                }
+
                 final boolean valueCheck = rves.validatePatternMatch(
                     valueSubpattern,
-                    newState,
+                    runningState,
                     acceptor
                 );
-                newState = rves.advancePattern(valueSubpattern, newState);
+                runningState = rves.advancePattern(
+                    valueSubpattern,
+                    runningState
+                );
 
                 allEntriesCheck = allEntriesCheck && keyCheck && valueCheck;
             }
@@ -761,6 +830,12 @@ public class MapLiteralExpressionSemantics
 
         boolean pipeCheck = VALID;
         if (isWithPipe) {
+            if (!subPatternDescriptors.isEmpty()) {
+                runningState = runningState.assertMatching(
+                    subPatternDescriptors.get(subPatternDescriptors.size() - 1),
+                    MatchingResult.DidMatch.INSTANCE
+                );
+            }
             final SubPattern<RValueExpression, MapOrSetLiteral> restSubpattern =
                 input.subPattern(
                     solvedPatternType,
@@ -769,13 +844,13 @@ public class MapLiteralExpressionSemantics
                 );
             pipeCheck = rves.validatePatternMatch(
                 restSubpattern,
-                newState,
+                runningState,
                 acceptor
             );
             // Not needed:
-//            newState = rves.advancePattern(
+//            runningState = rves.advancePattern(
 //                restSubpattern,
-//                newState
+//                runningState
 //            );
         }
 
@@ -804,7 +879,13 @@ public class MapLiteralExpressionSemantics
             module.get(RValueExpressionSemantics.class);
 
 
-        StaticState newState = state;
+        StaticState runningState = state;
+
+        List<StaticState> shortCircuitedAlternatives = new ArrayList<>();
+        final List<Maybe<PatternDescriptor>> subPatternDescriptors
+            = new ArrayList<>();
+
+
         if (prePipeElementCount > 0) {
             IJadescriptType valueType;
             if (solvedPatternType instanceof MapType) {
@@ -818,7 +899,7 @@ public class MapLiteralExpressionSemantics
             for (int i = 0; i < prePipeElementCount; i++) {
                 Maybe<RValueExpression> kterm = keys.get(i);
                 Maybe<RValueExpression> vterm = values.get(i);
-                newState = rves.advance(kterm, state);
+                runningState = rves.advance(kterm, state);
 
                 final SubPattern<RValueExpression, MapOrSetLiteral>
                     valueSubpattern = input.subPattern(
@@ -826,7 +907,27 @@ public class MapLiteralExpressionSemantics
                     __ -> vterm.toNullable(),
                     "_" + i
                 );
-                newState = rves.advancePattern(valueSubpattern, newState);
+
+                subPatternDescriptors.add(
+                    rves.describePattern(
+                        valueSubpattern,
+                        runningState
+                    )
+                );
+
+                shortCircuitedAlternatives.add(runningState);
+
+                if(i > 0){
+                    runningState = runningState.assertMatching(
+                        subPatternDescriptors.get(i - 1),
+                        MatchingResult.DidMatch.INSTANCE
+                    );
+                }
+
+                runningState = rves.advancePattern(
+                    valueSubpattern,
+                    runningState
+                );
             }
         }
 
@@ -837,13 +938,46 @@ public class MapLiteralExpressionSemantics
                     MapOrSetLiteral::getRest,
                     "_rest"
                 );
-            newState = rves.advancePattern(
+
+            shortCircuitedAlternatives.add(runningState);
+
+            if(!subPatternDescriptors.isEmpty()){
+                runningState = runningState.assertMatching(
+                    subPatternDescriptors.get(
+                        subPatternDescriptors.size() - 1
+                    ),
+                    MatchingResult.DidMatch.INSTANCE
+                );
+            }
+
+            subPatternDescriptors.add(
+                rves.describePattern(
+                    restSubpattern,
+                    runningState
+                )
+            );
+
+            runningState = rves.advancePattern(
                 restSubpattern,
-                newState
+                runningState
             );
         }
 
-        return newState;
+        return runningState.intersectAll(
+            shortCircuitedAlternatives
+        ).addMatchingRule(
+            describePattern(input, state),
+            MatchingResult.DidMatch.INSTANCE,
+            s -> {
+                for (var subPatternDescriptor : subPatternDescriptors) {
+                    s = s.assertMatching(
+                        subPatternDescriptor,
+                        MatchingResult.DidMatch.INSTANCE
+                    );
+                }
+                return s;
+            }
+        );
     }
 
 

@@ -7,8 +7,8 @@ import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.FlowTypingRuleCondition;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.PSR;
@@ -79,7 +79,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
         StaticState inThenBranch;
         inThenBranch = runningState.assertEvaluation(
             conditionDescriptor,
-            FlowTypingRuleCondition.ReturnedTrue.INSTANCE
+            EvaluationResult.ReturnedTrue.INSTANCE
         );
         prevConditions.add(conditionDescriptor);
 
@@ -119,14 +119,14 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
             StaticState inElseIfBranch = runningState.assertEvaluation(
                 elseIfCondDescriptor,
-                FlowTypingRuleCondition.ReturnedTrue.INSTANCE
+                EvaluationResult.ReturnedTrue.INSTANCE
             );
 
 
             for (Maybe<ExpressionDescriptor> prevCondition : prevConditions) {
                 inElseIfBranch = inElseIfBranch.assertEvaluation(
                     prevCondition,
-                    FlowTypingRuleCondition.ReturnedFalse.INSTANCE
+                    EvaluationResult.ReturnedFalse.INSTANCE
                 );
             }
 
@@ -156,7 +156,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
             for (Maybe<ExpressionDescriptor> prevCondition : prevConditions) {
                 inElseBranch = inElseBranch.assertEvaluation(
                     prevCondition,
-                    FlowTypingRuleCondition.ReturnedFalse.INSTANCE
+                    EvaluationResult.ReturnedFalse.INSTANCE
                 );
             }
 
@@ -263,7 +263,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
             inThenBranch = runningState.assertEvaluation(
                 condDescriptor,
-                FlowTypingRuleCondition.ReturnedTrue.INSTANCE
+                EvaluationResult.ReturnedTrue.INSTANCE
             );
 
             prevConditions.add(condDescriptor);
@@ -303,14 +303,14 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
                 inElseIfBranch = runningState.assertEvaluation(
                     elseIfCondDescr,
-                    FlowTypingRuleCondition.ReturnedTrue.INSTANCE
+                    EvaluationResult.ReturnedTrue.INSTANCE
                 );
 
                 for (Maybe<ExpressionDescriptor> prevExpression :
                     prevConditions) {
                     inElseIfBranch = inElseIfBranch.assertEvaluation(
                         prevExpression,
-                        FlowTypingRuleCondition.ReturnedFalse.INSTANCE
+                        EvaluationResult.ReturnedFalse.INSTANCE
                     );
                 }
 
@@ -340,7 +340,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
             for (Maybe<ExpressionDescriptor> prevCondition : prevConditions) {
                 inElseBranch = inElseBranch.assertEvaluation(
                     prevCondition,
-                    FlowTypingRuleCondition.ReturnedFalse.INSTANCE
+                    EvaluationResult.ReturnedFalse.INSTANCE
                 );
             }
 

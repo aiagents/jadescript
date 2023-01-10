@@ -10,6 +10,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.EcoreUtil2;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.util.ITextRegionWithLineInformation;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -104,7 +105,7 @@ public class Util implements SemanticsConsts {
 
     public static <T> Stream<T> safeFilter(
         Stream<T> stream,
-        Predicate<T> predicate
+        @Nullable  Predicate<T> predicate
     ) {
         if (predicate != null) {
             return stream.filter(predicate);

@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TernaryConditional;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -110,6 +111,15 @@ public class RValueExpressionSemantics
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<RValueExpression> input,
+        StaticState state
+    ) {
+        return Maybe.nothing();
+    }
+
+
+    @Override
+    protected Maybe<PatternDescriptor> describePatternInternal(
+        PatternMatchInput<RValueExpression> input,
         StaticState state
     ) {
         return Maybe.nothing();

@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.jadescript.TypeComparison;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -19,8 +20,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
-import static it.unipr.ailab.maybe.Maybe.some;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
  * Created on 28/12/16.
@@ -80,6 +80,15 @@ public class TypeComparisonExpressionSemantics
             leftDescriptorMaybe.toNullable(),
             typeResolved
         ));
+    }
+
+
+    @Override
+    protected Maybe<PatternDescriptor> describePatternInternal(
+        PatternMatchInput<TypeComparison> input,
+        StaticState state
+    ) {
+        return nothing();
     }
 
 

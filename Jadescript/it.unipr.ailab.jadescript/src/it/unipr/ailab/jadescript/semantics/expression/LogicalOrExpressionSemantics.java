@@ -5,8 +5,9 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.LogicalAnd;
 import it.unipr.ailab.jadescript.jadescript.LogicalOr;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.FlowTypingRuleCondition;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -30,8 +31,6 @@ import java.util.stream.Stream;
  * Created on 28/12/16.
  */
 
-//TODO correct state advancement semantics: not 'then' but
-// 'fork-alternatives-merge'
 @Singleton
 public class LogicalOrExpressionSemantics
     extends ExpressionSemantics<LogicalOr> {
@@ -63,35 +62,39 @@ public class LogicalOrExpressionSemantics
         CompilationOutputAcceptor acceptor
     ) {
         if (input == null) return "";
-        Maybe<EList<LogicalAnd>> logicalAnds =
-            input.__(LogicalOr::getLogicalAnd);
-        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(logicalAnds);
+        StringBuilder result = new StringBuilder();
+        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(
+            input.__(LogicalOr::getLogicalAnd)
+        );
 
         final LogicalAndExpressionSemantics laes =
             module.get(LogicalAndExpressionSemantics.class);
 
-        StringBuilder result = new StringBuilder();
         StaticState newState = state;
         for (int i = 0; i < ands.size(); i++) {
             Maybe<LogicalAnd> and = ands.get(i);
+
             final String operandCompiled = laes.compile(
                 and,
                 newState,
                 acceptor
             );
+
+            Maybe<ExpressionDescriptor> thisExpr =
+                laes.describeExpression(and, newState);
+
+            newState = laes.advance(and, newState);
+
+            if (thisExpr.isPresent()) {
+                newState = newState.assertEvaluation(
+                    thisExpr.toNullable(),
+                    EvaluationResult.ReturnedFalse.INSTANCE
+                );
+            }
             if (i != 0) {
                 result.append(" || ").append(operandCompiled);
             } else {
                 result = new StringBuilder(operandCompiled);
-            }
-            Maybe<ExpressionDescriptor> thisExpr =
-                laes.describeExpression(and, newState);
-            newState = laes.advance(and, newState);
-            if (thisExpr.isPresent()) {
-                newState = newState.assertEvaluation(
-                    thisExpr.toNullable(),
-                    FlowTypingRuleCondition.ReturnedFalse.INSTANCE
-                );
             }
         }
         return result.toString();
@@ -113,19 +116,19 @@ public class LogicalOrExpressionSemantics
             module.get(LogicalAndExpressionSemantics.class);
 
 
+        StaticState newState = state;
         for (Maybe<LogicalAnd> and : ands) {
             Maybe<ExpressionDescriptor> thisExpr =
                 laes.describeExpression(and, state);
 
-//            newState = laes.advance(and, newState);
+            newState = laes.advance(and, newState);
 
             if (thisExpr.isPresent()) {
                 operands.add(thisExpr.toNullable());
-                //TODO this does not assert, but proposes an alternative
-//                 newState = newState.assertEvaluation(
-//                    thisExpr.toNullable(),
-//                    FlowTypingRuleCondition.ReturnedTrue.INSTANCE
-//                 );
+                newState = newState.assertEvaluation(
+                    thisExpr.toNullable(),
+                    EvaluationResult.ReturnedFalse.INSTANCE
+                );
             }
         }
         if (operands.isEmpty()) {
@@ -138,13 +141,115 @@ public class LogicalOrExpressionSemantics
 
 
     @Override
+    protected Maybe<PatternDescriptor> describePatternInternal(
+        PatternMatchInput<LogicalOr> input,
+        StaticState state
+    ) {
+        return Maybe.nothing();
+    }
+
+
+    @Override
     protected StaticState advanceInternal(
         Maybe<LogicalOr> input,
         StaticState state
     ) {
-        return subExpressionsAdvanceAll(input, state);
-    }
+        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(
+            input.__(LogicalOr::getLogicalAnd)
+        );
 
+        if (ands.isEmpty()) {
+            return state;
+        }
+
+        final LogicalAndExpressionSemantics laes =
+            module.get(LogicalAndExpressionSemantics.class);
+
+        // Contains the intermediate states, where the last evaluation returned
+        // true
+        List<StaticState> shortCircuitAlternatives
+            = new ArrayList<>(ands.size());
+
+        List<Maybe<ExpressionDescriptor>> descrs = new ArrayList<>(ands.size());
+        StaticState allFalseState = state;
+        for (Maybe<LogicalAnd> and : ands) {
+            final StaticState newState = laes.advance(and, allFalseState);
+
+            final Maybe<ExpressionDescriptor> descr =
+                laes.describeExpression(and, allFalseState);
+
+            descrs.add(descr);
+
+            shortCircuitAlternatives.add(
+                newState.assertEvaluation(
+                    descr,
+                    EvaluationResult.ReturnedTrue.INSTANCE
+                )
+            );
+
+            allFalseState = newState.assertEvaluation(
+                descr,
+                EvaluationResult.ReturnedFalse.INSTANCE
+            );
+        }
+
+        // The (pre-overall-rules) result state is the intersection of the
+        // "all false" state with each "one true" short-circuited state
+        StaticState result = allFalseState.intersectAll(
+            shortCircuitAlternatives
+        );
+
+        final Maybe<ExpressionDescriptor> overallDescriptor =
+            describeExpression(input, state);
+
+        // We add two rules for later:
+        return result
+            .addEvaluationRule(
+                // If it is asserted that the overall expression is false, it
+                // means that all the operands returned false, and we can
+                // compute the consequences one after the other.
+                overallDescriptor,
+                EvaluationResult.ReturnedFalse.INSTANCE,
+                s -> {
+                    for (Maybe<ExpressionDescriptor> descr : descrs) {
+                        s = s.assertEvaluation(
+                            descr,
+                            EvaluationResult.ReturnedFalse.INSTANCE
+                        );
+                    }
+                    return s;
+                }
+            ).addEvaluationRule(
+                // If it is asserted that the overall expression is false, it
+                // means that any sub-sequence of the operands returned false
+                // until one operand returned true. Each sub-sequence case is
+                // used to compute an alternative final state, wich is used to
+                // compute the overall patched state with an intersection.
+                overallDescriptor,
+                EvaluationResult.ReturnedTrue.INSTANCE,
+                s -> {
+                    List<StaticState> alternatives = new ArrayList<>();
+                    StaticState runningState = s;
+                    for (int i = 0; i < descrs.size(); i++) {
+                        Maybe<ExpressionDescriptor> descr = descrs.get(i);
+                        alternatives.add(
+                            runningState.assertEvaluation(
+                                descr,
+                                EvaluationResult.ReturnedTrue.INSTANCE
+                            )
+                        );
+                        if(i < descrs.size()-1) { //exclude last
+                            runningState = runningState.assertEvaluation(
+                                descr,
+                                EvaluationResult.ReturnedFalse.INSTANCE
+                            );
+                        }
+                    }
+                    return s.intersectAll(alternatives);
+                }
+            );
+
+    }
 
     @Override
     protected StaticState advancePatternInternal(
@@ -203,9 +308,9 @@ public class LogicalOrExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        Maybe<EList<LogicalAnd>> logicalAnds =
-            input.__(LogicalOr::getLogicalAnd);
-        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(logicalAnds);
+        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(
+            input.__(LogicalOr::getLogicalAnd)
+        );
         final LogicalAndExpressionSemantics laes =
             module.get(LogicalAndExpressionSemantics.class);
 
@@ -227,7 +332,14 @@ public class LogicalOrExpressionSemantics
             } else {
                 result = INVALID;
             }
+            Maybe<ExpressionDescriptor> thisExpr =
+                laes.describeExpression(and, newState);
             newState = laes.advance(and, newState);
+
+            newState = newState.assertEvaluation(
+                thisExpr,
+                EvaluationResult.ReturnedFalse.INSTANCE
+            );
         }
         return result;
 

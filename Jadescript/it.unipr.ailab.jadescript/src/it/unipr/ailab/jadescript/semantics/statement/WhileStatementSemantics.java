@@ -5,8 +5,8 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.WhileStatement;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.FlowTypingRuleCondition;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.PSR;
@@ -54,7 +54,7 @@ public class WhileStatementSemantics
         final StaticState inLoopBlock =
             afterCondition.assertEvaluation(
                 conditionDescriptor,
-                FlowTypingRuleCondition.ReturnedTrue.INSTANCE
+                EvaluationResult.ReturnedTrue.INSTANCE
             );
 
 
@@ -75,7 +75,7 @@ public class WhileStatementSemantics
         return afterCondition.intersect(afterBlock)
             .assertEvaluation(
                 conditionDescriptor,
-                FlowTypingRuleCondition.ReturnedFalse.INSTANCE
+                EvaluationResult.ReturnedFalse.INSTANCE
             );
     }
 
@@ -104,7 +104,7 @@ public class WhileStatementSemantics
             afterCondition = rves.advance(condition, state);
             inLoopBlock = afterCondition.assertEvaluation(
                 conditionDescriptor,
-                FlowTypingRuleCondition.ReturnedTrue.INSTANCE
+                EvaluationResult.ReturnedTrue.INSTANCE
             );
         } else {
             inLoopBlock = afterCondition = state;
@@ -121,7 +121,7 @@ public class WhileStatementSemantics
         return afterCondition.intersect(afterBlock)
             .assertEvaluation(
                 conditionDescriptor,
-                FlowTypingRuleCondition.ReturnedFalse.INSTANCE
+                EvaluationResult.ReturnedFalse.INSTANCE
             );
     }
 

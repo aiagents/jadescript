@@ -4,6 +4,7 @@ import it.unipr.ailab.jadescript.jadescript.Literal;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
@@ -31,6 +32,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 public class SubscriptExpressionSemantics
@@ -541,6 +543,15 @@ public class SubscriptExpressionSemantics
         StaticState state
     ) {
         return Maybe.nothing();
+    }
+
+
+    @Override
+    protected Maybe<PatternDescriptor> describePatternInternal(
+        PatternMatchInput<Subscript> input,
+        StaticState state
+    ) {
+        return nothing();
     }
 
 

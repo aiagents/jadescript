@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.EqualityComparison;
 import it.unipr.ailab.jadescript.jadescript.TypeComparison;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.SubPattern;
@@ -63,6 +64,15 @@ public class EqualityComparisonExpressionSemantics
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<EqualityComparison> input,
+        StaticState state
+    ) {
+        return Maybe.nothing();
+    }
+
+
+    @Override
+    protected Maybe<PatternDescriptor> describePatternInternal(
+        PatternMatchInput<EqualityComparison> input,
         StaticState state
     ) {
         return Maybe.nothing();

@@ -6,6 +6,8 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.MatchingResult;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSemantics;
@@ -19,6 +21,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.maybe.Functional.QuadFunction;
 import it.unipr.ailab.maybe.Functional.TriFunction;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
@@ -284,7 +287,13 @@ public abstract class ExpressionSemantics<T> extends Semantics
             ExpressionSemantics<S>,
             PatternMatchInput<S>,
             StaticState,
-            R> getR
+            R> getR,
+        QuadFunction<
+            ExpressionSemantics<S>,
+            PatternMatchInput<S>,
+            StaticState,
+            StaticState,
+            StaticState> enrichState
     ) {
         return Util.accumulateAndMap(
             getSubExpressions(input.getPattern()).map(
@@ -296,10 +305,20 @@ public abstract class ExpressionSemantics<T> extends Semantics
                 input.replacePattern(sbte.getInput()),
                 runningState
             ),
-            (sbte, runningState) -> sbte.getSemantics().advancePattern(
-                input.replacePattern(sbte.getInput()),
-                runningState
-            ),
+            (sbte, runningState) -> {
+                final StaticState nextState =
+                    sbte.getSemantics().advancePattern(
+                    input.replacePattern(sbte.getInput()),
+                    runningState
+                );
+
+                return enrichState.apply(
+                    sbte.getSemantics(),
+                    input.replacePattern(sbte.getInput()),
+                    runningState,
+                    nextState
+                );
+            },
             (__, nextSt) -> nextSt
         );
     }
@@ -488,6 +507,25 @@ public abstract class ExpressionSemantics<T> extends Semantics
     );
 
 
+    public final Maybe<PatternDescriptor> describePattern(
+        PatternMatchInput<T> input,
+        StaticState state
+    ) {
+        return traverse(input.getPattern())
+            .map(x -> x.getSemantics().describePattern(
+                input.replacePattern(x.getInput()),
+                state
+            ))
+            .orElseGet(() -> describePatternInternal(input, state));
+    }
+
+
+    protected abstract Maybe<PatternDescriptor> describePatternInternal(
+        PatternMatchInput<T> input,
+        StaticState state
+    );
+
+
     /**
      * Updates the state as a consequence of the expression evaluation.
      */
@@ -526,6 +564,8 @@ public abstract class ExpressionSemantics<T> extends Semantics
                 input.replacePattern(x.getInput()),
                 state
             )).orElseGet(() -> advancePatternInternal(input, state));
+        //TODO introduce prepareAdvancePattern:
+        // it distinguishes between subpattern-equals (which advance normally)
     }
 
 
@@ -634,7 +674,11 @@ public abstract class ExpressionSemantics<T> extends Semantics
         return this.mapSubPatternsWithState(
             input,
             state,
-            ExpressionSemantics::isPatternEvaluationPure
+            ExpressionSemantics::isPatternEvaluationPure,
+            (sem, i, ps, ns) -> ns.assertMatching(
+                sem.describePattern(i, ps),
+                MatchingResult.DidMatch.INSTANCE
+            )
         ).allMatch(b -> b);
     }
 
@@ -1331,6 +1375,15 @@ public abstract class ExpressionSemantics<T> extends Semantics
         @Override
         protected Maybe<ExpressionDescriptor> describeExpressionInternal(
             Maybe<T> input,
+            StaticState state
+        ) {
+            return Maybe.nothing();
+        }
+
+
+        @Override
+        protected Maybe<PatternDescriptor> describePatternInternal(
+            PatternMatchInput<T> input,
             StaticState state
         ) {
             return Maybe.nothing();

@@ -1,7 +1,5 @@
 package it.unipr.ailab.jadescript.semantics.utils;
 
-import it.unipr.ailab.jadescript.semantics.context.staticstate.FlowTypingRuleCondition;
-import org.checkerframework.checker.nullness.Opt;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
@@ -88,6 +86,10 @@ public class ImmutableSet<E> implements Iterable<E> {
             }
             return true;
         }
+    }
+
+    public boolean isEmpty(){
+        return this.wrapped.isEmpty();
     }
 
 
@@ -190,6 +192,11 @@ public class ImmutableSet<E> implements Iterable<E> {
             result.mutPut(computeKey.apply(e), e);
         }
         return result;
+    }
+
+
+    public Set<E> mutableCopy() {
+        return new HashSet<>(this.wrapped);
     }
 
 }

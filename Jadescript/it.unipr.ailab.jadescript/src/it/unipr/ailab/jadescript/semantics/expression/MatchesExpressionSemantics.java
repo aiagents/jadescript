@@ -9,8 +9,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.HandlerWhenExpressionContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.FlowTypingRule;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.FlowTypingRuleCondition;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.HandlerHeader;
@@ -38,8 +37,29 @@ public class MatchesExpressionSemantics
     extends ExpressionSemantics<Matches> {
 
 
+    @Override
+    protected StaticState advanceIn
+
+
     public MatchesExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
+    }
+
+
+    ternal(
+        Maybe<Matches> input,
+        StaticState state
+    ) {
+        if (describeExpression(input, state).isPresent()) {
+            return advanceCommon(input, state, true)
+                .addRule(
+                    describeExpression(input, state),
+                    EvaluationResult.ReturnedTrue.INSTANCE,
+                    s -> advanceCommon(input, s, false)
+                );
+        } else {
+            return advanceCommon(input, state, true);
+        }
     }
 
 
@@ -136,27 +156,6 @@ public class MatchesExpressionSemantics
 
 
     @Override
-    protected StaticState advanceInternal(
-        Maybe<Matches> input,
-        StaticState state
-    ) {
-        final Maybe<ExpressionDescriptor> descriptor =
-            describeExpression(input, state);
-        if (descriptor.isPresent()) {
-            return advanceCommon(input, state, true).addRule(
-                descriptor.toNullable(),
-                new FlowTypingRule(
-                    FlowTypingRuleCondition.ReturnedTrue.INSTANCE,
-                    s -> advanceCommon(input, s, false)
-                )
-            );
-        } else {
-            return advanceCommon(input, state, true);
-        }
-    }
-
-
-    @Override
     protected StaticState advancePatternInternal(
         PatternMatchInput<Matches> input,
         StaticState state
@@ -229,12 +228,10 @@ public class MatchesExpressionSemantics
 
                 result = result.addRule(
                     overallDescriptor.toNullable(),
-                    new FlowTypingRule(
-                        FlowTypingRuleCondition.ReturnedTrue.INSTANCE,
-                        s -> s.assertFlowTypingUpperBound(
-                            inputExprDescriptor.toNullable(),
-                            solvedPatternType
-                        )
+                    EvaluationResult.ReturnedTrue.INSTANCE,
+                    s -> s.assertFlowTypingUpperBound(
+                        inputExprDescriptor.toNullable(),
+                        solvedPatternType
                     )
                 );
             }

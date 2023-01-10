@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.SubPattern;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -272,7 +273,11 @@ public class SetLiteralExpressionSemantics
             return afterElements;
         }
 
-        return rves.advancePattern(input.replacePattern(rest), afterElements);
+
+        final SubPattern<RValueExpression, MapOrSetLiteral> restSubpattern =
+            input.subPattern(
+            rest);
+        return rves.advancePattern(restSubpattern, afterElements);
     }
 
 

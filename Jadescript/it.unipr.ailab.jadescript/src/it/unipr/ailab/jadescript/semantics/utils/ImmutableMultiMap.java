@@ -1,10 +1,17 @@
 package it.unipr.ailab.jadescript.semantics.utils;
 
+import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
+
+import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
 public class ImmutableMultiMap<K, V> {
 
@@ -12,6 +19,11 @@ public class ImmutableMultiMap<K, V> {
         new ImmutableMultiMap<>();
 
     private final Map<K, Set<V>> inner = new HashMap<>();
+
+
+    ImmutableMultiMap() {
+        //package-default visibility
+    }
 
 
     @SuppressWarnings("unchecked")
@@ -28,9 +40,14 @@ public class ImmutableMultiMap<K, V> {
         return result;
     }
 
-    ImmutableMultiMap(){
-        //package-default visibility
+    @SafeVarargs
+    public static <KK, VV> ImmutableMultiMap<KK, VV> ofSet(
+        KK k, VV... v) {
+        var result = new ImmutableMultiMap<KK, VV>();
+        result.mutPutMany(k, List.of(v));
+        return result;
     }
+
 
     @NotNull
     Set<V> getOrNewSet(K key) {
@@ -50,6 +67,7 @@ public class ImmutableMultiMap<K, V> {
         getOrNewSet(key).addAll(vals);
     }
 
+
     void mutPutMany(K key, Iterable<? extends V> vals) {
         final Set<V> innerSet = getOrNewSet(key);
         for (V val : vals) {
@@ -58,12 +76,12 @@ public class ImmutableMultiMap<K, V> {
     }
 
 
-
     void mutPutAll(Map<? extends K, ? extends V> otherMap) {
         otherMap.forEach((k, v) -> getOrNewSet(k).add(v));
     }
 
-    void mutReplaceSet(K key, Set<V> set){
+
+    void mutReplaceSet(K key, Set<V> set) {
         this.inner.put(key, set);
     }
 
@@ -85,16 +103,28 @@ public class ImmutableMultiMap<K, V> {
     }
 
 
-    public ImmutableSet<K> getKeys(){
+    public ImmutableSet<K> getKeys() {
         return ImmutableSet.from(this.inner.keySet());
     }
 
-    public Stream<K> streamKeys(){
+
+    public Stream<K> streamKeys() {
         return inner.keySet().stream();
     }
 
+
     public Stream<V> streamValues() {
         return inner.values().stream().flatMap(Collection::stream);
+    }
+
+
+    public Stream<V> streamValuesMatchingKey(
+        @Nullable Predicate<K> keyPred
+    ) {
+        Stream<K> kStream = streamKeys();
+        kStream = safeFilter(kStream, keyPred);
+
+        return kStream.flatMap(k -> this.inner.get(k).stream());
     }
 
 
@@ -113,6 +143,7 @@ public class ImmutableMultiMap<K, V> {
         result.mutPutMany(key, vals);
         return result;
     }
+
 
     public ImmutableMultiMap<K, V> putMany(
         K key,
@@ -150,6 +181,7 @@ public class ImmutableMultiMap<K, V> {
             return putMany(key, values);
         }
     }
+
 
     public ImmutableMultiMap<K, V> foldMergeAllSets(
         ImmutableMultiMap<K, V> other,

@@ -5,6 +5,8 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeCast;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.MatchingResult;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -22,8 +24,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
-import static it.unipr.ailab.maybe.Maybe.nullAsTrue;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 public class AidLiteralExpressionSemantics
     extends AssignableExpressionSemantics<AidLiteral> {
@@ -90,6 +91,19 @@ public class AidLiteralExpressionSemantics
 
 
     @Override
+    protected Maybe<PatternDescriptor> describePatternInternal(
+        PatternMatchInput<AidLiteral> input,
+        StaticState state
+    ) {
+        return some(PatternDescriptor.ComposedPattern.from(
+            this,
+            input,
+            state
+        ));
+    }
+
+
+    @Override
     protected StaticState advanceInternal(
         Maybe<AidLiteral> input,
         StaticState state
@@ -118,22 +132,65 @@ public class AidLiteralExpressionSemantics
             module.get(TypeCastExpressionSemantics.class);
         final IJadescriptType textType = module.get(TypeHelper.class).TEXT;
 
-        StaticState newState = tces.advancePattern(
+        final PatternMatchInput.SubPattern<TypeCast, AidLiteral> localname =
             input.subPattern(
                 textType,
                 AidLiteral::getTypeCast,
                 "_localname"
-            ),
+            );
+        Maybe<PatternDescriptor> describedLocalName = tces.describePattern(
+            localname,
             state
         );
+        StaticState newState = tces.advancePattern(
+            localname,
+            state
+        );
+
+        final Maybe<PatternDescriptor> hapDescriptor;
         if (hap.isPresent()) {
-            newState = tces.advancePattern(
-                input.subPattern(textType, __ -> hap.toNullable(), "_hap"),
+
+
+            final PatternMatchInput.SubPattern<TypeCast, AidLiteral> hapSubp =
+                input.subPattern(
+                    textType,
+                    __ -> hap.toNullable(),
+                    "_hap"
+                );
+
+            hapDescriptor = tces.describePattern(hapSubp, newState);
+
+            StaticState afterHap = tces.advancePattern(
+                hapSubp,
                 newState
             );
+
+            newState = afterHap.assertMatching(
+                describedLocalName,
+                MatchingResult.DidMatch.INSTANCE
+            );
+        } else {
+            hapDescriptor = nothing();
         }
 
-        return newState;
+        return newState.addMatchingRule(
+            describePattern(input, state),
+            MatchingResult.DidMatch.INSTANCE,
+            s -> {
+
+                s = s.assertMatching(
+                    describedLocalName,
+                    MatchingResult.DidMatch.INSTANCE
+                );
+
+                s = s.assertMatching(
+                    hapDescriptor,
+                    MatchingResult.DidMatch.INSTANCE
+                );
+
+                return s;
+            }
+        );
     }
 
 
@@ -270,6 +327,10 @@ public class AidLiteralExpressionSemantics
                 __ -> hap.toNullable(),
                 "_hap"
             );
+            newState = newState.assertMatching(
+                tces.describePattern(localNameSubpattern, state),
+                MatchingResult.DidMatch.INSTANCE
+            );
             subResults.add(tces.compilePatternMatch(
                 hapSubpattern,
                 newState,
@@ -338,6 +399,10 @@ public class AidLiteralExpressionSemantics
                 textType,
                 __ -> hap.toNullable(),
                 "_hap"
+            );
+            newState = newState.assertMatching(
+                tces.describePattern(localNameSubpattern, state),
+                MatchingResult.DidMatch.INSTANCE
             );
             hapCheck = tces.validatePatternMatch(
                 hapSubpattern,

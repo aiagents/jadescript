@@ -11,6 +11,40 @@ import java.util.Objects;
 
 public interface ExpressionDescriptor {
 
+    public static class NotExpression implements  ExpressionDescriptor{
+        private final ExpressionDescriptor operand;
+
+
+        public NotExpression(ExpressionDescriptor operand) {
+            this.operand = operand;
+        }
+
+
+        public ExpressionDescriptor getOperand() {
+            return operand;
+        }
+
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof NotExpression)) return false;
+
+            NotExpression that = (NotExpression) o;
+
+            return getOperand() != null ?
+                getOperand().equals(that.getOperand()) :
+                that.getOperand() == null;
+        }
+
+
+        @Override
+        public int hashCode() {
+            return getOperand() != null ? getOperand().hashCode() : 0;
+        }
+
+    }
+
     public static class OrExpression implements ExpressionDescriptor {
         private final ImmutableList<ExpressionDescriptor> expressions;
 

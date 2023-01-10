@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -91,6 +92,15 @@ public class SyntheticExpressionSemantics
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<SyntheticExpression> input,
+        StaticState state
+    ) {
+        return Maybe.nothing();
+    }
+
+
+    @Override
+    protected Maybe<PatternDescriptor> describePatternInternal(
+        PatternMatchInput<SyntheticExpression> input,
         StaticState state
     ) {
         return Maybe.nothing();

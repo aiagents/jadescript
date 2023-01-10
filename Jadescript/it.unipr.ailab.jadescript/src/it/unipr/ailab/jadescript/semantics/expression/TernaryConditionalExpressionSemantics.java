@@ -6,7 +6,9 @@ import it.unipr.ailab.jadescript.jadescript.LogicalOr;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TernaryConditional;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -22,6 +24,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
@@ -77,6 +80,15 @@ public class TernaryConditionalExpressionSemantics
 
 
     @Override
+    protected Maybe<PatternDescriptor> describePatternInternal(
+        PatternMatchInput<TernaryConditional> input,
+        StaticState state
+    ) {
+        return nothing();
+    }
+
+
+    @Override
     protected StaticState advanceInternal(
         Maybe<TernaryConditional> input,
         StaticState state
@@ -90,10 +102,27 @@ public class TernaryConditionalExpressionSemantics
         final RValueExpressionSemantics rves = module.get(
             RValueExpressionSemantics.class);
 
-        StaticState afterC = module.get(LogicalOrExpressionSemantics.class)
-            .advance(condition, state);
-        StaticState after1 = rves.advance(expression1, afterC);
-        StaticState after2 = rves.advance(expression2, afterC);
+        final LogicalOrExpressionSemantics loes =
+            module.get(LogicalOrExpressionSemantics.class);
+        StaticState afterC = loes.advance(condition, state);
+        Maybe<ExpressionDescriptor> descriptorC = loes.describeExpression(
+            condition,
+            state
+        );
+
+        final StaticState whenCTrue = afterC.assertEvaluation(
+            descriptorC,
+            EvaluationResult.ReturnedTrue.INSTANCE
+        );
+
+        StaticState after1 = rves.advance(expression1, whenCTrue);
+
+        final StaticState whenCFalse = afterC.assertEvaluation(
+            descriptorC,
+            EvaluationResult.ReturnedFalse.INSTANCE
+        );
+
+        StaticState after2 = rves.advance(expression2, whenCFalse);
 
 
         return after1.intersect(after2);
@@ -157,9 +186,9 @@ public class TernaryConditionalExpressionSemantics
         StaticState afterC = module.get(LogicalOrExpressionSemantics.class)
             .advance(condition, state);
         IJadescriptType type1 = module.get(RValueExpressionSemantics.class)
-                .inferType(expression1, afterC);
+            .inferType(expression1, afterC);
         IJadescriptType type2 = module.get(RValueExpressionSemantics.class)
-                .inferType(expression2, afterC);
+            .inferType(expression2, afterC);
         return module.get(TypeHelper.class).getLUB(type1, type2);
     }
 

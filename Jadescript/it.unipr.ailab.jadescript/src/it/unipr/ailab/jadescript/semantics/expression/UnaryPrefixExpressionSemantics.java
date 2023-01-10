@@ -9,9 +9,9 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.FlowTypingRule;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.FlowTypingRuleCondition;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
@@ -32,8 +32,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
  * Created on 28/12/16.
@@ -539,6 +538,42 @@ public class UnaryPrefixExpressionSemantics
         Maybe<UnaryPrefix> input,
         StaticState state
     ) {
+        if (input == null) return nothing();
+        final Maybe<OfNotation> ofNotation =
+            input.__(UnaryPrefix::getOfNotation);
+        final Maybe<String> unaryPrefixOp =
+            input.__(UnaryPrefix::getUnaryPrefixOp);
+
+        final OfNotationExpressionSemantics ones =
+            module.get(OfNotationExpressionSemantics.class);
+
+        if (!ofNotation.isPresent()
+            || !unaryPrefixOp.isPresent()
+            || !unaryPrefixOp.wrappedEquals("not")) {
+            return nothing();
+        }
+
+        final Maybe<ExpressionDescriptor> ofNDescr =
+            ones.describeExpression(
+                ofNotation,
+                state
+            );
+
+        if (ofNDescr.isNothing()) {
+            return nothing();
+        }
+
+        return some(new ExpressionDescriptor.NotExpression(
+            ofNDescr.toNullable()
+        ));
+    }
+
+
+    @Override
+    protected Maybe<PatternDescriptor> describePatternInternal(
+        PatternMatchInput<UnaryPrefix> input,
+        StaticState state
+    ) {
         return Maybe.nothing();
     }
 
@@ -576,30 +611,26 @@ public class UnaryPrefixExpressionSemantics
                     input,
                     state
                 );
-            if (ofNDescriptor.isPresent()) {
-                //Adding two rules:
-                // if this returned false, the argument returned true
-                // if this returned true, the argument returned false
-                return afterOfn.addRule(
-                    overallDescriptor.toNullable(),
-                    new FlowTypingRule(
-                        FlowTypingRuleCondition.ReturnedTrue.INSTANCE,
-                        s -> s.assertEvaluation(
-                            ofNDescriptor.toNullable(),
-                            FlowTypingRuleCondition.ReturnedFalse.INSTANCE
-                        )
-                    )
-                ).addRule(
-                    overallDescriptor.toNullable(),
-                    new FlowTypingRule(
-                        FlowTypingRuleCondition.ReturnedFalse.INSTANCE,
-                        s -> s.assertEvaluation(
-                            ofNDescriptor.toNullable(),
-                            FlowTypingRuleCondition.ReturnedTrue.INSTANCE
-                        )
-                    )
-                );
-            }
+
+            //Adding two rules:
+            // if this returned false, the argument returned true
+            // if this returned true, the argument returned false
+            return afterOfn.addEvaluationRule(
+                overallDescriptor,
+                EvaluationResult.ReturnedTrue.INSTANCE,
+                s -> s.assertEvaluation(
+                    ofNDescriptor.toNullable(),
+                    EvaluationResult.ReturnedFalse.INSTANCE
+                )
+            ).addEvaluationRule(
+                overallDescriptor,
+                EvaluationResult.ReturnedFalse.INSTANCE,
+                s -> s.assertEvaluation(
+                    ofNDescriptor.toNullable(),
+                    EvaluationResult.ReturnedTrue.INSTANCE
+                )
+            );
+
         }
         return afterOfn;
     }

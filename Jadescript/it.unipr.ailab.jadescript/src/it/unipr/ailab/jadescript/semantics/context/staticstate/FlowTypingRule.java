@@ -3,11 +3,11 @@ package it.unipr.ailab.jadescript.semantics.context.staticstate;
 import java.util.function.Function;
 
 public class FlowTypingRule {
-    private final FlowTypingRuleCondition ruleCondition;
+    private final EvaluationResult ruleCondition;
     private final Function<StaticState, StaticState> consequence;
 
     public FlowTypingRule(
-        FlowTypingRuleCondition ruleCondition,
+        EvaluationResult ruleCondition,
         Function<StaticState, StaticState> consequence
     ) {
         this.ruleCondition = ruleCondition;
@@ -15,7 +15,7 @@ public class FlowTypingRule {
     }
 
 
-    public FlowTypingRuleCondition getRuleCondition() {
+    public EvaluationResult getRuleCondition() {
         return ruleCondition;
     }
 

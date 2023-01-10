@@ -138,35 +138,12 @@ public class PrimaryExpressionSemantics
             ).stream()
             .filter(Maybe::isPresent)
             .collect(Collectors.toList());
-        final Maybe<RValueExpression> parenthesizedExpression;
         if (exprs.size() == 1) {
-            parenthesizedExpression = exprs.get(0);
-        } else {
-            parenthesizedExpression = nothing();
-        }
-        final Maybe<String> agent = input.getPattern().__(Primary::getAgent);
-        final Maybe<String> message =
-            input.getPattern().__(Primary::getMessage);
-        final Maybe<String> percept =
-            input.getPattern().__(Primary::getPercept);
-        final Maybe<String> exception =
-            input.getPattern().__(Primary::getException);
-        final Maybe<String> behaviour =
-            input.getPattern().__(Primary::getBehaviour);
-        if (parenthesizedExpression.isPresent()) {
             return module.get(RValueExpressionSemantics.class)
                 .advancePattern(
-                    input.replacePattern(parenthesizedExpression),
+                    input.replacePattern(exprs.get(0)),
                     state
                 );
-        } else if (
-            agent.isPresent()
-                || message.isPresent()
-                || percept.isPresent()
-                || exception.isPresent()
-                || behaviour.isPresent()
-        ) {
-            return advance(input.getPattern(), state);
         } else {
             return state;
         }
@@ -528,7 +505,6 @@ public class PrimaryExpressionSemantics
     ) {
         return subPatternEvaluationsAllPure(input, state);
     }
-
 
 
     @Override

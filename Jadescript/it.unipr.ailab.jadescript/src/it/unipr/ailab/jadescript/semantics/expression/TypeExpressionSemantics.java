@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
@@ -41,6 +42,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
  * Created on 28/12/16.
  */
 @Singleton
+//TODO remove extends ExpressionSemantics<TypeExpression> (not an expression)
 public class TypeExpressionSemantics
     extends ExpressionSemantics<TypeExpression> {
 
@@ -299,6 +301,15 @@ public class TypeExpressionSemantics
         StaticState state
     ) {
         return Maybe.nothing();
+    }
+
+
+    @Override
+    protected Maybe<PatternDescriptor> describePatternInternal(
+        PatternMatchInput<TypeExpression> input,
+        StaticState state
+    ) {
+        return nothing();
     }
 
 

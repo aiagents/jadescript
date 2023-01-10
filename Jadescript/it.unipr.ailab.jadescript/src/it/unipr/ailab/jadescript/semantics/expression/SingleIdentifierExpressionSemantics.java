@@ -8,6 +8,8 @@ import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
 import it.unipr.ailab.jadescript.semantics.PatternMatchUnifiedVariable;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.MatchingResult;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
@@ -76,6 +78,21 @@ public class SingleIdentifierExpressionSemantics
                 state
             );
         }
+    }
+
+
+    @Override
+    protected Maybe<PatternDescriptor> describePatternInternal(
+        PatternMatchInput<SingleIdentifier> input,
+        StaticState state
+    ) {
+        final String ident = input.getPattern().__(SingleIdentifier::getIdent)
+            .extract(nullAsEmptyString);
+        boolean resolves = resolves(input.getPattern(), state);
+        if(!resolves || ident.isBlank()){
+            return Maybe.nothing();
+        }
+        return some(new PatternDescriptor.IdentifierPattern(ident));
     }
 
 
@@ -464,7 +481,12 @@ public class SingleIdentifierExpressionSemantics
                     localClassName + "_obj."
                 );
 
-                return state.assertNamedSymbol(deconstructedVariable);
+                return state.addMatchingRule(
+                    describePattern(input, state),
+                    MatchingResult.DidMatch.INSTANCE,
+                    s -> s.assertNamedSymbol(deconstructedVariable)
+                );
+
             } else {
                 return state;
             }
