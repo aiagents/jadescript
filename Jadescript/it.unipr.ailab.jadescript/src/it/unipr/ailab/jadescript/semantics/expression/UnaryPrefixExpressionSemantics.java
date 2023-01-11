@@ -9,9 +9,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
@@ -538,48 +536,43 @@ public class UnaryPrefixExpressionSemantics
         Maybe<UnaryPrefix> input,
         StaticState state
     ) {
-        if (input == null) return nothing();
-        final Maybe<OfNotation> ofNotation =
-            input.__(UnaryPrefix::getOfNotation);
-        final Maybe<String> unaryPrefixOp =
-            input.__(UnaryPrefix::getUnaryPrefixOp);
-
-        final OfNotationExpressionSemantics ones =
-            module.get(OfNotationExpressionSemantics.class);
-
-        if (!ofNotation.isPresent()
-            || !unaryPrefixOp.isPresent()
-            || !unaryPrefixOp.wrappedEquals("not")) {
-            return nothing();
-        }
-
-        final Maybe<ExpressionDescriptor> ofNDescr =
-            ones.describeExpression(
-                ofNotation,
-                state
-            );
-
-        if (ofNDescr.isNothing()) {
-            return nothing();
-        }
-
-        return some(new ExpressionDescriptor.NotExpression(
-            ofNDescr.toNullable()
-        ));
-    }
-
-
-    @Override
-    protected Maybe<PatternDescriptor> describePatternInternal(
-        PatternMatchInput<UnaryPrefix> input,
-        StaticState state
-    ) {
-        return Maybe.nothing();
+        return nothing();
     }
 
 
     @Override
     protected StaticState advanceInternal(
+        Maybe<UnaryPrefix> input,
+        StaticState state
+    ) {
+        final Maybe<OfNotation> ofNotation =
+            input.__(UnaryPrefix::getOfNotation);
+        final Maybe<OfNotation> index =
+            input.__(UnaryPrefix::getIndex);
+
+        final OfNotationExpressionSemantics ones =
+            module.get(OfNotationExpressionSemantics.class);
+
+        if (index.isPresent()) {
+            final StaticState afterIndex = ones.advance(index, state);
+            return ones.advance(ofNotation, afterIndex);
+        }
+
+        return ones.advance(ofNotation, state);
+    }
+
+
+    @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<UnaryPrefix> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
         Maybe<UnaryPrefix> input,
         StaticState state
     ) {
@@ -594,45 +587,43 @@ public class UnaryPrefixExpressionSemantics
             module.get(OfNotationExpressionSemantics.class);
 
         if (index.isPresent()) {
-            final StaticState afterIndex = ones.advance(index, state);
-            return ones.advance(ofNotation, afterIndex);
+            return state;
         }
 
-        final StaticState afterOfn = ones.advance(ofNotation, state);
         //Concerning only the 'not' operator case...
         if (unaryPrefixOp.wrappedEquals("not")) {
-            final Maybe<ExpressionDescriptor> ofNDescriptor =
-                ones.describeExpression(
-                    ofNotation,
-                    state
-                );
-            final Maybe<ExpressionDescriptor> overallDescriptor =
-                describeExpression(
-                    input,
-                    state
-                );
-
-            //Adding two rules:
-            // if this returned false, the argument returned true
             // if this returned true, the argument returned false
-            return afterOfn.addEvaluationRule(
-                overallDescriptor,
-                EvaluationResult.ReturnedTrue.INSTANCE,
-                s -> s.assertEvaluation(
-                    ofNDescriptor.toNullable(),
-                    EvaluationResult.ReturnedFalse.INSTANCE
-                )
-            ).addEvaluationRule(
-                overallDescriptor,
-                EvaluationResult.ReturnedFalse.INSTANCE,
-                s -> s.assertEvaluation(
-                    ofNDescriptor.toNullable(),
-                    EvaluationResult.ReturnedTrue.INSTANCE
-                )
-            );
-
+            return ones.assertReturnedFalse(ofNotation, state);
         }
-        return afterOfn;
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<UnaryPrefix> input,
+        StaticState state
+    ) {
+        final Maybe<OfNotation> ofNotation =
+            input.__(UnaryPrefix::getOfNotation);
+        final Maybe<String> unaryPrefixOp =
+            input.__(UnaryPrefix::getUnaryPrefixOp);
+        final Maybe<OfNotation> index =
+            input.__(UnaryPrefix::getIndex);
+
+        final OfNotationExpressionSemantics ones =
+            module.get(OfNotationExpressionSemantics.class);
+
+        if (index.isPresent()) {
+            return state;
+        }
+
+        //Concerning only the 'not' operator case...
+        if (unaryPrefixOp.wrappedEquals("not")) {
+            // if this returned false, the argument returned true
+            return ones.assertReturnedTrue(ofNotation, state);
+        }
+        return state;
     }
 
 

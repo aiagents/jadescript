@@ -4,7 +4,6 @@ import it.unipr.ailab.jadescript.jadescript.Primary;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -65,17 +64,6 @@ public class PlaceholderExpressionSemantics
         Maybe<Primary> input,
         StaticState state
     ) {
-        return Maybe.nothing();
-    }
-
-
-    @Override
-    protected Maybe<PatternDescriptor> describePatternInternal(
-        PatternMatchInput<Primary> input,
-        StaticState state
-    ) {
-        //even if a pattern, nothing relevant comes
-        // from producing a descriptor for a placeholder
         return Maybe.nothing();
     }
 
@@ -190,6 +178,33 @@ public class PlaceholderExpressionSemantics
         StaticState state
     ) {
         return true;
+    }
+
+
+    @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<Primary> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<Primary> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<Primary> input,
+        StaticState state
+    ) {
+        return state;
     }
 
 

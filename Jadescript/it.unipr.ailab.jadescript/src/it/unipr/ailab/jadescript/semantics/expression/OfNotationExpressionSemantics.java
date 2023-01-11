@@ -7,7 +7,6 @@ import it.unipr.ailab.jadescript.jadescript.OfNotation;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
@@ -114,15 +113,6 @@ public class OfNotationExpressionSemantics
         return some(new ExpressionDescriptor.PropertyChain(
             ImmutableList.from(result)
         ));
-    }
-
-
-    @Override
-    protected Maybe<PatternDescriptor> describePatternInternal(
-        PatternMatchInput<OfNotation> input,
-        StaticState state
-    ) {
-        return nothing();
     }
 
 
@@ -559,6 +549,33 @@ public class OfNotationExpressionSemantics
         StaticState state
     ) {
         return true;
+    }
+
+
+    @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<OfNotation> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<OfNotation> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<OfNotation> input,
+        StaticState state
+    ) {
+        return state;
     }
 
 

@@ -6,7 +6,6 @@ import it.unipr.ailab.jadescript.jadescript.TypeComparison;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -62,32 +61,6 @@ public class TypeComparisonExpressionSemantics
         Maybe<TypeComparison> input,
         StaticState state
     ) {
-        final Maybe<RelationalComparison> left =
-            input.__(TypeComparison::getRelationalComparison);
-        final Maybe<ExpressionDescriptor> leftDescriptorMaybe =
-            module.get(RelationalComparisonExpressionSemantics.class)
-                .describeExpression(left, state);
-
-        if (leftDescriptorMaybe.isNothing()) {
-            return Maybe.nothing();
-        }
-        final Maybe<TypeExpression> type = input.__(TypeComparison::getType);
-        final IJadescriptType typeResolved =
-            module.get(TypeExpressionSemantics.class)
-                .toJadescriptType(type);
-
-        return some(new ExpressionDescriptor.TypeCheck(
-            leftDescriptorMaybe.toNullable(),
-            typeResolved
-        ));
-    }
-
-
-    @Override
-    protected Maybe<PatternDescriptor> describePatternInternal(
-        PatternMatchInput<TypeComparison> input,
-        StaticState state
-    ) {
         return nothing();
     }
 
@@ -103,33 +76,61 @@ public class TypeComparisonExpressionSemantics
         final RelationalComparisonExpressionSemantics rces =
             module.get(RelationalComparisonExpressionSemantics.class);
 
-        Maybe<ExpressionDescriptor> expressionDescriptor =
-            rces.describeExpression(left, state);
-
-        StaticState afterLeft = rces.advance(left, state);
-
-        if (expressionDescriptor.isNothing()) {
-            return afterLeft;
-        }
-
-        final Maybe<TypeExpression> type = input.__(TypeComparison::getType);
-        final IJadescriptType typeResolved =
-            module.get(TypeExpressionSemantics.class).toJadescriptType(type);
-
-        if (typeResolved.isErroneous()) {
-            return afterLeft;
-        }
-
-        return afterLeft.assertFlowTypingUpperBound(
-            expressionDescriptor.toNullable(),
-            typeResolved
-        );
+        return rces.advance(left, state);
     }
 
 
     @Override
     protected StaticState advancePatternInternal(
         PatternMatchInput<TypeComparison> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<TypeComparison> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<TypeComparison> input,
+        StaticState state
+    ) {
+        final Maybe<RelationalComparison> left =
+            input.__(TypeComparison::getRelationalComparison);
+
+        final RelationalComparisonExpressionSemantics rces =
+            module.get(RelationalComparisonExpressionSemantics.class);
+
+        Maybe<ExpressionDescriptor> expressionDescriptor =
+            rces.describeExpression(left, state);
+
+
+        final Maybe<TypeExpression> type = input.__(TypeComparison::getType);
+        final IJadescriptType typeResolved =
+            module.get(TypeExpressionSemantics.class).toJadescriptType(type);
+
+        if (typeResolved.isErroneous()) {
+            return state;
+        }
+
+        return state.assertFlowTypingUpperBound(
+            expressionDescriptor,
+            typeResolved
+        );
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<TypeComparison> input,
         StaticState state
     ) {
         return state;

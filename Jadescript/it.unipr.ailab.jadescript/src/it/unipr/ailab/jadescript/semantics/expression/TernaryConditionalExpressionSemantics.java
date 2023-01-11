@@ -6,9 +6,7 @@ import it.unipr.ailab.jadescript.jadescript.LogicalOr;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TernaryConditional;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -24,7 +22,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
@@ -80,15 +77,6 @@ public class TernaryConditionalExpressionSemantics
 
 
     @Override
-    protected Maybe<PatternDescriptor> describePatternInternal(
-        PatternMatchInput<TernaryConditional> input,
-        StaticState state
-    ) {
-        return nothing();
-    }
-
-
-    @Override
     protected StaticState advanceInternal(
         Maybe<TernaryConditional> input,
         StaticState state
@@ -105,25 +93,16 @@ public class TernaryConditionalExpressionSemantics
         final LogicalOrExpressionSemantics loes =
             module.get(LogicalOrExpressionSemantics.class);
         StaticState afterC = loes.advance(condition, state);
-        Maybe<ExpressionDescriptor> descriptorC = loes.describeExpression(
-            condition,
-            state
-        );
 
-        final StaticState whenCTrue = afterC.assertEvaluation(
-            descriptorC,
-            EvaluationResult.ReturnedTrue.INSTANCE
-        );
+        final StaticState whenCTrue =
+            loes.assertReturnedTrue(condition, afterC);
 
-        StaticState after1 = rves.advance(expression1, whenCTrue);
+        final StaticState after1 = rves.advance(expression1, whenCTrue);
 
-        final StaticState whenCFalse = afterC.assertEvaluation(
-            descriptorC,
-            EvaluationResult.ReturnedFalse.INSTANCE
-        );
+        final StaticState whenCFalse =
+            loes.assertReturnedFalse(condition, afterC);
 
         StaticState after2 = rves.advance(expression2, whenCFalse);
-
 
         return after1.intersect(after2);
     }
@@ -222,6 +201,33 @@ public class TernaryConditionalExpressionSemantics
         StaticState state
     ) {
         return subPatternEvaluationsAllPure(input, state);
+    }
+
+
+    @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<TernaryConditional> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<TernaryConditional> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<TernaryConditional> input,
+        StaticState state
+    ) {
+        return state;
     }
 
 

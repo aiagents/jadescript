@@ -43,15 +43,6 @@ public class StaticState
     private final
     ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds;
 
-    private final ImmutableMap<
-        ExpressionDescriptor,
-        ImmutableMultiMap<EvaluationResult, Function<StaticState, StaticState>>
-        > evaluationRules;
-
-    private final ImmutableMap<
-        PatternDescriptor,
-        ImmutableMultiMap<MatchingResult, Function<StaticState, StaticState>>
-        > patternMatchingRules;
 
 
     private StaticState(
@@ -62,8 +53,6 @@ public class StaticState
         this.outer = outer;
         this.namedSymbols = new ImmutableMap<>();
         this.upperBounds = new ImmutableMap<>();
-        this.evaluationRules = new ImmutableMap<>();
-        this.patternMatchingRules = new ImmutableMap<>();
     }
 
 
@@ -72,28 +61,12 @@ public class StaticState
         Searcheable outer,
         ImmutableMap<String, NamedSymbol> namedSymbols,
         ImmutableMap<ExpressionDescriptor, IJadescriptType>
-            upperBounds,
-        ImmutableMap<
-            ExpressionDescriptor,
-            ImmutableMultiMap<
-                EvaluationResult,
-                Function<StaticState, StaticState>
-                >
-            > evaluationRules,
-        ImmutableMap<
-            PatternDescriptor,
-            ImmutableMultiMap<
-                MatchingResult,
-                Function<StaticState, StaticState>
-                >
-            > patternMatchingRules
+            upperBounds
     ) {
         this.module = module;
         this.outer = outer;
         this.namedSymbols = namedSymbols;
         this.upperBounds = upperBounds;
-        this.evaluationRules = evaluationRules;
-        this.patternMatchingRules = patternMatchingRules;
     }
 
 
@@ -165,94 +138,6 @@ public class StaticState
     }
 
 
-    public ImmutableMap<
-        ExpressionDescriptor,
-        ImmutableMultiMap<EvaluationResult, Function<StaticState, StaticState>>
-        > getEvaluationRules() {
-        return evaluationRules;
-    }
-
-
-    public ImmutableMap<
-        PatternDescriptor,
-        ImmutableMultiMap<MatchingResult, Function<StaticState, StaticState>>
-        > getPatternMatchingRules() {
-        return patternMatchingRules;
-    }
-
-
-    /**
-     * Asserts that a certain expression (described by an
-     * {@link ExpressionDescriptor}) was evaluated, and it caused the
-     * {@link EvaluationResult} to happen.
-     * For example, by entering in the 'then' branch of an if statement,
-     * we can assert that its condition returned true.
-     * For certain pure expressions, like type checks, this causes the state to
-     * change to include the additional information as defined by the
-     * corresponding rule.
-     * <p></p>
-     * This might trigger the execution of one or more rule "consequences",
-     * changing the {@link StaticState} and returing its updated version.
-     * If no applicable rules are found, the {@link StaticState} is
-     * returned unchanged.
-     */
-    public StaticState assertEvaluation(
-        ExpressionDescriptor evaluated,
-        EvaluationResult caused
-    ) {
-        return this.searchAs(
-            FlowSensitiveInferrer.class,
-            s -> s.getEvaluationRule(
-                evaluated::equals,
-                r -> r.equals(caused)
-            )
-        ).reduce(
-            this,
-            (s, consequence) -> consequence.apply(s),
-            (__, a) -> a
-        );
-    }
-
-
-    public StaticState assertEvaluation(
-        Maybe<ExpressionDescriptor> evaluated,
-        EvaluationResult caused
-    ) {
-        if (evaluated.isPresent()) {
-            return assertEvaluation(evaluated.toNullable(), caused);
-        } else {
-            return this;
-        }
-    }
-
-
-    public StaticState assertMatching(
-        PatternDescriptor matched,
-        MatchingResult caused
-    ) {
-        return this.searchAs(
-            FlowSensitiveInferrer.class,
-            s -> s.getPatternMatchingRule(
-                matched::equals,
-                r -> r.equals(caused)
-            )
-        ).reduce(
-            this,
-            (s, cons) -> cons.apply(s),
-            (__, a) -> a
-        );
-    }
-
-    public StaticState assertMatching(
-        Maybe<PatternDescriptor> matched,
-        MatchingResult caused
-    ){
-        if(matched.isPresent()){
-            return assertMatching(matched.toNullable(), caused);
-        }else{
-            return this;
-        }
-    }
 
 
     public IJadescriptType getUpperBound(
@@ -285,25 +170,6 @@ public class StaticState
     }
 
 
-    @Override
-    public Stream<? extends Function<StaticState, StaticState>>
-    getEvaluationRule(
-        @Nullable Predicate<ExpressionDescriptor> forExpression,
-        @Nullable Predicate<EvaluationResult> evaluation
-    ) {
-        final var rules = getEvaluationRules();
-
-        Stream<ExpressionDescriptor> result = safeFilter(
-            rules.streamKeys(),
-            forExpression
-        );
-
-        return result.flatMap(ed ->
-            rules.get(ed).orElseGet(ImmutableMultiMap::empty)
-                .streamValuesMatchingKey(evaluation)
-        );
-    }
-
 
     public StaticState assertFlowTypingUpperBound(
         ExpressionDescriptor expressionDescriptor,
@@ -317,9 +183,7 @@ public class StaticState
                 expressionDescriptor,
                 bound,
                 module.get(TypeHelper.class)::getGLB
-            ),
-            this.getEvaluationRules(),
-            this.getPatternMatchingRules()
+            )
         );
     }
 
@@ -398,92 +262,8 @@ public class StaticState
                 ns,
                 (n1, __) -> n1 //Ignoring redeclarations
             ),
-            this.getFlowTypingUpperBounds(),
-            this.getEvaluationRules(),
-            this.getPatternMatchingRules()
+            this.getFlowTypingUpperBounds()
         );
-    }
-
-
-    public StaticState addEvaluationRule(
-        ExpressionDescriptor forExpression,
-        EvaluationResult condition,
-        Function<StaticState, StaticState> consequence
-    ) {
-        return new StaticState(
-            this.getModule(),
-            this.outerContext(),
-            this.getNamedSymbols(),
-            this.getFlowTypingUpperBounds(),
-            this.getEvaluationRules().mergeAdd(
-                forExpression,
-                ImmutableMultiMap.ofSet(
-                    condition,
-                    consequence
-                ),
-                (previousIMM, newIMM) -> previousIMM.foldMergeAllSets(
-                    newIMM,
-                    ImmutableSet::union
-                )
-            ),
-            this.getPatternMatchingRules()
-        );
-    }
-
-
-    public StaticState addEvaluationRule(
-        Maybe<ExpressionDescriptor> forExpression,
-        EvaluationResult condition,
-        Function<StaticState, StaticState> consequence
-    ) {
-        if (forExpression.isPresent()) {
-            return addEvaluationRule(
-                forExpression.toNullable(),
-                condition,
-                consequence
-            );
-        } else {
-            return this;
-        }
-    }
-
-    public StaticState addMatchingRule(
-        PatternDescriptor forPattern,
-        MatchingResult condition,
-        Function<StaticState, StaticState> consequence
-    ) {
-        return new StaticState(
-            this.getModule(),
-            this.outerContext(),
-            this.getNamedSymbols(),
-            this.getFlowTypingUpperBounds(),
-            this.getEvaluationRules(),
-            this.getPatternMatchingRules().mergeAdd(
-                forPattern,
-                ImmutableMultiMap.ofSet(
-                    condition,
-                    consequence
-                ),
-                (previousIMM, newIMM) -> previousIMM.foldMergeAllSets(
-                    newIMM,
-                    ImmutableSet::union
-                )
-            )
-        );
-    }
-
-    public StaticState addMatchingRule(
-        Maybe<PatternDescriptor> forPattern,
-        MatchingResult condition,
-        Function<StaticState, StaticState> consequence
-    ) {
-        if(forPattern.isPresent()){
-            return addMatchingRule(
-                forPattern.toNullable(), condition, consequence
-            );
-        }else{
-            return this;
-        }
     }
 
 
@@ -503,15 +283,7 @@ public class StaticState
             this.getModule(),
             this.outerContext(),
             this.intersectSymbols(other),
-            this.intersectUpperBounds(other),
-            this.intersectRules(
-                this.getEvaluationRules(),
-                other.getEvaluationRules()
-            ),
-            this.intersectRules(
-                this.getPatternMatchingRules(),
-                other.getPatternMatchingRules()
-            )
+            this.intersectUpperBounds(other)
         );
     }
 
@@ -553,47 +325,6 @@ public class StaticState
         return keys.associate(
             key -> th.getLUB(a.getUnsafe(key), b.getUnsafe(key))
         );
-    }
-
-
-    private <D, R, F> ImmutableMap<D, ImmutableMultiMap<R, F>> intersectRules(
-        ImmutableMap<D, ImmutableMultiMap<R, F>> a,
-        ImmutableMap<D, ImmutableMultiMap<R, F>> b
-    ) {
-
-        ImmutableSet<D> keys = a.getKeys().intersection(b.getKeys());
-
-        //The only rules that survive are the ones that are equal in both
-        // states.
-        return keys.associateOpt(key1 -> {
-            ImmutableMultiMap<R, F> aMM = a.getUnsafe(key1);
-
-            ImmutableMultiMap<R, F> bMM = b.getUnsafe(key1);
-
-            Map<R, Set<F>> mutResult = new HashMap<>();
-
-
-            final ImmutableSet<R> keys2 =
-                aMM.getKeys().intersection(bMM.getKeys());
-
-
-            for (R r : keys2) {
-                final ImmutableSet<F> valuesIntersect =
-                    aMM.getValues(r).intersection(bMM.getValues(r));
-                if(!valuesIntersect.isEmpty()) {
-                    mutResult.put(
-                        r,
-                        valuesIntersect.mutableCopy()
-                    );
-                }
-            }
-
-            if (mutResult.isEmpty()) {
-                return Optional.empty();
-            } else {
-                return Optional.of(ImmutableMultiMap.from(mutResult));
-            }
-        });
     }
 
 

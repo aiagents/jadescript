@@ -35,26 +35,6 @@ public interface PatternDescriptor {
         }
 
 
-        public static <T> ComposedPattern from(
-            ExpressionSemantics<T> semantics,
-            PatternMatchInput<T> input,
-            StaticState state
-        ) {
-            return new ComposedPattern(
-                Util.extractEObject(input.getPattern()).hashCode(),
-                semantics.mapSubPatternsWithState(
-                        input,
-                        state,
-                        ExpressionSemantics::describePattern,
-                        (sem, i, ps, ns) -> ns.assertMatching(
-                            sem.describePattern(i, ps),
-                            MatchingResult.DidMatch.INSTANCE
-                        )
-                    ).filter(Maybe::isPresent)
-                    .map(Maybe::toNullable)
-                    .collect(Collectors.toList())
-            );
-        }
 
 
         public int getHashId() {

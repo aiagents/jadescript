@@ -6,7 +6,6 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.MatchingResult;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
@@ -349,17 +348,7 @@ public class MapLiteralExpressionSemantics
     }
 
 
-    @Override
-    protected Maybe<PatternDescriptor> describePatternInternal(
-        PatternMatchInput<MapOrSetLiteral> input,
-        StaticState state
-    ) {
-        return some(PatternDescriptor.ComposedPattern.from(
-            this,
-            input,
-            state
-        ));
-    }
+
 
 
     @Override
@@ -538,8 +527,8 @@ public class MapLiteralExpressionSemantics
             final List<StatementWriter> auxStatements =
                 new ArrayList<>(prePipeElementCount);
 
-            final List<Maybe<PatternDescriptor>> subPatternDescriptors
-                = new ArrayList<>();
+            final List<SubPattern<RValueExpression, MapOrSetLiteral>>
+                valuesSubPatterns = new ArrayList<>();
 
             StaticState runningState = state;
             if (prePipeElementCount > 0) {
@@ -589,17 +578,12 @@ public class MapLiteralExpressionSemantics
                         "_" + i
                     );
 
-                    subPatternDescriptors.add(
-                        rves.describePattern(
-                            valueSubpattern,
-                            runningState
-                        )
-                    );
+                    valuesSubPatterns.add(valueSubpattern);
 
-                    if(i > 0){
-                        runningState = runningState.assertMatching(
-                            subPatternDescriptors.get(i - 1),
-                            MatchingResult.DidMatch.INSTANCE
+                    if (i > 0) {
+                        runningState = rves.assertDidMatch(
+                            valuesSubPatterns.get(i - 1),
+                            runningState
                         );
                     }
 
@@ -608,7 +592,10 @@ public class MapLiteralExpressionSemantics
                         runningState,
                         acceptor
                     );
-                    runningState = rves.advancePattern(valueSubpattern, runningState);
+                    runningState = rves.advancePattern(
+                        valueSubpattern,
+                        runningState
+                    );
                     subResults.add(valOutput);
                 }
             }
@@ -622,12 +609,10 @@ public class MapLiteralExpressionSemantics
                         "_rest"
                     );
 
-                if(!subPatternDescriptors.isEmpty()){
-                    runningState = runningState.assertMatching(
-                        subPatternDescriptors.get(
-                            subPatternDescriptors.size() - 1
-                        ),
-                        MatchingResult.DidMatch.INSTANCE
+                if (!valuesSubPatterns.isEmpty()) {
+                    runningState = rves.assertDidMatch(
+                        valuesSubPatterns.get(valuesSubPatterns.size() - 1),
+                        runningState
                     );
                 }
 
@@ -762,7 +747,7 @@ public class MapLiteralExpressionSemantics
         StaticState runningState = state;
         boolean allEntriesCheck = VALID;
 
-        List<Maybe<PatternDescriptor>> subPatternDescriptors
+        List<SubPattern<RValueExpression, MapOrSetLiteral>> valuesSubPatterns
             = new ArrayList<>();
 
         if (prePipeElementCount > 0) {
@@ -800,17 +785,12 @@ public class MapLiteralExpressionSemantics
                         "_" + i
                     );
 
-                subPatternDescriptors.add(
-                    rves.describePattern(
-                        valueSubpattern,
-                        runningState
-                    )
-                );
+                valuesSubPatterns.add(valueSubpattern);
 
-                if(i > 0){
-                    runningState = runningState.assertMatching(
-                        subPatternDescriptors.get(i - 1),
-                        MatchingResult.DidMatch.INSTANCE
+                if (i > 0) {
+                    runningState = rves.assertDidMatch(
+                        valuesSubPatterns.get(i - 1),
+                        runningState
                     );
                 }
 
@@ -830,10 +810,10 @@ public class MapLiteralExpressionSemantics
 
         boolean pipeCheck = VALID;
         if (isWithPipe) {
-            if (!subPatternDescriptors.isEmpty()) {
-                runningState = runningState.assertMatching(
-                    subPatternDescriptors.get(subPatternDescriptors.size() - 1),
-                    MatchingResult.DidMatch.INSTANCE
+            if (!valuesSubPatterns.isEmpty()) {
+                runningState = rves.assertDidMatch(
+                    valuesSubPatterns.get(valuesSubPatterns.size() - 1),
+                    runningState
                 );
             }
             final SubPattern<RValueExpression, MapOrSetLiteral> restSubpattern =
@@ -882,7 +862,7 @@ public class MapLiteralExpressionSemantics
         StaticState runningState = state;
 
         List<StaticState> shortCircuitedAlternatives = new ArrayList<>();
-        final List<Maybe<PatternDescriptor>> subPatternDescriptors
+        List<SubPattern<RValueExpression, MapOrSetLiteral>> valuesSubPatterns
             = new ArrayList<>();
 
 
@@ -908,19 +888,14 @@ public class MapLiteralExpressionSemantics
                     "_" + i
                 );
 
-                subPatternDescriptors.add(
-                    rves.describePattern(
-                        valueSubpattern,
-                        runningState
-                    )
-                );
+                valuesSubPatterns.add(valueSubpattern);
 
                 shortCircuitedAlternatives.add(runningState);
 
-                if(i > 0){
-                    runningState = runningState.assertMatching(
-                        subPatternDescriptors.get(i - 1),
-                        MatchingResult.DidMatch.INSTANCE
+                if (i > 0) {
+                    runningState = rves.assertDidMatch(
+                        valuesSubPatterns.get(i - 1),
+                        runningState
                     );
                 }
 
@@ -941,21 +916,12 @@ public class MapLiteralExpressionSemantics
 
             shortCircuitedAlternatives.add(runningState);
 
-            if(!subPatternDescriptors.isEmpty()){
-                runningState = runningState.assertMatching(
-                    subPatternDescriptors.get(
-                        subPatternDescriptors.size() - 1
-                    ),
-                    MatchingResult.DidMatch.INSTANCE
+            if (!valuesSubPatterns.isEmpty()) {
+                runningState = rves.assertDidMatch(
+                    valuesSubPatterns.get(valuesSubPatterns.size() - 1),
+                    runningState
                 );
             }
-
-            subPatternDescriptors.add(
-                rves.describePattern(
-                    restSubpattern,
-                    runningState
-                )
-            );
 
             runningState = rves.advancePattern(
                 restSubpattern,
@@ -965,19 +931,80 @@ public class MapLiteralExpressionSemantics
 
         return runningState.intersectAll(
             shortCircuitedAlternatives
-        ).addMatchingRule(
-            describePattern(input, state),
-            MatchingResult.DidMatch.INSTANCE,
-            s -> {
-                for (var subPatternDescriptor : subPatternDescriptors) {
-                    s = s.assertMatching(
-                        subPatternDescriptor,
-                        MatchingResult.DidMatch.INSTANCE
-                    );
-                }
-                return s;
-            }
         );
+    }
+
+
+    @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<MapOrSetLiteral> input,
+        StaticState state
+    ) {
+
+        boolean isWithPipe =
+            input.getPattern().__(MapOrSetLiteral::isWithPipe)
+                .extract(nullAsFalse);
+        final List<Maybe<RValueExpression>> values =
+            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
+        PatternType patternType = inferPatternType(input, state);
+
+        IJadescriptType solvedPatternType =
+            patternType.solve(input.getProvidedInputType());
+
+        RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+
+
+        IJadescriptType valueType;
+        if (solvedPatternType instanceof MapType) {
+            valueType = ((MapType) solvedPatternType).getValueType();
+        } else {
+            valueType = module.get(TypeHelper.class).TOP.apply(
+                PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
+            );
+        }
+        for (int i = 0; i < values.size(); i++) {
+            Maybe<RValueExpression> value = values.get(i);
+            state = rves.assertDidMatch(
+                input.subPattern(
+                    valueType,
+                    (__) -> value.toNullable(),
+                    "_" + i
+                ),
+                state
+            );
+        }
+
+        if (isWithPipe) {
+            state = rves.assertDidMatch(
+                input.subPattern(
+                    solvedPatternType,
+                    MapOrSetLiteral::getRest,
+                    "_rest"
+                ),
+                state
+            );
+        }
+
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<MapOrSetLiteral> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<MapOrSetLiteral> input,
+        StaticState state
+    ) {
+        return state;
     }
 
 

@@ -9,7 +9,6 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.HandlerWhenExpressionContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.HandlerHeader;
@@ -37,29 +36,138 @@ public class MatchesExpressionSemantics
     extends ExpressionSemantics<Matches> {
 
 
-    @Override
-    protected StaticState advanceIn
-
-
     public MatchesExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
 
-    ternal(
+    @Override
+    protected StaticState advanceInternal(
         Maybe<Matches> input,
         StaticState state
     ) {
-        if (describeExpression(input, state).isPresent()) {
-            return advanceCommon(input, state, true)
-                .addRule(
-                    describeExpression(input, state),
-                    EvaluationResult.ReturnedTrue.INSTANCE,
-                    s -> advanceCommon(input, s, false)
-                );
+        final Maybe<UnaryPrefix> inputExpr = input.__(Matches::getUnaryExpr);
+        final Maybe<LValueExpression> pattern =
+            input.__(Matches::getPattern).__(i -> (LValueExpression) i);
+        final UnaryPrefixExpressionSemantics upes =
+            module.get(UnaryPrefixExpressionSemantics.class);
+        final StaticState afterLeft = upes.advance(inputExpr, state);
+        final Optional<HandlerWhenExpressionContext> handlerHeaderContext =
+            module.get(ContextManager.class)
+                .currentContext()
+                .actAs(HandlerWhenExpressionContext.class)
+                .findFirst();
+
+        final IJadescriptType inputExprType = upes.inferType(inputExpr, state);
+
+        StaticState result;
+        final PatternMatchHelper patternMatchHelper = module.get(
+            PatternMatchHelper.class);
+
+        if (handlerHeaderContext.isPresent()) {
+            //We are in a handler header, probably in a when-expression
+            result = patternMatchHelper.advanceHeaderPatternMatching(
+                inputExprType,
+                pattern,
+                afterLeft
+            );
         } else {
-            return advanceCommon(input, state, true);
+            result = patternMatchHelper.advanceMatchesExpressionPatternMatching(
+                inputExprType,
+                pattern,
+                afterLeft
+            );
         }
+
+        return result;
+
+    }
+
+
+    @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<Matches> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<Matches> input,
+        StaticState state
+    ) {
+
+        final Maybe<UnaryPrefix> inputExpr = input.__(Matches::getUnaryExpr);
+        final Maybe<LValueExpression> pattern =
+            input.__(Matches::getPattern).__(i -> (LValueExpression) i);
+        final UnaryPrefixExpressionSemantics upes =
+            module.get(UnaryPrefixExpressionSemantics.class);
+        final StaticState afterLeft = upes.advance(inputExpr, state);
+        final Optional<HandlerWhenExpressionContext> handlerHeaderContext =
+            module.get(ContextManager.class)
+                .currentContext()
+                .actAs(HandlerWhenExpressionContext.class)
+                .findFirst();
+
+        final IJadescriptType inputExprType = upes.inferType(inputExpr, state);
+
+
+
+        final PatternMatchHelper patternMatchHelper = module.get(
+            PatternMatchHelper.class);
+        //TODO move input initialization in helper
+        String localClassName =
+            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
+        final String variableName = localClassName + "_obj";
+
+        PatternMatchInput<LValueExpression> pmi;
+        if (handlerHeaderContext.isPresent()) {
+            pmi = new PatternMatchInput.HandlerHeader<>(
+                module,
+                inputExprType,
+                pattern,
+                "__",
+                variableName
+            );
+        } else {
+            pmi = new PatternMatchInput.MatchesExpression<>(
+                module,
+                inputExprType,
+                pattern,
+                "__",
+                variableName
+            );
+        }
+
+
+        final LValueExpressionSemantics lves =
+            module.get(LValueExpressionSemantics.class);
+
+
+        final Maybe<ExpressionDescriptor> leftDescriptor =
+            upes.describeExpression(
+                inputExpr,
+                state
+            );
+        final IJadescriptType solvedPatternType = lves.inferPatternType(
+            pmi,
+            afterLeft
+        ).solve(inputExprType);
+
+        return lves
+            .assertDidMatch(pmi, afterLeft)
+            .assertFlowTypingUpperBound(leftDescriptor, solvedPatternType);
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<Matches> input,
+        StaticState state
+    ) {
+        return state;
     }
 
 
@@ -137,21 +245,7 @@ public class MatchesExpressionSemantics
         Maybe<Matches> input,
         StaticState state
     ) {
-
-        final Maybe<UnaryPrefix> inputExpr = input.__(Matches::getUnaryExpr);
-        final Maybe<LValueExpression> pattern = input.__(Matches::getPattern)
-            .__(i -> (LValueExpression) i);
-        final Maybe<ExpressionDescriptor> inputExprDesc =
-            module.get(UnaryPrefixExpressionSemantics.class)
-                .describeExpression(inputExpr, state);
-        if (inputExprDesc.isPresent()) {
-            return some(new ExpressionDescriptor.MatchesDescriptor(
-                inputExprDesc.toNullable(),
-                pattern
-            ));
-        }
         return nothing();
-
     }
 
 
@@ -161,83 +255,6 @@ public class MatchesExpressionSemantics
         StaticState state
     ) {
         return state;
-    }
-
-
-    private StaticState advanceCommon(
-        Maybe<Matches> input,
-        StaticState state,
-        boolean addTypeCheckRule
-    ) {
-        final Maybe<UnaryPrefix> inputExpr = input.__(Matches::getUnaryExpr);
-        final Maybe<LValueExpression> pattern =
-            input.__(Matches::getPattern).__(i -> (LValueExpression) i);
-        final UnaryPrefixExpressionSemantics upes =
-            module.get(UnaryPrefixExpressionSemantics.class);
-        final StaticState afterLeft = upes.advance(inputExpr, state);
-        final Optional<HandlerWhenExpressionContext> handlerHeaderContext =
-            module.get(ContextManager.class)
-                .currentContext()
-                .actAs(HandlerWhenExpressionContext.class)
-                .findFirst();
-
-        final IJadescriptType inputExprType = upes.inferType(inputExpr, state);
-
-        StaticState result;
-        final PatternMatchHelper patternMatchHelper = module.get(
-            PatternMatchHelper.class);
-        if (handlerHeaderContext.isPresent()) {
-            //We are in a handler header, probably in a when-expression
-            result = patternMatchHelper.advanceHeaderPatternMatching(
-                inputExprType,
-                pattern,
-                afterLeft
-            );
-        } else {
-            result = patternMatchHelper.advanceMatchesExpressionPatternMatching(
-                inputExprType,
-                pattern,
-                afterLeft
-            );
-        }
-
-        if (addTypeCheckRule) {
-            final Maybe<ExpressionDescriptor> inputExprDescriptor =
-                upes.describeExpression(inputExpr, state);
-            final Maybe<ExpressionDescriptor> overallDescriptor =
-                describeExpression(input, state);
-            if (overallDescriptor.isPresent()
-                && inputExprDescriptor.isPresent()) {
-
-                final IJadescriptType solvedPatternType;
-                if (handlerHeaderContext.isPresent()) {
-                    solvedPatternType = patternMatchHelper
-                        .inferHandlerHeaderPatternType(
-                            inputExprType, pattern,
-                            afterLeft
-                        );
-                } else {
-                    solvedPatternType = patternMatchHelper
-                        .inferMatchesExpressionPatternType(
-                            inputExprType,
-                            pattern,
-                            afterLeft
-                        );
-
-                }
-
-                result = result.addRule(
-                    overallDescriptor.toNullable(),
-                    EvaluationResult.ReturnedTrue.INSTANCE,
-                    s -> s.assertFlowTypingUpperBound(
-                        inputExprDescriptor.toNullable(),
-                        solvedPatternType
-                    )
-                );
-            }
-        }
-        return result;
-
     }
 
 

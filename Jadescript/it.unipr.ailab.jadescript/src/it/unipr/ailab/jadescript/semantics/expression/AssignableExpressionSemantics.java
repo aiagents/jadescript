@@ -4,7 +4,6 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -337,15 +336,6 @@ public abstract class AssignableExpressionSemantics<T>
 
 
         @Override
-        protected Maybe<PatternDescriptor> describePatternInternal(
-            PatternMatchInput<X> input,
-            StaticState state
-        ) {
-            return Maybe.nothing();
-        }
-
-
-        @Override
         protected StaticState advanceInternal(
             Maybe<X> input,
             StaticState state
@@ -384,6 +374,33 @@ public abstract class AssignableExpressionSemantics<T>
             StaticState state
         ) {
             return false;
+        }
+
+
+        @Override
+        protected StaticState assertDidMatchInternal(
+            PatternMatchInput<X> input,
+            StaticState state
+        ) {
+            return state;
+        }
+
+
+        @Override
+        protected StaticState assertReturnedTrueInternal(
+            Maybe<X> input,
+            StaticState state
+        ) {
+            return state;
+        }
+
+
+        @Override
+        protected StaticState assertReturnedFalseInternal(
+            Maybe<X> input,
+            StaticState state
+        ) {
+            return state;
         }
 
 

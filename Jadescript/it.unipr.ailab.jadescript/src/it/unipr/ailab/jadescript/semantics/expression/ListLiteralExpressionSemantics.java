@@ -173,17 +173,7 @@ public class ListLiteralExpressionSemantics
     }
 
 
-    @Override
-    protected Maybe<PatternDescriptor> describePatternInternal(
-        PatternMatchInput<ListLiteral> input,
-        StaticState state
-    ) {
-        return some(PatternDescriptor.ComposedPattern.from(
-            this,
-            input,
-            state
-        ));
-    }
+
 
 
     @Override
@@ -270,6 +260,108 @@ public class ListLiteralExpressionSemantics
 
 
     @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<ListLiteral> input,
+        StaticState state
+    ) {
+        List<Maybe<RValueExpression>> values =
+            toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
+        Maybe<RValueExpression> rest =
+            input.getPattern().__(ListLiteral::getRest);
+        boolean isWithPipe =
+            input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse)
+                && rest.isPresent();
+        int prePipeElementCount = values.size();
+        PatternType patternType = inferPatternType(input, state);
+        IJadescriptType solvedPatternType =
+            patternType.solve(input.getProvidedInputType());
+
+
+        if (!isWithPipe && prePipeElementCount == 0) {
+            //Empty list pattern
+            return state;
+        }
+
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+
+
+
+
+        final List<SubPattern<RValueExpression, ListLiteral>> subPatterns
+            = new ArrayList<>();
+
+        if (prePipeElementCount > 0) {
+            IJadescriptType elementType;
+            if (solvedPatternType instanceof ListType) {
+                elementType = ((ListType) solvedPatternType).getElementType();
+            } else {
+                elementType = solvedPatternType.getElementTypeIfCollection()
+                    .orElseGet(() -> module.get(TypeHelper.class).TOP.apply(
+                        PROVIDED_TYPE_TO_PATTERN_IS_NOT_LIST_MESSAGE
+                    ));
+            }
+
+            for (int i = 0; i < prePipeElementCount; i++) {
+                Maybe<RValueExpression> term = values.get(i);
+
+                final SubPattern<RValueExpression, ListLiteral>
+                    termSubpattern = input.subPattern(
+                    elementType,
+                    __ -> term.toNullable(),
+                    "_" + i
+                );
+
+                subPatterns.add(termSubpattern);
+            }
+        }
+
+        if (isWithPipe) {
+            final SubPattern<RValueExpression, ListLiteral> restSubpattern =
+                input.subPattern(
+                    solvedPatternType,
+                    __ -> rest.toNullable(),
+                    "_rest"
+                );
+
+
+
+            subPatterns.add(restSubpattern);
+
+
+        }
+
+        StaticState runningState = state;
+        for (var subPattern : subPatterns) {
+            runningState = rves.assertDidMatch(
+                subPattern,
+                runningState
+            );
+        }
+
+        return runningState;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<ListLiteral> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<ListLiteral> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
     protected boolean isHoledInternal(
         Maybe<ListLiteral> input,
         StaticState state
@@ -335,7 +427,7 @@ public class ListLiteralExpressionSemantics
 
         List<StaticState> shortCircuitedAlternatives = new ArrayList<>();
 
-        final List<Maybe<PatternDescriptor>> subPatternDescriptors
+        final List<SubPattern<RValueExpression, ListLiteral>> subPatterns
             = new ArrayList<>();
 
         if (prePipeElementCount > 0) {
@@ -360,19 +452,14 @@ public class ListLiteralExpressionSemantics
                     "_" + i
                 );
 
-                subPatternDescriptors.add(
-                    rves.describePattern(
-                        termSubpattern,
-                        runningState
-                    )
-                );
+                subPatterns.add(termSubpattern);
 
                 shortCircuitedAlternatives.add(runningState);
 
                 if (i > 0) {
-                    runningState = runningState.assertMatching(
-                        subPatternDescriptors.get(i - 1),
-                        MatchingResult.DidMatch.INSTANCE
+                    runningState = rves.assertDidMatch(
+                        subPatterns.get(i - 1),
+                        runningState
                     );
                 }
 
@@ -392,21 +479,14 @@ public class ListLiteralExpressionSemantics
                 );
             shortCircuitedAlternatives.add(runningState);
 
-            if (!subPatternDescriptors.isEmpty()) {
-                runningState = runningState.assertMatching(
-                    subPatternDescriptors.get(
-                        subPatternDescriptors.size() - 1
-                    ),
-                    MatchingResult.DidMatch.INSTANCE
+            if (!subPatterns.isEmpty()) {
+                runningState = rves.assertDidMatch(
+                    subPatterns.get(subPatterns.size() - 1),
+                    runningState
                 );
             }
 
-            subPatternDescriptors.add(
-                rves.describePattern(
-                    restSubpattern,
-                    runningState
-                )
-            );
+            subPatterns.add(restSubpattern);
 
             runningState = rves.advancePattern(
                 restSubpattern,
@@ -415,21 +495,7 @@ public class ListLiteralExpressionSemantics
 
         }
 
-        return runningState.intersectAll(
-            shortCircuitedAlternatives
-        ).addMatchingRule(
-            describePattern(input, state),
-            MatchingResult.DidMatch.INSTANCE,
-            s -> {
-                for (var subPatternDescriptor : subPatternDescriptors) {
-                    s = s.assertMatching(
-                        subPatternDescriptor,
-                        MatchingResult.DidMatch.INSTANCE
-                    );
-                }
-                return s;
-            }
-        );
+        return runningState.intersectAll(shortCircuitedAlternatives);
     }
 
 
@@ -464,7 +530,7 @@ public class ListLiteralExpressionSemantics
             final List<PatternMatcher> subResults =
                 new ArrayList<>(prePipeElementCount + (isWithPipe ? 1 : 0));
 
-            final List<Maybe<PatternDescriptor>> subPatternDescriptors
+            final List<SubPattern<RValueExpression, ListLiteral>> subPatterns
                 = new ArrayList<>();
 
 
@@ -491,17 +557,12 @@ public class ListLiteralExpressionSemantics
                         "_" + i
                     );
 
-                    subPatternDescriptors.add(
-                        rves.describePattern(
-                            termSubpattern,
-                            runningState
-                        )
-                    );
+                    subPatterns.add(termSubpattern);
 
                     if (i > 0) {
-                        runningState = runningState.assertMatching(
-                            subPatternDescriptors.get(i - 1),
-                            MatchingResult.DidMatch.INSTANCE
+                        runningState = rves.assertDidMatch(
+                            subPatterns.get(i - 1),
+                            runningState
                         );
                     }
 
@@ -530,12 +591,10 @@ public class ListLiteralExpressionSemantics
                         "_rest"
                     );
 
-                if (!subPatternDescriptors.isEmpty()) {
-                    runningState = runningState.assertMatching(
-                        subPatternDescriptors.get(
-                            subPatternDescriptors.size() - 1
-                        ),
-                        MatchingResult.DidMatch.INSTANCE
+                if (!subPatterns.isEmpty()) {
+                    runningState = rves.assertDidMatch(
+                        subPatterns.get(subPatterns.size() - 1),
+                        runningState
                     );
                 }
 
@@ -634,7 +693,7 @@ public class ListLiteralExpressionSemantics
 
         StaticState runningState = state;
         boolean allElementsCheck = VALID;
-        List<Maybe<PatternDescriptor>> subPatternDescriptors
+        List<SubPattern<RValueExpression, ListLiteral>> subPatterns
             = new ArrayList<>();
 
         if (prePipeElementCount > 0) {
@@ -654,40 +713,36 @@ public class ListLiteralExpressionSemantics
                         __ -> subPattern.toNullable(),
                         "_" + i
                     );
-                subPatternDescriptors.add(
-                    rves.describePattern(
-                        termSubpattern,
-                        runningState
-                    )
-                );
+                subPatterns.add(termSubpattern);
 
                 if (i > 0) {
-                    runningState = runningState.assertMatching(
-                        subPatternDescriptors.get(i - 1),
-                        MatchingResult.DidMatch.INSTANCE
+                    runningState = rves.assertDidMatch(
+                        subPatterns.get(i - 1),
+                        runningState
                     );
                 }
-
 
                 boolean elementCheck = rves.validatePatternMatch(
                     termSubpattern,
                     runningState,
                     acceptor
                 );
+
                 runningState = rves.advancePattern(
                     termSubpattern,
                     runningState
                 );
+
                 allElementsCheck = allElementsCheck && elementCheck;
             }
         }
 
         boolean pipeCheck = VALID;
         if (isWithPipe) {
-            if (!subPatternDescriptors.isEmpty()) {
-                runningState = runningState.assertMatching(
-                    subPatternDescriptors.get(subPatternDescriptors.size() - 1),
-                    MatchingResult.DidMatch.INSTANCE
+            if (!subPatterns.isEmpty()) {
+                runningState = rves.assertDidMatch(
+                    subPatterns.get(subPatterns.size() - 1),
+                    runningState
                 );
             }
 

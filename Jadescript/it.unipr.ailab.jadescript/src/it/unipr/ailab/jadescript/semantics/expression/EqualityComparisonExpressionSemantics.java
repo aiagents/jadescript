@@ -5,7 +5,6 @@ import it.unipr.ailab.jadescript.jadescript.EqualityComparison;
 import it.unipr.ailab.jadescript.jadescript.TypeComparison;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.SubPattern;
@@ -64,15 +63,6 @@ public class EqualityComparisonExpressionSemantics
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<EqualityComparison> input,
-        StaticState state
-    ) {
-        return Maybe.nothing();
-    }
-
-
-    @Override
-    protected Maybe<PatternDescriptor> describePatternInternal(
-        PatternMatchInput<EqualityComparison> input,
         StaticState state
     ) {
         return Maybe.nothing();
@@ -416,6 +406,112 @@ public class EqualityComparisonExpressionSemantics
                 input.replacePattern(left),
                 afterRight
             );
+        }
+    }
+
+
+    @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<EqualityComparison> input,
+        StaticState state
+    ) {
+        Maybe<TypeComparison> left = input.getPattern()
+            .__(EqualityComparison::getLeft);
+        Maybe<TypeComparison> right = input.getPattern()
+            .__(EqualityComparison::getRight);
+        String equalityOp = input.getPattern()
+            .__(EqualityComparison::getEqualityOp).orElse("");
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
+            || !tces.isHoled(left, state)) {
+            return state;
+        } else {
+            SubPattern<TypeComparison, EqualityComparison>
+                rightSubpattern = input.subPattern(
+                input.getProvidedInputType(),
+                __ -> right.toNullable(),
+                "_right"
+            );
+            final IJadescriptType rType = tces.inferPatternType(
+                rightSubpattern,
+                state
+            ).solve(input.getProvidedInputType());
+            StaticState afterRight = tces.assertDidMatch(
+                rightSubpattern, state
+            );
+
+            SubPattern<TypeComparison, EqualityComparison> leftSubpattern =
+                input.subPattern(
+                    rType,
+                    __ -> left.toNullable(),
+                    "_left"
+                );
+
+            return tces.assertDidMatch(
+                leftSubpattern, afterRight
+            );
+        }
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<EqualityComparison> input,
+        StaticState state
+    ) {
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
+
+        Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
+
+        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
+
+
+        String equalityOp = input.__(EqualityComparison::getEqualityOp)
+            .orElse("");
+        if (equalityOp.equals("≠")) {
+            equalityOp = "!=";
+        }
+
+        if (!equalityOp.equals(NOT_EQUALS_OPERATOR)) { //<- If it is '='
+            StaticState afterLeft = tces.advance(left, state);
+            return state.assertExpressionsEqual(
+                tces.describeExpression(left, state),
+                tces.describeExpression(right, afterLeft)
+            );
+        } else {
+            return state;
+        }
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<EqualityComparison> input,
+        StaticState state
+    ) {
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
+
+        Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
+
+        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
+
+        String equalityOp = input.__(EqualityComparison::getEqualityOp)
+            .orElse("");
+        if (equalityOp.equals("≠")) {
+            equalityOp = "!=";
+        }
+
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)) { //<- If it is '!='
+            StaticState afterLeft = tces.advance(left, state);
+            return state.assertExpressionsEqual(
+                tces.describeExpression(left, state),
+                tces.describeExpression(right, afterLeft)
+            );
+        } else {
+            return state;
         }
     }
 

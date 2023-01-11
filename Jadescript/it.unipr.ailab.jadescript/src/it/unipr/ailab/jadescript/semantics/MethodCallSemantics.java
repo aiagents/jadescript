@@ -211,6 +211,101 @@ public class MethodCallSemantics
 
 
     @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<MethodCall> input,
+        StaticState state
+    ) {
+        final Maybe<? extends CallableSymbol> method = resolve(
+            input.getPattern(),
+            state,
+            false //patterns do not advance on any argument before resolving
+        );
+
+        Maybe<SimpleArgumentList> simpleArgs =
+            extractSimpleArgs(input.getPattern());
+        Maybe<NamedArgumentList> namedArgs =
+            extractNamedArgs(input.getPattern());
+        boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
+        List<Maybe<RValueExpression>> argExpressions;
+        if (noArgs) {
+            argExpressions = Collections.emptyList();
+        } else if (simpleArgs.isPresent()) {
+            argExpressions = toListOfMaybes(
+                simpleArgs.__(SimpleArgumentList::getExpressions)
+            );
+        } else /*(namedArgs.isPresent())*/ {
+            argExpressions = toListOfMaybes(
+                namedArgs.__(NamedArgumentList::getParameterValues)
+            );
+        }
+
+
+        if (method.isNothing()) {
+            return state;
+        }
+
+
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        CallableSymbol m = method.toNullable();
+
+        //TODO advancePattern on PatternSymbol m
+
+        List<IJadescriptType> patternTermTypes = m.parameterTypes();
+
+
+        if (namedArgs.isPresent()) {
+            List<String> argNames = toListOfMaybes(
+                namedArgs.__(NamedArgumentList::getParameterNames)
+            ).stream()
+                .map(Maybe::toNullable)
+                .collect(Collectors.toList());
+            argExpressions = sortToMatchParamNames(
+                argExpressions,
+                argNames,
+                m.parameterNames()
+            );
+        }
+
+        StaticState runningState = state;
+        for (int i = 0; i < argExpressions.size(); i++) {
+            Maybe<RValueExpression> term = argExpressions.get(i);
+            IJadescriptType upperBound = patternTermTypes.get(i);
+            final SubPattern<RValueExpression, MethodCall> termSubpattern =
+                input.subPattern(
+                    upperBound,
+                    __ -> term.toNullable(),
+                    "_" + i
+                );
+            runningState = rves.assertDidMatch(
+                termSubpattern,
+                runningState
+            );
+        }
+
+        return runningState;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<MethodCall> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<MethodCall> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
     protected StaticState advancePatternInternal(
         PatternMatchInput<MethodCall> input,
         StaticState state
@@ -1358,9 +1453,9 @@ public class MethodCallSemantics
         ValidationMessageAcceptor acceptor
     ) {
 
-        if(resolves(input, state, true)){
+        if (resolves(input, state, true)) {
             return validate(input, state, acceptor);
-        }else{
+        } else {
             return errorNotStatement(input, acceptor);
         }
     }

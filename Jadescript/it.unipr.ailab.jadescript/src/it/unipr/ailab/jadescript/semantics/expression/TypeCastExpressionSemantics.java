@@ -172,6 +172,84 @@ public class TypeCastExpressionSemantics
 
 
     @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<TypeCast> input,
+        StaticState state
+    ) {
+        final TypeExpressionSemantics tes =
+            module.get(TypeExpressionSemantics.class);
+        final List<IJadescriptType> castsTypes =
+            toListOfMaybes(input.getPattern().__(
+                TypeCast::getTypeCasts)).stream()
+                .map(tes::toJadescriptType)
+                .collect(Collectors.toList());
+
+        return assertDidMatchRecursive(
+            input,
+            castsTypes,
+            state
+        );
+    }
+
+
+    private StaticState assertDidMatchRecursive(
+        PatternMatchInput<TypeCast> input,
+        List<IJadescriptType> castsTypes,
+        StaticState state
+    ) {
+        //Note: not advancing state since typecasting doesn't mutate it
+        final AtomWithTrailersExpressionSemantics awtes =
+            module.get(AtomWithTrailersExpressionSemantics.class);
+        if (castsTypes.isEmpty()) {
+            return awtes.assertDidMatch(
+                input.mapPattern(TypeCast::getAtomExpr),
+                state
+            );
+        } else if (castsTypes.size() == 1) {
+            return awtes.assertDidMatch(
+                input.subPattern(
+                    castsTypes.get(0),
+                    TypeCast::getAtomExpr,
+                    "_typecast0"
+                ), state
+            );
+        } else {
+            final IJadescriptType castToType =
+                castsTypes.get(castsTypes.size() - 1);
+            final PatternMatchInput.SubPattern<TypeCast, TypeCast> subPattern =
+                input.subPattern(
+                    castToType,
+                    __ -> __,
+                    "_typecast" + (castsTypes.size() - 1)
+                );
+            return assertDidMatchRecursive(
+                subPattern,
+                castsTypes.subList(0, castsTypes.size() - 1),
+                state
+            );
+        }
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<TypeCast> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<TypeCast> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
     protected IJadescriptType inferTypeInternal(
         Maybe<TypeCast> input,
         StaticState state

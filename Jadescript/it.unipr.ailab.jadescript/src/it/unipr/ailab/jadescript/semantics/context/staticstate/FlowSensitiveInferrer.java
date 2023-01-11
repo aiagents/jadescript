@@ -14,14 +14,5 @@ public interface FlowSensitiveInferrer {
         @Nullable Predicate<IJadescriptType> upperBound
     );
 
-    Stream<? extends Function<StaticState, StaticState>> getEvaluationRule(
-        @Nullable Predicate<ExpressionDescriptor> forExpression,
-        @Nullable Predicate<EvaluationResult> rule
-    );
-
-    Stream<? extends Function<StaticState, StaticState>> getPatternMatchingRule(
-        @Nullable Predicate<PatternDescriptor> forPattern,
-        @Nullable Predicate<MatchingResult> rule
-    );
 
 }

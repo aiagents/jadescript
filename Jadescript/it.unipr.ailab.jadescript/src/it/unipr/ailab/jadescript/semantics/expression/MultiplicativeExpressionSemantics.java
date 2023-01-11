@@ -5,7 +5,6 @@ import it.unipr.ailab.jadescript.jadescript.Matches;
 import it.unipr.ailab.jadescript.jadescript.Multiplicative;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -45,15 +44,6 @@ public class MultiplicativeExpressionSemantics
 
 
     @Override
-    protected Maybe<PatternDescriptor> describePatternInternal(
-        PatternMatchInput<Multiplicative> input,
-        StaticState state
-    ) {
-        return Maybe.nothing();
-    }
-
-
-    @Override
     protected StaticState advanceInternal(
         Maybe<Multiplicative> input,
         StaticState state
@@ -62,6 +52,33 @@ public class MultiplicativeExpressionSemantics
             input.__(Multiplicative::getMatches)
         );
         return advanceAssociative(matches, state);
+    }
+
+
+    @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<Multiplicative> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<Multiplicative> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<Multiplicative> input,
+        StaticState state
+    ) {
+        return state;
     }
 
 

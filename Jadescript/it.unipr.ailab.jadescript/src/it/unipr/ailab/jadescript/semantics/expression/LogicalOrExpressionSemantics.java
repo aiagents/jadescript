@@ -5,9 +5,7 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.LogicalAnd;
 import it.unipr.ailab.jadescript.jadescript.LogicalOr;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -16,7 +14,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
-import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -80,17 +77,10 @@ public class LogicalOrExpressionSemantics
                 acceptor
             );
 
-            Maybe<ExpressionDescriptor> thisExpr =
-                laes.describeExpression(and, newState);
-
             newState = laes.advance(and, newState);
 
-            if (thisExpr.isPresent()) {
-                newState = newState.assertEvaluation(
-                    thisExpr.toNullable(),
-                    EvaluationResult.ReturnedFalse.INSTANCE
-                );
-            }
+            newState = laes.assertReturnedFalse(and, newState);
+
             if (i != 0) {
                 result.append(" || ").append(operandCompiled);
             } else {
@@ -104,45 +94,6 @@ public class LogicalOrExpressionSemantics
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<LogicalOr> input,
-        StaticState state
-    ) {
-
-        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(
-            input.__(LogicalOr::getLogicalAnd)
-        );
-        List<ExpressionDescriptor> operands = new ArrayList<>(ands.size());
-
-        final LogicalAndExpressionSemantics laes =
-            module.get(LogicalAndExpressionSemantics.class);
-
-
-        StaticState newState = state;
-        for (Maybe<LogicalAnd> and : ands) {
-            Maybe<ExpressionDescriptor> thisExpr =
-                laes.describeExpression(and, state);
-
-            newState = laes.advance(and, newState);
-
-            if (thisExpr.isPresent()) {
-                operands.add(thisExpr.toNullable());
-                newState = newState.assertEvaluation(
-                    thisExpr.toNullable(),
-                    EvaluationResult.ReturnedFalse.INSTANCE
-                );
-            }
-        }
-        if (operands.isEmpty()) {
-            return Maybe.nothing();
-        }
-        return Maybe.some(new ExpressionDescriptor.OrExpression(
-            ImmutableList.from(operands)
-        ));
-    }
-
-
-    @Override
-    protected Maybe<PatternDescriptor> describePatternInternal(
-        PatternMatchInput<LogicalOr> input,
         StaticState state
     ) {
         return Maybe.nothing();
@@ -170,86 +121,99 @@ public class LogicalOrExpressionSemantics
         List<StaticState> shortCircuitAlternatives
             = new ArrayList<>(ands.size());
 
-        List<Maybe<ExpressionDescriptor>> descrs = new ArrayList<>(ands.size());
         StaticState allFalseState = state;
         for (Maybe<LogicalAnd> and : ands) {
             final StaticState newState = laes.advance(and, allFalseState);
 
-            final Maybe<ExpressionDescriptor> descr =
-                laes.describeExpression(and, allFalseState);
-
-            descrs.add(descr);
-
             shortCircuitAlternatives.add(
-                newState.assertEvaluation(
-                    descr,
-                    EvaluationResult.ReturnedTrue.INSTANCE
-                )
+                laes.assertReturnedTrue(and, newState)
             );
 
-            allFalseState = newState.assertEvaluation(
-                descr,
-                EvaluationResult.ReturnedFalse.INSTANCE
+            allFalseState = laes.assertReturnedFalse(
+                and,
+                newState
             );
         }
 
-        // The (pre-overall-rules) result state is the intersection of the
+        // The result state is the intersection of the
         // "all false" state with each "one true" short-circuited state
-        StaticState result = allFalseState.intersectAll(
-            shortCircuitAlternatives
+
+        return allFalseState.intersectAll(shortCircuitAlternatives);
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<LogicalOr> input,
+        StaticState state
+    ) {
+        // If it is asserted that the overall expression is false, it
+        // means that all the operands returned false, and we can
+        // compute the consequences one after the other.
+
+        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(
+            input.__(LogicalOr::getLogicalAnd)
         );
 
-        final Maybe<ExpressionDescriptor> overallDescriptor =
-            describeExpression(input, state);
+        if (ands.isEmpty()) {
+            return state;
+        }
 
-        // We add two rules for later:
-        return result
-            .addEvaluationRule(
-                // If it is asserted that the overall expression is false, it
-                // means that all the operands returned false, and we can
-                // compute the consequences one after the other.
-                overallDescriptor,
-                EvaluationResult.ReturnedFalse.INSTANCE,
-                s -> {
-                    for (Maybe<ExpressionDescriptor> descr : descrs) {
-                        s = s.assertEvaluation(
-                            descr,
-                            EvaluationResult.ReturnedFalse.INSTANCE
-                        );
-                    }
-                    return s;
-                }
-            ).addEvaluationRule(
-                // If it is asserted that the overall expression is false, it
-                // means that any sub-sequence of the operands returned false
-                // until one operand returned true. Each sub-sequence case is
-                // used to compute an alternative final state, wich is used to
-                // compute the overall patched state with an intersection.
-                overallDescriptor,
-                EvaluationResult.ReturnedTrue.INSTANCE,
-                s -> {
-                    List<StaticState> alternatives = new ArrayList<>();
-                    StaticState runningState = s;
-                    for (int i = 0; i < descrs.size(); i++) {
-                        Maybe<ExpressionDescriptor> descr = descrs.get(i);
-                        alternatives.add(
-                            runningState.assertEvaluation(
-                                descr,
-                                EvaluationResult.ReturnedTrue.INSTANCE
-                            )
-                        );
-                        if(i < descrs.size()-1) { //exclude last
-                            runningState = runningState.assertEvaluation(
-                                descr,
-                                EvaluationResult.ReturnedFalse.INSTANCE
-                            );
-                        }
-                    }
-                    return s.intersectAll(alternatives);
-                }
-            );
+        final LogicalAndExpressionSemantics laes =
+            module.get(LogicalAndExpressionSemantics.class);
 
+        for (var and : ands) {
+            state = laes.assertReturnedFalse(and, state);
+        }
+
+        return state;
     }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<LogicalOr> input,
+        StaticState state
+    ) {
+        // If it is asserted that the overall expression is true, it
+        // means that one non-empty sub-sequence of the operands returned false
+        // until one operand returned true. Each sub-sequence case is
+        // used to compute an alternative final state, wich is used to
+        // compute the overall final state with an intersection.
+
+        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(
+            input.__(LogicalOr::getLogicalAnd)
+        );
+
+        final LogicalAndExpressionSemantics laes =
+            module.get(LogicalAndExpressionSemantics.class);
+
+        List<StaticState> alternatives = new ArrayList<>();
+
+        StaticState runningState = state;
+
+        for (int i = 0; i < ands.size(); i++) {
+            Maybe<LogicalAnd> and = ands.get(i);
+            alternatives.add(
+                laes.assertReturnedTrue(and, runningState)
+            );
+            if (i < ands.size() - 1) { //exclude last
+                runningState = laes.assertReturnedFalse(and, runningState);
+            }
+        }
+
+        return StaticState.intersectAll(alternatives, () -> state);
+    }
+
+
+    @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<LogicalOr> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
 
     @Override
     protected StaticState advancePatternInternal(
@@ -332,14 +296,9 @@ public class LogicalOrExpressionSemantics
             } else {
                 result = INVALID;
             }
-            Maybe<ExpressionDescriptor> thisExpr =
-                laes.describeExpression(and, newState);
             newState = laes.advance(and, newState);
 
-            newState = newState.assertEvaluation(
-                thisExpr,
-                EvaluationResult.ReturnedFalse.INSTANCE
-            );
+            newState = laes.assertReturnedFalse(and, newState);
         }
         return result;
 

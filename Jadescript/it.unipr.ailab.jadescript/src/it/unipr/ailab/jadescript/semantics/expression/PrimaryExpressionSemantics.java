@@ -129,6 +129,66 @@ public class PrimaryExpressionSemantics
 
 
     @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<Primary> input,
+        StaticState state
+    ) {
+        final List<Maybe<RValueExpression>> exprs =
+            Maybe.toListOfMaybes(input.getPattern().__(Primary::getExprs))
+                .stream()
+                .filter(Maybe::isPresent)
+                .collect(Collectors.toList());
+
+        if (exprs.size() == 1) {
+            return module.get(RValueExpressionSemantics.class).assertDidMatch(
+                input.replacePattern(exprs.get(0)),
+                state
+            );
+        } else {
+            return state;
+        }
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<Primary> input,
+        StaticState state
+    ) {
+         final List<Maybe<RValueExpression>> exprs =
+            Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
+                .filter(Maybe::isPresent)
+                .collect(Collectors.toList());
+
+        if (exprs.size() == 1) {
+            return module.get(RValueExpressionSemantics.class)
+                .assertReturnedTrue(exprs.get(0), state);
+        } else {
+            return state;
+        }
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<Primary> input,
+        StaticState state
+    ) {
+         final List<Maybe<RValueExpression>> exprs =
+            Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
+                .filter(Maybe::isPresent)
+                .collect(Collectors.toList());
+
+        if (exprs.size() == 1) {
+            return module.get(RValueExpressionSemantics.class)
+                .assertReturnedTrue(exprs.get(0), state);
+        } else {
+            return state;
+        }
+    }
+
+
+    @Override
     protected StaticState advancePatternInternal(
         PatternMatchInput<Primary> input,
         StaticState state

@@ -6,8 +6,6 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.MatchingResult;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.PatternDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSemantics;
@@ -308,9 +306,9 @@ public abstract class ExpressionSemantics<T> extends Semantics
             (sbte, runningState) -> {
                 final StaticState nextState =
                     sbte.getSemantics().advancePattern(
-                    input.replacePattern(sbte.getInput()),
-                    runningState
-                );
+                        input.replacePattern(sbte.getInput()),
+                        runningState
+                    );
 
                 return enrichState.apply(
                     sbte.getSemantics(),
@@ -507,25 +505,6 @@ public abstract class ExpressionSemantics<T> extends Semantics
     );
 
 
-    public final Maybe<PatternDescriptor> describePattern(
-        PatternMatchInput<T> input,
-        StaticState state
-    ) {
-        return traverse(input.getPattern())
-            .map(x -> x.getSemantics().describePattern(
-                input.replacePattern(x.getInput()),
-                state
-            ))
-            .orElseGet(() -> describePatternInternal(input, state));
-    }
-
-
-    protected abstract Maybe<PatternDescriptor> describePatternInternal(
-        PatternMatchInput<T> input,
-        StaticState state
-    );
-
-
     /**
      * Updates the state as a consequence of the expression evaluation.
      */
@@ -675,12 +654,62 @@ public abstract class ExpressionSemantics<T> extends Semantics
             input,
             state,
             ExpressionSemantics::isPatternEvaluationPure,
-            (sem, i, ps, ns) -> ns.assertMatching(
-                sem.describePattern(i, ps),
-                MatchingResult.DidMatch.INSTANCE
-            )
+            (sem, i, __, ns) -> sem.assertDidMatch(i, ns)
         ).allMatch(b -> b);
     }
+
+
+    public final StaticState assertDidMatch(
+        PatternMatchInput<T> input,
+        StaticState state
+    ) {
+        return traverse(input.getPattern())
+            .map(x -> x.getSemantics().assertDidMatch(
+                input.replacePattern(x.getInput()),
+                state
+            )).orElseGet(() -> assertDidMatchInternal(
+                input,
+                state
+            ));
+    }
+
+
+    protected abstract StaticState assertDidMatchInternal(
+        PatternMatchInput<T> input,
+        StaticState state
+    );
+
+
+    public final StaticState assertReturnedTrue(
+        Maybe<T> input,
+        StaticState state
+    ) {
+        return traverse(input).map(
+            x -> x.getSemantics().assertReturnedTrue(x.getInput(), state)
+        ).orElseGet(() -> assertReturnedTrueInternal(input, state));
+    }
+
+
+    protected abstract StaticState assertReturnedTrueInternal(
+        Maybe<T> input,
+        StaticState state
+    );
+
+
+    public final StaticState assertReturnedFalse(
+        Maybe<T> input,
+        StaticState state
+    ) {
+        return traverse(input).map(
+            x -> x.getSemantics().assertReturnedFalse(x.getInput(), state)
+        ).orElseGet(() -> assertReturnedFalseInternal(input, state));
+    }
+
+
+    protected abstract StaticState assertReturnedFalseInternal(
+        Maybe<T> input,
+        StaticState state
+    );
 
 
     /**
@@ -1382,15 +1411,6 @@ public abstract class ExpressionSemantics<T> extends Semantics
 
 
         @Override
-        protected Maybe<PatternDescriptor> describePatternInternal(
-            PatternMatchInput<T> input,
-            StaticState state
-        ) {
-            return Maybe.nothing();
-        }
-
-
-        @Override
         protected StaticState advanceInternal(
             Maybe<T> input,
             StaticState state
@@ -1420,6 +1440,33 @@ public abstract class ExpressionSemantics<T> extends Semantics
             StaticState state
         ) {
             return false;
+        }
+
+
+        @Override
+        protected StaticState assertDidMatchInternal(
+            PatternMatchInput<T> input,
+            StaticState state
+        ) {
+            return state;
+        }
+
+
+        @Override
+        protected StaticState assertReturnedTrueInternal(
+            Maybe<T> input,
+            StaticState state
+        ) {
+            return state;
+        }
+
+
+        @Override
+        protected StaticState assertReturnedFalseInternal(
+            Maybe<T> input,
+            StaticState state
+        ) {
+            return state;
         }
 
 

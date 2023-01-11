@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.UnaryPrefix;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.UnaryPrefixExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
@@ -18,6 +19,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
     protected final SemanticsModule module;
     private final PatternMatchMode patternMatchMode;
+    private final Maybe<ExpressionDescriptor> inputExprDescriptor;
     private final Maybe<T> pattern;
     private final String termID;
     private final String rootPatternMatchVariableName;
@@ -64,6 +66,11 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
 
     public abstract IJadescriptType getProvidedInputType();
+
+
+    public Maybe<ExpressionDescriptor> getInputExprDescriptor() {
+        return inputExprDescriptor;
+    }
 
 
     public <T2> SubPattern<T2, T> subPattern(

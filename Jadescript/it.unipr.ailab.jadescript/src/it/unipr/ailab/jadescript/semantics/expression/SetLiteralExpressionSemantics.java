@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.MatchingResult;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.SubPattern;
@@ -276,8 +277,64 @@ public class SetLiteralExpressionSemantics
 
         final SubPattern<RValueExpression, MapOrSetLiteral> restSubpattern =
             input.subPattern(
-            rest);
-        return rves.advancePattern(restSubpattern, afterElements);
+                inferPatternType(input, state)
+                    .solve(input.getProvidedInputType()),
+                (__) -> rest.toNullable(),
+                "_rest"
+            );
+
+
+        return rves.advancePattern(restSubpattern, afterElements)
+            .intersect(afterElements);//short-circuted (when rest did not match)
+    }
+
+
+    @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<MapOrSetLiteral> input,
+        StaticState state
+    ) {
+        final boolean isWithPipe =
+            input.getPattern().__(MapOrSetLiteral::isWithPipe)
+                .extract(nullAsFalse);
+
+        if(!isWithPipe){
+            return state;
+        }
+
+        final Maybe<RValueExpression> rest =
+            input.getPattern().__(MapOrSetLiteral::getRest);
+
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+
+        final SubPattern<RValueExpression, MapOrSetLiteral> restSubpattern =
+            input.subPattern(
+                inferPatternType(input, state)
+                    .solve(input.getProvidedInputType()),
+                (__) -> rest.toNullable(),
+                "_rest"
+            );
+
+        return rves.assertDidMatch(restSubpattern, state);
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<MapOrSetLiteral> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<MapOrSetLiteral> input,
+        StaticState state
+    ) {
+        return state;
     }
 
 

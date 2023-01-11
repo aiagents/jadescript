@@ -566,6 +566,80 @@ public class TupleExpressionSemantics
 
 
     @Override
+    protected StaticState assertDidMatchInternal(
+        PatternMatchInput<TupledExpressions> input,
+        StaticState state
+    ) {
+        List<Maybe<RValueExpression>> terms = input.getPattern()
+            .__(TupledExpressions::getTuples)
+            .extract(Maybe::nullAsEmptyList);
+        IJadescriptType solvedPatternType = inferPatternType(input, state)
+            .solve(input.getProvidedInputType());
+        int elementCount = terms.size();
+
+        final RValueExpressionSemantics rves = module.get(
+            RValueExpressionSemantics.class);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+
+
+        StaticState runningState = state;
+        for (int i = 0; i < terms.size(); i++) {
+            final Maybe<RValueExpression> term = terms.get(i);
+            IJadescriptType termType;
+            if (solvedPatternType instanceof TupleType) {
+                final List<IJadescriptType> elementTypes =
+                    ((TupleType) solvedPatternType).getElementTypes();
+                if (elementTypes.size() > i) {
+                    termType = elementTypes.get(i);
+                } else {
+                    termType = typeHelper.TOP.apply(
+                        PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
+                            i,
+                            elementCount
+                        )
+                    );
+                }
+            } else {
+                termType = typeHelper.TOP.apply(
+                    PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
+                        i,
+                        elementCount
+                    )
+                );
+            }
+            final SubPattern<RValueExpression, TupledExpressions>
+                termSubpattern = input.subPattern(
+                termType,
+                __ -> term.toNullable(),
+                "_" + i
+            );
+            runningState = rves.assertDidMatch(termSubpattern, runningState);
+        }
+
+        return runningState;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedTrueInternal(
+        Maybe<TupledExpressions> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
+    protected StaticState assertReturnedFalseInternal(
+        Maybe<TupledExpressions> input,
+        StaticState state
+    ) {
+        return state;
+    }
+
+
+    @Override
     protected boolean isAlwaysPureInternal(
         Maybe<TupledExpressions> input,
         StaticState state
