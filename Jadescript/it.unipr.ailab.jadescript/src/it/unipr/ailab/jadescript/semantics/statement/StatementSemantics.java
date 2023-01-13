@@ -4,7 +4,6 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
@@ -17,8 +16,7 @@ import java.util.stream.Stream;
  */
 @Singleton
 public abstract class StatementSemantics<T>
-    extends Semantics
-    implements EffectfulOperationSemantics<T> {
+    extends Semantics {
 
 
     public StatementSemantics(SemanticsModule semanticsModule) {

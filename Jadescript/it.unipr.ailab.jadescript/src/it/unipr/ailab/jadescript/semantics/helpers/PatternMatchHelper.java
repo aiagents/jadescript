@@ -1,12 +1,12 @@
 package it.unipr.ailab.jadescript.semantics.helpers;
 
 import it.unipr.ailab.jadescript.jadescript.LValueExpression;
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.AssignmentDeconstruction;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.HandlerHeader;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.MatchesExpression;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.WhenMatchesStatement;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -26,8 +26,8 @@ import it.unipr.ailab.sonneteer.statement.VariableDeclarationWriter;
 import it.unipr.ailab.sonneteer.type.ClassDeclarationWriter.ConstructorWriter;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.common.types.*;
-import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.List;
@@ -79,7 +79,7 @@ public class PatternMatchHelper implements SemanticsConsts {
     }
 
 
-    private static JvmGenericType convertLocalClassToInnerClass(
+    public static JvmGenericType convertLocalClassToInnerClass(
         SemanticsModule module,
         EObject eobj,
         LocalClassStatementWriter localClass
@@ -214,83 +214,72 @@ public class PatternMatchHelper implements SemanticsConsts {
     }
 
 
-    public PatternMatcher compileAssignmentDeconstructionPatternMatching(
-        IJadescriptType rightType,
-        Maybe<LValueExpression> pattern,
-        StaticState afterInputExpr,
-        CompilationOutputAcceptor acceptor
-    ) {
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
-        final String variableName = localClassName + "_obj";
-        final AssignmentDeconstruction<LValueExpression> patternMatchInput =
-            new AssignmentDeconstruction<>(
-                module,
-                rightType,
-                pattern,
-                "__",
-                variableName
-            );
-        final PatternMatcher output =
-            module.get(LValueExpressionSemantics.class).compilePatternMatch(
-                patternMatchInput,
-                afterInputExpr,
-                acceptor
-            );
-
-        final LocalClassStatementWriter localClass =
-            w.localClass(localClassName);
-
-        output.getWriters().forEach(localClass::addMember);
-
-        acceptor.accept(localClass);
-        acceptor.accept(w.variable(
-            localClassName,
-            variableName,
-            w.expr("new "
-                + localClassName + "()")
-        ));
-        return output;
+    @NotNull
+    public String getPatternMatcherClassName(Maybe<LValueExpression> pattern) {
+        return "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
     }
 
 
-    public PatternMatcher compileWhenMatchesStatementPatternMatching(
-        IJadescriptType inputExprType,
-        Maybe<LValueExpression> pattern,
-        StaticState afterInputExpr,
-        CompilationOutputAcceptor acceptor
+    public String getPatternMatcherVariableName(
+        Maybe<LValueExpression> pattern
     ) {
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
-        final String variableName = localClassName + "_obj";
-        final WhenMatchesStatement<LValueExpression> patternMatchInput =
-            new WhenMatchesStatement<>(
-                module,
-                inputExprType,
-                pattern,
-                "__",
-                variableName
-            );
-        final PatternMatcher output =
-            module.get(LValueExpressionSemantics.class).compilePatternMatch(
-                patternMatchInput,
-                afterInputExpr,
-                acceptor
-            );
+        return getPatternMatcherClassName(pattern) + "_obj";
+    }
 
-        final LocalClassStatementWriter localClass =
-            w.localClass(localClassName);
 
-        output.getWriters().forEach(localClass::addMember);
+    public AssignmentDeconstruction<LValueExpression> assignmentDeconstruction(
+        IJadescriptType rightType,
+        Maybe<LValueExpression> pattern
+    ) {
 
-        acceptor.accept(localClass);
-        acceptor.accept(w.variable(
-            localClassName,
-            variableName,
-            w.expr("new "
-                + localClassName + "()")
-        ));
-        return output;
+        return new AssignmentDeconstruction<>(
+            module,
+            rightType,
+            pattern,
+            "__",
+            getPatternMatcherVariableName(pattern)
+        );
+    }
+
+
+    public WhenMatchesStatement<LValueExpression> whenMatchesStatement(
+        IJadescriptType inputExprType,
+        Maybe<LValueExpression> pattern
+    ) {
+        return new WhenMatchesStatement<>(
+            module,
+            inputExprType,
+            pattern,
+            "__",
+            getPatternMatcherVariableName(pattern)
+        );
+    }
+
+
+    public MatchesExpression<LValueExpression> matchesExpression(
+        IJadescriptType inputExprType,
+        Maybe<LValueExpression> pattern
+    ) {
+        return new MatchesExpression<>(
+            module,
+            inputExprType,
+            pattern,
+            "__",
+            getPatternMatcherVariableName(pattern)
+        );
+    }
+
+    public HandlerHeader<LValueExpression> handlerHeader(
+        IJadescriptType contentUpperBound,
+        Maybe<LValueExpression> pattern
+    ) {
+        return new HandlerHeader<>(
+            module,
+            contentUpperBound,
+            pattern,
+            "__",
+            getPatternMatcherVariableName(pattern)
+        );
     }
 
 
@@ -300,8 +289,7 @@ public class PatternMatchHelper implements SemanticsConsts {
         StaticState state,
         CompilationOutputAcceptor acceptor
     ) {
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
+        String localClassName = getPatternMatcherClassName(pattern);
         final String variableName = localClassName + "_obj";
         final MatchesExpression<LValueExpression> patternMatchInput =
             new PatternMatchInput.MatchesExpression<>(
@@ -336,8 +324,7 @@ public class PatternMatchHelper implements SemanticsConsts {
         CompilationOutputAcceptor acceptor
     ) {
 
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
+        String localClassName = getPatternMatcherClassName(pattern);
         final String variableName = localClassName + "_obj";
         final PatternMatchInput.HandlerHeader<LValueExpression>
             patternMatchInput =
@@ -365,278 +352,6 @@ public class PatternMatchHelper implements SemanticsConsts {
         acceptor.accept(w.variable(localClassName, variableName, w.expr("new "
             + localClassName + "()")));
         return output;
-    }
-
-
-    public StaticState advanceWhenMatchesStatementPatternMatching(
-        IJadescriptType inputExprType,
-        Maybe<LValueExpression> pattern,
-        StaticState afterInputExpr
-    ) {
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
-        final String variableName = localClassName + "_obj";
-        final WhenMatchesStatement<LValueExpression> patternMatchInput =
-            new PatternMatchInput.WhenMatchesStatement<>(
-                module,
-                inputExprType,
-                pattern,
-                "__",
-                variableName
-            );
-        return module.get(LValueExpressionSemantics.class).advancePattern(
-            patternMatchInput,
-            afterInputExpr
-        );
-    }
-
-
-    public StaticState advanceMatchesExpressionPatternMatching(
-        IJadescriptType inputExprType,
-        Maybe<LValueExpression> pattern,
-        StaticState state
-    ) {
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
-        final String variableName = localClassName + "_obj";
-        final MatchesExpression<LValueExpression> patternMatchInput =
-            new PatternMatchInput.MatchesExpression<>(
-                module,
-                inputExprType,
-                pattern,
-                "__",
-                variableName
-            );
-        return module.get(LValueExpressionSemantics.class).advancePattern(
-            patternMatchInput,
-            state
-        );
-    }
-
-
-    public StaticState advanceHeaderPatternMatching(
-        IJadescriptType contentUpperBound,
-        Maybe<LValueExpression> pattern,
-        StaticState state
-    ) {
-
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
-        final String variableName = localClassName + "_obj";
-        final PatternMatchInput.HandlerHeader<LValueExpression>
-            patternMatchInput =
-            new PatternMatchInput.HandlerHeader<>(
-                module,
-                contentUpperBound,
-                pattern,
-                "__",
-                variableName
-            );
-        return module.get(LValueExpressionSemantics.class).advancePattern(
-            patternMatchInput,
-            state
-        );
-    }
-
-
-    public StaticState advanceAssignmentDeconstructionPatternMatching(
-        IJadescriptType rightType,
-        Maybe<LValueExpression> left,
-        StaticState afterRight
-    ) {
-
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(left).hashCode();
-        final String variableName = localClassName + "_obj";
-        final PatternMatchInput.AssignmentDeconstruction<LValueExpression>
-            patternMatchInput =
-            new PatternMatchInput.AssignmentDeconstruction<>(
-                module,
-                rightType,
-                left,
-                "__",
-                variableName
-            );
-        return module.get(LValueExpressionSemantics.class).advancePattern(
-            patternMatchInput,
-            afterRight
-        );
-    }
-
-
-    public boolean validateWhenMatchesStatementPatternMatching(
-        Maybe<RValueExpression> inputExpr,
-        Maybe<LValueExpression> pattern,
-        StaticState afterInputExpr,
-        ValidationMessageAcceptor acceptor
-    ) {
-        String localClassName = "__PatternMatcher" +
-            Util.extractEObject(pattern).hashCode();
-        final String variableName = localClassName + "_obj";
-        final WhenMatchesStatement<LValueExpression> patternMatchInput =
-            new WhenMatchesStatement<>(
-                module,
-                inputExpr,
-                pattern,
-                "__",
-                variableName
-            );
-
-
-        return module.get(LValueExpressionSemantics.class).validatePatternMatch(
-            patternMatchInput,
-            afterInputExpr,
-            acceptor
-        );
-    }
-
-
-    public boolean validateMatchesExpressionPatternMatching(
-        IJadescriptType inputExprType,
-        Maybe<LValueExpression> pattern,
-        StaticState state,
-        ValidationMessageAcceptor acceptor
-    ) {
-
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
-        final String variableName = localClassName + "_obj";
-        final MatchesExpression<LValueExpression> patternMatchInput =
-            new MatchesExpression<>(
-                module,
-                inputExprType,
-                pattern,
-                "__",
-                variableName
-            );
-
-
-        return module.get(LValueExpressionSemantics.class).validatePatternMatch(
-            patternMatchInput,
-            state,
-            acceptor
-        );
-    }
-
-
-    public boolean validateAssignmentDeconstructionPatternMatching(
-        IJadescriptType rightType,
-        Maybe<LValueExpression> leftPattern,
-        StaticState afterRight,
-        ValidationMessageAcceptor acceptor
-    ) {
-
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(leftPattern).hashCode();
-        final String variableName = localClassName + "_obj";
-        final AssignmentDeconstruction<LValueExpression> patternMatchInput =
-            new AssignmentDeconstruction<>(
-                module,
-                rightType,
-                leftPattern,
-                "__",
-                variableName
-            );
-
-
-        return module.get(LValueExpressionSemantics.class).validatePatternMatch(
-            patternMatchInput,
-            afterRight,
-            acceptor
-        );
-    }
-
-
-    public boolean
-    validateHeaderPatternMatching(
-        IJadescriptType contentUpperBound,
-        Maybe<LValueExpression> pattern,
-        StaticState state,
-        ValidationMessageAcceptor acceptor
-    ) {
-        String localClassName = "__PatternMatcher" +
-            Util.extractEObject(pattern).hashCode();
-        final String variableName = localClassName + "_obj";
-        PatternMatchInput.HandlerHeader<LValueExpression> patternMatchInput =
-            new PatternMatchInput.HandlerHeader<>(
-                module,
-                contentUpperBound,
-                pattern,
-                "__",
-                variableName
-            );
-
-
-        return module.get(LValueExpressionSemantics.class).validatePatternMatch(
-            patternMatchInput,
-            state,
-            acceptor
-        );
-    }
-
-
-    public IJadescriptType inferMatchesExpressionPatternType(
-        IJadescriptType inputExprType,
-        Maybe<LValueExpression> pattern,
-        StaticState state
-    ) {
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
-        final String variableName = localClassName + "_obj";
-        final MatchesExpression<LValueExpression> patternMatchInput =
-            new MatchesExpression<>(
-                module,
-                inputExprType,
-                pattern,
-                "__",
-                variableName
-            );
-        return module.get(LValueExpressionSemantics.class)
-            .inferPatternType(patternMatchInput, state)
-            .solve(inputExprType);
-    }
-
-    public IJadescriptType inferWhenMatchesExpressionPatternType(
-        IJadescriptType inputExprType,
-        Maybe<LValueExpression> pattern,
-        StaticState state
-    ){
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
-        final String variableName = localClassName + "_obj";
-        final WhenMatchesStatement<LValueExpression> patternMatchInput =
-            new WhenMatchesStatement<>(
-                module,
-                inputExprType,
-                pattern,
-                "__",
-                variableName
-            );
-        return module.get(LValueExpressionSemantics.class)
-            .inferPatternType(patternMatchInput, state)
-            .solve(inputExprType);
-    }
-
-
-    public IJadescriptType inferHandlerHeaderPatternType(
-        IJadescriptType contentUpperBound, Maybe<LValueExpression> pattern,
-        StaticState state
-    ) {
-        String localClassName = "__PatternMatcher" +
-            Util.extractEObject(pattern).hashCode();
-        final String variableName = localClassName + "_obj";
-        PatternMatchInput.HandlerHeader<LValueExpression> patternMatchInput =
-            new PatternMatchInput.HandlerHeader<>(
-                module,
-                contentUpperBound,
-                pattern,
-                "__",
-                variableName
-            );
-
-        return module.get(LValueExpressionSemantics.class)
-            .inferPatternType(patternMatchInput, state)
-            .solve(contentUpperBound);
     }
 
 }

@@ -59,6 +59,8 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             input.__(ForStatement::getForBody);
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
+
+
         IJadescriptType collectionType = rves.inferType(collection, state);
         IJadescriptType firstVarType;
 

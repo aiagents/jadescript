@@ -157,7 +157,7 @@ public interface FoPSemantics {
                             acceptor
                     );
 
-                    blockSemantics.validate(body, acceptor);
+                    blockSemantics.validate(body, state, acceptor);
                 } else {
                     acceptor.acceptError(
                             "The body of this function/procedure is not valid",

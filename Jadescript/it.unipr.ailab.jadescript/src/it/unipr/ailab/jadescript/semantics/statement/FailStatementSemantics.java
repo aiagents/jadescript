@@ -5,8 +5,8 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
+import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.SingleIdentifierExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -46,6 +46,7 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
             w.expr(reasonCompiled)
         ));
 
+
         return rves.advance(reason, afterTarget);
     }
 
@@ -84,6 +85,7 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
             );
             runningState = rves.advance(reason, runningState);
         }
+        //TODO invalidate state for fail this
         return runningState;
     }
 
@@ -101,25 +103,5 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
     }
 
 
-    @Override
-    public List<Effect> computeEffectsInternal(
-        Maybe<FailStatement> input,
-        StaticState state
-    ) {
-        Maybe<RValueExpression> target = input.__(FailStatement::getTarget);
-
-        final SemanticsBoundToExpression<?> deepSemantics =
-            module.get(RValueExpressionSemantics.class).deepTraverse(target);
-        //noinspection unchecked,rawtypes
-        if (deepSemantics.getSemantics()
-            instanceof SingleIdentifierExpressionSemantics
-            && ((SingleIdentifierExpressionSemantics)
-            deepSemantics.getSemantics())
-            .isThisReference((Maybe) deepSemantics.getInput())) {
-            return Effect.JumpsAwayFromOperation.INSTANCE.toList();
-        } else {
-            return List.of();
-        }
-    }
 
 }

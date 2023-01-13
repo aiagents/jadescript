@@ -7,8 +7,6 @@ import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchMode;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -39,8 +37,7 @@ import java.util.stream.Stream;
  * Created on 27/12/16.
  */
 @Singleton
-public abstract class ExpressionSemantics<T> extends Semantics
-    implements EffectfulOperationSemantics<T> {
+public abstract class ExpressionSemantics<T> extends Semantics {
 
     private final ExpressionSemantics<?> EMPTY_EXPRESSION_SEMANTICS
         = new Adapter<>(this.module);
@@ -141,9 +138,9 @@ public abstract class ExpressionSemantics<T> extends Semantics
      * are reached at the leaves of the AST.
      * <p>
      * If this method returns true, the actual logic of the semantics of the
-     * expression are not actually defined here,
-     * but rather in some of the semantics objects for its subexpressions,
-     * and therefore, this node should be traversed
+     * expression are not actually defined in the semantics class of that node,
+     * but rather in some semantics class for its subexpressions,
+     * and therefore, this node should be 'traversed'
      * (see {@link ExpressionSemantics#traverse(Maybe)}).
      */
     protected abstract boolean mustTraverse(Maybe<T> input);
@@ -432,7 +429,8 @@ public abstract class ExpressionSemantics<T> extends Semantics
 
 
     /**
-     * @see ExpressionSemantics#compile(Maybe, StaticState, CompilationOutputAcceptor)
+     * @see ExpressionSemantics#compile(
+     * Maybe, StaticState, CompilationOutputAcceptor)
      */
     protected abstract String compileInternal(
         Maybe<T> input,
@@ -478,7 +476,8 @@ public abstract class ExpressionSemantics<T> extends Semantics
 
 
     /**
-     * @see ExpressionSemantics#validate(Maybe, StaticState, ValidationMessageAcceptor)
+     * @see ExpressionSemantics#validate
+     * Maybe, StaticState, ValidationMessageAcceptor)
      */
     protected abstract boolean validateInternal(
         Maybe<T> input,
@@ -554,25 +553,15 @@ public abstract class ExpressionSemantics<T> extends Semantics
     );
 
 
-    @Override
-    public List<Effect> computeEffects(Maybe<T> input, StaticState state) {
-        return traverse(input)
-            .map(x -> x.getSemantics().computeEffects(
-                x.getInput(),
-                state
-            ))
-            .orElseGet(() -> computeEffectsInternal(input, state));
-    }
-
 
     /**
      * This returns true <i>only if</i> the input expression can be evaluated
-     * without causing side-effects.
+     * without causing side effects.
      * This is used, most importantly, to determine if an expression can be
      * used as condition for handler activation (in
      * the when-clause, or as part of the content pattern).
      * Please remember that the evaluation of such conditions should not
-     * cause side-effects.
+     * cause side effects.
      * <p></p>
      * This is usually decided taking into account the purity of
      * sub-expressions.
@@ -753,13 +742,12 @@ public abstract class ExpressionSemantics<T> extends Semantics
      * Being "typely holed" is a special case of being "holed".
      * In fact, some holed patterns can still provide complete information
      * about their type at compile time.
-     * One example is the functional-notation pattern. Its argument patterns
+     * One example is the functional-notation pattern. Its 'argument' terms
      * can be holed, but the type of the whole
-     * pattern is completely known at compile-time, and it is the one related
-     * to the return type of the function
-     * referred by the pattern.
+     * pattern is completely known at compile-time.
      * By design, if this method returns true for a given pattern, then
-     * {@link ExpressionSemantics#inferPatternType(PatternMatchInput, StaticState)}
+     * {@link ExpressionSemantics#inferPatternType(
+     * PatternMatchInput, StaticState)}
      * should return a
      * {@link PatternType.HoledPatternType}, otherwise a
      * {@link PatternType.SimplePatternType} is expected.

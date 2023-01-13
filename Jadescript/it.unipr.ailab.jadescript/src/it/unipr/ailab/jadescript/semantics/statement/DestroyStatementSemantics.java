@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
+import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.SingleIdentifierExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -71,7 +72,10 @@ public class DestroyStatementSemantics
         } else {
             return state;
         }
+
+        //TODO invalidate state for destroy this
     }
+
 
 
     @Override
@@ -84,30 +88,5 @@ public class DestroyStatementSemantics
         ));
     }
 
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @Override
-    public List<Effect> computeEffectsInternal(
-        Maybe<DestroyStatement> input,
-        StaticState state
-    ) {
-        Maybe<RValueExpression> target =
-            input.__(DestroyStatement::getTarget);
-
-        final SemanticsBoundToExpression<?> deepSemantics =
-            module.get(RValueExpressionSemantics.class).deepTraverse(target);
-        //noinspection unchecked,rawtypes
-        if (deepSemantics.getSemantics()
-            instanceof SingleIdentifierExpressionSemantics
-            && ((SingleIdentifierExpressionSemantics)
-            deepSemantics.getSemantics()).isThisReference(
-            (Maybe) deepSemantics.getInput()
-        )) {
-            return Effect.JumpsAwayFromOperation.INSTANCE.toList();
-        } else {
-            return List.of();
-        }
-
-    }
 
 }

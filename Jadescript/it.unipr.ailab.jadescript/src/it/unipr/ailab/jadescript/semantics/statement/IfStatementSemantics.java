@@ -7,8 +7,6 @@ import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.PSR;
@@ -71,17 +69,15 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
             runningState,
             acceptor
         );
-        List<Maybe<ExpressionDescriptor>> prevConditions = new ArrayList<>();
+        List<Maybe<RValueExpression>> prevConditions = new ArrayList<>();
 
-        Maybe<ExpressionDescriptor> conditionDescriptor =
-            rves.describeExpression(condition, runningState);
+        prevConditions.add(condition);
         runningState = rves.advance(condition, runningState);
-        StaticState inThenBranch;
-        inThenBranch = runningState.assertEvaluation(
-            conditionDescriptor,
-            EvaluationResult.ReturnedTrue.INSTANCE
+
+        StaticState inThenBranch = rves.assertReturnedTrue(
+            condition,
+            runningState
         );
-        prevConditions.add(conditionDescriptor);
 
 
         PSR<BlockWriter> thenBranchPSR = blockSemantics.compileOptionalBlock(
@@ -112,24 +108,23 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
                 runningState,
                 acceptor
             );
-            Maybe<ExpressionDescriptor> elseIfCondDescriptor =
-                rves.describeExpression(elseIfCond, runningState);
 
             runningState = rves.advance(elseIfCond, runningState);
 
-            StaticState inElseIfBranch = runningState.assertEvaluation(
-                elseIfCondDescriptor,
-                EvaluationResult.ReturnedTrue.INSTANCE
-            );
+            StaticState inElseIfBranch = runningState;
 
 
-            for (Maybe<ExpressionDescriptor> prevCondition : prevConditions) {
-                inElseIfBranch = inElseIfBranch.assertEvaluation(
+            for (Maybe<RValueExpression> prevCondition : prevConditions) {
+                inElseIfBranch = rves.assertReturnedFalse(
                     prevCondition,
-                    EvaluationResult.ReturnedFalse.INSTANCE
+                    inElseIfBranch
                 );
             }
 
+            inElseIfBranch = rves.assertReturnedTrue(
+                elseIfCond,
+                inElseIfBranch
+            );
 
             PSR<BlockWriter> elseIfBranchPSR =
                 blockSemantics.compileOptionalBlock(
@@ -144,7 +139,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
             ifsp.addElseIfBranch(w.expr(elseIfCondCompiled), branchCompiled);
 
-            prevConditions.add(elseIfCondDescriptor);
+            prevConditions.add(elseIfCond);
 
             afterBranches.add(afterBranch);
         }
@@ -153,13 +148,13 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
         if (input.__(IfStatement::isWithElseBranch).extract(nullAsFalse)) {
             isExhaustive = true;
             StaticState inElseBranch = runningState;
-            for (Maybe<ExpressionDescriptor> prevCondition : prevConditions) {
-                inElseBranch = inElseBranch.assertEvaluation(
+
+            for (Maybe<RValueExpression> prevCondition : prevConditions) {
+                inElseBranch = rves.assertReturnedFalse(
                     prevCondition,
-                    EvaluationResult.ReturnedFalse.INSTANCE
+                    inElseBranch
                 );
             }
-
 
             PSR<BlockWriter> elseBranchPSR =
                 blockSemantics.compileOptionalBlock(
@@ -184,7 +179,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
         if (isExhaustive) {
             // If exhaustive, the state "before the branches" does not directly
             // contribute to the intersection, because if it is exhaustive,
-            // exactly one branch is executed for sure and it changes the state.
+            // exactly one branch is surely executed, which changes the state.
             return StaticState.intersectAll(
                 afterBranches,
                 () -> beforeTheBranches
@@ -248,25 +243,20 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
         StaticState runningState;
         List<StaticState> afterBranches = new ArrayList<>();
-        List<Maybe<ExpressionDescriptor>> prevConditions = new ArrayList<>();
+        List<Maybe<RValueExpression>> prevConditions =
+            new ArrayList<>();
 
         StaticState inThenBranch;
         if (conditionCheck == VALID) {
-            Maybe<ExpressionDescriptor> condDescriptor =
-                rves.describeExpression(
-                    condition,
-                    state
-                );
-
             runningState = rves.advance(condition, state);
 
 
-            inThenBranch = runningState.assertEvaluation(
-                condDescriptor,
-                EvaluationResult.ReturnedTrue.INSTANCE
+            inThenBranch = rves.assertReturnedTrue(
+                condition,
+                runningState
             );
 
-            prevConditions.add(condDescriptor);
+            prevConditions.add(condition);
         } else {
             inThenBranch = runningState = state;
 
@@ -293,30 +283,24 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
                 acceptor
             );
 
-            StaticState inElseIfBranch;
-            if (elseIfCondCheck == VALID) {
-                Maybe<ExpressionDescriptor> elseIfCondDescr =
-                    rves.describeExpression(elseIfCond, runningState);
+            StaticState inElseIfBranch = runningState;
 
+            if (elseIfCondCheck == VALID) {
                 runningState = rves.advance(condition, state);
 
-
-                inElseIfBranch = runningState.assertEvaluation(
-                    elseIfCondDescr,
-                    EvaluationResult.ReturnedTrue.INSTANCE
-                );
-
-                for (Maybe<ExpressionDescriptor> prevExpression :
-                    prevConditions) {
-                    inElseIfBranch = inElseIfBranch.assertEvaluation(
-                        prevExpression,
-                        EvaluationResult.ReturnedFalse.INSTANCE
+                for (Maybe<RValueExpression> prevCondition : prevConditions) {
+                    inElseIfBranch = rves.assertReturnedFalse(
+                        prevCondition,
+                        inElseIfBranch
                     );
                 }
 
-                prevConditions.add(elseIfCondDescr);
-            } else {
-                inElseIfBranch = runningState;
+                inElseIfBranch = rves.assertReturnedTrue(
+                    elseIfCond,
+                    inElseIfBranch
+                );
+
+                prevConditions.add(elseIfCond);
             }
 
 
@@ -337,10 +321,10 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
         if (elseBranch.isPresent()) {
             StaticState inElseBranch = runningState;
-            for (Maybe<ExpressionDescriptor> prevCondition : prevConditions) {
-                inElseBranch = inElseBranch.assertEvaluation(
+            for (Maybe<RValueExpression> prevCondition : prevConditions) {
+                inElseBranch = rves.assertReturnedFalse(
                     prevCondition,
-                    EvaluationResult.ReturnedFalse.INSTANCE
+                    inElseBranch
                 );
             }
 

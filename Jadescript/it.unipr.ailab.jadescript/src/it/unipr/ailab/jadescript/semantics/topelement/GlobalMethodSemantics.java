@@ -261,7 +261,7 @@ public class GlobalMethodSemantics extends UsesOntologyEntitySemantics<GlobalFun
                                     }
 
                                     module.get(BlockSemantics.class).compile(
-                                            method.__(GlobalFunctionOrProcedure::getBody)).writeSonnet(scb);
+                                            method.__(GlobalFunctionOrProcedure::getBody), ).writeSonnet(scb);
                                 }
 
                                 contextManager.exit();// Function/Procedure context

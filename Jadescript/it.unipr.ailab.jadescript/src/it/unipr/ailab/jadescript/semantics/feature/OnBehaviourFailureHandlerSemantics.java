@@ -405,7 +405,9 @@ public class OnBehaviourFailureHandlerSemantics
                             finalBehaviourType, finalReasonType
                     ));
 
-            module.get(BlockSemantics.class).validate(input.__(FeatureWithBody::getBody), acceptor);
+            module.get(BlockSemantics.class).validate(input.__(FeatureWithBody::getBody),
+                state,
+                acceptor);
 
             module.get(ContextManager.class).exit();
         });

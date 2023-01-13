@@ -243,7 +243,7 @@ public class OnCreateHandlerSemantics extends FeatureSemantics<OnCreateHandler> 
             module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
                     new OnCreateHandlerContext(mod, out, extractedParameters));
 
-            module.get(BlockSemantics.class).validate(body, acceptor);
+            module.get(BlockSemantics.class).validate(body, state, acceptor);
 
             module.get(ContextManager.class).exit();
         }

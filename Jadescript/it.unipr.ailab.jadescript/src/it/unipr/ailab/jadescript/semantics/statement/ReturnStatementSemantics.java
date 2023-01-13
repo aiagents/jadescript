@@ -10,6 +10,7 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.ReturnExpectedConte
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
+import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -147,6 +148,7 @@ public class ReturnStatementSemantics
             acceptor
         );
         StaticState afterExpr = rves.advance(expr, state);
+
         return afterExpr.invalidateUntilExitOperation();
 
     }
@@ -162,15 +164,5 @@ public class ReturnStatementSemantics
         ));
     }
 
-
-    @Override
-    public List<Effect> computeEffectsInternal(
-        Maybe<ReturnStatement> input,
-        StaticState state
-    ) {
-        return Collections.singletonList(
-            Effect.JumpsAwayFromOperation.INSTANCE
-        );
-    }
 
 }

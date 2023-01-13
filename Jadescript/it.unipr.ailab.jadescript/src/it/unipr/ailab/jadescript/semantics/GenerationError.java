@@ -22,7 +22,8 @@ public class GenerationError extends RuntimeException {
     }
 
     public void compileThrowStatement( SourceCodeBuilder s){
-        s.line().add("throw new RuntimeException(\"An error occurred during compilation:\\n\" + ");
+        s.line().add("throw new RuntimeException(\"An error occurred " +
+            "during compilation:\\n\" + ");
         s.indent();
         String[] split = (e.getMessage()+"\n"+stackTraceToString(e)).split("\n");
         for (int i = 0; i < split.length; i++) {
@@ -35,7 +36,7 @@ public class GenerationError extends RuntimeException {
         s.dedent().line().add(");").line();
     }
 
-    private String stackTraceToString(Throwable e) {
+    public static String stackTraceToString(Throwable e) {
         StringBuilder sb = new StringBuilder();
         for (StackTraceElement stackTraceElement : e.getStackTrace()) {
             sb.append(stackTraceElement.toString()).append("\n");
@@ -47,7 +48,9 @@ public class GenerationError extends RuntimeException {
 
         return new StatementWriter() {
             @Override
-            public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
+            public StatementWriter bindLocalVarUsages(
+                LocalVarBindingProvider bindingProvider
+            ) {
                 return this;
             }
 
@@ -58,15 +61,5 @@ public class GenerationError extends RuntimeException {
         };
     }
 
-    public void toValidationError(
-            EObject eObject,
-            EStructuralFeature feature,
-            int index,
-            ValidationMessageAcceptor acceptor
-    ) {
-        acceptor.acceptError("Internal error: "+e.getMessage(),
-                eObject, feature, index,
-                SemanticsConsts.ISSUE_CODE_PREFIX +"InternalError",
-                stackTraceToString(e).split("\n"));
-    }
+
 }

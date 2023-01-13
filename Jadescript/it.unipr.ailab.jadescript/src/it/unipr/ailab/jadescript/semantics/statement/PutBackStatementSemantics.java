@@ -15,7 +15,8 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.stream.Stream;
 
-public class PutBackStatementSemantics extends StatementSemantics<PutbackStatement> {
+public class PutBackStatementSemantics
+    extends StatementSemantics<PutbackStatement> {
 
     public PutBackStatementSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);

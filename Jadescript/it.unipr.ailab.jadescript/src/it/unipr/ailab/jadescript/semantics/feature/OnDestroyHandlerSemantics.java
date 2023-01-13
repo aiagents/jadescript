@@ -1,13 +1,11 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnDestroyHandlerContext;
-import it.unipr.ailab.jadescript.semantics.context.c2feature.SimpleHandlerContext;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.maybe.Maybe;
@@ -117,7 +115,7 @@ public class OnDestroyHandlerSemantics extends FeatureSemantics<OnDestroyHandler
 
         module.get(ContextManager.class).enterProceduralFeature(OnDestroyHandlerContext::new);
 
-        module.get(BlockSemantics.class).validate(body, acceptor);
+        module.get(BlockSemantics.class).validate(body, state, acceptor);
 
         module.get(ContextManager.class).exit();
     }

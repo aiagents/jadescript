@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
+import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.SingleIdentifierExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -17,7 +18,6 @@ import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -134,6 +134,7 @@ public class DeactivateStatementSemantics
             }
         }
 
+        //TODO invalidate state for "deactivate this"
         return runningState;
     }
 
@@ -148,30 +149,5 @@ public class DeactivateStatementSemantics
         ));
     }
 
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @Override
-    public List<Effect> computeEffectsInternal(
-        Maybe<DeactivateStatement> input,
-        StaticState state
-    ) {
-        Maybe<RValueExpression> target =
-            input.__(DeactivateStatement::getTarget);
-
-        final SemanticsBoundToExpression<?> deepSemantics = module.get(
-            RValueExpressionSemantics.class).deepTraverse(target);
-        //noinspection unchecked,rawtypes
-        if (deepSemantics.getSemantics()
-            instanceof SingleIdentifierExpressionSemantics
-            && ((SingleIdentifierExpressionSemantics)
-            deepSemantics.getSemantics()).isThisReference(
-                (Maybe) deepSemantics.getInput()
-        )) {
-            return Effect.JumpsAwayFromOperation.INSTANCE.toList();
-        } else {
-            return List.of();
-        }
-
-    }
 
 }

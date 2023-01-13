@@ -1,81 +1,99 @@
 package it.unipr.ailab.jadescript.semantics.block;
 
-import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.jadescript.CodeBlock;
+import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
+import it.unipr.ailab.jadescript.jadescript.Statement;
 import it.unipr.ailab.jadescript.semantics.*;
-import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.EffectfulOperationSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsDispatchHelper;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsClassState;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
-import it.unipr.ailab.sonneteer.statement.*;
+import it.unipr.ailab.sonneteer.statement.BlockWriter;
+import it.unipr.ailab.sonneteer.statement.LocalVarBindingProvider;
+import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
  * Created on 28/12/16.
  */
-public class BlockSemantics extends Semantics
-        implements EffectfulOperationSemantics<CodeBlock> {
-
+public class BlockSemantics extends Semantics {
 
     public static final BlockSemantics EMPTY_BLOCK = new BlockSemantics(null) {
         @Override
-        public BlockWriter compile(Maybe<CodeBlock> input) {
-            return w.block().addStatement(
-                    new StatementWriter() {
-                        @Override
-                        public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-                            return this;
-                        }
-
-                        @Override
-                        public void writeSonnet(SourceCodeBuilder s) {
-                            s.add("//do nothing");
-                        }
+        public PSR<BlockWriter> compile(
+            Maybe<CodeBlock> input,
+            StaticState state
+        ) {
+            final BlockWriter blockWriter = w.block().addStatement(
+                new StatementWriter() {
+                    @Override
+                    public StatementWriter bindLocalVarUsages(
+                        LocalVarBindingProvider bindingProvider
+                    ) {
+                        return this;
                     }
+
+
+                    @Override
+                    public void writeSonnet(SourceCodeBuilder s) {
+                        s.add("//do nothing");
+                    }
+                }
             );
+
+            return PSR.psr(blockWriter, state);
         }
 
+
         @Override
-        public void validate(Maybe<CodeBlock> input, ValidationMessageAcceptor acceptor) {
-            //do nothing
+        public StaticState validate(
+            Maybe<CodeBlock> input,
+            StaticState state,
+            ValidationMessageAcceptor acceptor
+        ) {
+            return state;
         }
     };
 
 
-    private final SemanticsClassState<CodeBlock, List<StatementWriter>> injectedStatements
-            = new SemanticsClassState<>(ArrayList::new);
+    private final SemanticsClassState<CodeBlock, List<StatementWriter>>
+        injectedStatements = new SemanticsClassState<>(ArrayList::new);
 
-    private final SemanticsClassState<CodeBlock, List<NamedSymbol>> injectedVariables
-            = new SemanticsClassState<>(ArrayList::new);
+    private final SemanticsClassState<CodeBlock, List<NamedSymbol>>
+        injectedVariables = new SemanticsClassState<>(ArrayList::new);
 
 
     public BlockSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
+
     public PSR<BlockWriter> compileOptionalBlock(
         Maybe<OptionalBlock> input,
         StaticState state
     ) {
         if (input.isPresent() && input.toNullable().isNothing()) {
-            return EMPTY_BLOCK.compile(input.__(OptionalBlock::getBlock));
+            return EMPTY_BLOCK.compile(
+                input.__(OptionalBlock::getBlock),
+                state
+            );
         } else {
-            return compile(input.__(OptionalBlock::getBlock));
+            return compile(input.__(OptionalBlock::getBlock), state);
         }
     }
-
 
 
     public StaticState validateOptionalBlock(
@@ -83,176 +101,226 @@ public class BlockSemantics extends Semantics
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
         if (!input.isPresent() || !input.toNullable().isNothing()) {
-            validate(input.__(OptionalBlock::getBlock), acceptor);
+            return validate(input.__(OptionalBlock::getBlock), state, acceptor);
+        } else {
+            return state;
         }
     }
 
 
-    public BlockWriter compile(Maybe<CodeBlock> input) {
+    public PSR<BlockWriter> compile(Maybe<CodeBlock> input, StaticState state) {
         BlockWriter bp = w.block();
-        module.get(ContextManager.class).pushScope();
-        Maybe<EList<Statement>> statements = input.__(CodeBlock::getStatements);
-        try {
 
-            for (StatementWriter injectedStatement : injectedStatements.getOrNew(input)) {
+        final AtomicReference<StaticState> runningState =
+            new AtomicReference<>(state);
+
+
+        try {
+            runningState.set(runningState.get().pushScope());
+
+
+            Maybe<EList<Statement>> statements =
+                input.__(CodeBlock::getStatements);
+
+            final List<StatementWriter> injectedStatements =
+                this.injectedStatements.getOrNew(input);
+
+            final List<NamedSymbol> injectedVariables =
+                this.injectedVariables.getOrNew(input);
+
+            for (StatementWriter injectedStatement : injectedStatements) {
                 bp.addStatement(injectedStatement);
             }
 
-            for (NamedSymbol injectedVariable : injectedVariables.getOrNew(input)) {
-                module.get(ContextManager.class).currentScope().addNamedElement(injectedVariable);
-            }
+            runningState.set(runningState.get()
+                .assertNamedSymbols(injectedVariables));
+
+
+            final SemanticsDispatchHelper dispatchHelper =
+                module.get(SemanticsDispatchHelper.class);
+
 
             for (Maybe<Statement> statement : iterate(statements)) {
-                List<BlockWriterElement> initStatements = new ArrayList<>();
-                List<BlockWriterElement> compiledStatements = new ArrayList<>();
-                List<BlockWriterElement> deferStatements = new ArrayList<>();
 
-                module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(statement, sem -> {
-                    sem.compileStatement(wrappedSubCast(statement), , new CompilationOutputAcceptor() {
-                        @Override
-                        public void accept(BlockWriterElement element) {
-                            compiledStatements.add(CompilationHelper.inputStatementComment(
-                                    statement,
-                                    "Execution of source statement"
-                            ));
-                            compiledStatements.add(element);
-                        }
+                if (statement.isNothing()) {
+                    continue;
+                }
 
-                    });
-                });
+                dispatchHelper.dispatchStatementSemantics(
+                    statement,
+                    sem -> {
+                        StaticState afterStatement = sem.compileStatement(
+                            wrappedSubCast(statement),
+                            runningState.get(),
+                            element -> {
+                                bp.add(
+                                    CompilationHelper.inputStatementComment(
+                                        statement,
+                                        "Compiled from source statement"
+                                    )
+                                );
 
-                initStatements.forEach(bp::add);
-                compiledStatements.forEach(bp::add);
-                deferStatements.forEach(bp::add);
+                                bp.add(element);
+                            }
+                        );
+
+                        runningState.set(afterStatement);
+
+                    }
+                );
+
             }
 
         } catch (Throwable e) {
+            bp.addStatement(new GenerationError(e).buildThrowStatementWriter());
             if (GenerationParameters.DEBUG) {
                 throw e;
-            } else {
-                bp.addStatement(new GenerationError(e).buildThrowStatementWriter());
             }
         } finally {
-            module.get(ContextManager.class).popScope();
+            runningState.set(runningState.get().popScope());
         }
-        return bp;
+        return PSR.psr(bp, runningState.get());
     }
 
 
-    public void validate(Maybe<CodeBlock> input, ValidationMessageAcceptor acceptor) {
+    public StaticState validate(
+        Maybe<CodeBlock> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor
+    ) {
+        if (input.isNothing()) {
+            return state;
+        }
 
-        Maybe<EList<Statement>> statements = input.__(CodeBlock::getStatements);
-
-        Maybe.safeDo(input, statements,
-                /*NULLSAFE REGION*/(inputSafe, statementsSafe) -> {
-                    //this portion of code is done  only if input and statements
-                    // are != null (and everything in the dotchains that generated them is !=null too)
-                    module.get(ContextManager.class).pushScope();
-                    try {
-
-                        for (NamedSymbol injectedVariable : injectedVariables.getOrNew(input)) {
-                            module.get(ContextManager.class).currentScope().addNamedElement(injectedVariable);
-                        }
-
-                        for (int i = 0; i < statementsSafe.size(); i++) {
-                            Maybe<Statement> statement = some(statementsSafe.get(i));
-                            InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-                            final int finalI = i;
-                            module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(statement, (sem) -> {
-                                sem.validateStatement(wrappedSubCast(statement), ,
-                                    interceptAcceptor
-                                );
-                                List<Effect> effects = sem.computeEffects(wrappedSubCast(statement), );
-                                if (effects.stream().anyMatch(e -> e instanceof Effect.JumpsAwayFromIteration)) {
-                                    if (!interceptAcceptor.thereAreErrors() && finalI < statementsSafe.size() - 1) {
-                                        acceptor.acceptError(
-                                                "Unreachable statement",
-                                                inputSafe,
-                                                JadescriptPackage.eINSTANCE.getCodeBlock_Statements(),
-                                                finalI + 1,
-                                                "UnreachableStatement"
-                                        );
-                                    }
-                                }
-
-                            });
-
-
-                        }
-                    } catch (Throwable e) {
-                        if (GenerationParameters.DEBUG) {
-                            throw e;
-                        } else {
-                            new GenerationError(e).toValidationError(inputSafe,
-                                    JadescriptPackage.eINSTANCE.getCodeBlock_Statements(),
-                                    ValidationMessageAcceptor.INSIGNIFICANT_INDEX, acceptor
-                            );
-                        }
-                    } finally {
-                        module.get(ContextManager.class).popScope();
-                    }
-
-                }/*END NULLSAFE REGION - (inputSafe, statementsSafe)*/
+        List<Maybe<Statement>> statements = toListOfMaybes(
+            input.__(CodeBlock::getStatements)
         );
 
 
+        final AtomicReference<StaticState> runningState =
+            new AtomicReference<>(state);
+
+
+        final SemanticsDispatchHelper semanticsDispatchHelper =
+            module.get(SemanticsDispatchHelper.class);
+
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
+        try {
+            runningState.set(runningState.get().pushScope());
+
+
+            final List<NamedSymbol> injectedVariables =
+                this.injectedVariables.getOrNew(input);
+
+            runningState.set(runningState.get()
+                .assertNamedSymbols(injectedVariables));
+
+            for (int i = 0; i < statements.size(); i++) {
+
+                Maybe<Statement> statement = statements.get(i);
+
+                if (statement.isNothing()) {
+                    continue;
+                }
+
+                InterceptAcceptor interceptAcceptor =
+                    new InterceptAcceptor(acceptor);
+
+
+                final int finalI = i;
+                semanticsDispatchHelper.dispatchStatementSemantics(
+                    statement,
+                    (sem) -> {
+
+                        StaticState afterStatement = sem.validateStatement(
+                            wrappedSubCast(statement),
+                            runningState.get(),
+                            interceptAcceptor
+                        );
+
+                        if (interceptAcceptor.thereAreErrors()) {
+                            return; //from lambda (not advancing state)
+                        }
+
+
+                        if (!afterStatement.isValid() &&
+                            finalI < statements.size() - 1) {
+
+                            final Maybe<Statement> nextStatement =
+                                statements.get(finalI + 1);
+
+                            validationHelper.emitError(
+                                "UnreacheableStatement",
+                                "Unreachable statement.",
+                                nextStatement,
+                                acceptor
+                            );
+
+                        } else {
+                            runningState.set(afterStatement);
+                        }
+
+                    }
+                );
+
+            }
+        } catch (Throwable e) {
+            validationHelper.emitError(
+                SemanticsConsts.ISSUE_CODE_PREFIX + "InternalError",
+                "Internal error: " + e.getMessage() + "\n" +
+                    GenerationError.stackTraceToString(e),
+                input,
+                acceptor
+            );
+
+            if (GenerationParameters.DEBUG) {
+                throw e;
+            }
+        } finally {
+            runningState.set(runningState.get().popScope());
+        }
+        return runningState.get();
+
+
     }
 
-    public void addInjectedStatement(Maybe<CodeBlock> input, StatementWriter injectedStatement) {
+    //TODO add method to verify if last statement returns a state which is invalidated (for functions)
+
+
+    public void addInjectedStatement(
+        Maybe<CodeBlock> input,
+        StatementWriter injectedStatement
+    ) {
         this.injectedStatements.getOrNew(input).add(injectedStatement);
     }
 
-    //TODO deprecate "injected variables" after the new acceptor system?
-    public void addInjectedStatements(Maybe<CodeBlock> input, List<StatementWriter> injectedStatements) {
+
+    //TODO deprecate "injected statements" in some way
+    public void addInjectedStatements(
+        Maybe<CodeBlock> input,
+        List<StatementWriter> injectedStatements
+    ) {
         this.injectedStatements.getOrNew(input).addAll(injectedStatements);
     }
 
-    public void addInjectedVariables(Maybe<CodeBlock> input, List<NamedSymbol> injectedVariables) {
+
+    public void addInjectedVariables(
+        Maybe<CodeBlock> input,
+        List<NamedSymbol> injectedVariables
+    ) {
         this.injectedVariables.getOrNew(input).addAll(injectedVariables);
     }
 
-    public void addInjectedVariable(Maybe<CodeBlock> input, NamedSymbol injectedVariable) {
+
+    public void addInjectedVariable(
+        Maybe<CodeBlock> input,
+        NamedSymbol injectedVariable
+    ) {
         this.injectedVariables.getOrNew(input).add(injectedVariable);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    @Override
-    public List<Effect> computeEffectsInternal(Maybe<CodeBlock> i,
-                                               StaticState state) {
-        if (!i.isInstanceOf(CodeBlock.class)) {
-            return Collections.emptyList();
-        }
 
-        List<Effect> result = new ArrayList<>();
-        module.get(ContextManager.class).pushScope();
-        try {
-            for (Maybe<Statement> statement : Maybe.toListOfMaybes(i.__(CodeBlock::getStatements))) {
-                module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(statement, (sem) -> {
-                    result.addAll(sem.computeEffects(wrappedSubCast(statement), ));
-                });
-            }
-        } finally {
-            module.get(ContextManager.class).popScope();
-        }
-        return result;
-    }
 
-    //TODO why never called?
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public List<Effect> computeLastStatementEffects(Maybe<CodeBlock> input) {
-        List<Effect> result = new ArrayList<>();
-        module.get(ContextManager.class).pushScope();
-        try {
-            final List<Maybe<Statement>> statements = toListOfMaybes(input.__(CodeBlock::getStatements));
-            if(!statements.isEmpty()){
-                Maybe<Statement> last = statements.get(statements.size() - 1);
-                module.get(SemanticsDispatchHelper.class).dispatchStatementSemantics(last, (sem) -> {
-                        result.addAll(sem.computeEffects(wrappedSubCast(last), ));
-                });
-            }
-        } finally {
-            module.get(ContextManager.class).popScope();
-        }
-        return result;
-    }
 }

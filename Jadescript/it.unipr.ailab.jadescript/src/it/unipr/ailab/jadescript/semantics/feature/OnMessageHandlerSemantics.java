@@ -752,7 +752,7 @@ public class OnMessageHandlerSemantics
         );
 
         module.get(BlockSemantics.class).validate(
-            input.__(FeatureWithBody::getBody), acceptor
+            input.__(FeatureWithBody::getBody), state, acceptor
         );
 
         module.get(ContextManager.class).exit();

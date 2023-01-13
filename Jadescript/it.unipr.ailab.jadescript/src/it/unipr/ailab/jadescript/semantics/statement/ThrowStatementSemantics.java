@@ -4,7 +4,6 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.ThrowStatement;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -14,8 +13,6 @@ import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.stream.Stream;
 
 public class ThrowStatementSemantics
@@ -91,17 +88,6 @@ public class ThrowStatementSemantics
             module.get(RValueExpressionSemantics.class),
             input.__(ThrowStatement::getReason)
         ));
-    }
-
-
-    @Override
-    public List<Effect> computeEffectsInternal(
-        Maybe<ThrowStatement> input,
-        StaticState state
-    ) {
-        return Collections.singletonList(
-            Effect.JumpsAwayFromOperation.INSTANCE
-        );
     }
 
 }

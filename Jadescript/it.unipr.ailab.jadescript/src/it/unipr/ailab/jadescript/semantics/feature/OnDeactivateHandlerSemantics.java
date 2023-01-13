@@ -6,7 +6,6 @@ import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnDeactivateHandlerContext;
-import it.unipr.ailab.jadescript.semantics.context.c2feature.SimpleHandlerContext;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.maybe.Maybe;
@@ -74,7 +73,7 @@ public class OnDeactivateHandlerSemantics extends FeatureSemantics<OnDeactivateH
         module.get(ContextManager.class).enterProceduralFeature(OnDeactivateHandlerContext::new);
 
 
-        module.get(BlockSemantics.class).validate(body, acceptor);
+        module.get(BlockSemantics.class).validate(body, state, acceptor);
 
         module.get(ContextManager.class).exit();
     }

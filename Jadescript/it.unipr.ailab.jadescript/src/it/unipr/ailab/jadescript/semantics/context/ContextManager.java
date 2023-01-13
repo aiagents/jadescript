@@ -8,8 +8,6 @@ import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.context.c0outer.ModuleContext;
 import it.unipr.ailab.jadescript.semantics.context.c1toplevel.TopLevelDeclarationContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.*;
-import it.unipr.ailab.jadescript.semantics.context.scope.ProceduralScope;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -24,13 +22,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
 public class ContextManager {
+
     private final SemanticsModule module;
     private final Deque<Context> outerContexts = new ArrayDeque<>();
     private Context innerContext = null;
 
+
     public ContextManager(SemanticsModule module) {
         this.module = module;
     }
+
 
     //TODO ensure that each search from local scopes starts from
     // state, not from currentContext
@@ -38,12 +39,14 @@ public class ContextManager {
         return innerContext;
     }
 
+
     public void enterModule(
         String moduleName,
         Maybe<Model> sourceModule
     ) {
         this.innerContext = new ModuleContext(module, moduleName, sourceModule);
     }
+
 
     public void enterFile(
         String fileURI,
@@ -78,6 +81,7 @@ public class ContextManager {
         }
     }
 
+
     public void enterTopLevelDeclaration(
         BiFunction<SemanticsModule, ? super FileContext, ?
             extends TopLevelDeclarationContext> provideContext
@@ -107,6 +111,7 @@ public class ContextManager {
         }
     }
 
+
     public void enterOntologyElementDeclaration() {
         if (this.innerContext instanceof OntologyDeclarationSupportContext) {
             this.outerContexts.push(this.innerContext);
@@ -132,6 +137,7 @@ public class ContextManager {
             }
         }
     }
+
 
     public void enterProceduralFeatureContainer(
         IJadescriptType thisType,
@@ -164,6 +170,7 @@ public class ContextManager {
         }
     }
 
+
     public void enterProceduralFeatureContainer(
         Maybe<? extends EObject> featureContainer
     ) {
@@ -192,6 +199,7 @@ public class ContextManager {
             }
         }
     }
+
 
     public void enterProceduralFeature(
         BiFunction<? super SemanticsModule, ?
@@ -223,6 +231,7 @@ public class ContextManager {
         }
     }
 
+
     public void enterSuperSlotInitializer(
         Map<String, IJadescriptType> superSlotsInitScope
     ) {
@@ -251,6 +260,7 @@ public class ContextManager {
             }
         }
     }
+
 
     public void enterEmulatedFile() {
         if (this.innerContext instanceof ProceduralFeatureContainerContext) {
@@ -288,6 +298,7 @@ public class ContextManager {
         }
     }
 
+
     public void exit() {
         if (GenerationParameters.DEBUG_CONTEXT) {
             System.out.println("[" + module.getPhase() + "]: exiting " +
@@ -296,43 +307,6 @@ public class ContextManager {
         this.innerContext = outerContexts.pop();
     }
 
-
-    public void pushScope() {
-        if (this.innerContext instanceof ScopedContext) {
-            ((ScopedContext) this.innerContext).getScopeManager().enterScope();
-        } else {
-            if (GenerationParameters.DEBUG_CONTEXT) {
-                throw new IllegalContextOrder(
-                    this.innerContext,
-                    ProceduralScope.class
-                );
-            }
-        }
-    }
-
-    public void popScope() {
-        if (this.innerContext instanceof ScopedContext) {
-            ((ScopedContext) this.innerContext).getScopeManager().exitScope();
-        } else {
-            if (GenerationParameters.DEBUG_CONTEXT) {
-                throw new IllegalContextOrder(
-                    this.innerContext,
-                    ProceduralScope.class
-                );
-            }
-        }
-    }
-
-    public ProceduralScope currentScope() {
-        if (this.innerContext instanceof ScopedContext) {
-            return ((ScopedContext) this.innerContext).getScopeManager().getCurrentScope();
-        } else {
-            throw new IllegalContextOrder(
-                this.innerContext,
-                ProceduralScope.class
-            );
-        }
-    }
 
     public SavedContext save() {
         if (GenerationParameters.DEBUG_CONTEXT) {
@@ -344,6 +318,7 @@ public class ContextManager {
         }
         return new SavedContext(this.innerContext, this.outerContexts);
     }
+
 
     public void restore(SavedContext saved) {
         this.innerContext = saved.getInnerContext();
@@ -358,6 +333,7 @@ public class ContextManager {
         }
     }
 
+
     public ContextManager restoring(SavedContext saved) {
         this.restore(saved);
         return this;
@@ -369,18 +345,22 @@ public class ContextManager {
         scb.line("{").indent();
         AtomicInteger counter = new AtomicInteger(outerContexts.size());
         outerContexts.descendingIterator().forEachRemaining(context -> {
-            scb.line("****** BEGIN context " + counter.get() + " of class '" + context.getClass().getName() + "' ******");
+            scb.line("****** BEGIN context " + counter.get() + " of class '" +
+                context.getClass().getName() + "' ******");
             scb.line("{").indent();
             context.debugDump(scb);
             scb.dedent().line("}");
-            scb.line("******  END  context " + counter.get() + " of class '" + context.getClass().getName() + "' ******");
+            scb.line("******  END  context " + counter.get() + " of class '" +
+                context.getClass().getName() + "' ******");
             counter.decrementAndGet();
         });
-        scb.line("****** BEGIN context 0 of class '" + currentContext().getClass().getName() + "' ******");
+        scb.line("****** BEGIN context 0 of class '" +
+            currentContext().getClass().getName() + "' ******");
         scb.line("{").indent();
         currentContext().debugDump(scb);
         scb.dedent().line("}");
-        scb.line("******  END  context 0 of class '" + currentContext().getClass().getName() + "' ******");
+        scb.line("******  END  context 0 of class '" +
+            currentContext().getClass().getName() + "' ******");
         counter.decrementAndGet();
         scb.dedent().line("}");
         scb.line("****** CONTEXT DUMP:  END  ******");
@@ -388,11 +368,14 @@ public class ContextManager {
 
 
     public class IllegalContextOrder extends RuntimeException {
+
         public IllegalContextOrder(Context outer, Class<?> attemptedInner) {
             super("[" + module.getPhase() + "]: A <" + (outer != null ?
                 outer.getClass().getName() : "null")
-                + "> context cannot be the direct container of a <" + attemptedInner.getName() + "> context.");
+                + "> context cannot be the direct container of a <" +
+                attemptedInner.getName() + "> context.");
         }
+
     }
 
 }

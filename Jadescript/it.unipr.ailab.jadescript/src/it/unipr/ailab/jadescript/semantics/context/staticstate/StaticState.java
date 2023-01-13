@@ -10,14 +10,12 @@ import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableMap;
-import it.unipr.ailab.jadescript.semantics.utils.ImmutableMultiMap;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableSet;
 import it.unipr.ailab.maybe.Maybe;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-import java.util.function.Function;
+import java.util.Collection;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -28,6 +26,9 @@ import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
  * Monotonic knowledge base for flow-sensitive analysis and scope management
  * inside procedural blocks.
  */
+//TODO optimize:
+// - idempotent operations should not generate new instances
+// - aggregate (transactional) operations should use internal mutability
 public class StaticState
     implements Searcheable,
     NamedSymbol.Searcher,
@@ -43,6 +44,8 @@ public class StaticState
     private final
     ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds;
 
+    //TODO rename this ("existing"?, "reacheable"?)
+    private final boolean valid;
 
 
     private StaticState(
@@ -53,6 +56,7 @@ public class StaticState
         this.outer = outer;
         this.namedSymbols = new ImmutableMap<>();
         this.upperBounds = new ImmutableMap<>();
+        this.valid = true;
     }
 
 
@@ -60,14 +64,28 @@ public class StaticState
         SemanticsModule module,
         Searcheable outer,
         ImmutableMap<String, NamedSymbol> namedSymbols,
-        ImmutableMap<ExpressionDescriptor, IJadescriptType>
-            upperBounds
+        ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds
     ) {
         this.module = module;
         this.outer = outer;
         this.namedSymbols = namedSymbols;
         this.upperBounds = upperBounds;
+        this.valid = true;
     }
+
+
+    private StaticState(
+        SemanticsModule module,
+        Searcheable outer,
+        boolean validity
+    ) {
+        this.module = module;
+        this.outer = outer;
+        this.namedSymbols = new ImmutableMap<>();
+        this.upperBounds = new ImmutableMap<>();
+        this.valid = validity;
+    }
+
 
 
     public static StaticState beginningOfOperation(SemanticsModule module) {
@@ -75,6 +93,11 @@ public class StaticState
             module,
             module.get(ContextManager.class).currentContext()
         );
+    }
+
+
+    public boolean isValid() {
+        return valid;
     }
 
 
@@ -138,8 +161,6 @@ public class StaticState
     }
 
 
-
-
     public IJadescriptType getUpperBound(
         ExpressionDescriptor forExpression
     ) {
@@ -168,7 +189,6 @@ public class StaticState
             upperBound
         );
     }
-
 
 
     public StaticState assertFlowTypingUpperBound(
@@ -261,6 +281,22 @@ public class StaticState
                 ns.name(),
                 ns,
                 (n1, __) -> n1 //Ignoring redeclarations
+            ),
+            this.getFlowTypingUpperBounds()
+        );
+    }
+
+
+    public StaticState assertNamedSymbols(
+        Collection<? extends NamedSymbol> nss
+    ) {
+        return new StaticState(
+            this.getModule(),
+            this.outerContext(),
+            this.getNamedSymbols().mergeAddAll(
+                nss,
+                NamedSymbol::name,
+                (n1, __) -> n1
             ),
             this.getFlowTypingUpperBounds()
         );

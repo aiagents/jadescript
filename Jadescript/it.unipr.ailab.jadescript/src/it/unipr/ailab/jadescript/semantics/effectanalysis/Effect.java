@@ -1,5 +1,8 @@
 package it.unipr.ailab.jadescript.semantics.effectanalysis;
 
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.expression.PSR;
+
 import java.util.Collections;
 import java.util.List;
 

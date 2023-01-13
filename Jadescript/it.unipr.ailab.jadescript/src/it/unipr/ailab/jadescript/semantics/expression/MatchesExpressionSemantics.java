@@ -51,6 +51,8 @@ public class MatchesExpressionSemantics
             input.__(Matches::getPattern).__(i -> (LValueExpression) i);
         final UnaryPrefixExpressionSemantics upes =
             module.get(UnaryPrefixExpressionSemantics.class);
+        final LValueExpressionSemantics lves =
+            module.get(LValueExpressionSemantics.class);
         final StaticState afterLeft = upes.advance(inputExpr, state);
         final Optional<HandlerWhenExpressionContext> handlerHeaderContext =
             module.get(ContextManager.class)
@@ -60,26 +62,27 @@ public class MatchesExpressionSemantics
 
         final IJadescriptType inputExprType = upes.inferType(inputExpr, state);
 
-        StaticState result;
         final PatternMatchHelper patternMatchHelper = module.get(
             PatternMatchHelper.class);
 
+        PatternMatchInput<LValueExpression> pmi;
         if (handlerHeaderContext.isPresent()) {
             //We are in a handler header, probably in a when-expression
-            result = patternMatchHelper.advanceHeaderPatternMatching(
+            pmi = patternMatchHelper.handlerHeader(
                 inputExprType,
-                pattern,
-                afterLeft
+                pattern
             );
         } else {
-            result = patternMatchHelper.advanceMatchesExpressionPatternMatching(
+            pmi = patternMatchHelper.matchesExpression(
                 inputExprType,
-                pattern,
-                afterLeft
+                pattern
             );
         }
 
-        return result;
+        return lves.advancePattern(
+            pmi,
+            afterLeft
+        );
 
     }
 
@@ -113,31 +116,19 @@ public class MatchesExpressionSemantics
 
         final IJadescriptType inputExprType = upes.inferType(inputExpr, state);
 
-
-
         final PatternMatchHelper patternMatchHelper = module.get(
             PatternMatchHelper.class);
-        //TODO move input initialization in helper
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
-        final String variableName = localClassName + "_obj";
 
         PatternMatchInput<LValueExpression> pmi;
         if (handlerHeaderContext.isPresent()) {
-            pmi = new PatternMatchInput.HandlerHeader<>(
-                module,
+            pmi = patternMatchHelper.handlerHeader(
                 inputExprType,
-                pattern,
-                "__",
-                variableName
+                pattern
             );
         } else {
-            pmi = new PatternMatchInput.MatchesExpression<>(
-                module,
+            pmi = patternMatchHelper.matchesExpression(
                 inputExprType,
-                pattern,
-                "__",
-                variableName
+                pattern
             );
         }
 
@@ -323,25 +314,28 @@ public class MatchesExpressionSemantics
                 .currentContext()
                 .actAs(HandlerWhenExpressionContext.class)
                 .findFirst();
+        PatternMatchInput<LValueExpression> pmi;
+        final PatternMatchHelper patternMatchHelper =
+            module.get(PatternMatchHelper.class);
         if (handlerHeaderContext.isPresent()) {
             //We are in a handler header, probably in a when-expression
-            return module.get(PatternMatchHelper.class)
-                .validateHeaderPatternMatching(
-                    inputExprType,
-                    pattern,
-                    afterInputExpr,
-                    acceptor
-                );
-
+            pmi = patternMatchHelper.handlerHeader(
+                inputExprType,
+                pattern
+            );
         } else {
-            return module.get(PatternMatchHelper.class)
-                .validateMatchesExpressionPatternMatching(
-                    inputExprType,
-                    pattern,
-                    afterInputExpr,
-                    acceptor
-                );
+            pmi = patternMatchHelper.matchesExpression(
+                inputExprType,
+                pattern
+            );
         }
+
+        return module.get(LValueExpressionSemantics.class)
+            .validatePatternMatch(
+                pmi,
+                afterInputExpr,
+                acceptor
+            );
     }
 
 

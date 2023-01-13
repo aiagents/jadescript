@@ -1,12 +1,11 @@
 package it.unipr.ailab.jadescript.semantics.statement;
 
 import com.google.inject.Singleton;
+import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.WhileStatement;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.PSR;
@@ -37,10 +36,15 @@ public class WhileStatementSemantics
         StaticState state,
         CompilationOutputAcceptor acceptor
     ) {
-        final RValueExpressionSemantics rves =
-            module.get(RValueExpressionSemantics.class);
         final Maybe<RValueExpression> condition =
             input.__(WhileStatement::getCondition);
+        final Maybe<OptionalBlock> whileBody
+            = input.__(WhileStatement::getWhileBody);
+
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        final BlockSemantics blockSemantics = module.get(BlockSemantics.class);
+
         final String compiledCondition =
             rves.compile(condition, state, acceptor);
 
@@ -48,19 +52,15 @@ public class WhileStatementSemantics
             rves.advance(condition, state);
 
 
-        final Maybe<ExpressionDescriptor> conditionDescriptor =
-            rves.describeExpression(condition, state);
-
         final StaticState inLoopBlock =
-            afterCondition.assertEvaluation(
-                conditionDescriptor,
-                EvaluationResult.ReturnedTrue.INSTANCE
+            rves.assertReturnedTrue(
+                condition,
+                afterCondition
             );
 
-
         final PSR<BlockWriter> blockPSR =
-            module.get(BlockSemantics.class).compileOptionalBlock(
-                input.__(WhileStatement::getWhileBody),
+            blockSemantics.compileOptionalBlock(
+                whileBody,
                 inLoopBlock
             );
 
@@ -72,11 +72,12 @@ public class WhileStatementSemantics
             blockCompiled
         ));
 
-        return afterCondition.intersect(afterBlock)
-            .assertEvaluation(
-                conditionDescriptor,
-                EvaluationResult.ReturnedFalse.INSTANCE
-            );
+        final StaticState afterWhile = afterCondition.intersect(afterBlock);
+
+        return rves.assertReturnedFalse(
+            condition,
+            afterWhile
+        );
     }
 
 
@@ -86,43 +87,45 @@ public class WhileStatementSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        final RValueExpressionSemantics rves =
-            module.get(RValueExpressionSemantics.class);
         final Maybe<RValueExpression> condition =
             input.__(WhileStatement::getCondition);
+        final Maybe<OptionalBlock> whileBody
+            = input.__(WhileStatement::getWhileBody);
+
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        final BlockSemantics blockSemantics = module.get(BlockSemantics.class);
+
+
         boolean conditionCheck = rves.validate(condition, state, acceptor);
 
         StaticState inLoopBlock;
         StaticState afterCondition;
-        final Maybe<ExpressionDescriptor> conditionDescriptor =
-            rves.describeExpression(
-                condition,
-                state
-            );
 
         if (conditionCheck == VALID) {
             afterCondition = rves.advance(condition, state);
-            inLoopBlock = afterCondition.assertEvaluation(
-                conditionDescriptor,
-                EvaluationResult.ReturnedTrue.INSTANCE
+            inLoopBlock = rves.assertReturnedTrue(
+                condition,
+                afterCondition
             );
         } else {
             inLoopBlock = afterCondition = state;
         }
 
 
-        final StaticState afterBlock = module.get(BlockSemantics.class)
+        final StaticState afterBlock = blockSemantics
             .validateOptionalBlock(
-                input.__(WhileStatement::getWhileBody),
+                whileBody,
                 inLoopBlock,
                 acceptor
             );
 
-        return afterCondition.intersect(afterBlock)
-            .assertEvaluation(
-                conditionDescriptor,
-                EvaluationResult.ReturnedFalse.INSTANCE
-            );
+        final StaticState afterWhile = afterCondition.intersect(afterBlock);
+
+        return rves.assertReturnedFalse(
+            condition,
+            afterWhile
+        );
     }
 
 

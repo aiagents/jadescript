@@ -13,7 +13,6 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -42,7 +41,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class CompilationHelper implements IQualifiedNameProvider {
 
@@ -154,7 +152,10 @@ public class CompilationHelper implements IQualifiedNameProvider {
         });
     }
 
-    public static MultilineCommentWriter inputStatementComment(Maybe<Statement> input, String prefix) {
+    public static MultilineCommentWriter inputStatementComment(
+        Maybe<Statement> input,
+        String prefix
+    ) {
         final MultilineCommentWriter multiComment = w.multiComment(
             prefix + " " + sourceToLocationText(input).orElse("[Unknown " +
                 "location in source]")
@@ -314,7 +315,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
         SourceCodeBuilder ssb = new SourceCodeBuilder("");
         if (cb != null) {
             final BlockWriter compiledBlock =
-                module.get(BlockSemantics.class).compile(cb);
+                module.get(BlockSemantics.class).compile(cb, );
             compiledBlock.setBindingProvider(userBlockLocalVars);
             compiledBlock.writeSonnet(ssb);
         }

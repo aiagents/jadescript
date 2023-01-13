@@ -97,7 +97,7 @@ public class OnExecuteHandlerSemantics extends FeatureSemantics<OnExecuteHandler
         Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
         module.get(ContextManager.class).enterProceduralFeature(OnExecuteHandlerContext::new);
         
-        module.get(BlockSemantics.class).validate(body, acceptor);
+        module.get(BlockSemantics.class).validate(body, state, acceptor);
 
         module.get(ContextManager.class).exit();
     }

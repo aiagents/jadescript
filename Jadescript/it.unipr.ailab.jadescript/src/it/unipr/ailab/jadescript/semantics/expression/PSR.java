@@ -16,7 +16,7 @@ public class PSR<T> {
     private final T result;
     private final StaticState newState;
 
-    public PSR(T result, StaticState newState) {
+    private PSR(T result, StaticState newState) {
         this.result = result;
         this.newState = newState;
     }
@@ -33,5 +33,10 @@ public class PSR<T> {
     @Override
     public String toString() {
         return result.toString();
+    }
+
+
+    public static <R> PSR<R> psr(R result, StaticState state) {
+        return new PSR<>(result, state);
     }
 }

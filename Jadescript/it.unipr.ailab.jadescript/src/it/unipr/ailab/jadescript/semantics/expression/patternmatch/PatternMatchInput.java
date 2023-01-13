@@ -1,11 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.jadescript.UnaryPrefix;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.UnaryPrefixExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
@@ -19,17 +14,17 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
     protected final SemanticsModule module;
     private final PatternMatchMode patternMatchMode;
-    private final Maybe<ExpressionDescriptor> inputExprDescriptor;
     private final Maybe<T> pattern;
     private final String termID;
     private final String rootPatternMatchVariableName;
 
+
     public PatternMatchInput(
-            SemanticsModule module,
-            PatternMatchMode patternMatchMode,
-            Maybe<T> pattern,
-            String termID,
-            String rootPatternMatchVariableName
+        SemanticsModule module,
+        PatternMatchMode patternMatchMode,
+        Maybe<T> pattern,
+        String termID,
+        String rootPatternMatchVariableName
     ) {
         this.module = module;
         this.patternMatchMode = patternMatchMode;
@@ -38,28 +33,34 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
         this.rootPatternMatchVariableName = rootPatternMatchVariableName;
     }
 
+
     public PatternMatchMode getMode() {
         return patternMatchMode;
     }
+
 
     public String getRootPatternMatchVariableName() {
         return rootPatternMatchVariableName;
     }
 
+
     public String getTermID() {
         return termID;
     }
+
 
     public Maybe<T> getPattern() {
         return pattern;
     }
 
+
     public abstract <R> PatternMatchInput<R> mapPattern(
-            Function<T, R> function
+        Function<T, R> function
     );
 
+
     public <R> PatternMatchInput<R> replacePattern(
-            Maybe<R> pattern
+        Maybe<R> pattern
     ) {
         return this.mapPattern(__ -> pattern.toNullable());
     }
@@ -68,39 +69,36 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
     public abstract IJadescriptType getProvidedInputType();
 
 
-    public Maybe<ExpressionDescriptor> getInputExprDescriptor() {
-        return inputExprDescriptor;
-    }
-
-
     public <T2> SubPattern<T2, T> subPattern(
-            IJadescriptType providedInputType,
-            Function<T, T2> extractSubpattern,
-            String idSuffix
+        IJadescriptType providedInputType,
+        Function<T, T2> extractSubpattern,
+        String idSuffix
     ) {
         return new SubPattern<>(
-                module,
-                providedInputType,
-                this,
-                pattern.__(extractSubpattern),
-                idSuffix
+            module,
+            providedInputType,
+            this,
+            pattern.__(extractSubpattern),
+            idSuffix
         );
     }
+
 
     public <T2> SubPattern<T2, T> subPatternGroundTerm(
-            IJadescriptType providedInputType,
-            Function<T, T2> extractSubpattern,
-            String idSuffix
+        IJadescriptType providedInputType,
+        Function<T, T2> extractSubpattern,
+        String idSuffix
     ) {
         return new SubPattern<>(
-                module,
-                providedInputType,
-                this,
-                pattern.__(extractSubpattern),
-                idSuffix,
-                PatternMatchMode.HolesAndGroundness.DOES_NOT_ACCEPT_HOLES
+            module,
+            providedInputType,
+            this,
+            pattern.__(extractSubpattern),
+            idSuffix,
+            PatternMatchMode.HolesAndGroundness.DOES_NOT_ACCEPT_HOLES
         );
     }
+
 
     public PatternMatcher createEmptyCompileOutput() {
         return new PatternMatcher.AsEmpty(this);
@@ -108,136 +106,146 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
 
     public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
-            IJadescriptType solvedPatternType,
-            List<String> additionalPreconditions,
-            Function<Integer, String> compiledSubInputs
+        IJadescriptType solvedPatternType,
+        List<String> additionalPreconditions,
+        Function<Integer, String> compiledSubInputs
     ) {
         return new PatternMatcher.AsCompositeMethod(
-                this,
-                solvedPatternType,
-                additionalPreconditions,
-                compiledSubInputs
+            this,
+            solvedPatternType,
+            additionalPreconditions,
+            compiledSubInputs
         );
     }
 
+
     public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
-            IJadescriptType solvedPatternType,
-            Function<Integer, String> compiledSubInputs
+        IJadescriptType solvedPatternType,
+        Function<Integer, String> compiledSubInputs
     ) {
         return new PatternMatcher.AsCompositeMethod(
-                this,
-                solvedPatternType,
-                compiledSubInputs
+            this,
+            solvedPatternType,
+            compiledSubInputs
         );
     }
 
+
     public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
-            IJadescriptType solvedPatternType,
-            List<String> additionalPreconditions,
-            Function<Integer, String> compiledSubInputs,
-            List<PatternMatcher> subResults
+        IJadescriptType solvedPatternType,
+        List<String> additionalPreconditions,
+        Function<Integer, String> compiledSubInputs,
+        List<PatternMatcher> subResults
     ) {
         return new PatternMatcher.AsCompositeMethod(
-                this,
-                solvedPatternType,
-                additionalPreconditions,
-                compiledSubInputs,
-                subResults
+            this,
+            solvedPatternType,
+            additionalPreconditions,
+            compiledSubInputs,
+            subResults
         );
     }
 
+
     public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
-            IJadescriptType solvedPatternType,
-            Function<Integer, String> compiledSubInputs,
-            List<PatternMatcher> subResults
+        IJadescriptType solvedPatternType,
+        Function<Integer, String> compiledSubInputs,
+        List<PatternMatcher> subResults
     ) {
         return new PatternMatcher.AsCompositeMethod(
-                this,
-                solvedPatternType,
-                compiledSubInputs,
-                subResults
+            this,
+            solvedPatternType,
+            compiledSubInputs,
+            subResults
         );
     }
 
+
     public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
-            List<StatementWriter> auxiliaryStatements,
-            IJadescriptType solvedPatternType,
-            List<String> additionalPreconditions,
-            Function<Integer, String> compiledSubInputs
+        List<StatementWriter> auxiliaryStatements,
+        IJadescriptType solvedPatternType,
+        List<String> additionalPreconditions,
+        Function<Integer, String> compiledSubInputs
     ) {
         return new PatternMatcher.AsCompositeMethod(
-                this,
-                auxiliaryStatements,
-                solvedPatternType,
-                additionalPreconditions,
-                compiledSubInputs
+            this,
+            auxiliaryStatements,
+            solvedPatternType,
+            additionalPreconditions,
+            compiledSubInputs
         );
     }
 
+
     public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
-            List<StatementWriter> auxiliaryStatements,
-            IJadescriptType solvedPatternType,
-            Function<Integer, String> compiledSubInputs
+        List<StatementWriter> auxiliaryStatements,
+        IJadescriptType solvedPatternType,
+        Function<Integer, String> compiledSubInputs
     ) {
         return new PatternMatcher.AsCompositeMethod(
-                this,
-                auxiliaryStatements,
-                solvedPatternType,
-                compiledSubInputs
+            this,
+            auxiliaryStatements,
+            solvedPatternType,
+            compiledSubInputs
         );
     }
 
+
     public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
-            List<StatementWriter> auxiliaryStatements,
-            IJadescriptType solvedPatternType,
-            List<String> additionalPreconditions,
-            Function<Integer, String> compiledSubInputs,
-            List<PatternMatcher> subResults
+        List<StatementWriter> auxiliaryStatements,
+        IJadescriptType solvedPatternType,
+        List<String> additionalPreconditions,
+        Function<Integer, String> compiledSubInputs,
+        List<PatternMatcher> subResults
     ) {
         return new PatternMatcher.AsCompositeMethod(
-                this,
-                auxiliaryStatements,
-                solvedPatternType,
-                additionalPreconditions,
-                compiledSubInputs,
-                subResults
+            this,
+            auxiliaryStatements,
+            solvedPatternType,
+            additionalPreconditions,
+            compiledSubInputs,
+            subResults
         );
     }
 
+
     public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
-            List<StatementWriter> auxiliaryStatements,
-            IJadescriptType solvedPatternType,
-            Function<Integer, String> compiledSubInputs,
-            List<PatternMatcher> subResults
+        List<StatementWriter> auxiliaryStatements,
+        IJadescriptType solvedPatternType,
+        Function<Integer, String> compiledSubInputs,
+        List<PatternMatcher> subResults
     ) {
         return new PatternMatcher.AsCompositeMethod(
-                this,
-                auxiliaryStatements,
-                solvedPatternType,
-                compiledSubInputs,
-                subResults
+            this,
+            auxiliaryStatements,
+            solvedPatternType,
+            compiledSubInputs,
+            subResults
         );
     }
+
 
     public PatternMatcher.AsSingleConditionMethod createSingleConditionMethodOutput(
-            IJadescriptType solvedPatternType,
-            String condition
+        IJadescriptType solvedPatternType,
+        String condition
     ) {
         return new PatternMatcher.AsSingleConditionMethod(
-                this,
-                solvedPatternType,
-                condition
+            this,
+            solvedPatternType,
+            condition
         );
     }
 
+
     public PatternMatcher.AsPlaceholderMethod createPlaceholderMethodOutput(
-            IJadescriptType solvedPatternType
+        IJadescriptType solvedPatternType
     ) {
         return new PatternMatcher.AsPlaceholderMethod(this, solvedPatternType);
     }
 
+
     public PatternMatcher.AsInlineCondition createInlineConditionOutput(
-            Function<String, String> generateCondition
+        Function<String, String> generateCondition
     ) {
         return new PatternMatcher.AsInlineCondition(this) {
             @Override
@@ -247,51 +255,54 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
         };
     }
 
+
     public PatternMatcher.AsFieldAssigningMethod createFieldAssigningMethodOutput(
-            IJadescriptType solvedPatternType,
-            String fieldName
+        IJadescriptType solvedPatternType,
+        String fieldName
     ) {
         return new PatternMatcher.AsFieldAssigningMethod(
-                this,
-                solvedPatternType,
-                fieldName
+            this,
+            solvedPatternType,
+            fieldName
         );
     }
 
 
-
     public static class WhenMatchesStatement<T> extends PatternMatchInput<T> {
+
         public static final PatternMatchMode MODE = new PatternMatchMode(
-                PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
-                TypeRelationship.Related.class,
-                PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
-                PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
-                PatternMatchMode.Reassignment.CHECK_EQUALITY,
-                PatternMatchMode.Unification.WITH_VAR_DECLARATION,
-                PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
-                PatternMatchMode.PatternLocation.STATEMENT_GUARD
+            PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
+            TypeRelationship.Related.class,
+            PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
+            PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+            PatternMatchMode.Reassignment.CHECK_EQUALITY,
+            PatternMatchMode.Unification.WITH_VAR_DECLARATION,
+            PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
+            PatternMatchMode.PatternLocation.STATEMENT_GUARD
         );
         private final IJadescriptType inputExprType;
 
+
         public WhenMatchesStatement(
-                SemanticsModule module,
-                IJadescriptType inputExprType,
-                Maybe<T> pattern,
-                String termID,
-                String rootPatternMatchVariableName
+            SemanticsModule module,
+            IJadescriptType inputExprType,
+            Maybe<T> pattern,
+            String termID,
+            String rootPatternMatchVariableName
         ) {
             super(module, MODE, pattern, termID, rootPatternMatchVariableName);
             this.inputExprType = inputExprType;
         }
 
+
         @Override
         public <R> WhenMatchesStatement<R> mapPattern(Function<T, R> function) {
             return new WhenMatchesStatement<>(
-                    module,
-                    getProvidedInputType(),
-                    getPattern().__(function),
-                    getTermID(),
-                    getRootPatternMatchVariableName()
+                module,
+                getProvidedInputType(),
+                getPattern().__(function),
+                getTermID(),
+                getRootPatternMatchVariableName()
             );
         }
 
@@ -305,40 +316,43 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
     }
 
     public static class HandlerHeader<T> extends PatternMatchInput<T> {
+
         public static final PatternMatchMode MODE = new PatternMatchMode(
-                PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
-                TypeRelationship.SubtypeOrEqual.class,
-                PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
-                PatternMatchMode.PatternApplicationPurity.HAS_TO_BE_PURE,
-                PatternMatchMode.Reassignment.CHECK_EQUALITY,
-                PatternMatchMode.Unification.WITH_VAR_DECLARATION,
-                PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
-                PatternMatchMode.PatternLocation.FEATURE_HEADER
+            PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
+            TypeRelationship.SubtypeOrEqual.class,
+            PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
+            PatternMatchMode.PatternApplicationPurity.HAS_TO_BE_PURE,
+            PatternMatchMode.Reassignment.CHECK_EQUALITY,
+            PatternMatchMode.Unification.WITH_VAR_DECLARATION,
+            PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
+            PatternMatchMode.PatternLocation.FEATURE_HEADER
         );
         private final IJadescriptType contentUpperBound;
 
 
         public HandlerHeader(
-                SemanticsModule module,
-                IJadescriptType contentUpperBound,
-                Maybe<T> pattern,
-                String termID,
-                String rootPatternMatchVariableName
+            SemanticsModule module,
+            IJadescriptType contentUpperBound,
+            Maybe<T> pattern,
+            String termID,
+            String rootPatternMatchVariableName
         ) {
             super(module, MODE, pattern, termID, rootPatternMatchVariableName);
             this.contentUpperBound = contentUpperBound;
         }
 
+
         @Override
         public <R> HandlerHeader<R> mapPattern(Function<T, R> function) {
             return new HandlerHeader<>(
-                    module,
-                    contentUpperBound,
-                    getPattern().__(function),
-                    getTermID(),
-                    getRootPatternMatchVariableName()
+                module,
+                contentUpperBound,
+                getPattern().__(function),
+                getTermID(),
+                getRootPatternMatchVariableName()
             );
         }
+
 
         @Override
         public IJadescriptType getProvidedInputType() {
@@ -349,39 +363,43 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
     }
 
     public static class MatchesExpression<T> extends PatternMatchInput<T> {
+
         public static final PatternMatchMode MODE = new PatternMatchMode(
-                PatternMatchMode.HolesAndGroundness.ACCEPTS_NONVAR_HOLES_ONLY,
-                TypeRelationship.Related.class,
-                PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
-                PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
-                PatternMatchMode.Reassignment.CHECK_EQUALITY,
-                PatternMatchMode.Unification.WITHOUT_VAR_DECLARATION,
-                PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
-                PatternMatchMode.PatternLocation.BOOLEAN_EXPRESSION
+            PatternMatchMode.HolesAndGroundness.ACCEPTS_NONVAR_HOLES_ONLY,
+            TypeRelationship.Related.class,
+            PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
+            PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+            PatternMatchMode.Reassignment.CHECK_EQUALITY,
+            PatternMatchMode.Unification.WITHOUT_VAR_DECLARATION,
+            PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
+            PatternMatchMode.PatternLocation.BOOLEAN_EXPRESSION
         );
         private final IJadescriptType inputExprType;
 
+
         public MatchesExpression(
-                SemanticsModule module,
-                IJadescriptType inputExprType,
-                Maybe<T> pattern,
-                String termID,
-                String rootPatternMatchVariableName
+            SemanticsModule module,
+            IJadescriptType inputExprType,
+            Maybe<T> pattern,
+            String termID,
+            String rootPatternMatchVariableName
         ) {
             super(module, MODE, pattern, termID, rootPatternMatchVariableName);
             this.inputExprType = inputExprType;
         }
 
+
         @Override
         public <R> MatchesExpression<R> mapPattern(Function<T, R> function) {
             return new MatchesExpression<>(
-                    module,
-                    inputExprType,
-                    getPattern().__(function),
-                    getTermID(),
-                    getRootPatternMatchVariableName()
+                module,
+                inputExprType,
+                getPattern().__(function),
+                getTermID(),
+                getRootPatternMatchVariableName()
             );
         }
+
 
         @Override
         public IJadescriptType getProvidedInputType() {
@@ -392,37 +410,47 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
     }
 
     public static class AssignmentDeconstruction<T> extends PatternMatchInput<T> {
+
         public static final PatternMatchMode MODE = new PatternMatchMode(
-                PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_OR_ASSIGNABLE_VARS,
-                TypeRelationship.SupertypeOrEqual.class,
-                PatternMatchMode.RequiresSuccessfulMatch.REQUIRES_SUCCESSFUL_MATCH,
-                PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
-                PatternMatchMode.Reassignment.REQUIRE_REASSIGN,
-                PatternMatchMode.Unification.WITH_VAR_DECLARATION,
-                PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
-                PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
+            PatternMatchMode.HolesAndGroundness
+                .REQUIRES_FREE_OR_ASSIGNABLE_VARS,
+            TypeRelationship.SupertypeOrEqual.class,
+            PatternMatchMode.RequiresSuccessfulMatch.REQUIRES_SUCCESSFUL_MATCH,
+            PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+            PatternMatchMode.Reassignment.REQUIRE_REASSIGN,
+            PatternMatchMode.Unification.WITH_VAR_DECLARATION,
+            PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
+            PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
         );
         private final IJadescriptType rightType;
 
+
         public AssignmentDeconstruction(
-                SemanticsModule module,
-                IJadescriptType rightType,
-                Maybe<T> leftPattern,
-                String termID,
-                String rootPatternMatchVariableName
+            SemanticsModule module,
+            IJadescriptType rightType,
+            Maybe<T> leftPattern,
+            String termID,
+            String rootPatternMatchVariableName
         ) {
-            super(module, MODE, leftPattern, termID, rootPatternMatchVariableName);
+            super(
+                module,
+                MODE,
+                leftPattern,
+                termID,
+                rootPatternMatchVariableName
+            );
             this.rightType = rightType;
         }
+
 
         @Override
         public <R> AssignmentDeconstruction<R> mapPattern(Function<T, R> function) {
             return new AssignmentDeconstruction<>(
-                    module,
-                    rightType,
-                    getPattern().__(function),
-                    getTermID(),
-                    getRootPatternMatchVariableName()
+                module,
+                rightType,
+                getPattern().__(function),
+                getTermID(),
+                getRootPatternMatchVariableName()
             );
         }
 
@@ -436,30 +464,33 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
     }
 
     public static class ForAssignment<T> extends PatternMatchInput<T> {
+
         private final IJadescriptType elementType;
 
+
         public ForAssignment(
-                SemanticsModule module,
-                IJadescriptType elementType,
-                Maybe<T> pattern,
-                String termID,
-                String rootPatternMatchVariableName
+            SemanticsModule module,
+            IJadescriptType elementType,
+            Maybe<T> pattern,
+            String termID,
+            String rootPatternMatchVariableName
         ) {
             super(
-                    module,
-                    new PatternMatchMode(
-                            PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_VARS,
-                            TypeRelationship.SupertypeOrEqual.class,
-                            PatternMatchMode.RequiresSuccessfulMatch.REQUIRES_SUCCESSFUL_MATCH,
-                            PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
-                            PatternMatchMode.Reassignment.REQUIRE_REASSIGN,
-                            PatternMatchMode.Unification.WITH_VAR_DECLARATION,
-                            PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
-                            PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
-                    ),
-                    pattern,
-                    termID,
-                    rootPatternMatchVariableName
+                module,
+                new PatternMatchMode(
+                    PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_VARS,
+                    TypeRelationship.SupertypeOrEqual.class,
+                    PatternMatchMode.RequiresSuccessfulMatch.
+                        REQUIRES_SUCCESSFUL_MATCH,
+                    PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+                    PatternMatchMode.Reassignment.REQUIRE_REASSIGN,
+                    PatternMatchMode.Unification.WITH_VAR_DECLARATION,
+                    PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
+                    PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
+                ),
+                pattern,
+                termID,
+                rootPatternMatchVariableName
             );
             this.elementType = elementType;
         }
@@ -468,22 +499,25 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
         @Override
         public <R> ForAssignment<R> mapPattern(Function<T, R> function) {
             return new ForAssignment<>(
-                    module,
-                    this.getElementType(),
-                    this.getPattern().__(function),
-                    this.getTermID(),
-                    this.getRootPatternMatchVariableName()
+                module,
+                this.getElementType(),
+                this.getPattern().__(function),
+                this.getTermID(),
+                this.getRootPatternMatchVariableName()
             );
         }
+
 
         @Override
         public IJadescriptType getProvidedInputType() {
             return elementType;
         }
 
+
         public IJadescriptType getElementType() {
             return elementType;
         }
+
     }
 
 
@@ -494,39 +528,48 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
         private final IJadescriptType inputInfo;
 
+
         private SubPattern(
-                SemanticsModule module,
-                IJadescriptType inputInfo,
-                PatternMatchInput<RT> rootInput,
-                Maybe<T> pattern,
-                String suffixID
+            SemanticsModule module,
+            IJadescriptType inputInfo,
+            PatternMatchInput<RT> rootInput,
+            Maybe<T> pattern,
+            String suffixID
         ) {
             this(module, inputInfo, rootInput, pattern, suffixID, null);
         }
 
+
         private SubPattern(
-                SemanticsModule module,
-                IJadescriptType inputInfo,
-                PatternMatchInput<RT> rootInput,
-                Maybe<T> pattern,
-                String suffixID,
-                PatternMatchMode.HolesAndGroundness holesAndGroundnessRequirement
+            SemanticsModule module,
+            IJadescriptType inputInfo,
+            PatternMatchInput<RT> rootInput,
+            Maybe<T> pattern,
+            String suffixID,
+            PatternMatchMode.HolesAndGroundness holesAndGroundnessRequirement
         ) {
-            super(module, new PatternMatchMode(
+            super(
+                module,
+                new PatternMatchMode(
                     holesAndGroundnessRequirement == null
-                            ? rootInput.getMode().getHolesAndGroundness()
-                            : holesAndGroundnessRequirement,
-                    // Subpatterns always have a "related" requirement, except when in assignment/declarations.
+                        ? rootInput.getMode().getHolesAndGroundness()
+                        : holesAndGroundnessRequirement,
+                    // Subpatterns always have a "related" requirement,
+                    // except when in assignment/declarations.
                     rootInput.getMode().getPatternLocation() == PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
-                            ? TypeRelationship.SupertypeOrEqual.class
-                            : TypeRelationship.Related.class,
+                        ? TypeRelationship.SupertypeOrEqual.class
+                        : TypeRelationship.Related.class,
                     rootInput.getMode().getRequiresSuccessfulMatch(),
                     rootInput.getMode().getPatternApplicationPurity(),
                     rootInput.getMode().getReassignment(),
                     rootInput.getMode().getUnification(),
                     rootInput.getMode().getNarrowsTypeOfInput(),
                     PatternMatchMode.PatternLocation.SUB_PATTERN
-            ), pattern, rootInput.termID + suffixID, rootInput.getRootPatternMatchVariableName());
+                ),
+                pattern,
+                rootInput.termID + suffixID,
+                rootInput.getRootPatternMatchVariableName()
+            );
             this.rootInput = rootInput;
             this.suffixID = suffixID;
             this.inputInfo = inputInfo;
@@ -537,10 +580,18 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             return rootInput;
         }
 
+
         @Override
         public <R> SubPattern<R, RT> mapPattern(Function<T, R> function) {
-            return new SubPattern<>(module, inputInfo, rootInput, getPattern().__(function), suffixID);
+            return new SubPattern<>(
+                module,
+                inputInfo,
+                rootInput,
+                getPattern().__(function),
+                suffixID
+            );
         }
+
 
         @Override
         public IJadescriptType getProvidedInputType() {

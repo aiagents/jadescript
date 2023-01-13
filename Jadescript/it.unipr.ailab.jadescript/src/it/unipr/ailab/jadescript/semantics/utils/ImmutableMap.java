@@ -3,10 +3,7 @@ package it.unipr.ailab.jadescript.semantics.utils;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import org.jetbrains.annotations.Contract;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -112,6 +109,28 @@ public class ImmutableMap<K, V> {
             ));
         } else {
             result.inner.put(key, value);
+        }
+        return result;
+    }
+
+
+    public ImmutableMap<K, V> mergeAddAll(
+        Collection<? extends V> nss,
+        Function<V, K> associateKey,
+        BinaryOperator<V> solveConflicts
+    ) {
+        final ImmutableMap<K, V> result = new ImmutableMap<>();
+        result.inner.putAll(this.inner);
+        for (V v : nss) {
+            K k = associateKey.apply(v);
+            if (result.inner.containsKey(k)) {
+                result.inner.put(k, solveConflicts.apply(
+                    result.inner.get(k),
+                    v
+                ));
+            }else{
+                result.inner.put(k, v);
+            }
         }
         return result;
     }

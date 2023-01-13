@@ -3,13 +3,11 @@ package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.sonneteer.WriterFactory;
 import it.unipr.ailab.sonneteer.classmember.ClassMemberWriter;
 import it.unipr.ailab.sonneteer.classmember.FieldWriter;
 import it.unipr.ailab.sonneteer.classmember.MethodWriter;
 import it.unipr.ailab.sonneteer.qualifiers.Visibility;
-import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import it.unipr.ailab.sonneteer.statement.ReturnStatementWriter;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import it.unipr.ailab.sonneteer.statement.VariableDeclarationWriter;
@@ -21,7 +19,14 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+/**
+ * Intermediate representation of the compilation of a pattern matching
+ * operation.
+ * Collects all the information needed to compile a pattern matching into Java
+ * code.
+ */
 public abstract class PatternMatcher {
+
     private static final WriterFactory w = WriterFactory.getInstance();
 
 
@@ -33,10 +38,36 @@ public abstract class PatternMatcher {
         this.patternMatchInput = patternMatchInput;
     }
 
+
+    public static List<StatementWriter> compileAdaptType(
+        SemanticsModule module,
+        String adaptType
+    ) {
+        final ReturnStatementWriter returnFalse = w.returnStmnt(w.False);
+
+        final VariableDeclarationWriter declareX =
+            w.variable(adaptType, "__x");//initialized later
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TryCatchWriter checkXType = w.tryCatch(w.block()
+                .addStatement(w.ifStmnt(
+                    w.expr("__objx instanceof " + typeHelper
+                        .noGenericsTypeName(adaptType)),
+                    w.block().addStatement(w.assign(
+                        "__x",
+                        w.expr("(" + adaptType + ") __objx")
+                    ))
+                ).setElseBranch(w.block().addStatement(returnFalse))))
+            .addCatchBranch("java.lang.ClassCastException", "ignored", w.block()
+                .addStatement(returnFalse));
+        return Arrays.asList(declareX, checkXType);
+    }
+
+
     public PatternMatcher addSubResult(PatternMatcher subResult) {
         subResults.add(subResult);
         return this;
     }
+
 
     public PatternMatcher addSubResults(List<PatternMatcher> subResults) {
         this.subResults.addAll(subResults);
@@ -48,47 +79,38 @@ public abstract class PatternMatcher {
         return subResults.stream().flatMap(PatternMatcher::getWriters);
     }
 
+
     public abstract Stream<? extends ClassMemberWriter> getWriters();
+
 
     public abstract String operationInvocationText(String input);
 
-    public static List<StatementWriter> compileAdaptType(SemanticsModule module, String adaptType) {
-        final ReturnStatementWriter returnFalse = w.returnStmnt(w.False);
-
-        final VariableDeclarationWriter declareX = w.variable(adaptType, "__x");//initialized later
-        final TryCatchWriter checkXType = w.tryCatch(w.block()
-                        .addStatement(w.ifStmnt(
-                                w.expr("__objx instanceof " + module.get(TypeHelper.class)
-                                        .noGenericsTypeName(adaptType)),
-                                w.block().addStatement(w.assign("__x", w.expr("(" + adaptType + ") __objx")))
-                        ).setElseBranch(w.block().addStatement(returnFalse))))
-                .addCatchBranch("java.lang.ClassCastException", "ignored", w.block()
-                        .addStatement(returnFalse));
-        return Arrays.asList(declareX, checkXType);
-    }
-
     public static abstract class AsMethod extends PatternMatcher {
+
         protected final List<StatementWriter> compiledAdaptType;
 
 
         public AsMethod(
-                PatternMatchInput<?> patternMatchInput,
-                IJadescriptType solvedPatternType
+            PatternMatchInput<?> patternMatchInput,
+            IJadescriptType solvedPatternType
         ) {
             super(patternMatchInput);
             compiledAdaptType = compileAdaptType(
-                    patternMatchInput.module,
-                    solvedPatternType.compileToJavaTypeReference()
+                patternMatchInput.module,
+                solvedPatternType.compileToJavaTypeReference()
             );
         }
+
 
         @Override
         public String operationInvocationText(String input) {
             return patternMatchInput.getTermID() + "(" + input + ")";
         }
+
     }
 
     public static class AsCompositeMethod extends AsMethod {
+
         private final Function<Integer, String> compiledSubInputs;
 
         private final List<String> additionalPreconditions;
@@ -97,10 +119,10 @@ public abstract class PatternMatcher {
 
 
         public AsCompositeMethod(
-                PatternMatchInput<?> patternMatchInput,
-                IJadescriptType solvedPatternType,
-                List<String> additionalPreconditions,
-                Function<Integer, String> compiledSubInputs
+            PatternMatchInput<?> patternMatchInput,
+            IJadescriptType solvedPatternType,
+            List<String> additionalPreconditions,
+            Function<Integer, String> compiledSubInputs
         ) {
             super(patternMatchInput, solvedPatternType);
             this.compiledSubInputs = compiledSubInputs;
@@ -109,12 +131,13 @@ public abstract class PatternMatcher {
 
         }
 
+
         public AsCompositeMethod(
-                PatternMatchInput<?> patternMatchInput,
-                IJadescriptType solvedPatternType,
-                List<String> additionalPreconditions,
-                Function<Integer, String> compiledSubInputs,
-                List<? extends PatternMatcher> subResults
+            PatternMatchInput<?> patternMatchInput,
+            IJadescriptType solvedPatternType,
+            List<String> additionalPreconditions,
+            Function<Integer, String> compiledSubInputs,
+            List<? extends PatternMatcher> subResults
         ) {
             super(patternMatchInput, solvedPatternType);
             this.compiledSubInputs = compiledSubInputs;
@@ -123,10 +146,11 @@ public abstract class PatternMatcher {
             this.auxiliaryStatements = List.of();
         }
 
+
         public AsCompositeMethod(
-                PatternMatchInput<?> patternMatchInput,
-                IJadescriptType solvedPatternType,
-                Function<Integer, String> compiledSubInputs
+            PatternMatchInput<?> patternMatchInput,
+            IJadescriptType solvedPatternType,
+            Function<Integer, String> compiledSubInputs
         ) {
             super(patternMatchInput, solvedPatternType);
             this.compiledSubInputs = compiledSubInputs;
@@ -134,11 +158,12 @@ public abstract class PatternMatcher {
             this.auxiliaryStatements = List.of();
         }
 
+
         public AsCompositeMethod(
-                PatternMatchInput<?> patternMatchInput,
-                IJadescriptType solvedPatternType,
-                Function<Integer, String> compiledSubInputs,
-                List<PatternMatcher> subResults
+            PatternMatchInput<?> patternMatchInput,
+            IJadescriptType solvedPatternType,
+            Function<Integer, String> compiledSubInputs,
+            List<PatternMatcher> subResults
         ) {
             super(patternMatchInput, solvedPatternType);
             this.compiledSubInputs = compiledSubInputs;
@@ -147,12 +172,13 @@ public abstract class PatternMatcher {
             this.auxiliaryStatements = List.of();
         }
 
+
         public AsCompositeMethod(
-                PatternMatchInput<?> patternMatchInput,
-                List<StatementWriter> auxiliaryStatements,
-                IJadescriptType solvedPatternType,
-                List<String> additionalPreconditions,
-                Function<Integer, String> compiledSubInputs
+            PatternMatchInput<?> patternMatchInput,
+            List<StatementWriter> auxiliaryStatements,
+            IJadescriptType solvedPatternType,
+            List<String> additionalPreconditions,
+            Function<Integer, String> compiledSubInputs
         ) {
             super(patternMatchInput, solvedPatternType);
             this.compiledSubInputs = compiledSubInputs;
@@ -161,13 +187,14 @@ public abstract class PatternMatcher {
 
         }
 
+
         public AsCompositeMethod(
-                PatternMatchInput<?> patternMatchInput,
-                List<StatementWriter> auxiliaryStatements,
-                IJadescriptType solvedPatternType,
-                List<String> additionalPreconditions,
-                Function<Integer, String> compiledSubInputs,
-                List<PatternMatcher> subResults
+            PatternMatchInput<?> patternMatchInput,
+            List<StatementWriter> auxiliaryStatements,
+            IJadescriptType solvedPatternType,
+            List<String> additionalPreconditions,
+            Function<Integer, String> compiledSubInputs,
+            List<PatternMatcher> subResults
         ) {
             super(patternMatchInput, solvedPatternType);
             this.compiledSubInputs = compiledSubInputs;
@@ -176,11 +203,12 @@ public abstract class PatternMatcher {
             this.auxiliaryStatements = auxiliaryStatements;
         }
 
+
         public AsCompositeMethod(
-                PatternMatchInput<?> patternMatchInput,
-                List<StatementWriter> auxiliaryStatements,
-                IJadescriptType solvedPatternType,
-                Function<Integer, String> compiledSubInputs
+            PatternMatchInput<?> patternMatchInput,
+            List<StatementWriter> auxiliaryStatements,
+            IJadescriptType solvedPatternType,
+            Function<Integer, String> compiledSubInputs
         ) {
             super(patternMatchInput, solvedPatternType);
             this.compiledSubInputs = compiledSubInputs;
@@ -188,12 +216,13 @@ public abstract class PatternMatcher {
             this.auxiliaryStatements = auxiliaryStatements;
         }
 
+
         public AsCompositeMethod(
-                PatternMatchInput<?> patternMatchInput,
-                List<StatementWriter> auxiliaryStatements,
-                IJadescriptType solvedPatternType,
-                Function<Integer, String> compiledSubInputs,
-                List<PatternMatcher> subResults
+            PatternMatchInput<?> patternMatchInput,
+            List<StatementWriter> auxiliaryStatements,
+            IJadescriptType solvedPatternType,
+            Function<Integer, String> compiledSubInputs,
+            List<PatternMatcher> subResults
         ) {
             super(patternMatchInput, solvedPatternType);
             this.compiledSubInputs = compiledSubInputs;
@@ -201,10 +230,17 @@ public abstract class PatternMatcher {
             this.subResults.addAll(subResults);
             this.auxiliaryStatements = auxiliaryStatements;
         }
+
 
         public MethodWriter generatedMethod() {
-            MethodWriter m = w.method(Visibility.PUBLIC, false, false, "boolean", patternMatchInput.getTermID())
-                    .addParameter(w.param("java.lang.Object", "__objx"));
+            MethodWriter m = w.method(
+                    Visibility.PUBLIC,
+                    false,
+                    false,
+                    "boolean",
+                    patternMatchInput.getTermID()
+                )
+                .addParameter(w.param("java.lang.Object", "__objx"));
             m.getBody().addStatements(compiledAdaptType);
 
             m.getBody().addStatements(auxiliaryStatements);
@@ -217,11 +253,13 @@ public abstract class PatternMatcher {
             for (int i = 0; i < subResults.size(); i++) {
                 PatternMatcher subResult = subResults.get(i);
                 sb.append(" && ");
-                sb.append(subResult.operationInvocationText(compiledSubInputs.apply(i)));
+                sb.append(subResult.operationInvocationText(compiledSubInputs.apply(
+                    i)));
             }
             m.getBody().addStatement(w.returnStmnt(w.expr(sb.toString())));
             return m;
         }
+
 
         @Override
         public Stream<? extends ClassMemberWriter> getWriters() {
@@ -234,27 +272,37 @@ public abstract class PatternMatcher {
 
         private final String condition;
 
+
         public AsSingleConditionMethod(
-                PatternMatchInput<?> patternMatchInput,
-                IJadescriptType solvedPatternType,
-                String condition
+            PatternMatchInput<?> patternMatchInput,
+            IJadescriptType solvedPatternType,
+            String condition
         ) {
             super(patternMatchInput, solvedPatternType);
             this.condition = condition;
         }
 
+
         public MethodWriter generatedWriter() {
-            MethodWriter m = w.method(Visibility.PUBLIC, false, false, "boolean", patternMatchInput.getTermID())
-                    .addParameter(w.param("java.lang.Object", "__objx"));
+            MethodWriter m = w.method(
+                    Visibility.PUBLIC,
+                    false,
+                    false,
+                    "boolean",
+                    patternMatchInput.getTermID()
+                )
+                .addParameter(w.param("java.lang.Object", "__objx"));
             m.getBody().addStatements(compiledAdaptType);
             m.getBody().addStatement(w.returnStmnt(w.expr(condition)));
             return m;
         }
 
+
         @Override
         public Stream<? extends ClassMemberWriter> getWriters() {
             return Stream.of(generatedWriter());
         }
+
     }
 
     public static abstract class AsInlineCondition extends PatternMatcher {
@@ -264,13 +312,16 @@ public abstract class PatternMatcher {
             super(patternMatchInput);
         }
 
+
         @Override
         public Stream<? extends ClassMemberWriter> getWriters() {
             return Stream.empty();
         }
 
+
         @Override
         public abstract String operationInvocationText(String input);
+
     }
 
     public static class AsEmpty extends PatternMatcher {
@@ -279,15 +330,18 @@ public abstract class PatternMatcher {
             super(patternMatchInput);
         }
 
+
         @Override
         public Stream<? extends ClassMemberWriter> getWriters() {
             return Stream.empty();
         }
 
+
         @Override
         public String operationInvocationText(String input) {
             return input;
         }
+
     }
 
     public static class AsFieldAssigningMethod extends AsMethod {
@@ -295,38 +349,48 @@ public abstract class PatternMatcher {
         private final IJadescriptType solvedPatternType;
         private final String name;
 
+
         public AsFieldAssigningMethod(
-                PatternMatchInput<?> patternMatchInput,
-                IJadescriptType solvedPatternType,
-                String name
+            PatternMatchInput<?> patternMatchInput,
+            IJadescriptType solvedPatternType,
+            String name
         ) {
             super(patternMatchInput, solvedPatternType);
             this.solvedPatternType = solvedPatternType;
             this.name = name;
         }
 
+
         public FieldWriter generatedField() {
             return w.field(
-                    Visibility.PUBLIC,
-                    false,
-                    false,
-                    solvedPatternType.compileToJavaTypeReference(),
-                    name
+                Visibility.PUBLIC,
+                false,
+                false,
+                solvedPatternType.compileToJavaTypeReference(),
+                name
             );
         }
 
+
         public MethodWriter generatedMethod() {
-            MethodWriter m = w.method(Visibility.PUBLIC, false, false, "boolean", patternMatchInput.getTermID())
-                    .addParameter(w.param("java.lang.Object", "__objx"));
+            MethodWriter m = w.method(
+                    Visibility.PUBLIC,
+                    false,
+                    false,
+                    "boolean",
+                    patternMatchInput.getTermID()
+                )
+                .addParameter(w.param("java.lang.Object", "__objx"));
             m.getBody().addStatements(
-                    compiledAdaptType
+                compiledAdaptType
             ).addStatement(
-                    w.assign(name, w.expr("__x"))
+                w.assign(name, w.expr("__x"))
             ).addStatement(
-                    w.returnStmnt(w.expr("true"))
+                w.returnStmnt(w.expr("true"))
             );
             return m;
         }
+
 
         @Override
         public Stream<? extends ClassMemberWriter> getWriters() {
@@ -338,19 +402,27 @@ public abstract class PatternMatcher {
     public static class AsPlaceholderMethod extends AsMethod {
 
         public AsPlaceholderMethod(
-                PatternMatchInput<?> patternMatchInput,
-                IJadescriptType solvedPatternType
+            PatternMatchInput<?> patternMatchInput,
+            IJadescriptType solvedPatternType
         ) {
             super(patternMatchInput, solvedPatternType);
         }
 
+
         public MethodWriter generatedWriter() {
-            MethodWriter m = w.method(Visibility.PUBLIC, false, false, "boolean", patternMatchInput.getTermID())
-                    .addParameter(w.param("java.lang.Object", "__objx"));
+            MethodWriter m = w.method(
+                    Visibility.PUBLIC,
+                    false,
+                    false,
+                    "boolean",
+                    patternMatchInput.getTermID()
+                )
+                .addParameter(w.param("java.lang.Object", "__objx"));
             m.getBody().addStatements(compiledAdaptType);
             m.getBody().addStatement(w.returnStmnt(w.True));
             return m;
         }
+
 
         @Override
         public Stream<? extends ClassMemberWriter> getWriters() {
@@ -358,4 +430,5 @@ public abstract class PatternMatcher {
         }
 
     }
+
 }
