@@ -1,7 +1,8 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
-import it.unipr.ailab.jadescript.semantics.namespace.JvmModelBasedNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmFieldSymbol;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace;
 import it.unipr.ailab.maybe.Maybe;
 
 import java.util.stream.Stream;
@@ -15,7 +16,7 @@ public interface ForAgentClausedType extends IJadescriptType {
                 ? Stream.<NamedSymbol>empty()
                 : jvmNamespace
                 .searchName(THE_AGENT, null, null))
-                .filter(i -> i instanceof JvmModelBasedNamespace.JvmFieldSymbol)
+                .filter(i -> i instanceof JvmFieldSymbol)
                 .map(NamedSymbol::readingType)
                 .filter(i -> i instanceof AgentType)
                 .map(i -> (AgentType) i)

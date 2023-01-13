@@ -11,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.JvmModelBasedNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;

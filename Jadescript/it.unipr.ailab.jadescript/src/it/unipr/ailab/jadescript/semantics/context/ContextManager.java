@@ -33,12 +33,9 @@ public class ContextManager {
     }
 
 
-    //TODO ensure that each search from local scopes starts from
-    // state, not from currentContext
     public Context currentContext() {
         return innerContext;
     }
-
 
     public void enterModule(
         String moduleName,

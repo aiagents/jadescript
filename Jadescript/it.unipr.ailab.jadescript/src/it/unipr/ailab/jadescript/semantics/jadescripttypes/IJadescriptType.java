@@ -1,7 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
-import it.unipr.ailab.jadescript.semantics.namespace.JvmModelBasedNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;

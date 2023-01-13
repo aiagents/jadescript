@@ -2,9 +2,9 @@ package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.Context;
-import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.SuperProperty;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -19,13 +19,15 @@ import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
 public class SuperSlotInitializerContext extends Context
     implements NamedSymbol.Searcher {
+
     private final OntologyElementDeclarationContext outer;
     private final Map<String, IJadescriptType> superSlotsInitScope;
 
+
     public SuperSlotInitializerContext(
-            SemanticsModule module,
-            OntologyElementDeclarationContext outer,
-            Map<String, IJadescriptType> superSlotsInitScope
+        SemanticsModule module,
+        OntologyElementDeclarationContext outer,
+        Map<String, IJadescriptType> superSlotsInitScope
     ) {
         super(module);
         this.outer = outer;
@@ -41,9 +43,9 @@ public class SuperSlotInitializerContext extends Context
 
     @Override
     public Stream<? extends NamedSymbol> searchName(
-            Predicate<String> name,
-            Predicate<IJadescriptType> readingType,
-            Predicate<Boolean> canWrite
+        Predicate<String> name,
+        Predicate<IJadescriptType> readingType,
+        Predicate<Boolean> canWrite
     ) {
 
         Stream<Map.Entry<String, IJadescriptType>> stream =
@@ -51,42 +53,13 @@ public class SuperSlotInitializerContext extends Context
         stream = safeFilter(stream, Map.Entry::getKey, name);
         stream = safeFilter(stream, Map.Entry::getValue, readingType);
         stream = safeFilter(stream, (__) -> true, canWrite);
-        return stream
-                .map(entry -> new NamedSymbol() {
-                    @Override
-                    public SearchLocation sourceLocation() {
-                        return currentLocation();
-                    }
-
-                    @Override
-                    public String name() {
-                        return entry.getKey();
-                    }
-
-                    @Override
-                    public String compileRead(String dereferencePrefix) {
-                        return dereferencePrefix + name();
-                    }
-
-                    @Override
-                    public IJadescriptType readingType() {
-                        return entry.getValue();
-                    }
-
-                    @Override
-                    public boolean canWrite() {
-                        return true;
-                    }
-
-                    @Override
-                    public String compileWrite(
-                        String dereferencePrefix,
-                        String rexpr
-                    ) {
-                        return dereferencePrefix + name() + " = " + rexpr;
-                    }
-                });
+        return stream.map(entry -> new SuperProperty(
+            entry.getKey(),
+            entry.getValue(),
+            currentLocation()
+        ));
     }
+
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {
@@ -101,8 +74,11 @@ public class SuperSlotInitializerContext extends Context
         scb.close("}");
     }
 
+
     @Override
     public String getCurrentOperationLogName() {
         return outer.getCurrentOperationLogName();
     }
+
+
 }

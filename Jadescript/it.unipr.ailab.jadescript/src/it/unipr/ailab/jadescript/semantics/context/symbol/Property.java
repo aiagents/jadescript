@@ -12,13 +12,17 @@ public class Property implements NamedSymbol {
     private final String name;
     private final IJadescriptType type;
     private final boolean readOnly;
-
+    private final SearchLocation location;
     private Function<String, String> readCompile;
     private BiFunction<String, String, String> writeCompile;
-    private final SearchLocation location;
 
 
-    public Property(String name, IJadescriptType type, boolean readOnly, SearchLocation location) {
+    public Property(
+        String name,
+        IJadescriptType type,
+        boolean readOnly,
+        SearchLocation location
+    ) {
         this.name = name;
         this.type = type;
         this.readOnly = readOnly;
@@ -29,23 +33,27 @@ public class Property implements NamedSymbol {
 
 
     public Property setCompileByJVMAccessors() {
-        this.readCompile = e -> e + "get" + Strings.toFirstUpper(name) + "()";
-        this.writeCompile = (e, re) -> e + "set" + Strings.toFirstUpper(name) + "(" + re + ")";
+        this.readCompile = e -> e + "get" + Strings.toFirstUpper(name) +
+            "()";
+        this.writeCompile = (e, re) -> e + "set" + Strings.toFirstUpper(name) +
+            "(" + re + ")";
         return this;
     }
 
+
     public Property setCompileByCustomJVMMethod(
-            String readMethod,
-            String writeMethod
+        String readMethod,
+        String writeMethod
     ) {
         this.readCompile = e -> e + readMethod + "()";
         this.writeCompile = (e, re) -> e + writeMethod + "(" + re + ")";
         return this;
     }
 
+
     public Property setCustomCompile(
-            Function<String, String> customReadCompile,
-            BiFunction<String, String, String> customWriteCompile
+        Function<String, String> customReadCompile,
+        BiFunction<String, String, String> customWriteCompile
     ) {
         this.readCompile = customReadCompile;
         this.writeCompile = customWriteCompile;
@@ -53,28 +61,28 @@ public class Property implements NamedSymbol {
     }
 
 
-
-
     @Override
     public String compileRead(String dereferencePrefix) {
         return readCompile.apply(dereferencePrefix);
     }
+
 
     @Override
     public IJadescriptType readingType() {
         return type;
     }
 
+
     @Override
     public String compileWrite(String dereferencePrefix, String rExpr) {
         return writeCompile.apply(dereferencePrefix, rExpr);
     }
 
+
     @Override
     public String name() {
         return name;
     }
-
 
 
     public boolean canWrite() {
@@ -86,4 +94,5 @@ public class Property implements NamedSymbol {
     public SearchLocation sourceLocation() {
         return location;
     }
+
 }

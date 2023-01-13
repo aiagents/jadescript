@@ -7,8 +7,8 @@ import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.JvmModelBasedNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmOperationSymbol;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
@@ -59,8 +59,8 @@ public interface OntologyType extends IJadescriptType {
         ) {
             return jvmNamespace.get().searchCallable(
                             name, returnType, parameterNames, parameterTypes
-                    ).filter(f -> f instanceof JvmModelBasedNamespace.JvmOperationSymbol
-                            && ((JvmModelBasedNamespace.JvmOperationSymbol) f).isStatic());
+                    ).filter(f -> f instanceof JvmOperationSymbol
+                            && ((JvmOperationSymbol) f).isStatic());
         }
 
         @Override
@@ -72,8 +72,8 @@ public interface OntologyType extends IJadescriptType {
         ) {
             return jvmNamespace.get().searchCallable(
                     name, returnType, parameterNames, parameterTypes
-            ).filter(f -> f instanceof JvmModelBasedNamespace.JvmOperationSymbol
-                    && ((JvmModelBasedNamespace.JvmOperationSymbol) f).isStatic());
+            ).filter(f -> f instanceof JvmOperationSymbol
+                    && ((JvmOperationSymbol) f).isStatic());
 
         }
 

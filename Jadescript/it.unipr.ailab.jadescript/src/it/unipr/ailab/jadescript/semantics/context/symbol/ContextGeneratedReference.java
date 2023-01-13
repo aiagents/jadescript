@@ -11,7 +11,11 @@ public class ContextGeneratedReference implements NamedSymbol{
     private final IJadescriptType type;
     private final Function<String, String> customCompileRead;
 
-    public ContextGeneratedReference(String name, IJadescriptType type, Function<String, String> customCompileRead) {
+    public ContextGeneratedReference(
+        String name,
+        IJadescriptType type,
+        Function<String, String> customCompileRead
+    ) {
         this.name = name;
         this.type = type;
         this.customCompileRead = customCompileRead;

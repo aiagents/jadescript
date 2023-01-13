@@ -18,9 +18,6 @@ public abstract class HandlerWhenExpressionContext
         super(module, outer);
     }
 
-    //TODO generalize "property chains" in "flow-typeable values"
-    public abstract Maybe<IJadescriptType> upperBoundForInterestedChain(List<String> propertyChain);
-
     @Override
     public void debugDump(SourceCodeBuilder scb) {
         super.debugDump(scb);

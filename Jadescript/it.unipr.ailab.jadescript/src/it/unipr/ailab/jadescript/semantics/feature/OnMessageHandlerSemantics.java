@@ -2,7 +2,8 @@ package it.unipr.ailab.jadescript.semantics.feature;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.*;
+import it.unipr.ailab.jadescript.semantics.PatternMatchUnifiedVariable;
+import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
@@ -10,9 +11,13 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.MessageHandlerConte
 import it.unipr.ailab.jadescript.semantics.context.c2feature.MessageHandlerWhenExpressionContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.MessageReceivedContext;
 import it.unipr.ailab.jadescript.semantics.context.flowtyping.FlowTypeInferringTerm;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedReference;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.helpers.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseMessageType;
@@ -38,7 +43,8 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.eitherGet;
+import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
  * Created on 26/10/2018.
@@ -87,6 +93,7 @@ public class OnMessageHandlerSemantics
         addEventField(members, inputSafe, eventClass);
     }
 
+
     private void addEventField(
         EList<JvmMember> members,
         OnMessageHandler inputSafe,
@@ -115,12 +122,24 @@ public class OnMessageHandlerSemantics
         ));
     }
 
+
     private JvmGenericType createEventClass(
         Maybe<OnMessageHandler> input, OnMessageHandler inputSafe,
         SavedContext savedContext,
         String cn,
         String messageTemplateName
     ) {
+
+        //TODO rethink event class, abandon old Iotti's design
+        // - just one method (the run method).
+        //  - it contains (all wrapped in a try/catch):
+        //   - the auxiliary statements of the message template
+        //   - the message template
+        //   - the reception with the message template
+        //   - the conditional exit if no message is received
+        //   - the injected statements for the autoextraction
+        //   - the body of the handler (as inner simple block in the method)
+        // - just one field (the boolean "executed" flag).
         return module.get(JvmTypesBuilder.class).toClass(inputSafe, cn, it -> {
             it.setVisibility(JvmVisibility.PRIVATE);
             addMessageField(inputSafe, it);
@@ -162,6 +181,16 @@ public class OnMessageHandlerSemantics
                 (m, o) -> new MessageHandlerWhenExpressionContext(
                     m, performative, o));
 
+            StaticState beforePattern = module.get(ContextManager.class)
+                .currentContext()
+                .actAs(MessageHandlerWhenExpressionContext.class)
+                .map(MessageHandlerWhenExpressionContext::beginOfHeaderState)
+                .findFirst()
+                .orElseGet(() -> StaticState.beginningOfOperation(module));
+
+            List<JvmDeclaredType> patternMatcherClasses = new ArrayList<>();
+            List<JvmField> patternMatcherFields = new ArrayList<>();
+
             final List<BlockWriterElement> auxiliaryStatements =
                 new ArrayList<>();
 
@@ -174,57 +203,110 @@ public class OnMessageHandlerSemantics
                 .__(OnMessageHandler::getPattern)
                 .__(x -> (LValueExpression) x);
 
-            String part1 = "";
+            final StaticState afterPattern;
+            String part1;
             if (pattern.isPresent()) {
-                PatternMatcher o = module.get(PatternMatchHelper.class)
-                    .compileHeaderPatternMatching(
-                        contentUpperBound,
-                        pattern,
-                        auxiliaryStatements::add
-                    );
-                pattNarrowedContentType =
-                    module.get(PatternMatchHelper.class)
-                        .inferHandlerHeaderPatternType(
-                            pattern,
-                            contentUpperBound
-                        );
-                part1 = o.operationInvocationText(
+                final PatternMatchHelper patternMatchHelper =
+                    module.get(PatternMatchHelper.class);
+
+                PatternMatchInput<LValueExpression> patternMatchInput
+                    = patternMatchHelper.handlerHeader(
+                    contentUpperBound,
+                    pattern
+                );
+
+                LValueExpressionSemantics lves =
+                    module.get(LValueExpressionSemantics.class);
+
+                PatternMatcher matcher = lves.compilePatternMatch(
+                    patternMatchInput,
+                    beforePattern,
+                    auxiliaryStatements::add
+                );
+
+
+                pattNarrowedContentType = lves.inferPatternType(
+                    patternMatchInput,
+                    beforePattern
+                ).solve(contentUpperBound);
+
+
+                final String patternMatcherClassName =
+                    patternMatchHelper.getPatternMatcherClassName(pattern);
+
+                final String patternMatcherFieldName =
+                    patternMatchHelper.getPatternMatcherVariableName(pattern);
+
+                patternMatcherClasses.add(
+                    patternMatchHelper.toJVMClass(
+                        patternMatcherClassName,
+                        matcher,
+                        module
+                    )
+                );
+
+                patternMatcherFields.add(
+                    patternMatchHelper.toJVMField(
+                        patternMatcherFieldName,
+                        matcher,
+                        module
+                    )
+                );
+
+                afterPattern = lves.advancePattern(
+                    patternMatchInput,
+                    beforePattern
+                );
+                part1 = matcher.operationInvocationText(
                     initialMsgType.namespace().getContentProperty()
                         .compileRead(MESSAGE_VAR_NAME)
                 );
+            } else {
+                afterPattern = beforePattern;
+                part1 = "";
             }
 
-            String part2 = "";
-            if (whenExpr.isPresent()) {
-                //TODO we need a transactional (or patch-based, or
-                // immutable) evaluation context
 
-                //TODO the problem is that this compile here might
-                // declare (correctly) new variables, changing the context
-                part2 = module.get(RValueExpressionSemantics.class).compile(
-                    whenExpr, ,
+            String part2;
+            StaticState afterWhenExpr;
+            if (whenExpr.isPresent()) {
+                final RValueExpressionSemantics rves =
+                    module.get(RValueExpressionSemantics.class);
+
+                part2 = rves.compile(
+                    whenExpr,
+                    afterPattern,
                     auxiliaryStatements::add
                 );
-                // TODO but then the same expression is re-evaluated in
-                //  the (already changed from the compile) new context to
-                //  compute the KB
-                wexpNarrowedContentType =
-                    module.get(RValueExpressionSemantics.class)
-                        .advance(whenExpr, )
-                        .query("content", "message")
-                        .orElseGet(() -> FlowTypeInferringTerm.of(
-                            typeHelper.ANY
-                        ))
-                        .getType();
-                // TODO  ...and then again
-                wexpNarrowedMessageType =
-                    module.get(RValueExpressionSemantics.class)
-                        .advance(whenExpr, )
-                        .query("message")
-                        .orElseGet(() -> FlowTypeInferringTerm.of(
-                            typeHelper.ANYMESSAGE
-                        ))
-                        .getType();
+
+                afterWhenExpr = rves.advance(
+                    whenExpr,
+                    afterPattern
+                );
+
+                wexpNarrowedContentType = afterWhenExpr.inferUpperBound(
+                        ed -> ed.equals(
+                            new ExpressionDescriptor.PropertyChain(
+                                "content", "message"
+                            )
+                        ),
+                        null
+                    ).findFirst()
+                    .orElseGet(() -> typeHelper.ANY);
+
+                wexpNarrowedMessageType = afterWhenExpr.inferUpperBound(
+                        ed -> ed.equals(
+                            new ExpressionDescriptor.PropertyChain(
+                                "message"
+                            )
+                        ),
+                        null
+                    ).findFirst()
+                    .orElseGet(() -> typeHelper.ANYMESSAGE);
+
+            } else {
+                afterWhenExpr = afterPattern;
+                part2 = "";
             }
 
             if (!part1.isBlank() && !part2.isBlank()) { // Both are
@@ -240,36 +322,37 @@ public class OnMessageHandlerSemantics
                 compiledExpression = part1 + part2;
             }
 
-            //TODO split "context modification logic"
+
             final List<NamedSymbol> autoDeclaredVars =
-                module.get(ContextManager.class).currentContext()
-                    .searchAs(
-                        NamedSymbol.Searcher.class,
-                        s -> s.searchName((Predicate<String>) null, null, null)
-                    ).filter(
-                        ne -> ne instanceof PatternMatchUnifiedVariable
-                    ).collect(Collectors.toList());
+                afterWhenExpr.searchAs(
+                    NamedSymbol.Searcher.class,
+                    s -> s.searchName((Predicate<String>) null, null, null)
+                ).filter(
+                    ne -> ne instanceof PatternMatchUnifiedVariable
+                ).collect(Collectors.toList());
 
 
             module.get(ContextManager.class).exit();
 
             //TODO consider using abstract representations of
             // matcher-classes/fields instead of reconverting
-            List<JvmDeclaredType> patternMatcherClasses =
+            patternMatcherClasses.addAll(
                 PatternMatchHelper.getPatternMatcherClasses(
                     auxiliaryStatements,
                     input,
                     module
-                );
+                )
+            );
 
             //TODO consider using abstract representations of
             // matcher-classes/fields instead of reconverting
-            List<JvmField> patternMatcherFields =
+            patternMatcherFields.addAll(
                 PatternMatchHelper.getPatternMatcherFieldDeclarations(
                     auxiliaryStatements,
                     input,
                     module
-                );
+                )
+            );
 
             final IJadescriptType finalContentType;
             if (wexpNarrowedMessageType instanceof BaseMessageType) {
@@ -289,8 +372,6 @@ public class OnMessageHandlerSemantics
 
             it.getMembers().addAll(patternMatcherClasses);
             it.getMembers().addAll(patternMatcherFields);
-
-
 
 
             List<ExpressionWriter> messageTemplateExpressions =
@@ -379,6 +460,7 @@ public class OnMessageHandlerSemantics
         });
     }
 
+
     private boolean addDoBodyMethod(
         Maybe<OnMessageHandler> input,
         OnMessageHandler inputSafe,
@@ -424,9 +506,11 @@ public class OnMessageHandlerSemantics
         ));
     }
 
+
     private boolean addReceiveMethod(
         OnMessageHandler inputSafe,
-        String messageTemplateName, JvmGenericType it
+        String messageTemplateName,
+        JvmGenericType it
     ) {
         return it.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(
             inputSafe,
@@ -460,6 +544,7 @@ public class OnMessageHandlerSemantics
         ));
     }
 
+
     private void addMessageTemplateMethod(
         OnMessageHandler inputSafe,
         String messageTemplateName,
@@ -479,6 +564,7 @@ public class OnMessageHandlerSemantics
             }
         ));
     }
+
 
     private ExpressionWriter customMessageTemplateExpression(
         String compiledExpression,
@@ -505,6 +591,7 @@ public class OnMessageHandlerSemantics
         );
     }
 
+
     private void addRunMethod(
         Maybe<OnMessageHandler> input,
         OnMessageHandler inputSafe, JvmGenericType itClass
@@ -513,11 +600,15 @@ public class OnMessageHandlerSemantics
             inputSafe,
             "run",
             module.get(TypeHelper.class).typeRef(void.class),
-            itMethod -> module.get(CompilationHelper.class).createAndSetBody(itMethod, scb -> {
-                generateRunMethod(input, scb);
-            })
+            itMethod -> module.get(CompilationHelper.class).createAndSetBody(
+                itMethod,
+                scb -> {
+                    generateRunMethod(input, scb);
+                }
+            )
         ));
     }
+
 
     private void addMessageReceivedBooleanField(
         OnMessageHandler inputSafe,
@@ -530,6 +621,7 @@ public class OnMessageHandlerSemantics
             itField -> itField.setVisibility(JvmVisibility.DEFAULT)
         ));
     }
+
 
     private void addMessageField(
         OnMessageHandler inputSafe,
@@ -551,7 +643,7 @@ public class OnMessageHandlerSemantics
         List<NamedSymbol> autoDeclaredVars
     ) {
         module.get(BlockSemantics.class)
-                .addInjectedVariables(codeBlock, autoDeclaredVars);
+            .addInjectedVariables(codeBlock, autoDeclaredVars);
 
         module.get(BlockSemantics.class).addInjectedVariable(
             codeBlock,
@@ -759,15 +851,18 @@ public class OnMessageHandlerSemantics
 
     }
 
+
     private void createAndSetHandlerBody(
         Maybe<CodeBlock> body, JvmOperation itMethod
     ) {
         final SavedContext saved = module.get(ContextManager.class).save();
         module.get(CompilationHelper.class).createAndSetBody(itMethod, scb -> {
             module.get(ContextManager.class).restore(saved);
-            scb.add(encloseInGeneralHandlerTryCatch(module.get(CompilationHelper.class).compileBlockToNewSCB(body)));
+            scb.add(encloseInGeneralHandlerTryCatch(module.get(CompilationHelper.class).compileBlockToNewSCB(
+                body)));
         });
     }
+
 
     private void generateRunMethod(
         Maybe<? extends EObject> source,

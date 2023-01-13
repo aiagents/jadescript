@@ -1,4 +1,4 @@
-package it.unipr.ailab.jadescript.semantics.namespace;
+package it.unipr.ailab.jadescript.semantics.namespace.jvm;
 
 import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;

@@ -13,8 +13,8 @@ import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.namespace.JvmModelBasedNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmOperationSymbol;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import jade.wrapper.ContainerController;
@@ -249,8 +249,8 @@ public class CreateAgentStatementSemantics
                     typeHelper.typeRef(ContainerController.class),
                     types.apply(0).asJvmTypeReference()
                 ) && typeHelper.isAssignable(typeHelper.TEXT, types.apply(1))
-            ).filter(c -> c instanceof JvmModelBasedNamespace.JvmOperationSymbol
-                && ((JvmModelBasedNamespace.JvmOperationSymbol) c).isStatic())
+            ).filter(c -> c instanceof JvmOperationSymbol
+                && ((JvmOperationSymbol) c).isStatic())
         ).findAny();
     }
 

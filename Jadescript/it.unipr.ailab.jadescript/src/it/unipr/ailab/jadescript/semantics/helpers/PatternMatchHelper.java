@@ -86,8 +86,7 @@ public class PatternMatchHelper implements SemanticsConsts {
     ) {
         JvmTypesBuilder jvmtb = module.get(JvmTypesBuilder.class);
         TypeHelper typeH = module.get(TypeHelper.class);
-        CompilationHelper compH =
-            module.get(CompilationHelper.class);
+        CompilationHelper compH = module.get(CompilationHelper.class);
         return jvmtb.toClass(eobj, localClass.getName(), itClass -> {
             for (ClassMemberWriter member : localClass.getMembers()) {
                 if (member instanceof ConstructorWriter) {
@@ -282,76 +281,5 @@ public class PatternMatchHelper implements SemanticsConsts {
         );
     }
 
-
-    public PatternMatcher compileMatchesExpressionPatternMatching(
-        IJadescriptType inputExprType,
-        Maybe<LValueExpression> pattern,
-        StaticState state,
-        CompilationOutputAcceptor acceptor
-    ) {
-        String localClassName = getPatternMatcherClassName(pattern);
-        final String variableName = localClassName + "_obj";
-        final MatchesExpression<LValueExpression> patternMatchInput =
-            new PatternMatchInput.MatchesExpression<>(
-                module,
-                inputExprType,
-                pattern,
-                "__",
-                variableName
-            );
-        final PatternMatcher output =
-            module.get(LValueExpressionSemantics.class).compilePatternMatch(
-                patternMatchInput, state, acceptor
-            );
-
-
-        final LocalClassStatementWriter localClass =
-            w.localClass(localClassName);
-
-        output.getWriters().forEach(localClass::addMember);
-
-        acceptor.accept(localClass);
-        acceptor.accept(w.variable(localClassName, variableName, w.expr("new "
-            + localClassName + "()")));
-        return output;
-    }
-
-
-    public PatternMatcher compileHeaderPatternMatching(
-        IJadescriptType contentUpperBound,
-        Maybe<LValueExpression> pattern,
-        StaticState state,
-        CompilationOutputAcceptor acceptor
-    ) {
-
-        String localClassName = getPatternMatcherClassName(pattern);
-        final String variableName = localClassName + "_obj";
-        final PatternMatchInput.HandlerHeader<LValueExpression>
-            patternMatchInput =
-            new PatternMatchInput.HandlerHeader<>(
-                module,
-                contentUpperBound,
-                pattern,
-                "__",
-                variableName
-            );
-        final PatternMatcher output =
-            module.get(LValueExpressionSemantics.class).compilePatternMatch(
-                patternMatchInput,
-                state,
-                acceptor
-            );
-
-
-        final LocalClassStatementWriter localClass =
-            w.localClass(localClassName);
-
-        output.getWriters().forEach(localClass::addMember);
-
-        acceptor.accept(localClass);
-        acceptor.accept(w.variable(localClassName, variableName, w.expr("new "
-            + localClassName + "()")));
-        return output;
-    }
 
 }

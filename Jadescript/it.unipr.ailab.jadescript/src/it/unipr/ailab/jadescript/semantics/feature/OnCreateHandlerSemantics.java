@@ -14,7 +14,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.namespace.JvmModelBasedNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import org.eclipse.emf.common.util.EList;

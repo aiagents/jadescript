@@ -21,6 +21,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Optional;
@@ -201,26 +202,58 @@ public class MatchesExpressionSemantics
                 .findFirst();
 
         final IJadescriptType inputExprType = upes.inferType(inputExpr, state);
-        final PatternMatcher output;
+        PatternMatchHelper patternMatchHelper =
+            module.get(PatternMatchHelper.class);
+        LValueExpressionSemantics lves =
+            module.get(LValueExpressionSemantics.class);
+
         if (handlerHeaderContext.isPresent()) {
             //We are in a handler header, probably in a when-expression
-            output = module.get(PatternMatchHelper.class)
-                .compileHeaderPatternMatching(
+
+            final PatternMatchInput<LValueExpression> patternMatchInput =
+                patternMatchHelper.handlerHeader(
                     inputExprType,
-                    pattern,
+                    pattern
+                );
+
+            final PatternMatcher matcher = lves.compilePatternMatch(
+                    patternMatchInput,
                     afterLeft,
                     acceptor
                 );
+
+            return matcher.operationInvocationText(compiledInputExpr);
         } else {
-            output = module.get(PatternMatchHelper.class)
-                .compileMatchesExpressionPatternMatching(
+            String localClassName =
+                patternMatchHelper.getPatternMatcherClassName(pattern);
+
+            final String variableName =
+                patternMatchHelper.getPatternMatcherVariableName(pattern);
+
+            final MatchesExpression<LValueExpression> patternMatchInput =
+                patternMatchHelper.matchesExpression(
                     inputExprType,
-                    pattern,
-                    afterLeft,
-                    acceptor
+                    pattern
                 );
+
+            final PatternMatcher matcher = lves.compilePatternMatch(
+                    patternMatchInput, afterLeft, acceptor
+                );
+
+
+            final LocalClassStatementWriter localClass =
+                PatternMatchHelper.w.localClass(localClassName);
+
+            matcher.getWriters().forEach(localClass::addMember);
+
+            acceptor.accept(localClass);
+            acceptor.accept(PatternMatchHelper.w.variable(localClassName,
+                variableName, PatternMatchHelper.w.expr("new "
+                + localClassName + "()")));
+
+
+            return matcher.operationInvocationText(compiledInputExpr);
         }
-        return output.operationInvocationText(compiledInputExpr);
     }
 
 

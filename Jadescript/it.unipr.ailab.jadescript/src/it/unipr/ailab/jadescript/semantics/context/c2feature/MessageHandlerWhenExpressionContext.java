@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.SymbolUtils;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
@@ -10,7 +11,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithSymbols;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import jadescript.lang.Performative;
@@ -41,6 +41,9 @@ public class MessageHandlerWhenExpressionContext
         this.performative = performative;
     }
 
+    public StaticState beginOfHeaderState(){
+        //TODO
+    }
 
     @Override
     public IJadescriptType getMessageContentType() {
@@ -111,17 +114,6 @@ public class MessageHandlerWhenExpressionContext
                 .map(ce -> SymbolUtils.setDereferenceByVariable(ce, MESSAGE_VAR_NAME));
     }
 
-    @Override
-    public Maybe<IJadescriptType> upperBoundForInterestedChain(List<String> propertyChain) {
-        if (Util.listEquals(propertyChain, List.of("message"))) {
-            return Maybe.some(getMessageType());
-        } else if (Util.listEquals(propertyChain, List.of("content", "message"))
-                || Util.listEquals(propertyChain, List.of("content"))) {
-            return Maybe.some(getMessageContentType());
-        } else {
-            return Maybe.nothing();
-        }
-    }
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {

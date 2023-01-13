@@ -170,7 +170,7 @@ public class StaticState
 
 
     @Override
-    public Stream<? extends IJadescriptType> inferUpperBound(
+    public Stream<IJadescriptType> inferUpperBound(
         @Nullable Predicate<ExpressionDescriptor> forExpression,
         @Nullable Predicate<IJadescriptType> upperBound
     ) {

@@ -8,6 +8,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import org.eclipse.xtext.util.Strings;
 

@@ -7,7 +7,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.namespace.JvmModelBasedNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;

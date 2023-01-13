@@ -8,11 +8,8 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public interface NamedSymbol extends Symbol {
-    String name();
 
-    default String compileRead(String dereferencePrefix) {
-        return dereferencePrefix + name();
-    }
+    String name();
 
     IJadescriptType readingType();
 
@@ -21,6 +18,12 @@ public interface NamedSymbol extends Symbol {
     }
 
     boolean canWrite();
+
+    default String compileRead(
+        String dereferencePrefix
+    ) {
+        return dereferencePrefix + name();
+    }
 
     default String compileWrite(String dereferencePrefix, String rexpr) {
         return dereferencePrefix + name() + " = " + rexpr;
@@ -31,7 +34,6 @@ public interface NamedSymbol extends Symbol {
         return new NamedSymbolSignature(name(), readingType(), canWrite());
     }
 
-    NamedSymbol intersectWith(NamedSymbol other, SemanticsModule module);
 
     default void debugDumpNamedSymbol(SourceCodeBuilder scb) {
         scb.open("NamedSymbol(concrete class=" + this.getClass().getName() +

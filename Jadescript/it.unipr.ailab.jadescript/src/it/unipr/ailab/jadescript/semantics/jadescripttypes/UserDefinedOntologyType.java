@@ -3,7 +3,8 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.namespace.JvmModelBasedNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmFieldSymbol;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
@@ -51,8 +52,8 @@ public class UserDefinedOntologyType extends UserDefinedType<BaseOntologyType> i
                         null
                 )
         )
-                .filter(v -> v instanceof JvmModelBasedNamespace.JvmFieldSymbol)
-                .map(v -> (JvmModelBasedNamespace.JvmFieldSymbol) v)
+                .filter(v -> v instanceof JvmFieldSymbol)
+                .map(v -> (JvmFieldSymbol) v)
                 .findAny()
                 .map(NamedSymbol::readingType)
                 .filter(t -> t instanceof OntologyType)

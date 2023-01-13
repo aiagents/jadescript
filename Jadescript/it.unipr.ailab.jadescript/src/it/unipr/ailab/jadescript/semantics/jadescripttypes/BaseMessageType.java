@@ -21,41 +21,43 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
     private final TypeArgument contentType;
     private final Class<?> messageClass;
 
+
     protected BaseMessageType(
-            SemanticsModule module,
-            String typeName,
-            Class<?> messageClass,
-            List<TypeArgument> typeParameters,
-            List<IJadescriptType> upperBounds
+        SemanticsModule module,
+        String typeName,
+        Class<?> messageClass,
+        List<TypeArgument> typeParameters,
+        List<IJadescriptType> upperBounds
     ) {
         super(
-                module,
-                TypeHelper.builtinPrefix + typeName,
-                typeName,
-                "MESSAGE",
-                "of",
-                "(", ")", ",",
-                typeParameters,
-                upperBounds
+            module,
+            TypeHelper.builtinPrefix + typeName,
+            typeName,
+            "MESSAGE",
+            "of",
+            "(", ")", ",",
+            typeParameters,
+            upperBounds
         );
         this.contentType = (typeParameters.size() == 1)
-                ? typeParameters.get(0).ignoreBound()
-                : module.get(TypeHelper.class).TUPLE.apply(typeParameters);
+            ? typeParameters.get(0).ignoreBound()
+            : module.get(TypeHelper.class).TUPLE.apply(typeParameters);
         this.messageClass = messageClass;
     }
 
+
     public BaseMessageType(
-            SemanticsModule module,
-            TypeArgument contentType
+        SemanticsModule module,
+        TypeArgument contentType
     ) {
         super(
-                module,
-                TypeHelper.builtinPrefix + "Message",
-                "Message",
-                "MESSAGE",
-                "of",
-                "(", ")", ",", Arrays.asList(contentType),
-                Arrays.asList(module.get(TypeHelper.class).ANY)
+            module,
+            TypeHelper.builtinPrefix + "Message",
+            "Message",
+            "MESSAGE",
+            "of",
+            "(", ")", ",", Arrays.asList(contentType),
+            Arrays.asList(module.get(TypeHelper.class).ANY)
         );
         this.contentType = contentType;
         this.messageClass = jadescript.core.message.Message.class;
@@ -72,65 +74,82 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
 
     }
 
+
     @Override
     public boolean isBasicType() {
         return false;
     }
+
 
     @Override
     public boolean isSlottable() {
         return false;
     }
 
+
     @Override
     public boolean isSendable() {
         return true;
     }
+
 
     @Override
     public boolean isReferrable() {
         return true;
     }
 
+
     @Override
     public boolean haveProperties() {
         return true;
     }
+
 
     @Override
     public boolean isErroneous() {
         return false;
     }
 
+
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
         return some(module.get(TypeHelper.class).ONTOLOGY);
     }
+
 
     @Override
     public boolean isCollection() {
         return false;
     }
 
+
     @Override
     public MessageTypeNamespace namespace() {
-        return MessageTypeNamespace.messageTypeNamespace(module, contentType, getLocation());
+        return MessageTypeNamespace.messageTypeNamespace(
+            module,
+            contentType,
+            getLocation()
+        );
     }
+
 
     @Override
     public JvmTypeReference asJvmTypeReference() {
         return module.get(TypeHelper.class).typeRef(
-                messageClass,
-                getTypeArguments().stream()
-                        .map(TypeArgument::asJvmTypeReference)
-                        .collect(Collectors.toList())
+            messageClass,
+            getTypeArguments().stream()
+                .map(TypeArgument::asJvmTypeReference)
+                .collect(Collectors.toList())
         );
     }
 
+
     @Override
     public String compileNewEmptyInstance() {
-        return "new jadescript.core.message.Message<>(jadescript.lang.Performative.UNKNOWN)";
+        return "new jadescript.core.message.Message<>(jadescript.lang" +
+            ".Performative.UNKNOWN)";
     }
+
 
     public static class MessageTypeNamespace extends BuiltinOpsNamespace {
 
@@ -140,25 +159,26 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
         private final Property contentProperty;
         private final Property ontologyProperty;
 
+
         private MessageTypeNamespace(
-                SemanticsModule module,
-                Property senderProperty,
-                Property performativeProperty,
-                Property contentProperty,
-                Property ontologyProperty,
-                SearchLocation location
+            SemanticsModule module,
+            Property senderProperty,
+            Property performativeProperty,
+            Property contentProperty,
+            Property ontologyProperty,
+            SearchLocation location
         ) {
             super(
-                    module,
-                    nothing(),
-                    List.of(
-                            senderProperty,
-                            performativeProperty,
-                            contentProperty,
-                            ontologyProperty
-                    ),
-                    List.of(),
-                    location
+                module,
+                nothing(),
+                List.of(
+                    senderProperty,
+                    performativeProperty,
+                    contentProperty,
+                    ontologyProperty
+                ),
+                List.of(),
+                location
             );
             this.senderProperty = senderProperty;
             this.performativeProperty = performativeProperty;
@@ -166,42 +186,65 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
             this.ontologyProperty = ontologyProperty;
         }
 
+
         public static MessageTypeNamespace messageTypeNamespace(
-                SemanticsModule module,
-                TypeArgument contentType,
-                SearchLocation location
+            SemanticsModule module,
+            TypeArgument contentType,
+            SearchLocation location
         ) {
+            final TypeHelper typeHelper = module.get(TypeHelper.class);
             return new MessageTypeNamespace(
-                    module,
-                    new Property("sender", module.get(TypeHelper.class).AID, true, location)
-                            .setCompileByJVMAccessors(),
-                    new Property("performative", module.get(TypeHelper.class).PERFORMATIVE, true, location)
-                            .setCompileByCustomJVMMethod("getJadescriptPerformative", "setJadescriptPerformative"),
-                    new Property("content", contentType.ignoreBound(), true, location)
-                            .setCustomCompile(
-                                    (e) -> e + "getContent(" + THE_AGENT + "().getContentManager())",
-                                    (e, re) -> e + "/*Error trying to set content*/ =" + re
-                            ),
-                    new Property("ontology", module.get(TypeHelper.class).ONTOLOGY, true, location)
-                            .setCompileByJVMAccessors(),
+                module,
+                new Property("sender", typeHelper.AID, true, location)
+                    .setCompileByJVMAccessors(),
+
+                new Property(
+                    "performative",
+                    typeHelper.PERFORMATIVE,
+                    true,
                     location
+                ).setCompileByCustomJVMMethod(
+                    "getJadescriptPerformative",
+                    "setJadescriptPerformative"
+                ),
+
+                new Property(
+                    "content",
+                    contentType.ignoreBound(),
+                    true,
+                    location
+                ).setCustomCompile(
+                    (e) -> e + "getContent(" + THE_AGENT +
+                        "().getContentManager())",
+                    (e, re) -> e + "/*Error trying to set content*/ =" + re
+                ),
+
+                new Property("ontology", typeHelper.ONTOLOGY, true, location)
+                    .setCompileByJVMAccessors(),
+                location
             );
         }
+
 
         public Property getSenderProperty() {
             return senderProperty;
         }
 
+
         public Property getPerformativeProperty() {
             return performativeProperty;
         }
+
 
         public Property getContentProperty() {
             return contentProperty;
         }
 
+
         public Property getOntologyProperty() {
             return ontologyProperty;
         }
+
     }
+
 }
