@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
+import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
@@ -68,6 +69,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
                 }
             }
 
+
             @Override
             public StatementWriter bindWrite(
                 String varName,
@@ -89,6 +91,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
                 }
             }
 
+
             @Override
             public String bindRead(String varName) {
                 final Optional<UserVariable> variable =
@@ -108,9 +111,11 @@ public class CompilationHelper implements IQualifiedNameProvider {
         };
     private final SemanticsModule module;
 
+
     public CompilationHelper(SemanticsModule module) {
         this.module = module;
     }
+
 
     @NotNull
     public static String extractOntologyVarName(JvmTypeReference jvmTypeReference) {
@@ -118,9 +123,11 @@ public class CompilationHelper implements IQualifiedNameProvider {
             jvmTypeReference.getQualifiedName('.').replaceAll("\\.", "_");
     }
 
+
     public static String extractOntologyVarName(IJadescriptType usedOntologyType) {
         return extractOntologyVarName(usedOntologyType.asJvmTypeReference());
     }
+
 
     public static String compileEmptyConstructorCall(
         final IJadescriptType jadescriptType
@@ -131,6 +138,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
             return "null";
         }
     }
+
 
     public static Maybe<String> sourceToLocationText(Maybe<? extends EObject> input) {
         return Util.extractEObject(input).__(eObject -> {
@@ -145,12 +153,14 @@ public class CompilationHelper implements IQualifiedNameProvider {
         });
     }
 
+
     public static Maybe<String> sourceToText(Maybe<? extends EObject> input) {
         return Util.extractEObject(input).__(eObject -> {
             final ICompositeNode node = NodeModelUtils.getNode(eObject);
             return node.getText();
         });
     }
+
 
     public static MultilineCommentWriter inputStatementComment(
         Maybe<Statement> input,
@@ -166,6 +176,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
         }
         return multiComment;
     }
+
 
     public void createAndSetBody(
         JvmExecutable container,
@@ -186,6 +197,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
         );
     }
 
+
     public void createAndSetInitializer(
         JvmField field,
         Consumer<SourceCodeBuilder> init
@@ -203,6 +215,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
             }
         );
     }
+
 
     public List<String> adaptAndCompileRValueList(
         List<String> compiledArgs,
@@ -250,6 +263,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
     ) {
         return compileRValueAsLambdaSupplier(expr, beforExpr, null);
     }
+
 
     /**
      * Compiles the expression into a Supplier lambda, which contains all the
@@ -307,21 +321,27 @@ public class CompilationHelper implements IQualifiedNameProvider {
         return scb.toString();
     }
 
+
     public LateVarBindingContext lateBindingContext() {
         return bindingContext;
     }
 
-    public SourceCodeBuilder compileBlockToNewSCB(Maybe<CodeBlock> cb) {
+
+    public PSR<SourceCodeBuilder> compileBlockToNewSCB(
+        Maybe<CodeBlock> cb,
+        StaticState initialState
+    ) {
         SourceCodeBuilder ssb = new SourceCodeBuilder("");
-        if (cb != null) {
-            final BlockWriter compiledBlock =
-                module.get(BlockSemantics.class).compile(cb, );
-            compiledBlock.setBindingProvider(userBlockLocalVars);
-            compiledBlock.writeSonnet(ssb);
-        }
+        final PSR<BlockWriter> blockPSR =
+            module.get(BlockSemantics.class).compile(cb, initialState);
+        final StaticState afterBlock = blockPSR.state();
+        final BlockWriter result = blockPSR.result();
+        result.setBindingProvider(userBlockLocalVars);
+        result.writeSonnet(ssb);
         bindingContext.clear();
-        return ssb;
+        return PSR.psr(ssb, afterBlock);
     }
+
 
     public String compileEmptyConstructorCall(
         Maybe<TypeExpression> typeExpr
@@ -331,7 +351,11 @@ public class CompilationHelper implements IQualifiedNameProvider {
         );
     }
 
-    public LightweightTypeReference toLightweightTypeReference(IJadescriptType type, EObject container) {
+
+    public LightweightTypeReference toLightweightTypeReference(
+        IJadescriptType type,
+        EObject container
+    ) {
         return module.get(JadescriptCompilerUtils.class)
             .toLightweightTypeReference(type.asJvmTypeReference(), container);
     }
@@ -342,15 +366,20 @@ public class CompilationHelper implements IQualifiedNameProvider {
         if (eObject == null)
             //noinspection ReturnOfNull
             return null;
-        return module.get(IQualifiedNameProvider.class).getFullyQualifiedName(eObject);
+        return module.get(IQualifiedNameProvider.class).getFullyQualifiedName(
+            eObject);
     }
+
 
     @SuppressWarnings("unused")
     public QualifiedName apply(EObject arg0) {
-        return module.get(IQualifiedNameProvider.class).getFullyQualifiedName(arg0);
+        return module.get(IQualifiedNameProvider.class).getFullyQualifiedName(
+            arg0);
     }
 
+
     public static class LateVarBindingContext {
+
         private final Map<String, UserVariable> map = new HashMap<>();
 
 
@@ -358,16 +387,21 @@ public class CompilationHelper implements IQualifiedNameProvider {
             return Optional.ofNullable(map.get(varCode));
         }
 
+
         public synchronized void pushVariable(UserVariable variable) {
             map.put("V" + Integer.toHexString(variable.hashCode()), variable);
         }
+
 
         public synchronized void clear() {
             map.clear();
         }
 
+
         public synchronized void forEach(BiConsumer<String, UserVariable> action) {
             map.forEach(action);
         }
+
     }
+
 }

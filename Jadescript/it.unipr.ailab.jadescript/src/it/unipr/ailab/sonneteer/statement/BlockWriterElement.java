@@ -1,4 +1,7 @@
 package it.unipr.ailab.sonneteer.statement;
 
-public interface BlockWriterElement {
+import it.unipr.ailab.sonneteer.Writer;
+
+public interface BlockWriterElement extends Writer {
+
 }

@@ -158,9 +158,12 @@ public class Util implements SemanticsConsts {
     public static Maybe<String> getOuterClassThisReference(
         Maybe<? extends EObject> input
     ) {
+        input = Util.extractEObject(input);
+
         if (input.isNothing()) {
             return nothing();
         }
+
         EObject inputSafe = input.toNullable();
         NamedFeature memberContainer = EcoreUtil2.getContainerOfType(
             inputSafe,

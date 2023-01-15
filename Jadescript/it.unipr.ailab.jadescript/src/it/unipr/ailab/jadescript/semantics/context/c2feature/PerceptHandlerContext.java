@@ -17,10 +17,9 @@ public class PerceptHandlerContext
             SemanticsModule module,
             ProceduralFeatureContainerContext outer,
             String eventType,
-            List<NamedSymbol> patternMatchAutoDeclaredVariables,
             IJadescriptType perceptContentType
     ) {
-        super(module, outer, eventType, patternMatchAutoDeclaredVariables);
+        super(module, outer, eventType);
         this.perceptContentType = perceptContentType;
     }
 

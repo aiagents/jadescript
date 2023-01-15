@@ -1,31 +1,27 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import jadescript.lang.Performative;
 
-import java.util.List;
-
-public class MessageHandlerContext
+public class OnMessageHandlerContext
         extends HandlerWithWhenExpressionContext
         implements MessageReceivedContext {
     private final Maybe<String> performative;
     private final IJadescriptType messageContentType;
     private final IJadescriptType messageType;
 
-    public MessageHandlerContext(
+    public OnMessageHandlerContext(
             SemanticsModule module,
             ProceduralFeatureContainerContext outer,
             String eventType,
             Maybe<String> performative,
-            List<NamedSymbol> patternMatchAutoDeclaredVariables,
             IJadescriptType messageType,
             IJadescriptType messageContentType
     ) {
-        super(module, outer, eventType, patternMatchAutoDeclaredVariables);
+        super(module, outer, eventType);
         this.performative = performative;
         this.messageContentType = messageContentType;
         this.messageType = messageType;
@@ -49,7 +45,7 @@ public class MessageHandlerContext
     @Override
     public void debugDump(SourceCodeBuilder scb) {
         super.debugDump(scb);
-        scb.line("--> is MessageHandlerContext");
+        scb.line("--> is OnMessageHandlerContext");
         debugDumpReceivedMessage(scb);
     }
 

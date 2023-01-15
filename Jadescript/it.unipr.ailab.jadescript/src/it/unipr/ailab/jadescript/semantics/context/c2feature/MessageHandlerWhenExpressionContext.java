@@ -41,7 +41,7 @@ public class MessageHandlerWhenExpressionContext
         this.performative = performative;
     }
 
-    public StaticState beginOfHeaderState(){
+    public StaticState beginOfHeaderState() {
         //TODO
     }
 

@@ -11,6 +11,8 @@ import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
+import it.unipr.ailab.sonneteer.statement.StatementWriter;
+import it.unipr.ailab.sonneteer.statement.controlflow.TryCatchWriter;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmMember;
@@ -36,27 +38,44 @@ public abstract class FeatureSemantics<T extends Feature> extends Semantics {
     );
 
 
-    protected SourceCodeBuilder encloseInGeneralHandlerTryCatch(SourceCodeBuilder scb) {
-        SourceCodeBuilder result = new SourceCodeBuilder();
-
-        final String throwable = "__throwable";
-        w.tryCatch(new BlockWriter() {
-            @Override
-            public void writeSonnet(SourceCodeBuilder s) {
-                s.add(scb);
+    protected TryCatchWriter encloseInGeneralHandlerTryCatch(
+        SourceCodeBuilder scb
+    ) {
+        return encloseInGeneralHandlerTryCatch(
+            new BlockWriter() {
+                @Override
+                public void writeSonnet(SourceCodeBuilder s) {
+                    s.add(scb);
+                }
             }
-        }).addCatchBranch("jadescript.core.exception.JadescriptException", throwable,
-                w.block()
-                        .addStatement(w.callStmnt(EXCEPTION_HANDLER_METHOD_NAME, w.expr(throwable)))
-        ).addCatchBranch("java.lang.Throwable", throwable,
-                w.block()
-                        .addStatement(w.callStmnt(EXCEPTION_HANDLER_METHOD_NAME, w.expr(
-                                "jadescript.core.exception.JadescriptException.wrap("+throwable+")"
-                        )))
-        ).writeSonnet(result);
-        return result;
+        );
     }
 
+
+    protected TryCatchWriter encloseInGeneralHandlerTryCatch(
+        BlockWriter insideTry
+    ) {
+        final String throwable = "__throwable";
+        return w.tryCatch(insideTry)
+            .addCatchBranch(
+                "jadescript.core.exception.JadescriptException",
+                throwable,
+                w.block()
+                    .addStatement(w.callStmnt(
+                        EXCEPTION_HANDLER_METHOD_NAME,
+                        w.expr(throwable)
+                    ))
+            ).addCatchBranch("java.lang.Throwable", throwable,
+                w.block()
+                    .addStatement(w.callStmnt(
+                        EXCEPTION_HANDLER_METHOD_NAME,
+                        w.expr(
+                            "jadescript.core.exception.JadescriptException" +
+                                ".wrap(" + throwable + ")"
+                        )
+                    ))
+            );
+    }
 
 
     public void validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {

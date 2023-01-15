@@ -30,6 +30,8 @@ public class WriterFactory {
 
     public final ExpressionWriter False = this.expr("false");
     public final ExpressionWriter True = this.expr("true");
+    public final ExpressionWriter Null = this.expr("null");
+
 
     private WriterFactory() {} //don't use ctor
 

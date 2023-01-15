@@ -72,9 +72,6 @@ public class BlockSemantics extends Semantics {
     private final SemanticsClassState<CodeBlock, List<StatementWriter>>
         injectedStatements = new SemanticsClassState<>(ArrayList::new);
 
-    private final SemanticsClassState<CodeBlock, List<NamedSymbol>>
-        injectedVariables = new SemanticsClassState<>(ArrayList::new);
-
 
     public BlockSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -125,15 +122,13 @@ public class BlockSemantics extends Semantics {
             final List<StatementWriter> injectedStatements =
                 this.injectedStatements.getOrNew(input);
 
-            final List<NamedSymbol> injectedVariables =
-                this.injectedVariables.getOrNew(input);
+
 
             for (StatementWriter injectedStatement : injectedStatements) {
                 bp.addStatement(injectedStatement);
             }
 
-            runningState.set(runningState.get()
-                .assertNamedSymbols(injectedVariables));
+
 
 
             final SemanticsDispatchHelper dispatchHelper =
@@ -211,11 +206,6 @@ public class BlockSemantics extends Semantics {
             runningState.set(runningState.get().pushScope());
 
 
-            final List<NamedSymbol> injectedVariables =
-                this.injectedVariables.getOrNew(input);
-
-            runningState.set(runningState.get()
-                .assertNamedSymbols(injectedVariables));
 
             for (int i = 0; i < statements.size(); i++) {
 
@@ -303,22 +293,6 @@ public class BlockSemantics extends Semantics {
         List<StatementWriter> injectedStatements
     ) {
         this.injectedStatements.getOrNew(input).addAll(injectedStatements);
-    }
-
-
-    public void addInjectedVariables(
-        Maybe<CodeBlock> input,
-        List<NamedSymbol> injectedVariables
-    ) {
-        this.injectedVariables.getOrNew(input).addAll(injectedVariables);
-    }
-
-
-    public void addInjectedVariable(
-        Maybe<CodeBlock> input,
-        NamedSymbol injectedVariable
-    ) {
-        this.injectedVariables.getOrNew(input).add(injectedVariable);
     }
 
 
