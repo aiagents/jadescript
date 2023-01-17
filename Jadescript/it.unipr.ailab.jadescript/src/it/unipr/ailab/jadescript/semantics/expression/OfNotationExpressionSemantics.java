@@ -276,6 +276,8 @@ public class OfNotationExpressionSemantics
         final Maybe<AidLiteral> aidLiteral =
             input.__(OfNotation::getAidLiteral);
 
+        //TODO flag property as written
+
         return ales.advance(aidLiteral, state);
     }
 

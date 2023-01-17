@@ -202,6 +202,8 @@ public class SingleIdentifierExpressionSemantics
             input,
             state
         );
+
+
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         if (variable.isPresent()) {
             String adaptedExpression = compiledExpression;

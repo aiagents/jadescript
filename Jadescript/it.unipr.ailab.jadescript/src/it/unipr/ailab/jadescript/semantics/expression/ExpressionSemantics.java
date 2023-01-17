@@ -430,7 +430,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
     /**
      * @see ExpressionSemantics#compile(
-     * Maybe, StaticState, CompilationOutputAcceptor)
+     *Maybe, StaticState, CompilationOutputAcceptor)
      */
     protected abstract String compileInternal(
         Maybe<T> input,
@@ -442,12 +442,45 @@ public abstract class ExpressionSemantics<T> extends Semantics {
      * Computes the type of the input expression.
      */
     public final IJadescriptType inferType(Maybe<T> input, StaticState state) {
+
+
         return traverse(input)
             .map(x -> x.getSemantics().inferType(
                 x.getInput(),
                 state
             ))
-            .orElseGet(() -> inferTypeInternal(input, state));
+            .orElseGet(() -> prepareInferType(input, state));
+
+    }
+
+
+    private IJadescriptType prepareInferType(
+        Maybe<T> input,
+        StaticState state
+    ) {
+        final IJadescriptType inferredType =
+            inferTypeInternal(input, state);
+
+        final Maybe<ExpressionDescriptor> descriptorMaybe =
+            describeExpression(input, state);
+
+        if (descriptorMaybe.isPresent()) {
+            final ExpressionDescriptor descriptor =
+                descriptorMaybe.toNullable();
+            StaticState after = advance(input, state);
+            final Optional<IJadescriptType> flowSensitiveInferredType =
+                after.inferUpperBound(
+                    s -> s.equals(descriptor),
+                    null
+                ).findFirst();
+
+            if (flowSensitiveInferredType.isPresent()) {
+                return module.get(TypeHelper.class)
+                    .getGLB(inferredType, flowSensitiveInferredType.get());
+            }
+        }
+
+        return inferredType;
     }
 
 
@@ -551,7 +584,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         PatternMatchInput<T> input,
         StaticState state
     );
-
 
 
     /**
@@ -747,7 +779,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
      * pattern is completely known at compile-time.
      * By design, if this method returns true for a given pattern, then
      * {@link ExpressionSemantics#inferPatternType(
-     * PatternMatchInput, StaticState)}
+     *PatternMatchInput, StaticState)}
      * should return a
      * {@link PatternType.HoledPatternType}, otherwise a
      * {@link PatternType.SimplePatternType} is expected.
