@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import jadescript.lang.Performative;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -16,6 +17,7 @@ import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 public interface MessageReceivedContext extends SemanticsConsts {
 
 
+    @NotNull
     static ContextGeneratedReference messageContentContextGeneratedReference(
         IJadescriptType messageType,
         IJadescriptType contentType
@@ -27,6 +29,7 @@ public interface MessageReceivedContext extends SemanticsConsts {
         );
     }
 
+    @NotNull
     static ContextGeneratedReference messageContextGeneratedReference(
          IJadescriptType messageType
     ){

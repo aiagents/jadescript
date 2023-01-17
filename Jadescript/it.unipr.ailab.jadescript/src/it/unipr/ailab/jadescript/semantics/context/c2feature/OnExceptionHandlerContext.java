@@ -17,10 +17,9 @@ public class OnExceptionHandlerContext
             SemanticsModule module,
             ProceduralFeatureContainerContext outer,
             String eventType,
-            List<NamedSymbol> patternMatchAutoDeclaredVariables,
             IJadescriptType exceptionReasonType
     ) {
-        super(module, outer, eventType, patternMatchAutoDeclaredVariables);
+        super(module, outer, eventType);
         this.exceptionReasonType = exceptionReasonType;
     }
 

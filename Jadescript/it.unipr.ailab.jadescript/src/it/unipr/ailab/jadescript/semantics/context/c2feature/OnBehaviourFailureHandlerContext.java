@@ -9,7 +9,7 @@ import java.util.List;
 
 public class OnBehaviourFailureHandlerContext
         extends HandlerWithWhenExpressionContext
-        implements OnBehaviourFailureHandledContext {
+        implements BehaviourFailureHandledContext {
 
     private final IJadescriptType failedBehaviourType;
     private final IJadescriptType behaviourFailureReasonType;
@@ -18,11 +18,10 @@ public class OnBehaviourFailureHandlerContext
             SemanticsModule module,
             ProceduralFeatureContainerContext outer,
             String eventType,
-            List<NamedSymbol> patternMatchAutoDeclaredVariables,
             IJadescriptType failedBehaviourType,
             IJadescriptType behaviourFailureReasonType
     ) {
-        super(module, outer, eventType, patternMatchAutoDeclaredVariables);
+        super(module, outer, eventType);
         this.failedBehaviourType = failedBehaviourType;
         this.behaviourFailureReasonType = behaviourFailureReasonType;
     }

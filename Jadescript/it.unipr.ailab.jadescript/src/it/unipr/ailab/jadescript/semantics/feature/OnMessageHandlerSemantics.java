@@ -6,9 +6,9 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
-import it.unipr.ailab.jadescript.semantics.context.c2feature.MessageHandlerWhenExpressionContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.MessageReceivedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnMessageHandlerContext;
+import it.unipr.ailab.jadescript.semantics.context.c2feature.OnMessageHandlerWhenExpressionContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
@@ -174,15 +174,10 @@ public class OnMessageHandlerSemantics
             );
 
         module.get(ContextManager.class).enterProceduralFeature(
-            (m, o) -> new MessageHandlerWhenExpressionContext(
+            (m, o) -> new OnMessageHandlerWhenExpressionContext(
                 m, performative, o));
 
-        StaticState beforePattern = module.get(ContextManager.class)
-            .currentContext()
-            .actAs(MessageHandlerWhenExpressionContext.class)
-            .map(MessageHandlerWhenExpressionContext::beginOfHeaderState)
-            .findFirst()
-            .orElseGet(() -> StaticState.beginningOfOperation(module));
+        StaticState beforePattern = StaticState.beginningOfOperation(module);
 
 
         String compiledExpression;
@@ -475,9 +470,6 @@ public class OnMessageHandlerSemantics
             );
 
 
-
-
-
         final StatementWriter userBody = encloseInGeneralHandlerTryCatch(
             bodyPSR.result()
         );
@@ -639,15 +631,10 @@ public class OnMessageHandlerSemantics
             );
 
         module.get(ContextManager.class).enterProceduralFeature(
-            (m, o) -> new MessageHandlerWhenExpressionContext(
+            (m, o) -> new OnMessageHandlerWhenExpressionContext(
                 m, performative, o));
 
-        StaticState beforePattern = module.get(ContextManager.class)
-            .currentContext()
-            .actAs(MessageHandlerWhenExpressionContext.class)
-            .map(MessageHandlerWhenExpressionContext::beginOfHeaderState)
-            .findFirst()
-            .orElseGet(() -> StaticState.beginningOfOperation(module));
+        StaticState beforePattern = StaticState.beginningOfOperation(module);
 
         IJadescriptType pattNarrowedContentType = contentUpperBound;
         IJadescriptType wexpNarrowedContentType = contentUpperBound;
@@ -846,9 +833,6 @@ public class OnMessageHandlerSemantics
         module.get(ContextManager.class).exit();
 
     }
-
-
-
 
 
 }

@@ -10,7 +10,7 @@ import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociated;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.MessageReceivedContext;
-import it.unipr.ailab.jadescript.semantics.context.c2feature.OnBehaviourFailureHandledContext;
+import it.unipr.ailab.jadescript.semantics.context.c2feature.BehaviourFailureHandledContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnExceptionHandledContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.PerceptPerceivedContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
@@ -336,9 +336,9 @@ public class PrimaryExpressionSemantics
                 .map(OnExceptionHandledContext::getExceptionReasonType)
                 .orElseGet(() -> typeHelper.PREDICATE);
         } else if (behaviour.isPresent()) {
-            return state.actAs(OnBehaviourFailureHandledContext.class)
+            return state.actAs(BehaviourFailureHandledContext.class)
                 .findFirst()
-                .map(OnBehaviourFailureHandledContext::getFailedBehaviourType)
+                .map(BehaviourFailureHandledContext::getFailedBehaviourType)
                 .orElseGet(() -> typeHelper.ANYBEHAVIOUR);
         } else if (percept.isPresent()) {
             return state.actAs(PerceptPerceivedContext.class)
@@ -491,7 +491,7 @@ public class PrimaryExpressionSemantics
         } else if (behaviour.isPresent()) {
             return module.get(ValidationHelper.class).asserting(
                 module.get(ContextManager.class).currentContext()
-                    .actAs(OnBehaviourFailureHandledContext.class)
+                    .actAs(BehaviourFailureHandledContext.class)
                     .findFirst()
                     .isPresent(),
                 "MissingPerceptReference",
