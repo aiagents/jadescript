@@ -11,7 +11,6 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.MessageReceivedCont
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnMessageHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedReference;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
@@ -450,11 +449,8 @@ public class OnMessageHandlerSemantics
                     finalContentType
                 )
             ).assertNamedSymbol(
-                new ContextGeneratedReference(
-                    MESSAGE_VAR_NAME,
-                    finalContentType,
-                    (__) -> "(" + finalMessageType.compileAsJavaCast() +
-                        " " + MESSAGE_VAR_NAME + ")"
+                MessageReceivedContext.messageContextGeneratedReference(
+                    finalMessageType
                 )
             );
 
@@ -471,11 +467,16 @@ public class OnMessageHandlerSemantics
             finalContentType
         ));
 
+        inBody = inBody.enterScope();
         final PSR<SourceCodeBuilder> bodyPSR =
             module.get(CompilationHelper.class).compileBlockToNewSCB(
-                body,
-                inBody
+                inBody,
+                body
             );
+
+
+
+
 
         final StatementWriter userBody = encloseInGeneralHandlerTryCatch(
             bodyPSR.result()
@@ -817,11 +818,8 @@ public class OnMessageHandlerSemantics
                     finalContentType
                 )
             ).assertNamedSymbol(
-                new ContextGeneratedReference(
-                    MESSAGE_VAR_NAME,
-                    finalContentType,
-                    (__) -> "(" + finalMessageType.compileAsJavaCast() +
-                        " " + MESSAGE_VAR_NAME + ")"
+                MessageReceivedContext.messageContextGeneratedReference(
+                    finalMessageType
                 )
             );
 
@@ -837,6 +835,7 @@ public class OnMessageHandlerSemantics
             finalContentType
         ));
 
+        inBody = inBody.enterScope();
 
         module.get(BlockSemantics.class).validate(
             body,
@@ -847,6 +846,9 @@ public class OnMessageHandlerSemantics
         module.get(ContextManager.class).exit();
 
     }
+
+
+
 
 
 }

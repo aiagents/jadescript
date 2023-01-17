@@ -4,7 +4,7 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.GenerationParameters;
-import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
+import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.PatternMatchUnifiedVariable;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
@@ -20,7 +20,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
+import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
@@ -71,8 +71,8 @@ public class SingleIdentifierExpressionSemantics
         } else if (resolved.toNullable() instanceof Either.Left) {
             return some(new ExpressionDescriptor.PropertyChain(ident));
         } else /*if(resolved.toNullable() instanceof Either.Right)*/ {
-            return module.get(MethodCallSemantics.class).describeExpression(
-                MethodCall.methodCall(input),
+            return module.get(CallSemantics.class).describeExpression(
+                Call.call(input),
                 state
             );
         }
@@ -93,8 +93,8 @@ public class SingleIdentifierExpressionSemantics
             || resolved.toNullable() instanceof Either.Left) {
             return state;
         } else /*if(resolved.toNullable() instanceof Either.Right)*/ {
-            return module.get(MethodCallSemantics.class).advance(
-                MethodCall.methodCall(input),
+            return module.get(CallSemantics.class).advance(
+                Call.call(input),
                 state
             );
         }
@@ -124,9 +124,9 @@ public class SingleIdentifierExpressionSemantics
         if (named.isPresent()) {
             return some(new Either.Left<>(named.toNullable()));
         }
-        final MethodCallSemantics mcs = module.get(MethodCallSemantics.class);
+        final CallSemantics mcs = module.get(CallSemantics.class);
         Maybe<? extends CallableSymbol> callable = mcs.resolve(
-            MethodCall.methodCall(input),
+            Call.call(input),
             state,
             true
         );
@@ -182,8 +182,8 @@ public class SingleIdentifierExpressionSemantics
                 return variable.compileRead("");
             }
         } else /*if (resolved.toNullable() instanceof Either.Right)*/ {
-            return module.get(MethodCallSemantics.class)
-                .compile(MethodCall.methodCall(input), state, acceptor);
+            return module.get(CallSemantics.class)
+                .compile(Call.call(input), state, acceptor);
         }
     }
 
@@ -322,8 +322,8 @@ public class SingleIdentifierExpressionSemantics
                 (Either.Left<NamedSymbol, CallableSymbol>) resolved.toNullable()
             ).getLeft().readingType();
         } else /*if(resolved.toNullable() instanceof Either.Right)*/ {
-            return module.get(MethodCallSemantics.class).inferType(
-                MethodCall.methodCall(input), state);
+            return module.get(CallSemantics.class).inferType(
+                Call.call(input), state);
         }
 
     }
@@ -362,7 +362,7 @@ public class SingleIdentifierExpressionSemantics
 
         return (
             (Either.Right<NamedSymbol, CallableSymbol>) resolved.toNullable()
-        ).getRight().isPure();
+        ).getRight().isWithoutSideEffects();
 
     }
 
@@ -748,9 +748,9 @@ public class SingleIdentifierExpressionSemantics
             return true;
         } else if (either instanceof Either.Right) {
             //Resolves to a function invocation
-            return module.get(MethodCallSemantics.class)
+            return module.get(CallSemantics.class)
                 .isPatternEvaluationPure(input.replacePattern(
-                    MethodCall.methodCall(input.getPattern())
+                    Call.call(input.getPattern())
                 ), state);
         } else {
             return true;

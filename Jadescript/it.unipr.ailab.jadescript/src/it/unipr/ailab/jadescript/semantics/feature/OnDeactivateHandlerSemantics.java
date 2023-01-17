@@ -73,7 +73,9 @@ public class OnDeactivateHandlerSemantics extends FeatureSemantics<OnDeactivateH
         module.get(ContextManager.class).enterProceduralFeature(OnDeactivateHandlerContext::new);
 
 
-        module.get(BlockSemantics.class).validate(body, state, acceptor);
+        module.get(BlockSemantics.class).validate(body, state,
+            blockType,
+            acceptor);
 
         module.get(ContextManager.class).exit();
     }

@@ -1,7 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol;
 
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
@@ -73,14 +72,8 @@ public class CallableSymbolWrapper implements CallableSymbol {
 
 
     @Override
-    public boolean isPure() {
-        return wrapped.isPure();
-    }
-
-
-    @Override
-    public StaticState advanceCall(StaticState state) {
-        return wrapped.advanceCall(state);
+    public boolean isWithoutSideEffects() {
+        return wrapped.isWithoutSideEffects();
     }
 
 

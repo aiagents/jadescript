@@ -14,6 +14,8 @@ import java.util.stream.Stream;
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
 public interface MessageReceivedContext extends SemanticsConsts {
+
+
     static ContextGeneratedReference messageContentContextGeneratedReference(
         IJadescriptType messageType,
         IJadescriptType contentType
@@ -24,6 +26,18 @@ public interface MessageReceivedContext extends SemanticsConsts {
                 ".getContent(" + THE_AGENT + "().getContentManager())"
         );
     }
+
+    static ContextGeneratedReference messageContextGeneratedReference(
+         IJadescriptType messageType
+    ){
+        return new ContextGeneratedReference(
+            MESSAGE_VAR_NAME,
+            messageType,
+            (__) -> "(" + messageType.compileAsJavaCast() +
+                " " + MESSAGE_VAR_NAME + ")"
+        );
+    }
+
 
     Maybe<Performative> getPerformative();
 

@@ -266,7 +266,7 @@ public class OnExceptionHandlerSemantics extends FeatureSemantics<OnExceptionHan
 
             module.get(BlockSemantics.class).validate(input.__(FeatureWithBody::getBody),
                 state,
-                acceptor);
+                blockType, acceptor);
 
             module.get(ContextManager.class).exit();
         });

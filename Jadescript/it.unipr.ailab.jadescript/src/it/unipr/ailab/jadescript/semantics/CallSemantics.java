@@ -20,7 +20,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
+import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
 import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
@@ -41,11 +41,10 @@ import static it.unipr.ailab.maybe.Maybe.*;
  * Created on 28/02/2020.
  */
 @Singleton
-public class MethodCallSemantics
-    extends AssignableExpressionSemantics<MethodCall> {
+public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
 
-    public MethodCallSemantics(SemanticsModule semanticsModule) {
+    public CallSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
@@ -94,21 +93,21 @@ public class MethodCallSemantics
 
 
     @Override
-    protected boolean mustTraverse(Maybe<MethodCall> input) {
+    protected boolean mustTraverse(Maybe<Call> input) {
         return false;
     }
 
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(Maybe<MethodCall> input) {
+    traverse(Maybe<Call> input) {
         return Optional.empty();
     }
 
 
     @Override
     protected void compileAssignmentInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
@@ -120,7 +119,7 @@ public class MethodCallSemantics
 
     @Override
     protected StaticState advanceAssignmentInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         IJadescriptType rightType,
         StaticState state
     ) {
@@ -131,7 +130,7 @@ public class MethodCallSemantics
 
     @Override
     public boolean validateAssignmentInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         Maybe<RValueExpression> expression,
         StaticState state,
         ValidationMessageAcceptor acceptor
@@ -143,7 +142,7 @@ public class MethodCallSemantics
 
     @Override
     public boolean syntacticValidateLValueInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         ValidationMessageAcceptor acceptor
     ) {
         return errorNotLvalue(input, acceptor);
@@ -151,7 +150,7 @@ public class MethodCallSemantics
 
 
     private Maybe<SimpleArgumentList> extractSimpleArgs(
-        Maybe<MethodCall> input
+        Maybe<Call> input
     ) {
         if (input.isPresent()) {
             return input.toNullable().getSimpleArgs();
@@ -161,7 +160,7 @@ public class MethodCallSemantics
     }
 
 
-    private Maybe<NamedArgumentList> extractNamedArgs(Maybe<MethodCall> input) {
+    private Maybe<NamedArgumentList> extractNamedArgs(Maybe<Call> input) {
         if (input.isPresent()) {
             return input.toNullable().getNamedArgs();
         } else {
@@ -172,12 +171,12 @@ public class MethodCallSemantics
 
     @Override
     protected StaticState advanceInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state
     ) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
-        Maybe<String> name = input.__(MethodCall::getName);
+        Maybe<String> name = input.__(Call::getName);
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
 
 
@@ -212,7 +211,7 @@ public class MethodCallSemantics
 
     @Override
     protected StaticState assertDidMatchInternal(
-        PatternMatchInput<MethodCall> input,
+        PatternMatchInput<Call> input,
         StaticState state
     ) {
         final Maybe<? extends CallableSymbol> method = resolve(
@@ -271,7 +270,7 @@ public class MethodCallSemantics
         for (int i = 0; i < argExpressions.size(); i++) {
             Maybe<RValueExpression> term = argExpressions.get(i);
             IJadescriptType upperBound = patternTermTypes.get(i);
-            final SubPattern<RValueExpression, MethodCall> termSubpattern =
+            final SubPattern<RValueExpression, Call> termSubpattern =
                 input.subPattern(
                     upperBound,
                     __ -> term.toNullable(),
@@ -289,7 +288,7 @@ public class MethodCallSemantics
 
     @Override
     protected StaticState assertReturnedTrueInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state
     ) {
         return state;
@@ -298,7 +297,7 @@ public class MethodCallSemantics
 
     @Override
     protected StaticState assertReturnedFalseInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state
     ) {
         return state;
@@ -307,7 +306,7 @@ public class MethodCallSemantics
 
     @Override
     protected StaticState advancePatternInternal(
-        PatternMatchInput<MethodCall> input,
+        PatternMatchInput<Call> input,
         StaticState state
     ) {
         final Maybe<? extends CallableSymbol> method = resolve(
@@ -362,7 +361,7 @@ public class MethodCallSemantics
         for (int i = 0; i < argExpressions.size(); i++) {
             Maybe<RValueExpression> term = argExpressions.get(i);
             IJadescriptType upperBound = patternTermTypes.get(i);
-            final SubPattern<RValueExpression, MethodCall> termSubpattern =
+            final SubPattern<RValueExpression, Call> termSubpattern =
                 input.subPattern(
                     upperBound,
                     __ -> term.toNullable(),
@@ -410,8 +409,7 @@ public class MethodCallSemantics
             return state;
         }
 
-        CallableSymbol method = methodsFound.get();
-        return method.advanceCall(newState);
+        return newState;
     }
 
 
@@ -475,19 +473,19 @@ public class MethodCallSemantics
             return state;
         }
 
-        return methodFound.get().advanceCall(newState);
+        return newState;
     }
 
 
     @Override
     protected String compileInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state,
         CompilationOutputAcceptor acceptor
     ) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
-        Maybe<String> name = input.__(MethodCall::getName);
+        Maybe<String> name = input.__(Call::getName);
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
 
         if (name.nullIf(String::isBlank).isNothing()) {
@@ -610,7 +608,7 @@ public class MethodCallSemantics
 
     @Override
     protected IJadescriptType inferTypeInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state
     ) {
         return resolve(
@@ -627,15 +625,15 @@ public class MethodCallSemantics
 
     @Override
     protected boolean validateInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
-        Maybe<String> name = input.__(MethodCall::getName);
+        Maybe<String> name = input.__(Call::getName);
         boolean isProcedure =
-            input.__(MethodCall::isProcedure).extract(nullAsTrue);
+            input.__(Call::isProcedure).extract(nullAsTrue);
 
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
         String procOrFunc = isProcedure ? "procedure" : "function";
@@ -679,7 +677,7 @@ public class MethodCallSemantics
 
 
     private boolean validateCallByArity(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state,
         ValidationMessageAcceptor acceptor,
         Maybe<SimpleArgumentList> simpleArgs,
@@ -786,7 +784,7 @@ public class MethodCallSemantics
 
 
     private boolean validateCallByName(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state,
         ValidationMessageAcceptor acceptor,
         Maybe<NamedArgumentList> namedArgs,
@@ -922,7 +920,7 @@ public class MethodCallSemantics
 
 
     private boolean emitAmbiguousError(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         ValidationMessageAcceptor acceptor,
         String procOrFunc,
         String errorCode,
@@ -952,7 +950,7 @@ public class MethodCallSemantics
 
 
     private boolean emitUnresolvedError(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         ValidationMessageAcceptor acceptor,
         String procOrFunc,
         String errorCode,
@@ -969,7 +967,7 @@ public class MethodCallSemantics
 
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
-        Maybe<MethodCall> input
+        Maybe<Call> input
     ) {
         //only arguments can be sub-expressions
         return Maybe.toListOfMaybes(eitherCall(
@@ -984,7 +982,7 @@ public class MethodCallSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state
     ) {
         return subExpressionsAnyHoled(input, state);
@@ -993,7 +991,7 @@ public class MethodCallSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state
     ) {
         /*
@@ -1008,7 +1006,7 @@ public class MethodCallSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state
     ) {
         return subExpressionsAnyUnbound(input, state);
@@ -1017,7 +1015,7 @@ public class MethodCallSemantics
 
     @Override
     public PatternMatcher compilePatternMatchInternal(
-        PatternMatchInput<MethodCall> input,
+        PatternMatchInput<Call> input,
         StaticState state, CompilationOutputAcceptor acceptor
     ) {
         final Maybe<? extends CallableSymbol> method = resolve(
@@ -1069,7 +1067,7 @@ public class MethodCallSemantics
             for (int i = 0; i < argExpressions.size(); i++) {
                 Maybe<RValueExpression> term = argExpressions.get(i);
                 IJadescriptType upperBound = patternTermTypes.get(i);
-                final SubPattern<RValueExpression, MethodCall> termSubpattern =
+                final SubPattern<RValueExpression, Call> termSubpattern =
                     input.subPattern(
                         upperBound,
                         __ -> term.toNullable(),
@@ -1116,7 +1114,7 @@ public class MethodCallSemantics
 
     @Override
     public boolean isAlwaysPureInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state
     ) {
 
@@ -1137,7 +1135,7 @@ public class MethodCallSemantics
             return false;
         } else {
             return resolve(input, runningState.get(), false)
-                .__(CallableSymbol::isPure)
+                .__(CallableSymbol::isWithoutSideEffects)
                 .extract(nullAsTrue);
         }
     }
@@ -1145,7 +1143,7 @@ public class MethodCallSemantics
 
     @Override
     public boolean isPatternEvaluationPureInternal(
-        PatternMatchInput<MethodCall> input,
+        PatternMatchInput<Call> input,
         StaticState state
     ) {
         //TODO this assumption (if its pure as call, then its pure as pattern
@@ -1155,7 +1153,7 @@ public class MethodCallSemantics
         final Maybe<? extends CallableSymbol> resolve =
             resolve(input.getPattern(), state, false);
 
-        return resolve.__(CallableSymbol::isPure).extract(nullAsTrue)
+        return resolve.__(CallableSymbol::isWithoutSideEffects).extract(nullAsTrue)
             //TODO advance pattern on PatternSymbol
             && subPatternEvaluationsAllPure(input, state);
     }
@@ -1163,7 +1161,7 @@ public class MethodCallSemantics
 
     @Override
     public PatternType inferPatternTypeInternal(
-        PatternMatchInput<MethodCall> input,
+        PatternMatchInput<Call> input,
         StaticState state
     ) {
         final Maybe<? extends CallableSymbol> method = resolve(
@@ -1182,7 +1180,7 @@ public class MethodCallSemantics
 
     @Override
     public boolean validatePatternMatchInternal(
-        PatternMatchInput<MethodCall> input,
+        PatternMatchInput<Call> input,
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
         final List<? extends CallableSymbol> methods = resolveCandidates(
@@ -1190,12 +1188,12 @@ public class MethodCallSemantics
             state,
             false
         );
-        Maybe<MethodCall> patternCall = input.getPattern();
+        Maybe<Call> patternCall = input.getPattern();
         Maybe<SimpleArgumentList> simpleArgs =
             extractSimpleArgs(input.getPattern());
         Maybe<NamedArgumentList> namedArgs =
             extractNamedArgs(input.getPattern());
-        Maybe<String> name = input.getPattern().__(MethodCall::getName);
+        Maybe<String> name = input.getPattern().__(Call::getName);
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
         List<Maybe<RValueExpression>> argExpressions;
         if (noArgs) {
@@ -1275,7 +1273,7 @@ public class MethodCallSemantics
             for (int i = 0; i < argExpressions.size(); i++) {
                 Maybe<RValueExpression> term = argExpressions.get(i);
                 IJadescriptType upperBound = patternTermTypes.get(i);
-                final SubPattern<RValueExpression, MethodCall> termSubPattern =
+                final SubPattern<RValueExpression, Call> termSubPattern =
                     input.subPattern(
                         upperBound,
                         __ -> term.toNullable(),
@@ -1299,13 +1297,13 @@ public class MethodCallSemantics
 
 
     public List<? extends CallableSymbol> resolveCandidates(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state,
         boolean advanceStateOnArguments
     ) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
-        Maybe<String> name = input.__(MethodCall::getName);
+        Maybe<String> name = input.__(Call::getName);
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
 
         if (name.nullIf(String::isBlank).isNothing()) {
@@ -1388,7 +1386,7 @@ public class MethodCallSemantics
 
 
     public Maybe<? extends CallableSymbol> resolve(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state,
         boolean advanceStateOnArguments
     ) {
@@ -1407,7 +1405,7 @@ public class MethodCallSemantics
 
 
     public boolean resolves(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state,
         boolean advanceStateOnArguments
     ) {
@@ -1416,24 +1414,24 @@ public class MethodCallSemantics
 
 
     @Override
-    public boolean isValidLExprInternal(Maybe<MethodCall> input) {
+    public boolean isValidLExprInternal(Maybe<Call> input) {
         return false;
     }
 
 
     @Override
-    public boolean canBeHoledInternal(Maybe<MethodCall> input) {
+    public boolean canBeHoledInternal(Maybe<Call> input) {
         return true;
     }
 
 
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
-        Maybe<MethodCall> input, StaticState state
+        Maybe<Call> input, StaticState state
     ) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
-        Maybe<String> name = input.__(MethodCall::getName);
+        Maybe<String> name = input.__(Call::getName);
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
         if (noArgs
             && isAlwaysPure(input, state)
@@ -1448,7 +1446,7 @@ public class MethodCallSemantics
 
     @Override
     protected boolean validateAsStatementInternal(
-        Maybe<MethodCall> input,
+        Maybe<Call> input,
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {

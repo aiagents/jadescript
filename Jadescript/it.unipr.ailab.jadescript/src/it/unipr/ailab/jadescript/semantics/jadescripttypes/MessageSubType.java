@@ -32,13 +32,11 @@ public class MessageSubType extends BaseMessageType{
     }
 
     @Override
-    public TypeNamespace namespace() {
-        return new BuiltinOpsNamespace(
-                module,
-                Maybe.some(super.namespace()),
-                List.of(),
-                List.of(),
-                getLocation()
+    public MessageTypeNamespace namespace() {
+        return MessageTypeNamespace.messageTypeNamespace(
+            module,
+            getContentType(),
+            getLocation()
         );
     }
 

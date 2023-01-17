@@ -24,7 +24,7 @@ public class SemanticsDispatchHelper {
         if (feature instanceof Field) {
             action.accept(module.get(FieldSemantics.class));
         } else if (feature instanceof FunctionOrProcedure) {
-            action.accept(module.get(MethodSemantics.class));
+            action.accept(module.get(UserOperationSemantics.class));
         } else if (feature instanceof OnMessageHandler) {
             action.accept(module.get(OnMessageHandlerSemantics.class));
         } else if (feature instanceof OnPerceptHandler) {

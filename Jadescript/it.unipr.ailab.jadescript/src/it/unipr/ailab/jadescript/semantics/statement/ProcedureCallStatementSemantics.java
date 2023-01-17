@@ -4,11 +4,11 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.NamedArgumentList;
 import it.unipr.ailab.jadescript.jadescript.ProcedureCallStatement;
 import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
-import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
+import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
+import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -47,15 +47,15 @@ public class ProcedureCallStatementSemantics
         Maybe<NamedArgumentList> namedArgs =
             input.__(ProcedureCallStatement::getNamedArgs);
 
-        final MethodCallSemantics mcs =
-            module.get(MethodCallSemantics.class);
+        final CallSemantics mcs =
+            module.get(CallSemantics.class);
 
-        final Maybe<MethodCall> mcInput = MethodCall.methodCall(
+        final Maybe<Call> mcInput = Call.call(
             input,
             name,
             simpleArgs,
             namedArgs,
-            MethodCall.IS_PROCEDURE
+            Call.IS_PROCEDURE
         );
 
         acceptor.accept(w.simpleStmt(
@@ -75,13 +75,13 @@ public class ProcedureCallStatementSemantics
             input.__(ProcedureCallStatement::getSimpleArgs);
         Maybe<NamedArgumentList> namedArgs =
             input.__(ProcedureCallStatement::getNamedArgs);
-        return module.get(MethodCallSemantics.class).getSubExpressions(
-            MethodCall.methodCall(
+        return module.get(CallSemantics.class).getSubExpressions(
+            Call.call(
                 input,
                 name,
                 simpleArgs,
                 namedArgs,
-                MethodCall.IS_PROCEDURE
+                Call.IS_PROCEDURE
             )
         );
     }
@@ -103,14 +103,14 @@ public class ProcedureCallStatementSemantics
             ProcedureCallStatement::getSimpleArgs);
         Maybe<NamedArgumentList> namedArgs =
             input.__(ProcedureCallStatement::getNamedArgs);
-        final MethodCallSemantics mcs = module.get(
-            MethodCallSemantics.class);
-        final Maybe<MethodCall> mcInput = MethodCall.methodCall(
+        final CallSemantics mcs = module.get(
+            CallSemantics.class);
+        final Maybe<Call> mcInput = Call.call(
             input,
             name,
             simpleArgs,
             namedArgs,
-            MethodCall.IS_PROCEDURE
+            Call.IS_PROCEDURE
         );
         boolean callCheck = mcs.validate(mcInput, state, acceptor);
 

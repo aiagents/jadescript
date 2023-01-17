@@ -56,7 +56,6 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
         Maybe<OptionalBlock> elseBranch = input.__(IfStatement::getElseBranch);
 
-        boolean isExhaustive;
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -79,21 +78,27 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
             runningState
         );
 
+        //Enter scope
+        inThenBranch = inThenBranch.enterScope();
 
         PSR<BlockWriter> thenBranchPSR = blockSemantics.compileOptionalBlock(
             thenBranch,
             inThenBranch
         );
+
+
         BlockWriter thenBranchCompiled = thenBranchPSR.result();
         IfStatementWriter ifsp = w.ifStmnt(
             w.expr(conditionCompiled),
             thenBranchCompiled
         );
 
-        //Exit scope
-        StaticState afterThenBranch = thenBranchPSR.state();
+        StaticState endOfThenBranch = thenBranchPSR.state();
+
+        StaticState afterThenBranch = endOfThenBranch.exitScope();
 
         List<StaticState> afterBranches = new ArrayList<>();
+
         afterBranches.add(afterThenBranch);
 
         final int assumedSize = Math.min(
@@ -126,6 +131,8 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
                 inElseIfBranch
             );
 
+            inElseIfBranch = inElseIfBranch.enterScope();
+
             PSR<BlockWriter> elseIfBranchPSR =
                 blockSemantics.compileOptionalBlock(
                     elseIfBranches.get(i),
@@ -134,27 +141,36 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
             final BlockWriter branchCompiled = elseIfBranchPSR.result();
 
-            //Exit scope
-            final StaticState afterBranch = elseIfBranchPSR.state();
+
+            final StaticState endOfElseIfBranch = elseIfBranchPSR.state();
+
+            final StaticState afterElseIfBranch = endOfElseIfBranch.exitScope();
 
             ifsp.addElseIfBranch(w.expr(elseIfCondCompiled), branchCompiled);
 
             prevConditions.add(elseIfCond);
 
-            afterBranches.add(afterBranch);
+            afterBranches.add(afterElseIfBranch);
+        }
+
+
+        final StaticState beforeTheBranches = runningState;
+
+        // Creates the scope of the else branch regardless of its definition
+        // (in case there is no 'else' branch, regarding state, acts as if
+        // there is an empty else branch).
+        StaticState inElseBranch = runningState;
+
+        for (Maybe<RValueExpression> prevCondition : prevConditions) {
+            inElseBranch = rves.assertReturnedFalse(
+                prevCondition,
+                inElseBranch
+            );
         }
 
 
         if (input.__(IfStatement::isWithElseBranch).extract(nullAsFalse)) {
-            isExhaustive = true;
-            StaticState inElseBranch = runningState;
-
-            for (Maybe<RValueExpression> prevCondition : prevConditions) {
-                inElseBranch = rves.assertReturnedFalse(
-                    prevCondition,
-                    inElseBranch
-                );
-            }
+            inElseBranch = inElseBranch.enterScope();
 
             PSR<BlockWriter> elseBranchPSR =
                 blockSemantics.compileOptionalBlock(
@@ -164,35 +180,23 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
             final BlockWriter branchCompiled = elseBranchPSR.result();
 
-            //Exit scope
-            final StaticState afterBranch = elseBranchPSR.state();
+            final StaticState endOfElseBranch = elseBranchPSR.state();
 
             ifsp.setElseBranch(branchCompiled);
-            afterBranches.add(afterBranch);
+
+            final StaticState afterElseBranch = endOfElseBranch.exitScope();
+
+            afterBranches.add(afterElseBranch);
         } else {
-            isExhaustive = false;
+            afterBranches.add(inElseBranch);
         }
 
         acceptor.accept(ifsp);
 
-        final StaticState beforeTheBranches = runningState;
-        if (isExhaustive) {
-            // If exhaustive, the state "before the branches" does not directly
-            // contribute to the intersection, because if it is exhaustive,
-            // exactly one branch is surely executed, which changes the state.
-            return StaticState.intersectAll(
-                afterBranches,
-                () -> beforeTheBranches
-            );
-        } else {
-            // If not exhaustive, the state "before the branches" might survive
-            // unchanged the if statement. Therefore, it contributes directly
-            // to the intersection.
-            //TODO: If not exhaustive and all the afterBranches states are
-            // invalidated, all the conditions can be asserted false on
-            // the resulting state
-            return beforeTheBranches.intersectAll(afterBranches);
-        }
+        return StaticState.intersectAll(
+            afterBranches,
+            () -> beforeTheBranches
+        );
     }
 
 
@@ -262,12 +266,16 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
         }
 
-        final StaticState afterThenBranch =
+        inThenBranch = inThenBranch.enterScope();
+
+        final StaticState endOfThenBranch =
             blockSemantics.validateOptionalBlock(
                 thenBranch,
                 inThenBranch,
                 acceptor
             );
+
+        final StaticState afterThenBranch = endOfThenBranch.exitScope();
 
         afterBranches.add(afterThenBranch);
 
@@ -303,63 +311,56 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
                 prevConditions.add(elseIfCond);
             }
 
+            inElseIfBranch = inElseIfBranch.enterScope();
 
-            final StaticState afterElseIfBranch =
+
+            final StaticState endOfElseIfBranch =
                 blockSemantics.validateOptionalBlock(
                     elseIfBranches.get(i),
                     inElseIfBranch,
                     acceptor
                 );
 
+            final StaticState afterElseIfBranch = endOfElseIfBranch.exitScope();
+
             afterBranches.add(afterElseIfBranch);
 
         }
 
 
-        boolean isExhaustive;
+        StaticState inElseBranch = runningState;
+        for (Maybe<RValueExpression> prevCondition : prevConditions) {
+            inElseBranch = rves.assertReturnedFalse(
+                prevCondition,
+                inElseBranch
+            );
+        }
 
 
         if (elseBranch.isPresent()) {
-            StaticState inElseBranch = runningState;
-            for (Maybe<RValueExpression> prevCondition : prevConditions) {
-                inElseBranch = rves.assertReturnedFalse(
-                    prevCondition,
-                    inElseBranch
-                );
-            }
+            inElseBranch = inElseBranch.enterScope();
 
-            final StaticState afterElseBranch =
+            final StaticState endOfElseBranch =
                 blockSemantics.validateOptionalBlock(
                     elseBranch,
                     inElseBranch,
                     acceptor
                 );
+
+            final StaticState afterElseBranch = endOfElseBranch.exitScope();
             afterBranches.add(afterElseBranch);
 
-            isExhaustive = true;
         } else {
-            isExhaustive = false;
-        }
 
+            afterBranches.add(inElseBranch);
+        }
 
         final StaticState beforeTheBranches = runningState;
-        if (isExhaustive) {
-            // If exhaustive, the state "before the branches" does not directly
-            // contribute to the intersection, because if it is exhaustive,
-            // exactly one branch is executed for sure and it changes the state.
-            return StaticState.intersectAll(
-                afterBranches,
-                () -> beforeTheBranches
-            );
-        } else {
-            // If not exhaustive, the state "before the branches" might survive
-            // unchanged the if statement. Therefore, it contributes directly
-            // to the intersection.
-            //TODO: If not exhaustive and all the afterBranches states are
-            // invalidated, all the conditions can be asserted false on the
-            // resulting state
-            return beforeTheBranches.intersectAll(afterBranches);
-        }
+
+        return StaticState.intersectAll(
+            afterBranches,
+            () -> beforeTheBranches
+        );
     }
 
 

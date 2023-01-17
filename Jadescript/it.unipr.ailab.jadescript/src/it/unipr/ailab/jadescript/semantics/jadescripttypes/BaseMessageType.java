@@ -127,7 +127,7 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
     public MessageTypeNamespace namespace() {
         return MessageTypeNamespace.messageTypeNamespace(
             module,
-            contentType,
+            getContentType(),
             getLocation()
         );
     }

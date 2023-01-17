@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.WhileStatement;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
+import it.unipr.ailab.jadescript.semantics.context.ScopeType;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.PSR;
@@ -52,11 +53,13 @@ public class WhileStatementSemantics
             rves.advance(condition, state);
 
 
-        final StaticState inLoopBlock =
+        StaticState inLoopBlock =
             rves.assertReturnedTrue(
                 condition,
                 afterCondition
             );
+
+        inLoopBlock = inLoopBlock.enterLoopScope();
 
         final PSR<BlockWriter> blockPSR =
             blockSemantics.compileOptionalBlock(
@@ -65,14 +68,17 @@ public class WhileStatementSemantics
             );
 
         final BlockWriter blockCompiled = blockPSR.result();
-        final StaticState afterBlock = blockPSR.state();
+        final StaticState endOfBlock = blockPSR.state();
 
         acceptor.accept(w.whileStmnt(
             w.expr(compiledCondition),
             blockCompiled
         ));
 
+        final StaticState afterBlock = endOfBlock.exitScope();
+
         final StaticState afterWhile = afterCondition.intersect(afterBlock);
+
 
         return rves.assertReturnedFalse(
             condition,
@@ -104,6 +110,7 @@ public class WhileStatementSemantics
 
         if (conditionCheck == VALID) {
             afterCondition = rves.advance(condition, state);
+
             inLoopBlock = rves.assertReturnedTrue(
                 condition,
                 afterCondition
@@ -112,13 +119,16 @@ public class WhileStatementSemantics
             inLoopBlock = afterCondition = state;
         }
 
+        inLoopBlock = inLoopBlock.enterLoopScope();
 
-        final StaticState afterBlock = blockSemantics
-            .validateOptionalBlock(
+        StaticState endOfBlock =
+            blockSemantics.validateOptionalBlock(
                 whileBody,
                 inLoopBlock,
                 acceptor
             );
+
+        StaticState afterBlock = endOfBlock.exitScope();
 
         final StaticState afterWhile = afterCondition.intersect(afterBlock);
 

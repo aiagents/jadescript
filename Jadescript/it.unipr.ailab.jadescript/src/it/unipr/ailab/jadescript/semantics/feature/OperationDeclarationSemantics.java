@@ -32,7 +32,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
 /**
  * Created on 2019-05-17.
  */
-public interface FoPSemantics {
+public interface OperationDeclarationSemantics {
 
     static boolean endsWithReturn(Maybe<CodeBlock> body) {
         if (body.isNothing()) return false;
@@ -157,7 +157,7 @@ public interface FoPSemantics {
                             acceptor
                     );
 
-                    blockSemantics.validate(body, state, acceptor);
+                    blockSemantics.validate(body, state, blockType, acceptor);
                 } else {
                     acceptor.acceptError(
                             "The body of this function/procedure is not valid",

@@ -5,7 +5,6 @@ import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.Statement;
 import it.unipr.ailab.jadescript.semantics.*;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
@@ -95,17 +94,25 @@ public class BlockSemantics extends Semantics {
 
     public StaticState validateOptionalBlock(
         Maybe<OptionalBlock> input,
-        StaticState state, ValidationMessageAcceptor acceptor
+        StaticState state,
+        ValidationMessageAcceptor acceptor
     ) {
         if (!input.isPresent() || !input.toNullable().isNothing()) {
-            return validate(input.__(OptionalBlock::getBlock), state, acceptor);
+            return validate(
+                input.__(OptionalBlock::getBlock),
+                state,
+                acceptor
+            );
         } else {
             return state;
         }
     }
 
 
-    public PSR<BlockWriter> compile(Maybe<CodeBlock> input, StaticState state) {
+    public PSR<BlockWriter> compile(
+        Maybe<CodeBlock> input,
+        StaticState state
+    ) {
         BlockWriter bp = w.block();
 
         final AtomicReference<StaticState> runningState =
@@ -113,9 +120,6 @@ public class BlockSemantics extends Semantics {
 
 
         try {
-            runningState.set(runningState.get().pushScope());
-
-
             Maybe<EList<Statement>> statements =
                 input.__(CodeBlock::getStatements);
 
@@ -123,12 +127,9 @@ public class BlockSemantics extends Semantics {
                 this.injectedStatements.getOrNew(input);
 
 
-
             for (StatementWriter injectedStatement : injectedStatements) {
                 bp.addStatement(injectedStatement);
             }
-
-
 
 
             final SemanticsDispatchHelper dispatchHelper =
@@ -154,7 +155,6 @@ public class BlockSemantics extends Semantics {
                                         "Compiled from source statement"
                                     )
                                 );
-
                                 bp.add(element);
                             }
                         );
@@ -171,8 +171,6 @@ public class BlockSemantics extends Semantics {
             if (GenerationParameters.DEBUG) {
                 throw e;
             }
-        } finally {
-            runningState.set(runningState.get().popScope());
         }
         return PSR.psr(bp, runningState.get());
     }
@@ -203,26 +201,29 @@ public class BlockSemantics extends Semantics {
             module.get(ValidationHelper.class);
 
         try {
-            runningState.set(runningState.get().pushScope());
-
-
-
-            for (int i = 0; i < statements.size(); i++) {
-
-                Maybe<Statement> statement = statements.get(i);
+            for (Maybe<Statement> statement : statements) {
 
                 if (statement.isNothing()) {
                     continue;
                 }
 
-                InterceptAcceptor interceptAcceptor =
-                    new InterceptAcceptor(acceptor);
 
-
-                final int finalI = i;
                 semanticsDispatchHelper.dispatchStatementSemantics(
                     statement,
                     (sem) -> {
+
+                        if (!runningState.get().isValid()) {
+                            validationHelper.emitError(
+                                "UnreacheableStatement",
+                                "Unreachable statement.",
+                                statement,
+                                acceptor
+                            );
+                            return; //from lambda
+                        }
+
+                        InterceptAcceptor interceptAcceptor =
+                            new InterceptAcceptor(acceptor);
 
                         StaticState afterStatement = sem.validateStatement(
                             wrappedSubCast(statement),
@@ -234,24 +235,7 @@ public class BlockSemantics extends Semantics {
                             return; //from lambda (not advancing state)
                         }
 
-
-                        if (!afterStatement.isValid() &&
-                            finalI < statements.size() - 1) {
-
-                            final Maybe<Statement> nextStatement =
-                                statements.get(finalI + 1);
-
-                            validationHelper.emitError(
-                                "UnreacheableStatement",
-                                "Unreachable statement.",
-                                nextStatement,
-                                acceptor
-                            );
-
-                        } else {
-                            runningState.set(afterStatement);
-                        }
-
+                        runningState.set(afterStatement);
                     }
                 );
 
@@ -268,33 +252,14 @@ public class BlockSemantics extends Semantics {
             if (GenerationParameters.DEBUG) {
                 throw e;
             }
-        } finally {
-            runningState.set(runningState.get().popScope());
         }
         return runningState.get();
 
 
     }
 
-    //TODO add method to verify if last statement returns a state which is invalidated (for functions)
-
-
-    public void addInjectedStatement(
-        Maybe<CodeBlock> input,
-        StatementWriter injectedStatement
-    ) {
-        this.injectedStatements.getOrNew(input).add(injectedStatement);
-    }
-
-
-    //TODO deprecate "injected statements" in some way
-    public void addInjectedStatements(
-        Maybe<CodeBlock> input,
-        List<StatementWriter> injectedStatements
-    ) {
-        this.injectedStatements.getOrNew(input).addAll(injectedStatements);
-    }
-
+    //TODO in functions, validate mandatory exit by checking that the
+    // after-block state is invalidated
 
 
 }

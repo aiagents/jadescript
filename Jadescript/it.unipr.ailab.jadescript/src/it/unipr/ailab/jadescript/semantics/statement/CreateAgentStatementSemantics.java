@@ -2,7 +2,7 @@ package it.unipr.ailab.jadescript.semantics.statement;
 
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
-import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
+import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
@@ -503,7 +503,7 @@ public class CreateAgentStatementSemantics
             input.__(CreateAgentStatement::getNamedArgs).isPresent()
                 && createMethodOpt.isPresent()
         ) {
-            args = MethodCallSemantics.sortToMatchParamNames(
+            args = CallSemantics.sortToMatchParamNames(
                 args,
                 nullAsEmptyList(input.__(CreateAgentStatement::getNamedArgs)
                     .__(NamedArgumentList::getParameterNames)

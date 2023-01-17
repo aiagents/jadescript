@@ -237,6 +237,7 @@ public abstract class OuterLevelAbstractContext extends Context
     ) {
         final String ontoTypeCompiled = ontoType.compileToJavaTypeReference();
         return new ContextGeneratedOperation(
+            true,
             name,
             ontoType,
             List.of(),

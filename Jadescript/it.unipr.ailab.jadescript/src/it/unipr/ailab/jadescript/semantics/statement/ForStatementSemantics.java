@@ -109,10 +109,21 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                 ) //TODO specific NS for for-variables
             );
 
+
+            StaticState inBlockScope = withVar.enterLoopScope();
+
             final PSR<BlockWriter> blockPSR = module.get(BlockSemantics.class)
-                .compileOptionalBlock(forBody, withVar);
+                .compileOptionalBlock(
+                    forBody,
+                    inBlockScope
+                );
+
             BlockWriter compiledBlock = blockPSR.result();
-            StaticState afterBlock = blockPSR.state();
+
+            StaticState endOfBlock = blockPSR.state();
+
+            StaticState afterBlock = endOfBlock.exitScope();
+
             acceptor.accept(w.foreach(
                 firstVarType.compileToJavaTypeReference(),
                 varName.extract(nullAsEmptyString),
@@ -154,10 +165,19 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                     )
                 );
 
+
+            StaticState inBlock = withVars.enterLoopScope();
+
             PSR<BlockWriter> blockPSR = module.get(BlockSemantics.class)
-                .compileOptionalBlock(forBody, withVars);
+                .compileOptionalBlock(
+                    forBody,
+                    inBlock
+                );
             BlockWriter compiledBlock = blockPSR.result();
-            StaticState afterBlock = blockPSR.state();
+            StaticState endOfBlock = blockPSR.state();
+
+            StaticState afterBlock = endOfBlock.exitScope();
+
 
             compiledBlock.addStatement(
                 0,
@@ -189,10 +209,19 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                     )
                 );
 
+            StaticState inBlock = withVar.enterLoopScope();
+
             final PSR<BlockWriter> blockPSR = module.get(BlockSemantics.class)
-                .compileOptionalBlock(forBody, withVar);
+                .compileOptionalBlock(
+                    forBody,
+                    inBlock
+                );
 
             final BlockWriter blockCompiled = blockPSR.result();
+
+            final StaticState endOfBlock = blockPSR.state();
+
+            final StaticState afterBlock = endOfBlock.exitScope();
 
             acceptor.accept(w.foreach(
                 firstVarType.compileToJavaTypeReference(),
@@ -201,7 +230,6 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                 blockCompiled
             ));
 
-            final StaticState afterBlock = blockPSR.state();
 
             return afterCollection.intersect(afterBlock);
         }
@@ -262,13 +290,17 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         );
         if (collectionCheck == INVALID) {
             //just validate body and return
-            module.get(BlockSemantics.class).validateOptionalBlock(
-                input.__(ForStatement::getForBody),
-                state,
-                acceptor
-            );
 
-            return state;
+            final StaticState inBlock = state.enterLoopScope();
+
+            StaticState endOfBlock =
+                module.get(BlockSemantics.class).validateOptionalBlock(
+                    input.__(ForStatement::getForBody),
+                    inBlock,
+                    acceptor
+                );
+
+            return endOfBlock.exitScope();
         }
 
         IJadescriptType collectionType = rves.inferType(collection, state);
@@ -531,12 +563,16 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
         }
 
+        StaticState inBlock = withVars.enterLoopScope();
 
-        return module.get(BlockSemantics.class).validateOptionalBlock(
-            forBody,
-            withVars,
-            acceptor
-        );
+        final StaticState endOfBlock =
+            module.get(BlockSemantics.class).validateOptionalBlock(
+                forBody,
+                inBlock,
+                acceptor
+            );
+
+        return endOfBlock.exitScope();
 
 
     }

@@ -1,8 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.namespace.jvm;
 
-import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
+import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -86,7 +85,7 @@ public class JvmConstructorSymbol
         return "new " + jvmConstructor.getQualifiedName('.') + "(" +
             String.join(
                 ", ",
-                MethodCallSemantics.sortToMatchParamNames(
+                CallSemantics.sortToMatchParamNames(
                     args,
                     argNames,
                     parameterNames()
@@ -96,14 +95,8 @@ public class JvmConstructorSymbol
 
 
     @Override
-    public boolean isPure() {
+    public boolean isWithoutSideEffects() {
         return false;
-    }
-
-
-    @Override
-    public StaticState advanceCall(StaticState state) {
-        return state;
     }
 
 

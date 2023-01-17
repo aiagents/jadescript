@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.jvmmodel.JadescriptCompilerUtils;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
+import it.unipr.ailab.jadescript.semantics.context.ScopeType;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
 import it.unipr.ailab.jadescript.semantics.expression.PSR;
@@ -328,8 +329,8 @@ public class CompilationHelper implements IQualifiedNameProvider {
 
 
     public PSR<SourceCodeBuilder> compileBlockToNewSCB(
-        Maybe<CodeBlock> cb,
-        StaticState initialState
+        StaticState initialState,
+        Maybe<CodeBlock> cb
     ) {
         SourceCodeBuilder ssb = new SourceCodeBuilder("");
         final PSR<BlockWriter> blockPSR =

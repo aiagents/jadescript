@@ -42,8 +42,10 @@ public class MessageHandlerWhenExpressionContext
     }
 
     public StaticState beginOfHeaderState() {
-        //TODO
+        return StaticState.beginningOfOperation(module);
     }
+
+
 
     @Override
     public IJadescriptType getMessageContentType() {

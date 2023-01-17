@@ -8,9 +8,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.ReturnExpectedContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
-import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -19,8 +17,6 @@ import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 

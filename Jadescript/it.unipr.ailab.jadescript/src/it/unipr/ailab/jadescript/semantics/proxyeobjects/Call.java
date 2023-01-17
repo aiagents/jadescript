@@ -8,7 +8,7 @@ import org.eclipse.emf.ecore.EObject;
 import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.some;
 
-public class MethodCall extends ProxyEObject {
+public class Call extends ProxyEObject {
 
     public static final boolean IS_FUNCTION = false;
     public static final boolean IS_PROCEDURE = true;
@@ -18,7 +18,7 @@ public class MethodCall extends ProxyEObject {
     private final Maybe<NamedArgumentList> namedArgs;
     private final boolean isProcedure;
 
-    private MethodCall(
+    private Call(
             EObject input,
             String name,
             Maybe<SimpleArgumentList> simpleArgs,
@@ -32,7 +32,7 @@ public class MethodCall extends ProxyEObject {
         this.isProcedure = isProcedure;
     }
 
-    public static Maybe<MethodCall> methodCall(
+    public static Maybe<Call> call(
             Maybe<? extends EObject> input,
             Maybe<? extends String> name,
             Maybe<SimpleArgumentList> simpleArgs,
@@ -40,16 +40,16 @@ public class MethodCall extends ProxyEObject {
             boolean isProcedure
     ) {
         if (input.isPresent() && name.isPresent()) {
-            return some(new MethodCall(input.toNullable(), name.toNullable(), simpleArgs, namedArgs, isProcedure));
+            return some(new Call(input.toNullable(), name.toNullable(), simpleArgs, namedArgs, isProcedure));
         } else {
             return nothing();
         }
     }
 
-    public static Maybe<MethodCall> methodCall(
+    public static Maybe<Call> call(
             Maybe<SingleIdentifier> fromIdentifier
     ){
-        return methodCall(
+        return call(
                 fromIdentifier.__(ProxyEObject::getProxyEObject),
                 fromIdentifier.__(SingleIdentifier::getIdent),
                 nothing(),
@@ -58,7 +58,7 @@ public class MethodCall extends ProxyEObject {
         );
     }
 
-    public static Maybe<MethodCall> methodCall(
+    public static Maybe<Call> call(
             EObject input,
             Maybe<? extends String> name,
             Maybe<SimpleArgumentList> simpleArgs,
@@ -66,13 +66,13 @@ public class MethodCall extends ProxyEObject {
             boolean isProcedure
     ) {
         if (name.isPresent()) {
-            return some(new MethodCall(input, name.toNullable(), simpleArgs, namedArgs, isProcedure));
+            return some(new Call(input, name.toNullable(), simpleArgs, namedArgs, isProcedure));
         } else {
             return nothing();
         }
     }
 
-    public static Maybe<MethodCall> methodCall(
+    public static Maybe<Call> call(
             Maybe<? extends EObject> input,
             String name,
             Maybe<SimpleArgumentList> simpleArgs,
@@ -80,7 +80,7 @@ public class MethodCall extends ProxyEObject {
             boolean isProcedure
     ) {
         if (input.isPresent()) {
-            return some(new MethodCall(input.toNullable(), name, simpleArgs, namedArgs, isProcedure));
+            return some(new Call(input.toNullable(), name, simpleArgs, namedArgs, isProcedure));
         } else {
             return nothing();
         }

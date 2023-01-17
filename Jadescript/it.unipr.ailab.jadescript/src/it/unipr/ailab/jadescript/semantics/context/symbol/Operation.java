@@ -1,6 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol;
 
-import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
+import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
@@ -19,19 +19,21 @@ public class Operation implements CallableSymbol {
     private final List<String> parameterNames;
     private final SearchLocation location;
 
-    protected final BiFunction<String, Map<String, String>, String> invokeByNameCustom;
-    protected final BiFunction<String, List<String>, String> invokeByArityCustom;
+    protected final BiFunction<String, Map<String, String>, String>
+        invokeByNameCustom;
+    protected final BiFunction<String, List<String>, String>
+        invokeByArityCustom;
 
-    private final boolean pure;
+    private final boolean withoutSideEffects;
 
     public Operation(
-            boolean pure,
+            boolean withoutSideEffects,
             String name,
             IJadescriptType returnType,
             List<Util.Tuple2<String, IJadescriptType>> params,
             SearchLocation location
     ) {
-        this.pure = pure;
+        this.withoutSideEffects = withoutSideEffects;
         this.name = name;
         this.returnType = returnType;
         this.location = location;
@@ -46,7 +48,7 @@ public class Operation implements CallableSymbol {
     }
 
     public Operation(
-            boolean pure,
+            boolean withoutSideEffects,
             String name,
             IJadescriptType returnType,
             List<Util.Tuple2<String, IJadescriptType>> params,
@@ -55,7 +57,7 @@ public class Operation implements CallableSymbol {
             BiFunction<String, List<String>, String> invokeByArityCustom
 
     ) {
-        this.pure = pure;
+        this.withoutSideEffects = withoutSideEffects;
         this.name = name;
         this.returnType = returnType;
         this.location = location;
@@ -102,7 +104,7 @@ public class Operation implements CallableSymbol {
     ) {
         return dereferencePrefix + name() + "(" + String.join(
                 " ,",
-                MethodCallSemantics.sortToMatchParamNames(
+                CallSemantics.sortToMatchParamNames(
                         compiledRexprs,
                         parameterNames
                 )
@@ -120,18 +122,28 @@ public class Operation implements CallableSymbol {
     }
 
     @Override
-    public String compileInvokeByName(String dereferencePrefix, Map<String, String> compiledRexprs) {
+    public String compileInvokeByName(
+        String dereferencePrefix,
+        Map<String, String> compiledRexprs
+    ) {
         return this.invokeByNameCustom.apply(dereferencePrefix, compiledRexprs);
     }
 
     @Override
-    public boolean isPure() {
-        return pure;
+    public boolean isWithoutSideEffects() {
+        return withoutSideEffects;
     }
 
+
     @Override
-    public String compileInvokeByArity(String dereferencePrefix, List<String> compiledRexprs) {
-        return this.invokeByArityCustom.apply(dereferencePrefix, compiledRexprs);
+    public String compileInvokeByArity(
+        String dereferencePrefix,
+        List<String> compiledRexprs
+    ) {
+        return this.invokeByArityCustom.apply(
+            dereferencePrefix,
+            compiledRexprs
+        );
     }
 
     @Override

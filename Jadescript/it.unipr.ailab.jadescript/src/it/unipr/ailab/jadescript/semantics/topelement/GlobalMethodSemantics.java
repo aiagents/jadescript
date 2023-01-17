@@ -16,7 +16,7 @@ import it.unipr.ailab.jadescript.semantics.context.search.ModuleGlobalLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.UnknownLocation;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.feature.FoPSemantics;
+import it.unipr.ailab.jadescript.semantics.feature.OperationDeclarationSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -39,7 +39,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
  */
 @Singleton
 public class GlobalMethodSemantics extends UsesOntologyEntitySemantics<GlobalFunctionOrProcedure>
-        implements FoPSemantics {
+        implements OperationDeclarationSemantics {
 
     private final Map<String, List<Maybe<GlobalFunctionOrProcedure>>> methodsMap
             = new HashMap<>();
@@ -261,7 +261,9 @@ public class GlobalMethodSemantics extends UsesOntologyEntitySemantics<GlobalFun
                                     }
 
                                     module.get(BlockSemantics.class).compile(
-                                            method.__(GlobalFunctionOrProcedure::getBody), ).writeSonnet(scb);
+                                            method.__(GlobalFunctionOrProcedure::getBody), ,
+                                        blockType
+                                    ).writeSonnet(scb);
                                 }
 
                                 contextManager.exit();// Function/Procedure context

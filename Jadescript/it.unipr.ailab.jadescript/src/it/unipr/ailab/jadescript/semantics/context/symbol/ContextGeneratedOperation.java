@@ -10,24 +10,39 @@ import java.util.function.BiFunction;
 
 public class ContextGeneratedOperation extends Operation {
 
-
     public ContextGeneratedOperation(
-            String name,
-            IJadescriptType returnType,
-            List<Util.Tuple2<String, IJadescriptType>> params
+        boolean withoutSideEffects,
+        String name,
+        IJadescriptType returnType,
+        List<Util.Tuple2<String, IJadescriptType>> params
     ) {
-        super(name, returnType, params, AutoCompiled.getInstance());
+        super(
+            withoutSideEffects,
+            name,
+            returnType,
+            params,
+            AutoCompiled.getInstance()
+        );
     }
 
+
     public ContextGeneratedOperation(
-            String name,
-            IJadescriptType returnType,
-            List<Util.Tuple2<String, IJadescriptType>> params,
-            BiFunction<String, Map<String, String>, String> invokeByNameCustom,
-            BiFunction<String, List<String>, String> invokeByArityCustom
+        boolean withoutSideEffects,
+        String name,
+        IJadescriptType returnType,
+        List<Util.Tuple2<String, IJadescriptType>> params,
+        BiFunction<String, Map<String, String>, String> invokeByNameCustom,
+        BiFunction<String, List<String>, String> invokeByArityCustom
     ) {
-        super(name, returnType, params, AutoCompiled.getInstance(),
-                invokeByNameCustom, invokeByArityCustom);
+        super(
+            withoutSideEffects,
+            name,
+            returnType,
+            params,
+            AutoCompiled.getInstance(),
+            invokeByNameCustom,
+            invokeByArityCustom
+        );
     }
 
 

@@ -2,10 +2,10 @@ package it.unipr.ailab.jadescript.semantics.expression.trailersexprchain;
 
 import it.unipr.ailab.jadescript.jadescript.NamedArgumentList;
 import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
-import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
+import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.AssignableExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.MethodCall;
+import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 
@@ -17,7 +17,7 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
     private final Maybe<SimpleArgumentList> simpleArgs;
     private final Maybe<NamedArgumentList> namedArgs;
     private final Maybe<? extends EObject> input;
-    private final MethodCallSemantics subSemantics;
+    private final CallSemantics subSemantics;
 
     public FunctionCallElement(
         SemanticsModule module,
@@ -31,13 +31,13 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
         this.simpleArgs = simpleArgs;
         this.namedArgs = namedArgs;
         this.input = input;
-        this.subSemantics = module.get(MethodCallSemantics.class);
+        this.subSemantics = module.get(CallSemantics.class);
     }
 
 
 
-    private Maybe<MethodCall> generateMethodCall() {
-        return MethodCall.methodCall(
+    private Maybe<Call> generateMethodCall() {
+        return Call.call(
             input,
             identifier,
             simpleArgs,

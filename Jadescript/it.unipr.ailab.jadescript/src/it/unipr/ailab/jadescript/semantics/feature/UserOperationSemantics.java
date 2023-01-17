@@ -29,11 +29,11 @@ import static it.unipr.ailab.maybe.Maybe.*;
  * Created on 27/04/18.
  */
 @Singleton
-public class MethodSemantics extends FeatureSemantics<FunctionOrProcedure>
-        implements FoPSemantics {
+public class UserOperationSemantics extends FeatureSemantics<FunctionOrProcedure>
+        implements OperationDeclarationSemantics {
 
 
-    public MethodSemantics(SemanticsModule semanticsModule) {
+    public UserOperationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 

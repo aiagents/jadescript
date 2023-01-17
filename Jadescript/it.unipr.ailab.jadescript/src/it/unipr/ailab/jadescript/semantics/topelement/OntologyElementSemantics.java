@@ -5,7 +5,7 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.javaapi.NativeValueFactory;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
-import it.unipr.ailab.jadescript.semantics.MethodCallSemantics;
+import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -668,7 +668,7 @@ public class OntologyElementSemantics extends Semantics {
                 superTypeNamespace.getBiggestCtor()
                         .ifPresent(c -> {
                             superDestTypes.addAll(c.parameterTypes());
-                            superArguments.addAll(MethodCallSemantics.sortToMatchParamNames(
+                            superArguments.addAll(CallSemantics.sortToMatchParamNames(
                                     ctorArgs,
                                     ctorArgNames,
                                     c.parameterNames()

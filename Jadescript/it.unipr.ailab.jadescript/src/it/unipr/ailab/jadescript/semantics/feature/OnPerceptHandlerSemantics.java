@@ -381,7 +381,7 @@ public class OnPerceptHandlerSemantics extends FeatureSemantics<OnPerceptHandler
 
             module.get(BlockSemantics.class).validate(input.__(FeatureWithBody::getBody),
                 state,
-                acceptor);
+                blockType, acceptor);
 
             module.get(ContextManager.class).exit();
 
