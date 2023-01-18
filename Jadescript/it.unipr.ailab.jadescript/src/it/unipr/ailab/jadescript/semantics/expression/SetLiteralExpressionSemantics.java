@@ -207,7 +207,6 @@ public class SetLiteralExpressionSemantics
             if (hasTypeSpecifiers) {
                 return module.get(TypeExpressionSemantics.class).validate(
                     keysTypeParameter,
-                    runningState,
                     acceptor
                 );
             } else {
@@ -232,7 +231,6 @@ public class SetLiteralExpressionSemantics
                 acceptor
             ) && module.get(TypeExpressionSemantics.class).validate(
                 keysTypeParameter,
-                runningState,
                 acceptor
             );
         } else {

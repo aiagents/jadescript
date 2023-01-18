@@ -816,7 +816,7 @@ public class ListLiteralExpressionSemantics
             if (hasTypeSpecifier) {
                 typeParameterValidation =
                     module.get(TypeExpressionSemantics.class)
-                        .validate(typeParameter, state, acceptor);
+                        .validate(typeParameter, acceptor);
             } else {
                 typeParameterValidation = VALID;
             }

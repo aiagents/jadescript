@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.BuiltinHierarchicType;
 import it.unipr.ailab.jadescript.jadescript.CollectionTypeExpression;
 import it.unipr.ailab.jadescript.jadescript.MessageType;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
+import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
@@ -40,126 +41,16 @@ import static it.unipr.ailab.maybe.Maybe.*;
 /**
  * Created on 28/12/16.
  */
-@Singleton
-//TODO remove extends ExpressionSemantics<TypeExpression> (not an expression)
-public class TypeExpressionSemantics
-    extends ExpressionSemantics<TypeExpression> {
+public final class TypeExpressionSemantics extends Semantics {
 
     public TypeExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
 
-    @Override
-    protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
-        Maybe<TypeExpression> input
-    ) {
-        return Stream.empty();
-    }
 
-
-    @Override
-    protected String compileInternal(
+    public boolean validate(
         Maybe<TypeExpression> input,
-        StaticState state, CompilationOutputAcceptor acceptor
-    ) {
-        return toJadescriptType(input).compileToJavaTypeReference();
-    }
-
-
-    @Override
-    protected IJadescriptType inferTypeInternal(
-        Maybe<TypeExpression> input,
-        StaticState state
-    ) {
-        if (input == null)
-            return module.get(TypeHelper.class).ANY;
-        return module.get(TypeHelper.class).jtFromClass(Class.class);
-    }
-
-
-    @Override
-    protected boolean mustTraverse(Maybe<TypeExpression> input) {
-        return false;
-    }
-
-
-    @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
-        Maybe<TypeExpression> input
-    ) {
-        return Optional.empty();
-    }
-
-
-    @Override
-    protected boolean isPatternEvaluationPureInternal(
-        PatternMatchInput<TypeExpression> input,
-        StaticState state
-    ) {
-        return true;
-    }
-
-
-    @Override
-    protected StaticState assertDidMatchInternal(
-        PatternMatchInput<TypeExpression> input,
-        StaticState state
-    ) {
-        return state;
-    }
-
-
-    @Override
-    protected StaticState assertReturnedTrueInternal(
-        Maybe<TypeExpression> input,
-        StaticState state
-    ) {
-        return state;
-    }
-
-
-    @Override
-    protected StaticState assertReturnedFalseInternal(
-        Maybe<TypeExpression> input,
-        StaticState state
-    ) {
-        return state;
-    }
-
-
-    @Override
-    public PatternMatcher compilePatternMatchInternal(
-        PatternMatchInput<TypeExpression> input,
-        StaticState state,
-        CompilationOutputAcceptor acceptor
-    ) {
-        return input.createEmptyCompileOutput();
-    }
-
-
-    @Override
-    public PatternType inferPatternTypeInternal(
-        PatternMatchInput<TypeExpression> input,
-        StaticState state
-    ) {
-        return PatternType.empty(module);
-    }
-
-
-    @Override
-    public boolean validatePatternMatchInternal(
-        PatternMatchInput<TypeExpression> input,
-        StaticState state, ValidationMessageAcceptor acceptor
-    ) {
-        return VALID;
-    }
-
-
-    @Override
-    protected boolean validateInternal(
-        Maybe<TypeExpression> input,
-        StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
         if (input == null) {
@@ -191,13 +82,11 @@ public class TypeExpressionSemantics
         } else if (collectionType.isPresent()) {
             return validateCollectionType(
                 acceptor,
-                state,
                 collectionType
             );
         } else if (!subExprs.isEmpty()) {
             return validateTupleType(
                 input,
-                state,
                 acceptor,
                 subExprs,
                 validationHelper
@@ -215,7 +104,6 @@ public class TypeExpressionSemantics
 
     private boolean validateTupleType(
         Maybe<TypeExpression> input,
-        StaticState state,
         ValidationMessageAcceptor acceptor,
         List<Maybe<TypeExpression>> subExprs,
         ValidationHelper validationHelper
@@ -228,8 +116,7 @@ public class TypeExpressionSemantics
             acceptor
         );
         for (Maybe<TypeExpression> subExpr : subExprs) {
-            final boolean subExprValidation =
-                validate(subExpr, state, acceptor);
+            final boolean subExprValidation = this.validate(subExpr, acceptor);
             result = result && subExprValidation;
         }
         return result;
@@ -238,7 +125,6 @@ public class TypeExpressionSemantics
 
     private boolean validateCollectionType(
         ValidationMessageAcceptor acceptor,
-        StaticState state,
         Maybe<CollectionTypeExpression> collectionType
     ) {
         boolean result = VALID;
@@ -253,11 +139,8 @@ public class TypeExpressionSemantics
                     iterate(collectionType
                         .__(CollectionTypeExpression::getTypeParameters))
                 ) {
-                    final boolean typeParameterValidation = validate(
-                        typeParameter,
-                        state,
-                        acceptor
-                    );
+                    final boolean typeParameterValidation =
+                        this.validate(typeParameter, acceptor);
                     result = result && typeParameterValidation;
                 }
             }
@@ -319,34 +202,6 @@ public class TypeExpressionSemantics
 
         return result;
     }
-
-
-    @Override
-    protected Maybe<ExpressionDescriptor> describeExpressionInternal(
-        Maybe<TypeExpression> input,
-        StaticState state
-    ) {
-        return Maybe.nothing();
-    }
-
-
-    @Override
-    protected StaticState advanceInternal(
-        Maybe<TypeExpression> input,
-        StaticState state
-    ) {
-        return state;
-    }
-
-
-    @Override
-    protected StaticState advancePatternInternal(
-        PatternMatchInput<TypeExpression> input,
-        StaticState state
-    ) {
-        return state;
-    }
-
 
     private boolean validateBuiltinHierarchic(
         Maybe<BuiltinHierarchicType> builtinHierarchicType,
@@ -571,51 +426,5 @@ public class TypeExpressionSemantics
     }
 
 
-    @Override
-    protected boolean isAlwaysPureInternal(
-        Maybe<TypeExpression> input,
-        StaticState state
-    ) {
-        return true;
-    }
-
-
-    @Override
-    protected boolean isValidLExprInternal(Maybe<TypeExpression> input) {
-        return false;
-    }
-
-
-    @Override
-    protected boolean isHoledInternal(
-        Maybe<TypeExpression> input,
-        StaticState state
-    ) {
-        return false;
-    }
-
-
-    @Override
-    protected boolean isTypelyHoledInternal(
-        Maybe<TypeExpression> input,
-        StaticState state
-    ) {
-        return false;
-    }
-
-
-    @Override
-    protected boolean isUnboundInternal(
-        Maybe<TypeExpression> input,
-        StaticState state
-    ) {
-        return false;
-    }
-
-
-    @Override
-    protected boolean canBeHoledInternal(Maybe<TypeExpression> input) {
-        return false;
-    }
 
 }

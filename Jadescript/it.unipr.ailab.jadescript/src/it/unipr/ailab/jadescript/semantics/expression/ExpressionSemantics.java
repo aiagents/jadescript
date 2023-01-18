@@ -373,9 +373,9 @@ public abstract class ExpressionSemantics<T> extends Semantics {
      * applications into a List.
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public final <R> List<? extends R> collectFromAllNodes(
+    public final <R, S> List<? extends R> collectFromAllNodes(
         Maybe<T> input,
-        BiFunction<Maybe<?>, ExpressionSemantics<?>, R> function
+        BiFunction<Maybe<S>, ExpressionSemantics<S>, R> function
     ) {
         if (mustTraverse(input)) {
             Optional<? extends SemanticsBoundToExpression<?>> traversed =
@@ -390,7 +390,10 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         }
 
         List<R> result = new ArrayList<>();
-        result.add(function.apply(input, this));
+        result.add(function.apply(
+            (Maybe<S>) input,
+            (ExpressionSemantics<S>) this
+        ));
 
         getSubExpressions(input).forEach(bounds -> {
             //noinspection unchecked,rawtypes

@@ -14,6 +14,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableMap;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableSet;
 import it.unipr.ailab.maybe.Maybe;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -317,6 +318,7 @@ public final class StaticState
     }
 
 
+    @Contract(pure = true)
     public StaticState enterScope() {
         return new StaticState(
             true,
@@ -327,6 +329,7 @@ public final class StaticState
     }
 
 
+    @Contract(pure = true)
     public StaticState enterLoopScope() {
         return new StaticState(
             true,

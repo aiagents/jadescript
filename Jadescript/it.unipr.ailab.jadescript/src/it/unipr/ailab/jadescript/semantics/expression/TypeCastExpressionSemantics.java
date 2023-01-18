@@ -545,15 +545,14 @@ public class TypeCastExpressionSemantics
             state
         );
 
+        final TypeExpressionSemantics tes =
+            module.get(TypeExpressionSemantics.class);
         if (!typeCasts.isEmpty()) {
             IJadescriptType typeOfExpression =
                 awtes.inferType(atomExpr, afterExpr);
             final Maybe<TypeExpression> cast0 = typeCasts.get(0);
-            IJadescriptType typeOfCast0 =
-                module.get(TypeExpressionSemantics.class)
-                    .toJadescriptType(cast0);
-            boolean result = module.get(TypeExpressionSemantics.class)
-                .validate(cast0, afterExpr, acceptor);
+            IJadescriptType typeOfCast0 = tes.toJadescriptType(cast0);
+            boolean result = tes.validate(cast0, acceptor);
 
             module.get(ValidationHelper.class).advice(
                 isNumberToNumberCast(
@@ -572,19 +571,15 @@ public class TypeCastExpressionSemantics
             for (int i = 1; i < typeCasts.size(); i++) {
                 final Maybe<TypeExpression> casti = typeCasts.get(i - 1);
                 final boolean typeExpressionValidation =
-                    module.get(TypeExpressionSemantics.class)
-                        .validate(casti, afterExpr, acceptor);
+                    tes.validate(casti, acceptor);
                 result = result && typeExpressionValidation;
                 IJadescriptType typeBefore =
-                    module.get(TypeExpressionSemantics.class)
-                        .toJadescriptType(casti);
-                final boolean typeExpressionValidationNext = module.get(
-                        TypeExpressionSemantics.class)
-                    .validate(typeCasts.get(i), afterExpr, acceptor);
+                    tes.toJadescriptType(casti);
+                final boolean typeExpressionValidationNext =
+                    tes.validate(typeCasts.get(i),  acceptor);
                 result = result && typeExpressionValidationNext;
                 IJadescriptType typeAfter =
-                    module.get(TypeExpressionSemantics.class)
-                        .toJadescriptType(typeCasts.get(i));
+                    tes.toJadescriptType(typeCasts.get(i));
                 module.get(ValidationHelper.class).advice(
                     isNumberToNumberCast(typeBefore, typeAfter) || isCastable(
                         typeBefore,

@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.iterate;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 /**
  * Created on 21/02/2019.
@@ -649,6 +650,26 @@ public class ValidationHelper implements SemanticsConsts {
             issueCode,
             description,
             object,
+            feature,
+            index,
+            acceptor
+        );
+    }
+
+
+    public boolean emitError(
+        String issueCode,
+        String description,
+        EObject object,
+        EStructuralFeature feature,
+        int index,
+        ValidationMessageAcceptor acceptor
+    ) {
+        return asserting(
+            false,
+            issueCode,
+            description,
+            some(object),
             feature,
             index,
             acceptor

@@ -89,7 +89,6 @@ public class CreateAgentStatementSemantics
             module.get(TypeExpressionSemantics.class);
         boolean agentTypeCheck = tes.validate(
             agentTypeEObject,
-            state,
             acceptor
         );
         if (agentTypeCheck == INVALID) {

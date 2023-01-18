@@ -19,7 +19,8 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nothing;
+import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
  * Created on 28/12/16.
@@ -40,19 +41,13 @@ public class TypeComparisonExpressionSemantics
     ) {
         final Maybe<RelationalComparison> left =
             input.__(TypeComparison::getRelationalComparison);
-        final Maybe<TypeExpression> type = input.__(TypeComparison::getType);
 
-        return Stream.of(
+        final SemanticsBoundToExpression<RelationalComparison> extract =
             left.extract(x -> new SemanticsBoundToExpression<>(
                 module.get(RelationalComparisonExpressionSemantics.class),
                 x
-            )),
-            //TODO should consider type expressions?
-            type.extract(x -> new SemanticsBoundToExpression<>(
-                module.get(TypeExpressionSemantics.class),
-                x
-            ))
-        );
+            ));
+        return Stream.of(extract);
     }
 
 

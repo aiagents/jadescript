@@ -476,9 +476,8 @@ public class OnMessageHandlerSemantics
             );
 
 
-        final StatementWriter tryCatchWrappedBody = encloseInGeneralHandlerTryCatch(
-            bodyPSR.result()
-        );
+        final StatementWriter tryCatchWrappedBody =
+            encloseInGeneralHandlerTryCatch(bodyPSR.result());
 
 
         module.get(ContextManager.class).exit();

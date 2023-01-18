@@ -285,9 +285,9 @@ public class MapLiteralExpressionSemantics
                     acceptor
                 );
 
-            keysValidation =
-                keysValidation && (module.get(TypeExpressionSemantics.class)
-                    .validate(keysTypeParameter, state, acceptor));
+            keysValidation = keysValidation
+                && module.get(TypeExpressionSemantics.class)
+                    .validate(keysTypeParameter, acceptor);
 
             if (keysValidation == VALID && hasTypeSpecifiers) {
                 keysValidation =
@@ -314,8 +314,8 @@ public class MapLiteralExpressionSemantics
                 );
 
             valsValidation = valsValidation
-                && (module.get(TypeExpressionSemantics.class)
-                .validate(valuesTypeParameter, state, acceptor));
+                && module.get(TypeExpressionSemantics.class)
+                .validate(valuesTypeParameter, acceptor);
 
             if (valsValidation == VALID && hasTypeSpecifiers) {
                 valsValidation =

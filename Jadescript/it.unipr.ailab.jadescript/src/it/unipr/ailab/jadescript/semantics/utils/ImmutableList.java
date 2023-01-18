@@ -2,10 +2,7 @@ package it.unipr.ailab.jadescript.semantics.utils;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class ImmutableList<E>
@@ -103,6 +100,11 @@ public class ImmutableList<E>
     @Override
     public int hashCode() {
         return inner.hashCode();
+    }
+
+
+    public List<E> toMutable() {
+        return new LinkedList<>(inner);
     }
 
 }
