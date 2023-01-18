@@ -1,19 +1,16 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
-import java.util.List;
-
-public class PerceptHandlerContext
+public class OnPerceptHandlerContext
         extends HandlerWithWhenExpressionContext
         implements PerceptPerceivedContext {
 
     private final IJadescriptType perceptContentType;
 
-    public PerceptHandlerContext(
+    public OnPerceptHandlerContext(
             SemanticsModule module,
             ProceduralFeatureContainerContext outer,
             String eventType,
@@ -32,7 +29,7 @@ public class PerceptHandlerContext
     @Override
     public void debugDump(SourceCodeBuilder scb) {
         super.debugDump(scb);
-        scb.line("--> is PerceptHandlerContext");
+        scb.line("--> is OnPerceptHandlerContext");
         debugDumpPerception(scb);
     }
 

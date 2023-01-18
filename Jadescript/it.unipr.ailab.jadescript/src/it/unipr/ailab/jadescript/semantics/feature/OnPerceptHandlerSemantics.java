@@ -1,548 +1,703 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.*;
+import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
-import it.unipr.ailab.jadescript.semantics.context.c2feature.PerceptHandlerContext;
-import it.unipr.ailab.jadescript.semantics.context.c2feature.PerceptHandlerWhenExpressionContext;
+import it.unipr.ailab.jadescript.semantics.context.c2feature.OnPerceptHandlerContext;
+import it.unipr.ailab.jadescript.semantics.context.c2feature.OnPerceptHandlerWhenExpressionContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.PerceptPerceivedContext;
-import it.unipr.ailab.jadescript.semantics.context.flowtyping.FlowTypeInferringTerm;
-import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedReference;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TemplateCompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.PatternMatchRequest;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
+import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
-import jade.lang.acl.MessageTemplate;
+import it.unipr.ailab.sonneteer.statement.VariableDeclarationWriter;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtend2.lib.StringConcatenationClient;
-import org.eclipse.xtext.common.types.*;
+import org.eclipse.xtext.common.types.JvmDeclaredType;
+import org.eclipse.xtext.common.types.JvmGenericType;
+import org.eclipse.xtext.common.types.JvmMember;
+import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
-import org.eclipse.xtext.xbase.typesystem.references.LightweightTypeReference;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
 import static it.unipr.ailab.maybe.Maybe.*;
 
-public class OnPerceptHandlerSemantics extends FeatureSemantics<OnPerceptHandler> {
+public class OnPerceptHandlerSemantics
+    extends FeatureSemantics<OnPerceptHandler> {
+
     public OnPerceptHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
     @Override
     public void generateJvmMembers(
-            Maybe<OnPerceptHandler> input,
-            Maybe<FeatureContainer> featureContainer,
-            EList<JvmMember> members,
-            JvmDeclaredType beingDeclared
+        Maybe<OnPerceptHandler> input,
+        Maybe<FeatureContainer> featureContainer,
+        EList<JvmMember> members,
+        JvmDeclaredType beingDeclared
     ) {
-        final SavedContext savedContext = module.get(ContextManager.class).save();
-        input.safeDo(inputSafe -> {
-            JvmGenericType eventClass = module.get(JvmTypesBuilder.class).toClass(inputSafe, synthesizeBehaviourEventClassName(inputSafe), it -> {
-                it.setVisibility(JvmVisibility.PRIVATE);
-                it.getMembers().add(module.get(JvmTypesBuilder.class).toField(
-                        inputSafe,
-                        PERCEPT_VAR_NAME,
-                        module.get(TypeHelper.class).typeRef(jadescript.core.message.Message.class),
-                        itField -> itField.setVisibility(JvmVisibility.PRIVATE)
-                ));
-                it.getMembers().add(module.get(JvmTypesBuilder.class).toField(
-                        inputSafe,
-                        MESSAGE_RECEIVED_BOOL_VAR_NAME,
-                        module.get(TypeHelper.class).typeRef(Boolean.class),
-                        itField -> itField.setVisibility(JvmVisibility.DEFAULT)
-                ));
-                it.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(
-                        inputSafe,
-                        "run",
-                        module.get(TypeHelper.class).typeRef(void.class),
-                        itMethod -> module.get(CompilationHelper.class).createAndSetBody(itMethod, scb -> {
 
-                            w.ifStmnt(w.expr(Util.getOuterClassThisReference(input) + "."
-                                    + IGNORE_MSG_HANDLERS_VAR_NAME), w.block()
-                                    .addStatement(w.assign("this." + MESSAGE_RECEIVED_BOOL_VAR_NAME, w.expr("false")))
-                                    .addStatement(w.returnStmnt())
-                            ).writeSonnet(scb);
-                            w.callStmnt("receive").writeSonnet(scb);
-                            w.ifStmnt(w.expr(PERCEPT_VAR_NAME + " != null"), w.block()
-                                    .addStatement(w.assign(Util.getOuterClassThisReference(input) + "."
-                                            + IGNORE_MSG_HANDLERS_VAR_NAME, w.expr("true")))
-                                    .addStatement(w.assign("this." + MESSAGE_RECEIVED_BOOL_VAR_NAME, w.expr("true")))
-                                    .addStatement(w.tryCatch(w.block()
-                                                    .addStatement(w.callStmnt("doBody"))
-                                                    .addStatement(w.assign("this." + PERCEPT_VAR_NAME, w.expr("null")))
-                                            ).addCatchBranch("Exception", "_e", w.block()
-                                                    .addStatement(w.callStmnt("_e.printStackTrace"))
-                                            )
-                                    )
-                            ).setElseBranch(w.block()
-                                    .addStatement(w.assign("this." + MESSAGE_RECEIVED_BOOL_VAR_NAME, w.expr("false")))
-                            ).writeSonnet(scb);
+        if (input.isNothing()) {
+            return;
+        }
+        OnPerceptHandler inputSafe = input.toNullable();
 
-                        })
-                ));
+        final SavedContext savedContext =
+            module.get(ContextManager.class).save();
 
 
-                Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        final String eventClassName = synthesizeBehaviourEventClassName(
+            inputSafe);
 
-                String messageTemplateName = synthesizeMessageTemplateName(inputSafe);
+        JvmGenericType eventClass = createEventClass(
+            input,
+            inputSafe,
+            savedContext,
+            eventClassName
+        );
 
-                PatternMatchData pmData = generatePatternMatchData(
-                        input,
-                        some(savedContext),
-                        input,
-                        false
-                );
-                IJadescriptType contentType = pmData.getInferredContentType();
-
-                for (JvmDeclaredType patternMatchClass : pmData.getPatternMatchClasses()) {
-                    it.getMembers().add(patternMatchClass);
-                }
-                for (JvmField patternMatchField : pmData.getPatternMatchFields()) {
-                    it.getMembers().add(patternMatchField);
-                }
-
-                module.get(BlockSemantics.class).addInjectedVariables(body, pmData.getAutoDeclaredVariables());
+        members.add(eventClass);
 
 
-                List<ExpressionWriter> templateExpressions = new ArrayList<>();
-                templateExpressions.add(TemplateCompilationHelper.isPercept());
-
-                if(input.__(OnPerceptHandler::isStale).extract(nullAsFalse)){
-                    templateExpressions.add(TemplateCompilationHelper.isStale());
-                }
-
-                IJadescriptType computedContentType = inferContentType(input);
-
-                List<StatementWriter> extractStatements = generateExtractStatements(
-                        input,
-                        computedContentType,
-                        module
-                );
-
-                final BlockWriter tryBlock = w.block();
-                tryBlock.addStatement(w.ifStmnt(
-                        w.expr("!(((jadescript.core.percept.Percept) " + THE_AGENT + "().getContentManager()" +
-                                ".extractContent(" + PERCEPT_VAR_NAME + ")).getContent() instanceof " +
-                                module.get(TypeHelper.class).noGenericsTypeName(
-                                        computedContentType.compileToJavaTypeReference()
-                                ) + ")"),
-                        w.block().addStatement(w.returnStmnt(w.expr("false")))
-                ));
-
-
-                templateExpressions.add(TemplateCompilationHelper.customPercept(
-                        w.block().addStatement(
-                                w.tryCatch(tryBlock
-                                        .addStatements(extractStatements)
-                                        .addStatement(w.returnStmnt(w.expr(pmData.getCompiledExpression())))
-                                ).addCatchBranch("java.lang.Throwable", "_e", w.block()
-                                        .addStatement(w.callStmnt("_e.printStackTrace"))
-                                        .addStatement(w.returnStmnt(w.expr("false")))
-                                )
-                        )
-                ));
-
-
-                final ExpressionWriter composedTemplateExpression = templateExpressions.stream().reduce(
-                        TemplateCompilationHelper.True(),
-                        TemplateCompilationHelper::and
-                );
-
-
-                it.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(inputSafe, messageTemplateName,
-                                module.get(TypeHelper.class).typeRef(MessageTemplate.class), itMethod -> {
-                                    itMethod.setVisibility(JvmVisibility.PRIVATE);
-                                    module.get(CompilationHelper.class).createAndSetBody(
-                                            itMethod,
-                                            scb -> w.returnStmnt(composedTemplateExpression).writeSonnet(scb)
-                                    );
-                                }
-                        )
-                );
-
-
-                it.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(
-                        inputSafe,
-                        "receive",
-                        module.get(TypeHelper.class).typeRef(void.class),
-                        itMethod ->
-                                module.get(CompilationHelper.class).createAndSetBody(itMethod, scb2 ->
-                                        w.ifStmnt(w.expr("myAgent!=null"), w.block()
-                                                .addStatement(w.assign(
-                                                        PERCEPT_VAR_NAME,
-                                                        w.callExpr(
-                                                                "jadescript.core.message.Message.wrap",
-                                                                w.callExpr(
-                                                                        "myAgent.receive",
-                                                                        w.expr(messageTemplateName + "()")
-                                                                )
-                                                        )
-                                                )).addStatement(
-                                                        w.ifStmnt(
-                                                                w.expr(PERCEPT_VAR_NAME + " != null"),
-                                                                w.block().addStatement(
-                                                                        w.callStmnt(
-                                                                                THE_AGENT + "().__cleanIgnoredFlagForMessage",
-                                                                                w.expr(PERCEPT_VAR_NAME)
-                                                                        )
-                                                                )
-                                                        )
-                                                )
-                                        ).writeSonnet(scb2)
-                                )
-                ));
-
-
-                module.get(BlockSemantics.class).addInjectedStatements(body, extractStatements);
-
-                module.get(BlockSemantics.class).addInjectedVariable(
-                        body,
-                        new ContextGeneratedReference(PERCEPT_CONTENT_VAR_NAME, contentType)
-                );
-
-
-                it.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(
-                        inputSafe,
-                        "doBody",
-                        module.get(TypeHelper.class).typeRef(void.class),
-                        itMethod -> {
-                            itMethod.getExceptions().add(module.get(TypeHelper.class).typeRef(Exception.class));
-                            module.get(ContextManager.class).restore(savedContext);
-                            module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
-                                    new PerceptHandlerContext(
-                                            mod,
-                                            out,
-                                            "percept",
-                                            pmData.getAutoDeclaredVariables(),
-                                            contentType
-                                    )
-                            );
-
-                            final SavedContext saved = module.get(ContextManager.class).save();
-                            module.get(CompilationHelper.class).createAndSetBody(itMethod, scb -> {
-                                module.get(ContextManager.class).restore(saved);
-                                scb.add(encloseInGeneralHandlerTryCatch(
-                                        module.get(CompilationHelper.class).compileBlockToNewSCB(body)
-                                ));
-                            });
-
-                            module.get(ContextManager.class).exit();
-                        }
-                ));
-            });
-
-            members.add(eventClass);
-            members.add(module.get(JvmTypesBuilder.class).toField(
-                    inputSafe,
-                    synthesizeEventVariableName(inputSafe),
-                    module.get(TypeHelper.class).typeRef(eventClass), it -> {
-                        it.setVisibility(JvmVisibility.PRIVATE);
-                        module.get(JvmTypesBuilder.class).setInitializer(it, new StringConcatenationClient() {
-                            @Override
-                            protected void appendTo(TargetStringConcatenation target) {
-                                target.append(" new ");
-                                target.append(module.get(TypeHelper.class).typeRef(eventClass));
-                                target.append("()");
-                            }
-                        });
-                    }
-            ));
-        });
+        addEventField(members, inputSafe, eventClass);
 
     }
 
-    private static List<StatementWriter> generateExtractStatements(
-            Maybe<? extends OnPerceptHandler> container,
-            IJadescriptType contentType,
-            SemanticsModule module
+
+    private void addEventField(
+        EList<JvmMember> members,
+        OnPerceptHandler inputSafe,
+        JvmGenericType eventClass
     ) {
-        List<StatementWriter> result = new ArrayList<>();
+        members.add(module.get(JvmTypesBuilder.class).toField(
+            inputSafe,
+            synthesizeEventVariableName(inputSafe),
+            module.get(TypeHelper.class).typeRef(eventClass), it -> {
+                it.setVisibility(JvmVisibility.PRIVATE);
+                module.get(JvmTypesBuilder.class).setInitializer(
+                    it,
+                    new StringConcatenationClient() {
+                        @Override
+                        protected void appendTo(
+                            TargetStringConcatenation target
+                        ) {
+                            target.append(" new ");
+                            target.append(module.get(TypeHelper.class)
+                                .typeRef(eventClass));
+                            target.append("()");
+                        }
+                    }
+                );
+            }
+        ));
+    }
 
-        Maybe<LightweightTypeReference> type = container.__(containerSafe -> {
-            return module.get(CompilationHelper.class).toLightweightTypeReference(contentType, containerSafe);
-        });
+
+    private JvmGenericType createEventClass(
+        Maybe<OnPerceptHandler> input,
+        OnPerceptHandler inputSafe,
+        SavedContext savedContext,
+        String eventClassName
+    ) {
+        final JvmTypesBuilder jvmTypesBuilder =
+            module.get(JvmTypesBuilder.class);
+        return jvmTypesBuilder.toClass(inputSafe,
+            eventClassName, it -> {
+                it.setVisibility(JvmVisibility.PRIVATE);
+
+                final CompilationHelper compilationHelper = module.get(
+                    CompilationHelper.class);
+                final TypeHelper typeHelper = module.get(TypeHelper.class);
+                it.getMembers().add(jvmTypesBuilder.toField(
+                    inputSafe,
+                    MESSAGE_RECEIVED_BOOL_VAR_NAME,
+                    typeHelper.typeRef(Boolean.class),
+                    itField -> {
+                        itField.setVisibility(JvmVisibility.DEFAULT);
+                        compilationHelper
+                            .createAndSetInitializer(
+                                itField,
+                                w.False::writeSonnet
+                            );
+                    }
+                ));
 
 
-        type.safeDo(typeSafe -> {
-            result.add(w.variable(
-                    typeSafe.toTypeReference().getQualifiedName('.'),
-                    PERCEPT_CONTENT_VAR_NAME,
-                    w.expr("(" + typeSafe.toTypeReference().getQualifiedName('.') + ") " +
-                            "((jadescript.core.percept.Percept)"
-                            + THE_AGENT + "().getContentManager().extractContent(" + PERCEPT_VAR_NAME + "))" +
-                            ".getContent()"
+                it.getMembers().add(jvmTypesBuilder.toMethod(
+                    inputSafe,
+                    "run",
+                    typeHelper.typeRef(void.class),
+                    itMethod -> compilationHelper.createAndSetBody(
+                        itMethod,
+                        scb -> {
+                            fillRunMethod(input, savedContext, scb);
+                        }
                     )
-            ));
-        });
-        return result;
+                ));
+            }
+        );
+    }
+
+
+    private void fillRunMethod(
+        Maybe<OnPerceptHandler> input,
+        SavedContext savedContext,
+        SourceCodeBuilder scb
+    ) {
+//        if ([OUTERCLASS].this.__ignoreMessageHandlers) {
+//            this.__eventFired = false;
+//            return;
+//        }
+        w.ifStmnt(
+            w.expr(Util.getOuterClassThisReference(input) +
+                "." + IGNORE_MSG_HANDLERS_VAR_NAME),
+            w.block().addStatement(
+                w.assign(
+                    "this." + MESSAGE_RECEIVED_BOOL_VAR_NAME,
+                    w.expr("false")
+                )
+            ).addStatement(w.returnStmnt())
+        ).writeSonnet(scb);
+
+
+//        [... message template auxiliary statements...]
+//        MessageTemplate _mt = [...]
+
+        final Maybe<WhenExpression> whenBody =
+            input.__(OnPerceptHandler::getWhenBody);
+
+        final Maybe<CodeBlock> body =
+            input.__(FeatureWithBody::getBody);
+        final Maybe<RValueExpression> whenExpr =
+            whenBody.__(WhenExpression::getExpr);
+
+        module.get(ContextManager.class).restore(savedContext);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        module.get(ContextManager.class).enterProceduralFeature(
+            OnPerceptHandlerWhenExpressionContext::new
+        );
+
+        StaticState beforePattern = StaticState.beginningOfOperation(module);
+
+        final IJadescriptType contentUpperBound = typeHelper.PROPOSITION;
+
+        IJadescriptType pattNarrowedContentType = contentUpperBound;
+        IJadescriptType wexpNarrowedContentType = contentUpperBound;
+
+        final Maybe<LValueExpression> pattern = input
+            .__(OnPerceptHandler::getPattern)
+            .__(x -> (LValueExpression) x);
+
+        Function<StaticState, StaticState> prepareBodyState;
+        final StaticState afterPatternDidMatch;
+        String part1;
+
+        if (pattern.isPresent()) {
+            final PatternMatchHelper patternMatchHelper =
+                module.get(PatternMatchHelper.class);
+
+            PatternMatchInput<LValueExpression> patternMatchInput
+                = patternMatchHelper.handlerHeader(
+                contentUpperBound,
+                pattern
+            );
+
+            LValueExpressionSemantics lves =
+                module.get(LValueExpressionSemantics.class);
+
+            // Compile the pattern match operation into a PatternMatcher and
+            // fill scb of the corresponding auxiliary statements
+            PatternMatcher matcher = lves.compilePatternMatch(
+                patternMatchInput,
+                beforePattern,
+                (member) -> member.writeSonnet(scb)
+            );
+
+
+            pattNarrowedContentType = lves.inferPatternType(
+                patternMatchInput,
+                beforePattern
+            ).solve(contentUpperBound);
+
+
+            final String patternMatcherClassName =
+                patternMatchHelper.getPatternMatcherClassName(pattern);
+
+            final String patternMatcherVariableName =
+                patternMatchHelper.getPatternMatcherVariableName(pattern);
+
+            LocalClassStatementWriter patternMatchClass = w.localClass(
+                patternMatcherClassName
+            );
+
+            matcher.getWriters().forEach(patternMatchClass::addMember);
+
+            patternMatchClass.writeSonnet(scb);
+
+            w.variable(
+                patternMatcherClassName,
+                patternMatcherVariableName,
+                w.expr("new " + patternMatcherClassName + "()")
+            ).writeSonnet(scb);
+
+            final StaticState advancePattern = lves.advancePattern(
+                patternMatchInput,
+                beforePattern
+            );
+            afterPatternDidMatch = lves.assertDidMatch(
+                patternMatchInput,
+                advancePattern
+            );
+
+            prepareBodyState = s -> lves.assertDidMatch(
+                patternMatchInput,
+                s
+            );
+
+            part1 = matcher.operationInvocationText(PERCEPT_CONTENT_VAR_NAME);
+        } else {
+            prepareBodyState = Function.identity();
+            afterPatternDidMatch = beforePattern;
+            part1 = "";
+        }
+
+        String part2;
+        StaticState afterWhenExprRetunedTrue;
+        if (whenExpr.isPresent()) {
+            final RValueExpressionSemantics rves =
+                module.get(RValueExpressionSemantics.class);
+
+            part2 = rves.compile(
+                whenExpr,
+                afterPatternDidMatch,
+                (member) -> member.writeSonnet(scb)
+            );
+
+            final StaticState afterWhenExpr = rves.advance(
+                whenExpr,
+                afterPatternDidMatch
+            );
+
+            afterWhenExprRetunedTrue = rves.assertReturnedTrue(
+                whenExpr,
+                afterWhenExpr
+            );
+
+            wexpNarrowedContentType = afterWhenExprRetunedTrue.inferUpperBound(
+                    ed -> ed.equals(
+                        new ExpressionDescriptor.PropertyChain(
+                            "percept"
+                        )
+                    ),
+                    null
+                ).findFirst()
+                .orElse(contentUpperBound);
+
+            prepareBodyState = prepareBodyState.andThen(
+                s -> rves.assertReturnedTrue(
+                    whenExpr,
+                    s
+                )
+            );
+
+        } else {
+            afterWhenExprRetunedTrue = afterPatternDidMatch;
+            part2 = "";
+        }
+
+        String compiledExpression;
+        if (!part1.isBlank() && !part2.isBlank()) { // Both are present...
+            // ...infix &&
+            compiledExpression = "(" + part1 + ") && (" + part2 + ")";
+        } else if (part1.isBlank() && part2.isBlank()) { // Both are absent...
+            // ... use true
+            compiledExpression = "true";
+        } else {
+            // ... otherwise return the one present
+            compiledExpression = part1 + part2;
+        }
+
+        module.get(ContextManager.class).exit();
+
+
+        final IJadescriptType finalContentType = typeHelper.getGLB(
+            pattNarrowedContentType,
+            wexpNarrowedContentType
+        );
+
+        //Building the message template
+        List<ExpressionWriter> templateExpressions = new ArrayList<>();
+
+        // add "is a percept" constraint
+        templateExpressions.add(TemplateCompilationHelper.isPercept());
+
+        if (input.__(OnPerceptHandler::isStale).extract(nullAsFalse)) {
+            // add staleness constraint
+            templateExpressions.add(TemplateCompilationHelper.isStale());
+        }
+
+
+        final BlockWriter tryBlock = w.block();
+        tryBlock.addStatement(w.ifStmnt(
+            w.expr("!(((jadescript.core.percept.Percept) " + THE_AGENT + "()" +
+                ".getContentManager()" +
+                ".extractContent(" + PERCEPT_VAR_NAME + "))" +
+                ".getContent() instanceof " +
+                module.get(TypeHelper.class).noGenericsTypeName(
+                    finalContentType.compileToJavaTypeReference()
+                ) + ")"),
+            w.block().addStatement(w.returnStmnt(w.expr("false")))
+        ));
+
+        final VariableDeclarationWriter declarePerceptContentVariable =
+            w.variable(
+                finalContentType.compileToJavaTypeReference(),
+                PERCEPT_CONTENT_VAR_NAME,
+                w.expr(finalContentType.compileAsJavaCast() +
+                    "((jadescript.core.percept.Percept)"
+                    + THE_AGENT + "().getContentManager()" +
+                    ".extractContent(" + PERCEPT_VAR_NAME + "))" +
+                    ".getContent()"
+                )
+            );
+
+        templateExpressions.add(TemplateCompilationHelper.customPercept(
+            w.block().addStatement(
+                w.tryCatch(tryBlock
+                    .addStatements(declarePerceptContentVariable)
+                    .addStatement(w.returnStmnt(w.expr(compiledExpression)))
+                ).addCatchBranch("java.lang.Throwable", "_e", w.block()
+                    .addStatement(w.callStmnt("_e.printStackTrace"))
+                    .addStatement(w.returnStmnt(w.expr("false")))
+                )
+            )
+        ));
+
+        // Put all constraints in a
+        // MessageTemplate.and(..., MessageTemplate.and(..., ...))
+        // chain.
+        final ExpressionWriter composedMT =
+            templateExpressions.stream().reduce(
+                TemplateCompilationHelper.True(),
+                TemplateCompilationHelper::and
+            );
+
+        w.variable(
+            "jade.lang.acl.MessageTemplate",
+            MESSAGE_TEMPLATE_NAME,
+            composedMT
+        ).writeSonnet(scb);
+
+//        if(myAgent!=null) {
+//            __receivedPercept = jadescript.core.message.Message.wrap
+//                (myAgent.receive(__mt));
+//        }
+        w.ifStmnt(
+            w.expr("myAgent!=null"),
+            w.block().addStatement(
+                w.assign(
+                    PERCEPT_VAR_NAME,
+                    w.callExpr(
+                        "jadescript.core.message.Message.wrap",
+                        w.callExpr(
+                            "myAgent.receive",
+                            w.expr(MESSAGE_TEMPLATE_NAME)
+                        )
+                    )
+                )
+            )
+        ).writeSonnet(scb);
+
+
+        StaticState inBody = prepareBodyState.apply(
+            afterWhenExprRetunedTrue
+        ).assertNamedSymbol(
+            PerceptPerceivedContext.perceptContentContextGeneratedReference(
+                finalContentType
+            )
+        );
+
+        module.get(ContextManager.class).enterProceduralFeature(
+            (mod, out) -> new OnPerceptHandlerContext(
+                mod,
+                out,
+                "percept",
+                finalContentType
+            )
+        );
+
+        inBody = inBody.enterScope();
+        final PSR<SourceCodeBuilder> bodyPSR =
+            module.get(CompilationHelper.class).compileBlockToNewSCB(
+                inBody,
+                body
+            );
+
+        final StatementWriter tryCatchWrappedBody =
+            encloseInGeneralHandlerTryCatch(bodyPSR.result());
+
+
+        module.get(ContextManager.class).exit();
+
+//        if (__receivedPercept != null) {
+//            [OUTERCLASS].this.__ignoreMessageHandlers = true;
+//
+//            __theAgent().__cleanIgnoredFlagForMessage(__receivedPercept);
+
+//            this.__eventFired = true;
+//
+//            try {
+//                [CONTENT_TYPE] __perceptContent = ([CONTENT_TYPE])
+//                    ((jadescript.core.percept.Percept)__theAgent()
+//                        .getContentManager()
+//                        .extractContent(__receivedPercept)
+//                    ).getContent();
+//                try {
+//
+//                    [...USERCODE...]
+
+//                } catch (jadescript.core.exception.JadescriptException
+//                    __throwable) {
+//                    __handleJadescriptException(__throwable);
+//                } catch (java.lang.Throwable __throwable) {
+//                    __handleJadescriptException(jadescript.core.exception
+//                    .JadescriptException.wrap(__throwable));
+//                }
+//
+//                this.__receivedPercept = null;
+//            } catch (Exception _e) {
+//                _e.printStackTrace();
+//            }
+//        } else {
+//            this.__eventFired = false;
+//        }
+
+        w.ifStmnt(
+            w.expr(PERCEPT_VAR_NAME + " != null"),
+            w.block()
+                .addStatement(w.assign(
+                    Util.getOuterClassThisReference(input) + "."
+                        + IGNORE_MSG_HANDLERS_VAR_NAME,
+                    w.expr("true")
+                ))
+                .addStatement(w.callStmnt(
+                    THE_AGENT + "().__cleanIgnoredFlagForMessage",
+                    w.expr(PERCEPT_VAR_NAME)
+                ))
+                .addStatement(w.assign(
+                    "this." + MESSAGE_RECEIVED_BOOL_VAR_NAME,
+                    w.expr("true")
+                ))
+                .addStatement(w.tryCatch(w.block()
+                        .addStatement(declarePerceptContentVariable)
+                        .addStatement(tryCatchWrappedBody)
+                        .addStatement(w.assign(
+                            "this." + PERCEPT_VAR_NAME,
+                            w.expr("null")
+                        ))
+                    ).addCatchBranch(
+                        "Exception",
+                        "_e",
+                        w.block().addStatement(
+                            w.callStmnt("_e.printStackTrace"))
+                    )
+                )
+        ).setElseBranch(w.block()
+            .addStatement(w.assign(
+                "this." + MESSAGE_RECEIVED_BOOL_VAR_NAME,
+                w.expr("false")
+            ))
+        ).writeSonnet(scb);
     }
 
 
     @Override
     public void validateFeature(
-            Maybe<OnPerceptHandler> input,
-            Maybe<FeatureContainer> container,
-            ValidationMessageAcceptor acceptor
+        Maybe<OnPerceptHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
     ) {
-        IJadescriptType contentType = module.get(TypeHelper.class).ANY;
 
-        Maybe<WhenExpression> whenBodyX = input.__(OnPerceptHandler::getWhenBody);
-        Maybe<Pattern> contentPattern = input.__(OnPerceptHandler::getPattern);
-        Maybe<CodeBlock> codeBlock = input.__(OnPerceptHandler::getBody);
-        Maybe<RValueExpression> expr = whenBodyX.__(WhenExpression::getExpr);
+        Maybe<WhenExpression> whenBody =
+            input.__(OnPerceptHandler::getWhenBody);
 
-        List<NamedSymbol> patternMatchDeclaredVariables = new ArrayList<>();
+        final Maybe<CodeBlock> body =
+            input.__(FeatureWithBody::getBody);
+        final Maybe<RValueExpression> whenExpr =
+            whenBody.__(WhenExpression::getExpr);
+        final Maybe<LValueExpression> pattern = input
+            .__(OnPerceptHandler::getPattern)
+            .__(x -> (LValueExpression) x);
 
-        if (whenBodyX.isPresent() || contentPattern.isPresent()) {
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
 
+        final IJadescriptType contentUpperBound = typeHelper.PROPOSITION;
 
-            contentType = inferContentType(input);
+        module.get(ContextManager.class).enterProceduralFeature(
+            OnPerceptHandlerWhenExpressionContext::new
+        );
 
-            patternMatchDeclaredVariables.addAll(
-                    generatePatternMatchData(input, nothing(), input, true).getAutoDeclaredVariables()
-            );
+        StaticState beforePattern = StaticState.beginningOfOperation(module);
 
-
-            InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-            module.get(RValueExpressionSemantics.class).validateUsageAsHandlerCondition(expr, expr, , interceptAcceptor);
-            if (!interceptAcceptor.thereAreErrors()) {
-                IJadescriptType computedContentType = inferContentType(input);
-
-                final Maybe<PatternMatchRequest> patternMatchRequest = createPatternMatchRequest(input);
-                if (expr.isPresent() || patternMatchRequest.isPresent()) {
-                    module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
-                            new PerceptHandlerWhenExpressionContext(
-                                    mod,
-                                    out,
-                                    computedContentType
-                            )
-                    );
-                    if (patternMatchRequest.isPresent()) {
-                        module.get(PatternMatchingSemantics.class).validate(patternMatchRequest, acceptor);
-                    }
-                    if (expr.isPresent()) {
-                        module.get(RValueExpressionSemantics.class).validate(expr, , acceptor);
-                    }
-                    module.get(ContextManager.class).exit();
-                }
-            }
-
-        }
-
-        final IJadescriptType finalContentType = contentType;
-        input.safeDo(inputSafe -> {
-
-            module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
-                    new PerceptHandlerContext(mod, out,
-                            "percept", patternMatchDeclaredVariables, finalContentType
-                    ));
-
-            List<StatementWriter> result = new ArrayList<>();
+        IJadescriptType pattNarrowedContentType = contentUpperBound;
+        IJadescriptType wexpNarrowedContentType = contentUpperBound;
 
 
-            Maybe<LightweightTypeReference> type = input.__(containerSafe -> {
-                return module.get(CompilationHelper.class).toLightweightTypeReference(finalContentType, containerSafe);
-            });
+        Function<StaticState, StaticState> prepareBodyState =
+            Function.identity();
+        StaticState afterPatternDidMatch = beforePattern;
 
-
-            type.safeDo(typeSafe -> {
-                result.add(w.variable(
-                        typeSafe.toTypeReference().getQualifiedName('.'),
-                        PERCEPT_CONTENT_VAR_NAME,
-                        w.expr("(" + typeSafe.toTypeReference().getQualifiedName('.') + ") " +
-                                "((jadescript.core.percept.Percept)"
-                                + THE_AGENT + "().getContentManager().extractContent(" + PERCEPT_VAR_NAME + "))" +
-                                ".getContent()"
-                        )
-                ));
-            });
-            module.get(BlockSemantics.class).addInjectedStatements(codeBlock, result);
-
-            module.get(BlockSemantics.class).addInjectedVariable(
-                    codeBlock,
-                    PerceptPerceivedContext.perceptContentContextGeneratedReference(finalContentType)
-            );
-
-            module.get(BlockSemantics.class).validate(input.__(FeatureWithBody::getBody),
-                state,
-                blockType, acceptor);
-
-            module.get(ContextManager.class).exit();
-
-        });
-
-    }
-
-    public IJadescriptType inferContentType(Maybe<OnPerceptHandler> input) {
-        final Maybe<RValueExpression> expr = input.__(OnPerceptHandler::getWhenBody)
-                .__(WhenExpression::getExpr);
-
-        final Maybe<Pattern> pattern = input.__(OnPerceptHandler::getPattern);
-
-        Optional<FlowTypeInferringTerm> contentOfMessage;
-
-        contentOfMessage = module.get(RValueExpressionSemantics.class)
-                .extractFlowTypeTruths(expr)
-                .query("percept");
-
-        IJadescriptType type;
-        if (contentOfMessage.isPresent()) {
-            type = contentOfMessage.get().getType();
-        } else {
-            type = module.get(TypeHelper.class).PREDICATE;
-        }
         if (pattern.isPresent()) {
-            type = module.get(TypeHelper.class).getGLB(
-                    module.get(PatternMatchingSemantics.class).inferPatternType(pattern.toNullable())
-                            .orElse(module.get(TypeHelper.class).NOTHING),
-                    type
+            final PatternMatchHelper patternMatchHelper =
+                module.get(PatternMatchHelper.class);
+
+            PatternMatchInput<LValueExpression> patternMatchInput
+                = patternMatchHelper.handlerHeader(
+                contentUpperBound,
+                pattern
             );
+
+            LValueExpressionSemantics lves =
+                module.get(LValueExpressionSemantics.class);
+
+
+            boolean patternMatchingCheck = lves.validatePatternMatch(
+                patternMatchInput,
+                beforePattern,
+                acceptor
+            );
+
+
+            if (patternMatchingCheck == VALID) {
+                pattNarrowedContentType = lves.inferPatternType(
+                    patternMatchInput,
+                    beforePattern
+                ).solve(contentUpperBound);
+
+                final StaticState afterPattern = lves.advancePattern(
+                    patternMatchInput,
+                    beforePattern
+                );
+
+                afterPatternDidMatch = lves.assertDidMatch(
+                    patternMatchInput,
+                    afterPattern
+                );
+
+                prepareBodyState = s -> lves.assertDidMatch(
+                    patternMatchInput,
+                    s
+                );
+            }
+
+
         }
 
-        return type;
-    }
 
-    public PatternMatchData generatePatternMatchData(
-            Maybe<? extends EObject> containerEObject,
-            Maybe<SavedContext> savedContext,
-            Maybe<OnPerceptHandler> input,
-            boolean isValidationOnly
-    ) {
-
-        savedContext.safeDo(it -> module.get(ContextManager.class).restore(it));
-
-        IJadescriptType computedContentType = inferContentType(input);
-
-        module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
-                new PerceptHandlerWhenExpressionContext(
-                        mod,
-                        out,
-                        computedContentType
-                )
-        );
+        StaticState afterWhenExprReturnedTrue = afterPatternDidMatch;
+        if (whenExpr.isPresent()) {
+            final RValueExpressionSemantics rves =
+                module.get(RValueExpressionSemantics.class);
+            boolean whenExprCheck =
+                rves.validate(
+                    whenExpr,
+                    afterPatternDidMatch,
+                    acceptor
+                ) && rves.validateUsageAsHandlerCondition(
+                    whenExpr,
+                    whenExpr,
+                    afterPatternDidMatch,
+                    acceptor
+                );
 
 
-        final Maybe<RValueExpression> expr = input.__(OnPerceptHandler::getWhenBody).__(WhenExpression::getExpr);
-
-        final Maybe<PatternMatchRequest> patternMatchRequest = createPatternMatchRequest(input);
-
-        List<StatementWriter> auxiliaryStatements = new ArrayList<>();
-        if (patternMatchRequest.isPresent()) {
-            auxiliaryStatements.addAll(module.get(PatternMatchingSemantics.class)
-                    .generateAuxiliaryStatements(patternMatchRequest));
-        }
-        auxiliaryStatements.addAll(
-                module.get(RValueExpressionSemantics.class).generateAuxiliaryStatements(expr)
-        );
+            if (whenExprCheck == VALID) {
+                final StaticState afterWhenExpr = rves.advance(
+                    whenExpr,
+                    afterPatternDidMatch
+                );
+                afterWhenExprReturnedTrue = rves.assertReturnedTrue(
+                    whenExpr,
+                    afterWhenExpr
+                );
 
 
-        String compiledExpression;
-        if (isValidationOnly) {
-            compiledExpression = "";
-        } else {
-            String x1 = module.get(PatternMatchingSemantics.class)
-                    .compileMatchesExpression(patternMatchRequest)
-                    .orElse("");
-            String x2 = module.get(RValueExpressionSemantics.class)
-                    .compile(expr, , )
-                    .orElse("");
-            if (!x1.isBlank() && !x2.isBlank()) {
-                compiledExpression = "(" + x1 + ") && (" + x2 + ")";
-            } else {
-                compiledExpression = x1 + x2;
+                wexpNarrowedContentType = afterWhenExprReturnedTrue
+                    .inferUpperBound(
+                        ed -> ed.equals(
+                            new ExpressionDescriptor.PropertyChain(
+                                "percept"
+                            )
+                        ),
+                        null
+                    ).findFirst()
+                    .orElse(contentUpperBound);
+
+                prepareBodyState = prepareBodyState.andThen(
+                    s -> rves.assertReturnedTrue(
+                        whenExpr,
+                        s
+                    )
+                );
             }
         }
-
-        final List<NamedSymbol> autoDeclaredVars = module.get(ContextManager.class).currentContext()
-                .searchAs(
-                        NamedSymbol.Searcher.class,
-                        s -> s.searchName((Predicate<String>) null, null, null)
-                                .filter(ne -> ne instanceof PatternMatchUnifiedVariable)
-                ).collect(Collectors.toList());
-
 
         module.get(ContextManager.class).exit();
 
-        List<JvmDeclaredType> patternMatcherClasses;
-        if (isValidationOnly) {
-            patternMatcherClasses = new ArrayList<>();
-        } else {
-            patternMatcherClasses = PatternMatchingSemantics.getPatternMatcherClasses(
-                    auxiliaryStatements,
-                    containerEObject,
-                    module
-            );
-        }
-
-        List<JvmField> patternMatcherFields;
-        if (isValidationOnly) {
-            patternMatcherFields = new ArrayList<>();
-        } else {
-            patternMatcherFields = PatternMatchingSemantics.getPatternMatcherFieldDeclarations(
-                    auxiliaryStatements,
-                    containerEObject,
-                    module
-            );
-        }
-
-        return new PatternMatchData(
-                compiledExpression,
-                patternMatcherClasses,
-                patternMatcherFields,
-                autoDeclaredVars,
-                computedContentType
+        final IJadescriptType finalContentType = typeHelper.getGLB(
+            pattNarrowedContentType,
+            wexpNarrowedContentType
         );
-    }
 
-
-    public static Maybe<PatternMatchRequest> createPatternMatchRequest(
-            Maybe<OnPerceptHandler> input
-    ) {
-        final Maybe<Pattern> pattern = input.__(OnPerceptHandler::getPattern);
-        if (pattern.isPresent()) {
-            final JadescriptFactory f = JadescriptFactory.eINSTANCE;
-            final UnaryPrefix up = f.createUnaryPrefix();
-            final OfNotation of = f.createOfNotation();
-            final AidLiteral aid = f.createAidLiteral();
-            final TypeCast tcast = f.createTypeCast();
-            final AtomExpr atomExpr = f.createAtomExpr();
-            final Primary pr = f.createPrimary();
-
-            pr.setPercept("percept");
-            atomExpr.setAtom(pr);
-            tcast.setAtomExpr(atomExpr);
-            aid.setTypeCast(tcast);
-            aid.setIsAidExpr(false);
-            of.setAidLiteral(aid);
-            up.setDebugScope(false);
-            up.setDebugType(false);
-            up.setOfNotation(of);
-
-            return PatternMatchRequest.patternMatchRequest(
-                    input,
-                    pattern,
-                    some(up),
-                    true
+        StaticState inBody = prepareBodyState.apply(afterWhenExprReturnedTrue)
+            .assertNamedSymbol(PerceptPerceivedContext
+                .perceptContentContextGeneratedReference(
+                    finalContentType
+                )
             );
-        } else {
-            return nothing();
-        }
+
+        module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
+            new OnPerceptHandlerContext(
+                mod,
+                out,
+                "percept",
+                finalContentType
+            )
+        );
+
+
+        inBody = inBody.enterScope();
+        module.get(BlockSemantics.class).validate(
+            body,
+            inBody,
+            acceptor
+        );
+
+
+        module.get(ContextManager.class).exit();
     }
+
 
 }

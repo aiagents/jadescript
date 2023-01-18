@@ -2,30 +2,28 @@ package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-public class PerceptHandlerWhenExpressionContext
+public class OnPerceptHandlerWhenExpressionContext
         extends HandlerWhenExpressionContext
         implements NamedSymbol.Searcher, PerceptPerceivedContext {
-    private final IJadescriptType perceptContentType;
 
-    public PerceptHandlerWhenExpressionContext(
+    public OnPerceptHandlerWhenExpressionContext(
             SemanticsModule module,
-            ProceduralFeatureContainerContext outer,
-            IJadescriptType perceptContentType
+            ProceduralFeatureContainerContext outer
     ) {
         super(module, outer);
-        this.perceptContentType = perceptContentType;
     }
 
 
     @Override
     public IJadescriptType getPerceptContentType() {
-        return perceptContentType;
+        return module.get(TypeHelper.class).PROPOSITION;
     }
 
     @Override
@@ -40,8 +38,9 @@ public class PerceptHandlerWhenExpressionContext
     @Override
     public void debugDump(SourceCodeBuilder scb) {
         super.debugDump(scb);
-        scb.open("--> is PerceptHandlerWhenExpressionContext {");
-        scb.line("perceptContentType = " + getPerceptContentType().getDebugPrint());
+        scb.open("--> is OnPerceptHandlerWhenExpressionContext {");
+        scb.line("perceptContentType = " +
+            getPerceptContentType().getDebugPrint());
         scb.close("}");
         debugDumpPerception(scb);
     }

@@ -137,8 +137,8 @@ public class OnMessageHandlerSemantics
         ).writeSonnet(scb);
 
 
-//        Message __receivedMessage = null;
-        w.variable("jadescript.core.message.Message", MESSAGE_VAR_NAME, w.Null);
+//        Message __receivedPercept = null;
+        w.variable("jadescript.core.message.Message", PERCEPT_VAR_NAME, w.Null);
 
 //        [... message template auxiliary statements...]
 //        MessageTemplate _mt = [...]
@@ -319,12 +319,10 @@ public class OnMessageHandlerSemantics
         }
 
         String compiledExpression;
-        if (!part1.isBlank() && !part2.isBlank()) { // Both are
-            // present...
+        if (!part1.isBlank() && !part2.isBlank()) { // Both are present...
             // ...infix &&
             compiledExpression = "(" + part1 + ") && (" + part2 + ")";
-        } else if (part1.isBlank() && part2.isBlank()) { // Both are
-            // absent...
+        } else if (part1.isBlank() && part2.isBlank()) { // Both are absent...
             // ... use true
             compiledExpression = "true";
         } else {
@@ -348,6 +346,7 @@ public class OnMessageHandlerSemantics
                 wexpNarrowedContentType
             );
         }
+
 
 
         //Building the message template
@@ -477,7 +476,7 @@ public class OnMessageHandlerSemantics
             );
 
 
-        final StatementWriter userBody = encloseInGeneralHandlerTryCatch(
+        final StatementWriter tryCatchWrappedBody = encloseInGeneralHandlerTryCatch(
             bodyPSR.result()
         );
 
@@ -499,12 +498,11 @@ public class OnMessageHandlerSemantics
 //                  [...USERCODE...]
 
 //                } catch (jadescript.core.exception.JadescriptException
-//                __throwable) {
+//                    __throwable) {
 //                    __handleJadescriptException(__throwable);
 //                } catch (java.lang.Throwable __throwable) {
 //                    __handleJadescriptException(jadescript.core.exception
-//                    .JadescriptException.wrap(
-//                        __throwable));
+//                    .JadescriptException.wrap(__throwable));
 //                }
 
 //
@@ -531,7 +529,7 @@ public class OnMessageHandlerSemantics
                 )
             ).addStatement(
                 w.tryCatch(w.block()
-                    .addStatement(userBody)
+                    .addStatement(tryCatchWrappedBody)
                     .addStatement(w.assign(MESSAGE_VAR_NAME, w.expr("null")))
                 ).addCatchBranch(
                     "Exception",
@@ -825,6 +823,9 @@ public class OnMessageHandlerSemantics
 
         //TODO this overwrites the named symbols;
         // however, it would be useful to have a "refine compilation" symbol
+        //  ... do we really need this (also in compile and also in other
+        //  event handlers)? .. Probably the state already contains the required
+        //  info.
         StaticState inBody = prepareBodyState.apply(afterWhenExprReturnedTrue)
             .assertNamedSymbol(
                 MessageReceivedContext.messageContentContextGeneratedReference(
