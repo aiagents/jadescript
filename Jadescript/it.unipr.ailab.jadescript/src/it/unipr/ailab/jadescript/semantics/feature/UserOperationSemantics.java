@@ -8,11 +8,14 @@ import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.FunctionContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.ParameterizedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.ProcedureContext;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmMember;
@@ -23,19 +26,22 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
 /**
  * Created on 27/04/18.
  */
 @Singleton
-public class UserOperationSemantics extends FeatureSemantics<FunctionOrProcedure>
-        implements OperationDeclarationSemantics {
+public class UserOperationSemantics
+    extends FeatureSemantics<FunctionOrProcedure>
+    implements OperationDeclarationSemantics {
 
 
     public UserOperationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
+
 
     /**
      * Method for declaring element's functions.
@@ -45,10 +51,10 @@ public class UserOperationSemantics extends FeatureSemantics<FunctionOrProcedure
      */
     @Override
     public void generateJvmMembers(
-            Maybe<FunctionOrProcedure> input,
-            Maybe<FeatureContainer> container,
-            EList<JvmMember> members,
-            JvmDeclaredType beingDeclared
+        Maybe<FunctionOrProcedure> input,
+        Maybe<FeatureContainer> container,
+        EList<JvmMember> members,
+        JvmDeclaredType beingDeclared
     ) {
         if (input == null) {
             return;
@@ -56,103 +62,146 @@ public class UserOperationSemantics extends FeatureSemantics<FunctionOrProcedure
         Maybe<TypeExpression> type = input.__(FunctionOrProcedure::getType);
 
         IJadescriptType returnType;
+        final TypeExpressionSemantics tes =
+            module.get(TypeExpressionSemantics.class);
+
         if (type.isNothing()) {
             returnType = module.get(TypeHelper.class).VOID;
         } else {
-            returnType = module.get(TypeExpressionSemantics.class).toJadescriptType(type);
+            returnType = tes.toJadescriptType(type);
         }
 
         Maybe<String> name = input.__(FunctionOrProcedure::getName);
-        Maybe.safeDo(input, name,
-                /*NULLSAFE REGION*/(inputSafe, nameSafe) -> {
-                    //this portion of code is done  only if input and name
-                    // are != null (and everything in the dotchains that generated them is !=null too)
+        if (input.isNothing() || name.isNothing()) {
+            return;
+        }
 
-                    final SavedContext savedContext = module.get(ContextManager.class).save();
-                    members.add(module.get(JvmTypesBuilder.class).toMethod(inputSafe, nameSafe, returnType.asJvmTypeReference(), itMethod -> {
+        final FunctionOrProcedure inputSafe = input.toNullable();
+        final String nameSafe = name.toNullable();
 
-                        itMethod.setVisibility(JvmVisibility.PUBLIC);
-                        Maybe<EList<FormalParameter>> parameters = input.__(ParameterizedFeature::getParameters);
-                        for (Maybe<FormalParameter> parameter : iterate(parameters)) {
-                            Maybe<String> parameterName = parameter.__(FormalParameter::getName);
-                            Maybe.safeDo(parameter, parameterName,
-                                    /*NULLSAFE REGION*/(parameterSafe, parameterNameSafe) -> {
-                                        //this portion of code is done  only if parameter and parameterName
-                                        // are != null (and everything in the dotchains that generated them is !=null too)
+        final ContextManager contextManager = module.get(ContextManager.class);
 
-                                        itMethod.getParameters().add(module.get(JvmTypesBuilder.class).toParameter(
-                                                parameterSafe,
-                                                parameterNameSafe,
-                                                module.get(TypeExpressionSemantics.class)
-                                                        .toJadescriptType(parameter.__(FormalParameter::getType))
-                                                        .asJvmTypeReference()
-                                        ));
+        final JvmTypesBuilder jvmTB =
+            module.get(JvmTypesBuilder.class);
 
+        final SavedContext savedContext = contextManager.save();
 
-                                    }/*END NULLSAFE REGION - (parameterSafe, parameterNameSafe)*/
-                            );
+        members.add(jvmTB.toMethod(
+            inputSafe,
+            nameSafe,
+            returnType.asJvmTypeReference(),
+            itMethod -> {
+                itMethod.setVisibility(JvmVisibility.PUBLIC);
+                List<Maybe<FormalParameter>> parameters = toListOfMaybes(
+                    input.__(ParameterizedFeature::getParameters)
+                );
+                for (Maybe<FormalParameter> parameter : parameters) {
+                    Maybe<String> parameterName =
+                        parameter.__(FormalParameter::getName);
+                    if (parameter.isNothing() || parameterName.isNothing()) {
+                        continue;
+                    }
+                    final FormalParameter parameterSafe =
+                        parameter.toNullable();
 
-                        }
-                        List<String> paramNames = new ArrayList<>();
-                        List<IJadescriptType> paramTypes = new ArrayList<>();
-                        for (Maybe<FormalParameter> parameter : toListOfMaybes(parameters)) {
-                            paramNames.add(parameter.__(FormalParameter::getName).orElse(""));
-                            final Maybe<TypeExpression> paramTypeExpr = parameter.__(FormalParameter::getType);
-                            paramTypes.add(module.get(TypeExpressionSemantics.class)
-                                    .toJadescriptType(paramTypeExpr));
-                        }
+                    final String parameterNameSafe = parameterName.toNullable();
 
-                        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
-                        parameters.safeDo(parametersSafe -> {
+                    itMethod.getParameters().add(jvmTB.toParameter(
+                        parameterSafe,
+                        parameterNameSafe,
+                        tes.toJadescriptType(
+                            parameter.__(FormalParameter::getType)
+                        ).asJvmTypeReference()
+                    ));
 
-                            module.get(CompilationHelper.class).createAndSetBody(itMethod, scb -> {
-                                module.get(ContextManager.class).restore(savedContext);
-                                if (input.__(FunctionOrProcedure::isFunction).extract(nullAsFalse)) {
-                                    module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
-                                            new FunctionContext(
-                                                    mod,
-                                                    out,
-                                                    nameSafe,
-                                                    ParameterizedContext.zipArguments(paramNames, paramTypes),
-                                                    returnType
-                                            ));
-                                } else {
-                                    module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
-                                            new ProcedureContext(
-                                                    mod,
-                                                    out,
-                                                    nameSafe,
-                                                    ParameterizedContext.zipArguments(paramNames, paramTypes)
-                                            ));
-                                }
-                                scb.add(module.get(CompilationHelper.class).compileBlockToNewSCB(body));
-                                module.get(ContextManager.class).exit();
-                            });
-                        });
-                    }));
+                }
+                List<String> paramNames = new ArrayList<>();
+                List<IJadescriptType> paramTypes = new ArrayList<>();
+
+                for (Maybe<FormalParameter> parameter : parameters) {
+                    paramNames.add(
+                        parameter.__(FormalParameter::getName).orElse("")
+                    );
+
+                    final Maybe<TypeExpression> paramTypeExpr =
+                        parameter.__(FormalParameter::getType);
+
+                    paramTypes.add(tes.toJadescriptType(paramTypeExpr));
+                }
 
 
-                }/*END NULLSAFE REGION - (inputSafe, nameSafe)*/
-        );
+                Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+
+                final CompilationHelper compilationHelper =
+                    module.get(CompilationHelper.class);
+
+                compilationHelper.createAndSetBody(itMethod, scb -> {
+                    contextManager.restore(savedContext);
+
+                    final boolean isFunction =
+                        input.__(FunctionOrProcedure::isFunction)
+                            .extract(nullAsFalse);
+
+                    if (isFunction) {
+                        contextManager.enterProceduralFeature(
+                            (mod, out) -> new FunctionContext(
+                                mod,
+                                out,
+                                nameSafe,
+                                ParameterizedContext.zipArguments(
+                                    paramNames,
+                                    paramTypes
+                                ),
+                                returnType
+                            )
+                        );
+                    } else {
+                        contextManager.enterProceduralFeature(
+                            (mod, out) -> new ProcedureContext(
+                                mod,
+                                out,
+                                nameSafe,
+                                ParameterizedContext.zipArguments(
+                                    paramNames,
+                                    paramTypes
+                                )
+                            )
+                        );
+                    }
+
+                    StaticState inBody =
+                        StaticState.beginningOfOperation(module);
+                    inBody = inBody.enterScope();
+
+                    final PSR<SourceCodeBuilder> bodyPSR =
+                        compilationHelper.compileBlockToNewSCB(inBody, body);
+
+                    scb.add(bodyPSR.result());
+
+                    contextManager.exit();
+                });
+            }
+        ));
     }
 
 
     @Override
     public void validateFeature(
-            Maybe<FunctionOrProcedure> input,
-            Maybe<FeatureContainer> container,
-            ValidationMessageAcceptor acceptor
+        Maybe<FunctionOrProcedure> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
     ) {
         validateGenericFunctionOrProcedure(
-                input,
-                input.__(FunctionOrProcedure::getName),
-                input.__(ParameterizedFeature::getParameters),
-                input.__(FunctionOrProcedure::getType),
-                input.__(FeatureWithBody::getBody),
-                module,
-                input.__(FunctionOrProcedure::isFunction).extract(nullAsFalse),
-                getLocationOfThis(),
-                acceptor
+            input,
+            input.__(FunctionOrProcedure::getName),
+            input.__(ParameterizedFeature::getParameters),
+            input.__(FunctionOrProcedure::getType),
+            input.__(FeatureWithBody::getBody),
+            module,
+            input.__(FunctionOrProcedure::isFunction).extract(nullAsFalse),
+            getLocationOfThis(),
+            acceptor
         );
     }
+
 }
