@@ -1,401 +1,560 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.*;
+import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
+import it.unipr.ailab.jadescript.semantics.context.c2feature.ExceptionHandledContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnExceptionHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnExceptionHandlerWhenExpressionContext;
-import it.unipr.ailab.jadescript.semantics.context.flowtyping.FlowTypeInferringTerm;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
+import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.PatternMatchRequest;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.statement.StatementWriter;
+import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
+import jadescript.core.exception.ExceptionThrower;
+import jadescript.core.exception.JadescriptException;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.common.types.*;
+import org.eclipse.xtext.common.types.JvmDeclaredType;
+import org.eclipse.xtext.common.types.JvmGenericType;
+import org.eclipse.xtext.common.types.JvmMember;
+import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
-import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.some;
+public class OnExceptionHandlerSemantics
+    extends FeatureSemantics<OnExceptionHandler> {
 
-public class OnExceptionHandlerSemantics extends FeatureSemantics<OnExceptionHandler> {
     public OnExceptionHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
+
     @Override
     public void generateJvmMembers(
-            Maybe<OnExceptionHandler> input,
-            Maybe<FeatureContainer> featureContainer,
-            EList<JvmMember> members,
-            JvmDeclaredType beingDeclared
+        Maybe<OnExceptionHandler> input,
+        Maybe<FeatureContainer> featureContainer,
+        EList<JvmMember> members,
+        JvmDeclaredType beingDeclared
     ) {
-        final SavedContext savedContext = module.get(ContextManager.class).save();
-        input.safeDo(inputSafe -> {
-            JvmGenericType eventClass = module.get(JvmTypesBuilder.class).toClass(inputSafe, synthesizeExceptionEventClassName(inputSafe), it -> {
+        if (input.isNothing()) {
+            return;
+        }
+        OnExceptionHandler inputSafe = input.toNullable();
+
+        final SavedContext savedContext =
+            module.get(ContextManager.class).save();
+
+        final String eventClassName =
+            synthesizeBehaviourEventClassName(inputSafe);
+
+        JvmGenericType eventClass = createEventClass(
+            input,
+            inputSafe,
+            savedContext,
+            eventClassName
+        );
+
+        members.add(eventClass);
+
+        members.add(module.get(JvmTypesBuilder.class).toField(
+            inputSafe,
+            synthesizeExceptionEventVariableName(inputSafe),
+            module.get(TypeHelper.class).typeRef(eventClass), it -> {
+                it.setVisibility(JvmVisibility.PRIVATE);
+                module.get(CompilationHelper.class).createAndSetInitializer(
+                    it,
+                    scb -> {
+                        scb.add("new " + eventClass.getQualifiedName('.')
+                            + "()");
+                    }
+                );
+            }
+        ));
+    }
+
+
+    private JvmGenericType createEventClass(
+        Maybe<OnExceptionHandler> input,
+        OnExceptionHandler inputSafe,
+        SavedContext savedContext,
+        String className
+    ) {
+        final JvmTypesBuilder jvmTB =
+            module.get(JvmTypesBuilder.class);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
+
+        return jvmTB.toClass(
+            inputSafe,
+            className,
+            it -> {
                 it.setVisibility(JvmVisibility.PRIVATE);
 
-                it.getMembers().add(module.get(JvmTypesBuilder.class).toField(
-                        inputSafe,
-                        EXCEPTION_MATCHED_BOOL_VAR_NAME,
-                        module.get(TypeHelper.class).BOOLEAN.asJvmTypeReference(),
-                        itField -> {
-                            itField.setVisibility(JvmVisibility.PUBLIC);
-                            module.get(CompilationHelper.class).createAndSetInitializer(
-                                    itField,
-                                    w.False::writeSonnet
-                            );
-                        }
-                ));
-
-                it.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(
-                        inputSafe,
-                        EVENT_HANDLER_STATE_RESET_METHOD_NAME,
-                        module.get(TypeHelper.class).VOID.asJvmTypeReference(),
-                        itMethod -> {
-                            itMethod.setVisibility(JvmVisibility.PUBLIC);
-                            module.get(CompilationHelper.class).createAndSetBody(
-                                    itMethod,
-                                    w.assign(EXCEPTION_MATCHED_BOOL_VAR_NAME, w.False)::writeSonnet
-                            );
-                        }
-                ));
-
-                Maybe<WhenExpression> whenBodyX = input.__(OnExceptionHandler::getWhenBody);
-                Maybe<Pattern> contentPattern = input.__(OnExceptionHandler::getPattern);
-                Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
-                PatternMatchData pmData = generatePatternMatchData(
-                        featureContainer,
-                        some(savedContext),
-                        input,
-                        contentPattern,
-                        whenBodyX.__(WhenExpression::getExpr),
-                        false
-                );
-
-                IJadescriptType contentType = pmData.getInferredContentType();
-
-                for (JvmDeclaredType patternMatchClass : pmData.getPatternMatchClasses()) {
-                    it.getMembers().add(patternMatchClass);
-                }
-                for (JvmField patternMatchField : pmData.getPatternMatchFields()) {
-                    it.getMembers().add(patternMatchField);
-                }
-                module.get(BlockSemantics.class).addInjectedVariables(body, pmData.getAutoDeclaredVariables());
-
-                IJadescriptType computedContentType = inferContentType(
-                        input.__(OnExceptionHandler::getPattern),
-                        input.__(OnExceptionHandler::getWhenBody).__(WhenExpression::getExpr)
-                );
-                it.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(
-                        inputSafe,
-                        "handle",
-                        module.get(TypeHelper.class).typeRef(void.class),
-                        itMethod -> {
-                            itMethod.getParameters().add(module.get(JvmTypesBuilder.class).toParameter(
-                                    inputSafe,
-                                    "__inputException",
-                                    module.get(TypeHelper.class).typeRef(jadescript.core.exception.JadescriptException.class)
-                            ));
-                            itMethod.getParameters().add(module.get(JvmTypesBuilder.class).toParameter(
-                                    inputSafe,
-                                    EXCEPTION_THROWER_NAME,
-                                    module.get(TypeHelper.class).typeRef(jadescript.core.exception.ExceptionThrower.class)
-                            ));
-
-
-                            module.get(ContextManager.class).restore(savedContext);
-                            module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
-                                    new OnExceptionHandlerContext(
-                                            mod,
-                                            out,
-                                            "exception",
-                                            pmData.getAutoDeclaredVariables(),
-                                            contentType
-                                    )
-                            );
-                            final SavedContext saved = module.get(ContextManager.class).save();
-                            module.get(CompilationHelper.class).createAndSetBody(itMethod, scb -> {
-                                module.get(ContextManager.class).restore(saved);
-
-                                scb.open("if (__inputException.getReason() instanceof "
-                                        + module.get(TypeHelper.class).noGenericsTypeName(
-                                        computedContentType.compileToJavaTypeReference()) + ") {");
-
-                                w.variable(
-                                        contentType.compileToJavaTypeReference(),
-                                        EXCEPTION_REASON_VAR_NAME,
-                                        w.expr("(" + contentType.compileAsJavaCast() + " __inputException.getReason())")
-                                ).writeSonnet(scb);
-
-                                String compiledPatternExpr = pmData.getCompiledExpression();
-                                if (!compiledPatternExpr.isBlank()) {
-                                    scb.open("if (" + compiledPatternExpr + ") {");
-                                }
-
-                                w.assign(EXCEPTION_MATCHED_BOOL_VAR_NAME, w.True).writeSonnet(scb);
-
-                                scb.add(encloseInGeneralHandlerTryCatch(
-                                        module.get(CompilationHelper.class).compileBlockToNewSCB(body)
-                                ));
-
-                                if (!compiledPatternExpr.isBlank()) {
-                                    scb.close("}");
-                                }
-
-                                scb.close("}");
-
-
-                            });
-
-                            module.get(ContextManager.class).exit();
-
-
-                        }
-                ));
-            });
-            members.add(eventClass);
-            members.add(module.get(JvmTypesBuilder.class).toField(
+                it.getMembers().add(jvmTB.toField(
                     inputSafe,
-                    synthesizeExceptionEventVariableName(inputSafe),
-                    module.get(TypeHelper.class).typeRef(eventClass), it -> {
-                        it.setVisibility(JvmVisibility.PRIVATE);
-                        module.get(CompilationHelper.class).createAndSetInitializer(it, scb -> {
-                            scb.add("new " + eventClass.getQualifiedName('.') + "()");
-                        });
+                    EXCEPTION_MATCHED_BOOL_VAR_NAME,
+                    typeHelper.BOOLEAN.asJvmTypeReference(),
+                    itField -> {
+                        itField.setVisibility(JvmVisibility.PUBLIC);
+                        compilationHelper.createAndSetInitializer(
+                            itField,
+                            w.False::writeSonnet
+                        );
                     }
-            ));
-        });
+                ));
+
+                it.getMembers().add(jvmTB.toMethod(
+                    inputSafe,
+                    EVENT_HANDLER_STATE_RESET_METHOD_NAME,
+                    typeHelper.VOID.asJvmTypeReference(),
+                    itMethod -> {
+                        itMethod.setVisibility(JvmVisibility.PUBLIC);
+                        compilationHelper.createAndSetBody(
+                            itMethod,
+                            w.assign(
+                                EXCEPTION_MATCHED_BOOL_VAR_NAME,
+                                w.False
+                            )::writeSonnet
+                        );
+                    }
+                ));
+
+                it.getMembers().add(jvmTB.toMethod(
+                    inputSafe,
+                    "handle",
+                    typeHelper.typeRef(void.class),
+                    itMethod -> {
+                        itMethod.getParameters().add(jvmTB.toParameter(
+                            inputSafe,
+                            "__inputException",
+                            typeHelper.typeRef(JadescriptException.class)
+                        ));
+                        itMethod.getParameters().add(jvmTB.toParameter(
+                            inputSafe,
+                            EXCEPTION_THROWER_NAME,
+                            typeHelper.typeRef(ExceptionThrower.class)
+                        ));
+
+
+                        compilationHelper.createAndSetBody(
+                            itMethod,
+                            scb -> {
+                                fillHandleMethod(
+                                    input,
+                                    savedContext,
+                                    scb
+                                );
+                            }
+                        );
+
+                    }
+                ));
+
+            }
+        );
+
     }
 
-    public IJadescriptType inferContentType(Maybe<Pattern> pattern, Maybe<RValueExpression> expr) {
 
-        IJadescriptType type = module.get(TypeHelper.class).PROPOSITION;
+    private void fillHandleMethod(
+        Maybe<OnExceptionHandler> input,
+        SavedContext saved,
+        SourceCodeBuilder scb
+    ) {
 
-        if (expr.isPresent()) {
-            Optional<FlowTypeInferringTerm> content = module.get(RValueExpressionSemantics.class)
-                    .extractFlowTypeTruths(expr)
-                    .query("exception");
-            if (content.isPresent()) {
-                type = content.get().getType();
-            }
-        }
+
+        module.get(ContextManager.class).restore(saved);
+
+        final Maybe<WhenExpression> whenBody =
+            input.__(OnExceptionHandler::getWhenBody);
+        final Maybe<RValueExpression> whenExpr =
+            whenBody.__(WhenExpression::getExpr);
+        final Maybe<Pattern> contentPattern =
+            input.__(OnExceptionHandler::getPattern);
+        final Maybe<LValueExpression> pattern = contentPattern
+            .__(x -> (LValueExpression) x);
+        final Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+
+        module.get(ContextManager.class).enterProceduralFeature(
+            OnExceptionHandlerWhenExpressionContext::new
+        );
+
+        StaticState beforePattern = StaticState.beginningOfOperation(module);
+
+        final IJadescriptType propositionUpperBound = typeHelper.PROPOSITION;
+
+
+        IJadescriptType pattNarrowedContentType = propositionUpperBound;
+        IJadescriptType wexpNarrowedContentType = propositionUpperBound;
+
+
+        Function<StaticState, StaticState> prepareBodyState;
+        final StaticState afterPatternDidMatch;
+        String part1;
         if (pattern.isPresent()) {
-            type = module.get(TypeHelper.class).getGLB(
-                    module.get(PatternMatchingSemantics.class)
-                            .inferPatternType(pattern.toNullable())
-                            .orElse(module.get(TypeHelper.class).NOTHING),
-                    type
-            );
-        }
+            final PatternMatchHelper patternMatchHelper =
+                module.get(PatternMatchHelper.class);
 
-        return type;
-    }
-
-    @Override
-    public void validateFeature(
-            Maybe<OnExceptionHandler> input,
-            Maybe<FeatureContainer> container,
-            ValidationMessageAcceptor acceptor
-    ) {
-
-        IJadescriptType contentType = module.get(TypeHelper.class).PROPOSITION;
-        Maybe<WhenExpression> whenBodyX = input.__(OnExceptionHandler::getWhenBody);
-        Maybe<Pattern> contentPattern = input.__(OnExceptionHandler::getPattern);
-        List<NamedSymbol> patternMatchDeclaredVariables = new ArrayList<>();
-
-        if (whenBodyX.isPresent() || contentPattern.isPresent()) {
-            final Maybe<RValueExpression> expr = whenBodyX.__(WhenExpression::getExpr);
-            final IJadescriptType contentTypeFromHeader = inferContentType(contentPattern, expr);
-            contentType = module.get(TypeHelper.class).getGLB(contentType, contentTypeFromHeader);
-
-            patternMatchDeclaredVariables.addAll(
-                    generatePatternMatchData(container, nothing(), input, contentPattern, expr, true)
-                            .getAutoDeclaredVariables()
+            PatternMatchInput<LValueExpression> patternMatchInput
+                = patternMatchHelper.handlerHeader(
+                propositionUpperBound,
+                pattern
             );
 
-            InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-            module.get(RValueExpressionSemantics.class).validateUsageAsHandlerCondition(expr, expr, , interceptAcceptor);
-            if (!interceptAcceptor.thereAreErrors()) {
-                Maybe<PatternMatchRequest> patternMatchRequest = createPatternMatchRequest(
-                        contentPattern, input
-                );
+            LValueExpressionSemantics lves =
+                module.get(LValueExpressionSemantics.class);
 
-                if (expr.isPresent() || patternMatchRequest.isPresent()) {
-                    module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
-                            new OnExceptionHandlerWhenExpressionContext(
-                                    mod,
-                                    out,
-                                    contentTypeFromHeader
-                            )
-                    );
+            // Compile the pattern match operation into a PatternMatcher and
+            // fill scb of the corresponding auxiliary statements
+            PatternMatcher matcher = lves.compilePatternMatch(
+                patternMatchInput,
+                beforePattern,
+                (member) -> member.writeSonnet(scb)
+            );
 
-                    if (patternMatchRequest.isPresent()) {
-                        module.get(PatternMatchingSemantics.class).validate(patternMatchRequest, acceptor);
-                    }
+            pattNarrowedContentType = lves.inferPatternType(
+                patternMatchInput,
+                beforePattern
+            ).solve(propositionUpperBound);
 
-                    if (expr.isPresent()) {
-                        module.get(RValueExpressionSemantics.class).validate(expr, , acceptor);
-                    }
+            final String patternMatcherClassName =
+                patternMatchHelper.getPatternMatcherClassName(pattern);
 
-                    module.get(ContextManager.class).exit();
-                }
+            final String patternMatcherVariableName =
+                patternMatchHelper.getPatternMatcherVariableName(pattern);
 
-            }
-        }
+            LocalClassStatementWriter patternMatchClass = w.localClass(
+                patternMatcherClassName
+            );
 
-        final IJadescriptType finalContentType = contentType;
-        input.safeDo(inputSafe -> {
-            module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
-                    new OnExceptionHandlerContext(mod, out,
-                            "exception", patternMatchDeclaredVariables, finalContentType
-                    ));
+            matcher.getWriters().forEach(patternMatchClass::addMember);
 
-            module.get(BlockSemantics.class).validate(input.__(FeatureWithBody::getBody),
-                state,
-                blockType, acceptor);
+            patternMatchClass.writeSonnet(scb);
 
-            module.get(ContextManager.class).exit();
-        });
-    }
+            w.variable(
+                patternMatcherClassName,
+                patternMatcherVariableName,
+                w.expr("new " + patternMatcherClassName + "()")
+            ).writeSonnet(scb);
 
-    private Maybe<PatternMatchRequest> createPatternMatchRequest(
-            Maybe<Pattern> contentPattern,
-            Maybe<OnExceptionHandler> input
-    ) {
-        Maybe<PatternMatchRequest> patternMatchRequest;
-        if (contentPattern.isPresent()) {
-            final JadescriptFactory f = JadescriptFactory.eINSTANCE;
-            final UnaryPrefix up = f.createUnaryPrefix();
-            final OfNotation of = f.createOfNotation();
-            final AidLiteral aid = f.createAidLiteral();
-            final TypeCast tcast = f.createTypeCast();
-            final AtomExpr atomExpr = f.createAtomExpr();
-            final Primary pr = f.createPrimary();
+            final StaticState advancePattern = lves.advancePattern(
+                patternMatchInput,
+                beforePattern
+            );
 
-            pr.setException("exception");
-            atomExpr.setAtom(pr);
-            tcast.setAtomExpr(atomExpr);
-            aid.setTypeCast(tcast);
-            aid.setIsAidExpr(false);
-            of.setAidLiteral(aid);
-            up.setDebugScope(false);
-            up.setDebugType(false);
-            up.setOfNotation(of);
+            afterPatternDidMatch = lves.assertDidMatch(
+                patternMatchInput,
+                advancePattern
+            );
 
-            patternMatchRequest = PatternMatchRequest.patternMatchRequest(
-                    input,
-                    contentPattern,
-                    some(up),
-                    true
+            prepareBodyState = s -> lves.assertDidMatch(
+                patternMatchInput,
+                s
+            );
+
+            part1 = matcher.operationInvocationText(
+                EXCEPTION_REASON_VAR_NAME
             );
         } else {
-            patternMatchRequest = nothing();
+            prepareBodyState = Function.identity();
+            afterPatternDidMatch = beforePattern;
+            part1 = "";
         }
-        return patternMatchRequest;
-    }
 
-    public PatternMatchData generatePatternMatchData(
-            Maybe<? extends EObject> containerEObject,
-            Maybe<SavedContext> savedContext,
-            Maybe<OnExceptionHandler> input,
-            Maybe<Pattern> pattern,
-            Maybe<RValueExpression> expr,
-            boolean isValidationOnly
-    ) {
-        savedContext.safeDo(it -> module.get(ContextManager.class).restore(it));
+        String part2;
+        StaticState afterWhenExprReturnedTrue;
+        if (whenExpr.isPresent()) {
+            final RValueExpressionSemantics rves =
+                module.get(RValueExpressionSemantics.class);
 
-        IJadescriptType computedContentType = inferContentType(pattern, expr);
+            part2 = rves.compile(
+                whenExpr,
+                afterPatternDidMatch,
+                (member) -> member.writeSonnet(scb)
+            );
 
-        module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
-                new OnExceptionHandlerWhenExpressionContext(
-                        mod,
-                        out,
-                        computedContentType
+            final StaticState afterWhenExpr = rves.advance(
+                whenExpr,
+                afterPatternDidMatch
+            );
+
+            afterWhenExprReturnedTrue = rves.assertReturnedTrue(
+                whenExpr,
+                afterWhenExpr
+            );
+
+            wexpNarrowedContentType = afterWhenExprReturnedTrue.inferUpperBound(
+                    ed -> ed.equals(
+                        new ExpressionDescriptor.PropertyChain(
+                            "exception"
+                        )
+                    ),
+                    null
+                ).findFirst()
+                .orElse(propositionUpperBound);
+
+            prepareBodyState = prepareBodyState.andThen(
+                s -> rves.assertReturnedTrue(
+                    whenExpr,
+                    s
                 )
-        );
-
-
-        final Maybe<PatternMatchRequest> patternMatchRequest = createPatternMatchRequest(pattern, input);
-
-        List<StatementWriter> auxiliaryStatements = new ArrayList<>();
-        if (patternMatchRequest.isPresent()) {
-            auxiliaryStatements.addAll(module.get(PatternMatchingSemantics.class)
-                    .generateAuxiliaryStatements(patternMatchRequest));
+            );
+        } else {
+            afterWhenExprReturnedTrue = afterPatternDidMatch;
+            part2 = "";
         }
-        auxiliaryStatements.addAll(
-                module.get(RValueExpressionSemantics.class).generateAuxiliaryStatements(expr)
-        );
-
 
         String compiledExpression;
-        if (isValidationOnly) {
-            compiledExpression = "";
+        if (!part1.isBlank() && !part2.isBlank()) { // Both are present...
+            // ...infix &&
+            compiledExpression = "(" + part1 + ") && (" + part2 + ")";
+        } else if (part1.isBlank() && part2.isBlank()) { // Both are absent...
+            // ... use true
+            compiledExpression = "true";
         } else {
-            String x1 = module.get(PatternMatchingSemantics.class)
-                    .compileMatchesExpression(patternMatchRequest)
-                    .orElse("");
-            String x2 = module.get(RValueExpressionSemantics.class)
-                    .compile(expr, , )
-                    .orElse("");
-            if (!x1.isBlank() && !x2.isBlank()) {
-                compiledExpression = "(" + x1 + ") && (" + x2 + ")";
-            } else {
-                compiledExpression = x1 + x2;
-            }
+            // ... otherwise return the one present
+            compiledExpression = part1 + part2;
         }
-
-        final List<NamedSymbol> autoDeclaredVars = module.get(ContextManager.class).currentContext()
-                .searchAs(
-                        NamedSymbol.Searcher.class,
-                        s -> s.searchName((Predicate<String>) null, null, null)
-                                .filter(ne -> ne instanceof PatternMatchUnifiedVariable)
-                ).collect(Collectors.toList());
-
 
         module.get(ContextManager.class).exit();
 
-        List<JvmDeclaredType> patternMatcherClasses;
-        if (isValidationOnly) {
-            patternMatcherClasses = new ArrayList<>();
-        } else {
-            patternMatcherClasses = PatternMatchingSemantics.getPatternMatcherClasses(
-                    auxiliaryStatements,
-                    containerEObject,
-                    module
+        final IJadescriptType finalContentType = typeHelper
+            .getGLB(
+                pattNarrowedContentType,
+                wexpNarrowedContentType
             );
-        }
 
-        List<JvmField> patternMatcherFields;
-        if (isValidationOnly) {
-            patternMatcherFields = new ArrayList<>();
-        } else {
-            patternMatcherFields = PatternMatchingSemantics.getPatternMatcherFieldDeclarations(
-                    auxiliaryStatements,
-                    containerEObject,
-                    module
-            );
-        }
 
-        return new PatternMatchData(
-                compiledExpression,
-                patternMatcherClasses,
-                patternMatcherFields,
-                autoDeclaredVars,
-                computedContentType
+        scb.open(
+            "if (__inputException.getReason() instanceof " +
+                typeHelper.noGenericsTypeName(
+                    finalContentType.compileToJavaTypeReference()
+                ) + ") {");
+
+        w.variable(
+            finalContentType.compileToJavaTypeReference(),
+            EXCEPTION_REASON_VAR_NAME,
+            w.expr("(" + finalContentType.compileAsJavaCast() +
+                " __inputException.getReason())")
+        ).writeSonnet(scb);
+
+
+        scb.open("if (" + compiledExpression + ") {");
+
+
+        w.assign(
+            EXCEPTION_MATCHED_BOOL_VAR_NAME,
+            w.True
+        ).writeSonnet(scb);
+
+        StaticState inBody = prepareBodyState.apply(
+            afterWhenExprReturnedTrue
+        ).assertNamedSymbol(
+            ExceptionHandledContext.reasonContextGeneratedReference(
+                finalContentType
+            )
         );
+
+        module.get(ContextManager.class).enterProceduralFeature(
+            (mod, out) ->
+                new OnExceptionHandlerContext(
+                    mod,
+                    out,
+                    "exception",
+                    finalContentType
+                )
+        );
+
+        inBody = inBody.enterScope();
+        PSR<SourceCodeBuilder> bodyPSR = module.get(CompilationHelper.class)
+            .compileBlockToNewSCB(inBody, body);
+
+
+        scb.add(encloseInGeneralHandlerTryCatch(bodyPSR.result()));
+
+        module.get(ContextManager.class).exit();
+
+        scb.close("}");
+
+        scb.close("}");
+
     }
+
+
+    @Override
+    public void validateFeature(
+        Maybe<OnExceptionHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
+        Maybe<WhenExpression> whenBody =
+            input.__(OnExceptionHandler::getWhenBody);
+
+        final Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        final Maybe<RValueExpression> whenExpr =
+            whenBody.__(WhenExpression::getExpr);
+        final Maybe<LValueExpression> pattern = input
+            .__(OnExceptionHandler::getPattern)
+            .__(x -> (LValueExpression) x);
+
+
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        final IJadescriptType contentUpperBound = typeHelper.PROPOSITION;
+
+        module.get(ContextManager.class).enterProceduralFeature(
+            OnExceptionHandlerWhenExpressionContext::new
+        );
+
+
+        StaticState beforePattern = StaticState.beginningOfOperation(module);
+
+        IJadescriptType pattNarrowedContentType = contentUpperBound;
+        IJadescriptType wexpNarrowedContentType = contentUpperBound;
+
+        Function<StaticState, StaticState> prepareBodyState =
+            Function.identity();
+        StaticState afterPatternDidMatch = beforePattern;
+
+        if (pattern.isPresent()) {
+            final PatternMatchHelper patternMatchHelper =
+                module.get(PatternMatchHelper.class);
+
+            PatternMatchInput<LValueExpression> patternMatchInput
+                = patternMatchHelper.handlerHeader(
+                contentUpperBound,
+                pattern
+            );
+
+            LValueExpressionSemantics lves =
+                module.get(LValueExpressionSemantics.class);
+
+            boolean patternMatchingCheck = lves.validatePatternMatch(
+                patternMatchInput,
+                beforePattern,
+                acceptor
+            );
+
+            if (patternMatchingCheck == VALID) {
+                pattNarrowedContentType = lves.inferPatternType(
+                    patternMatchInput,
+                    beforePattern
+                ).solve(contentUpperBound);
+
+                final StaticState afterPattern = lves.advancePattern(
+                    patternMatchInput,
+                    beforePattern
+                );
+
+                afterPatternDidMatch = lves.assertDidMatch(
+                    patternMatchInput,
+                    afterPattern
+                );
+
+                prepareBodyState = s -> lves.assertDidMatch(
+                    patternMatchInput,
+                    s
+                );
+            }
+        }
+
+        StaticState afterWhenExprReturnedTrue = afterPatternDidMatch;
+        if (whenExpr.isPresent()) {
+            final RValueExpressionSemantics rves =
+                module.get(RValueExpressionSemantics.class);
+            boolean whenExprCheck =
+                rves.validate(
+                    whenExpr,
+                    afterPatternDidMatch,
+                    acceptor
+                ) && rves.validateUsageAsHandlerCondition(
+                    whenExpr,
+                    whenExpr,
+                    afterPatternDidMatch,
+                    acceptor
+                );
+
+            if (whenExprCheck == VALID) {
+                final StaticState afterWhenExpr = rves.advance(
+                    whenExpr,
+                    afterPatternDidMatch
+                );
+
+                afterWhenExprReturnedTrue = rves.assertReturnedTrue(
+                    whenExpr,
+                    afterWhenExpr
+                );
+
+                wexpNarrowedContentType = afterWhenExprReturnedTrue
+                    .inferUpperBound(
+                        ed -> ed.equals(
+                            new ExpressionDescriptor.PropertyChain(
+                                "exception"
+                            )
+                        ),
+                        null
+                    ).findFirst()
+                    .orElse(contentUpperBound);
+
+                prepareBodyState = prepareBodyState.andThen(
+                    s -> rves.assertReturnedTrue(
+                        whenExpr,
+                        s
+                    )
+                );
+            }
+        }
+
+        module.get(ContextManager.class).exit();
+
+        final IJadescriptType finalContentType = typeHelper.getGLB(
+            pattNarrowedContentType,
+            wexpNarrowedContentType
+        );
+
+        StaticState inBody = prepareBodyState.apply(afterWhenExprReturnedTrue)
+            .assertNamedSymbol(
+                ExceptionHandledContext.reasonContextGeneratedReference(
+                    finalContentType
+                )
+            );
+
+        module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
+            new OnExceptionHandlerContext(
+                mod,
+                out,
+                "exception",
+                finalContentType
+            )
+        );
+
+        inBody = inBody.enterScope();
+
+        module.get(BlockSemantics.class).validate(
+            body,
+            inBody,
+            acceptor
+        );
+
+        module.get(ContextManager.class).exit();
+
+    }
+
 }

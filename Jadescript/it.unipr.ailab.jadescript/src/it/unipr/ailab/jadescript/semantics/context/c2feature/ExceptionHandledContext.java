@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
-public interface OnExceptionHandledContext extends SemanticsConsts {
+public interface ExceptionHandledContext extends SemanticsConsts {
 
     @NotNull
     static ContextGeneratedReference reasonContextGeneratedReference(
@@ -53,7 +53,7 @@ public interface OnExceptionHandledContext extends SemanticsConsts {
     }
 
     default void debugDumpExceptionHandled(SourceCodeBuilder scb) {
-        scb.open("--> is OnExceptionHandledContext {");
+        scb.open("--> is ExceptionHandledContext {");
         scb.line("exceptionReasonType = " +
             getExceptionReasonType().getDebugPrint());
         scb.close("}");

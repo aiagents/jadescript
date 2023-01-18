@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 
 public class OnExceptionHandlerWhenExpressionContext
     extends HandlerWhenExpressionContext
-    implements NamedSymbol.Searcher, OnExceptionHandledContext {
+    implements NamedSymbol.Searcher, ExceptionHandledContext {
 
 
     public OnExceptionHandlerWhenExpressionContext(

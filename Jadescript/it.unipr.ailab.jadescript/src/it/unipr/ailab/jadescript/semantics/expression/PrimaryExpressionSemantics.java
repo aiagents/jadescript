@@ -9,9 +9,9 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociated;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation;
+import it.unipr.ailab.jadescript.semantics.context.c2feature.ExceptionHandledContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.MessageReceivedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.BehaviourFailureHandledContext;
-import it.unipr.ailab.jadescript.semantics.context.c2feature.OnExceptionHandledContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.PerceptPerceivedContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -331,9 +331,9 @@ public class PrimaryExpressionSemantics
                     Collections.singletonList(typeHelper.SERIALIZABLE))
                 );
         } else if (exception.isPresent()) {
-            return state.actAs(OnExceptionHandledContext.class)
+            return state.actAs(ExceptionHandledContext.class)
                 .findFirst()
-                .map(OnExceptionHandledContext::getExceptionReasonType)
+                .map(ExceptionHandledContext::getExceptionReasonType)
                 .orElseGet(() -> typeHelper.PREDICATE);
         } else if (behaviour.isPresent()) {
             return state.actAs(BehaviourFailureHandledContext.class)
@@ -469,7 +469,7 @@ public class PrimaryExpressionSemantics
         } else if (exception.isPresent()) {
             return module.get(ValidationHelper.class).asserting(
                 module.get(ContextManager.class).currentContext()
-                    .actAs(OnExceptionHandledContext.class)
+                    .actAs(ExceptionHandledContext.class)
                     .findFirst()
                     .isPresent(),
                 "MissingExceptionReference",

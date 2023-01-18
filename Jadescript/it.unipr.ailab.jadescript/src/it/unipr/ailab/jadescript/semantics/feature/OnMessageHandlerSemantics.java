@@ -162,6 +162,13 @@ public class OnMessageHandlerSemantics
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
 
+
+        module.get(ContextManager.class).enterProceduralFeature(
+            (m, o) -> new OnMessageHandlerWhenExpressionContext(
+                m, performative, o));
+
+        StaticState beforePattern = StaticState.beginningOfOperation(module);
+
         final IJadescriptType contentUpperBound = performative
             .__(typeHelper::getContentBound)
             .orElseGet(() -> typeHelper.ANY);
@@ -173,14 +180,6 @@ public class OnMessageHandlerSemantics
                 /*normalizeToUpperBounds=*/ true
             );
 
-        module.get(ContextManager.class).enterProceduralFeature(
-            (m, o) -> new OnMessageHandlerWhenExpressionContext(
-                m, performative, o));
-
-        StaticState beforePattern = StaticState.beginningOfOperation(module);
-
-
-        String compiledExpression;
         IJadescriptType pattNarrowedContentType = contentUpperBound;
         IJadescriptType wexpNarrowedContentType = contentUpperBound;
         IJadescriptType wexpNarrowedMessageType = initialMsgType;
@@ -190,7 +189,7 @@ public class OnMessageHandlerSemantics
             .__(x -> (LValueExpression) x);
 
         Function<StaticState, StaticState> prepareBodyState;
-        final StaticState afterPattern;
+        final StaticState afterPatternDidMatch;
         String part1;
         if (pattern.isPresent()) {
             final PatternMatchHelper patternMatchHelper =
@@ -205,6 +204,8 @@ public class OnMessageHandlerSemantics
             LValueExpressionSemantics lves =
                 module.get(LValueExpressionSemantics.class);
 
+            // Compile the pattern match operation into a PatternMatcher and
+            // fill scb of the corresponding auxiliary statements
             PatternMatcher matcher = lves.compilePatternMatch(
                 patternMatchInput,
                 beforePattern,
@@ -242,7 +243,7 @@ public class OnMessageHandlerSemantics
                 patternMatchInput,
                 beforePattern
             );
-            afterPattern = lves.assertDidMatch(
+            afterPatternDidMatch = lves.assertDidMatch(
                 patternMatchInput,
                 advancePattern
             );
@@ -258,29 +259,34 @@ public class OnMessageHandlerSemantics
             );
         } else {
             prepareBodyState = Function.identity();
-            afterPattern = beforePattern;
+            afterPatternDidMatch = beforePattern;
             part1 = "";
         }
 
 
         String part2;
-        StaticState afterWhenExpr;
+        StaticState afterWhenExprRetunedTrue;
         if (whenExpr.isPresent()) {
             final RValueExpressionSemantics rves =
                 module.get(RValueExpressionSemantics.class);
 
             part2 = rves.compile(
                 whenExpr,
-                afterPattern,
+                afterPatternDidMatch,
                 (member) -> member.writeSonnet(scb)
             );
 
-            afterWhenExpr = rves.assertReturnedTrue(
+            final StaticState afterWhenExpr = rves.advance(
                 whenExpr,
-                rves.advance(whenExpr, afterPattern)
+                afterPatternDidMatch
             );
 
-            wexpNarrowedContentType = afterWhenExpr.inferUpperBound(
+            afterWhenExprRetunedTrue = rves.assertReturnedTrue(
+                whenExpr,
+                afterWhenExpr
+            );
+
+            wexpNarrowedContentType = afterWhenExprRetunedTrue.inferUpperBound(
                     ed -> ed.equals(
                         new ExpressionDescriptor.PropertyChain(
                             "content", "message"
@@ -288,9 +294,9 @@ public class OnMessageHandlerSemantics
                     ),
                     null
                 ).findFirst()
-                .orElseGet(() -> typeHelper.ANY);
+                .orElse(contentUpperBound);
 
-            wexpNarrowedMessageType = afterWhenExpr.inferUpperBound(
+            wexpNarrowedMessageType = afterWhenExprRetunedTrue.inferUpperBound(
                     ed -> ed.equals(
                         new ExpressionDescriptor.PropertyChain(
                             "message"
@@ -298,20 +304,21 @@ public class OnMessageHandlerSemantics
                     ),
                     null
                 ).findFirst()
-                .orElseGet(() -> typeHelper.ANYMESSAGE);
+                .orElse(initialMsgType);
 
             prepareBodyState = prepareBodyState.andThen(
                 s -> rves.assertReturnedTrue(
                     whenExpr,
-                    afterPattern
+                    s
                 )
             );
 
         } else {
-            afterWhenExpr = afterPattern;
+            afterWhenExprRetunedTrue = afterPatternDidMatch;
             part2 = "";
         }
 
+        String compiledExpression;
         if (!part1.isBlank() && !part2.isBlank()) { // Both are
             // present...
             // ...infix &&
@@ -437,7 +444,7 @@ public class OnMessageHandlerSemantics
             );
 
 
-        StaticState inBody = prepareBodyState.apply(afterWhenExpr)
+        StaticState inBody = prepareBodyState.apply(afterWhenExprRetunedTrue)
             .assertNamedSymbol(
                 MessageReceivedContext.messageContentContextGeneratedReference(
                     finalMessageType,
@@ -551,24 +558,38 @@ public class OnMessageHandlerSemantics
         SavedContext savedContext,
         String className
     ) {
-        return module.get(JvmTypesBuilder.class).toClass(
+        final JvmTypesBuilder jvmTypesBuilder =
+            module.get(JvmTypesBuilder.class);
+        return jvmTypesBuilder.toClass(
             inputSafe,
             className,
             it -> {
                 it.setVisibility(JvmVisibility.PRIVATE);
 
-                it.getMembers().add(module.get(JvmTypesBuilder.class).toField(
+                final CompilationHelper compilationHelper =
+                    module.get(CompilationHelper.class);
+
+                final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+                it.getMembers().add(jvmTypesBuilder.toField(
                     inputSafe,
                     MESSAGE_RECEIVED_BOOL_VAR_NAME,
-                    module.get(TypeHelper.class).typeRef(Boolean.class),
-                    itField -> itField.setVisibility(JvmVisibility.DEFAULT)
+                    typeHelper.BOOLEAN.asJvmTypeReference(),
+                    itField -> {
+                        itField.setVisibility(JvmVisibility.DEFAULT);
+                        compilationHelper
+                            .createAndSetInitializer(
+                                itField,
+                                w.False::writeSonnet
+                            );
+                    }
                 ));
 
-                it.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(
+                it.getMembers().add(jvmTypesBuilder.toMethod(
                     inputSafe,
                     "run",
-                    module.get(TypeHelper.class).typeRef(void.class),
-                    itMethod -> module.get(CompilationHelper.class)
+                    typeHelper.typeRef(void.class),
+                    itMethod -> compilationHelper
                         .createAndSetBody(itMethod, scb -> {
                             fillRunMethod(
                                 input,
@@ -601,6 +622,9 @@ public class OnMessageHandlerSemantics
             input.__(FeatureWithBody::getBody);
         final Maybe<RValueExpression> whenExpr =
             whenBody.__(WhenExpression::getExpr);
+        final Maybe<LValueExpression> pattern = input
+            .__(OnMessageHandler::getPattern)
+            .__(x -> (LValueExpression) x);
 
 
         boolean performativeCheck = module.get(ValidationHelper.class)
@@ -640,17 +664,14 @@ public class OnMessageHandlerSemantics
         IJadescriptType wexpNarrowedContentType = contentUpperBound;
         IJadescriptType wexpNarrowedMessageType = initialMsgType;
 
-        final Maybe<LValueExpression> pattern = input
-            .__(OnMessageHandler::getPattern)
-            .__(x -> (LValueExpression) x);
 
         Function<StaticState, StaticState> prepareBodyState =
             Function.identity();
-        StaticState afterPattern = beforePattern;
+        StaticState afterPatternDidMatch = beforePattern;
 
         if (pattern.isPresent() && performativeCheck) {
-            final PatternMatchHelper patternMatchHelper = module.get(
-                PatternMatchHelper.class);
+            final PatternMatchHelper patternMatchHelper =
+                module.get(PatternMatchHelper.class);
 
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
@@ -675,14 +696,14 @@ public class OnMessageHandlerSemantics
                     beforePattern
                 ).solve(contentUpperBound);
 
-                final StaticState advancePattern = lves.advancePattern(
+                final StaticState afterPattern = lves.advancePattern(
                     patternMatchInput,
                     beforePattern
                 );
 
-                afterPattern = lves.assertDidMatch(
+                afterPatternDidMatch = lves.assertDidMatch(
                     patternMatchInput,
-                    advancePattern
+                    afterPattern
                 );
 
                 prepareBodyState = s -> lves.assertDidMatch(
@@ -694,32 +715,37 @@ public class OnMessageHandlerSemantics
 
         }
 
-        final RValueExpressionSemantics rves =
-            module.get(RValueExpressionSemantics.class);
 
-        StaticState afterWhenExpr = afterPattern;
+        StaticState afterWhenExprReturnedTrue = afterPatternDidMatch;
         if (whenExpr.isPresent() && performativeCheck) {
+            final RValueExpressionSemantics rves =
+                module.get(RValueExpressionSemantics.class);
             boolean whenExprCheck =
                 rves.validate(
                     whenExpr,
-                    afterPattern,
+                    afterPatternDidMatch,
                     acceptor
                 ) && rves.validateUsageAsHandlerCondition(
                     whenExpr,
                     whenExpr,
-                    afterPattern,
+                    afterPatternDidMatch,
                     acceptor
                 );
 
 
             if (whenExprCheck == VALID) {
-                afterWhenExpr = rves.assertReturnedTrue(
+                final StaticState afterWhenExpr = rves.advance(
                     whenExpr,
-                    rves.advance(whenExpr, afterPattern)
+                    afterPatternDidMatch
+                );
+                afterWhenExprReturnedTrue = rves.assertReturnedTrue(
+                    whenExpr,
+                    afterWhenExpr
                 );
 
 
-                wexpNarrowedContentType = afterWhenExpr.inferUpperBound(
+                wexpNarrowedContentType = afterWhenExprReturnedTrue
+                    .inferUpperBound(
                         ed -> ed.equals(
                             new ExpressionDescriptor.PropertyChain(
                                 "content", "message"
@@ -727,9 +753,10 @@ public class OnMessageHandlerSemantics
                         ),
                         null
                     ).findFirst()
-                    .orElseGet(() -> typeHelper.ANY);
+                    .orElse(contentUpperBound);
 
-                wexpNarrowedMessageType = afterWhenExpr.inferUpperBound(
+                wexpNarrowedMessageType = afterWhenExprReturnedTrue
+                    .inferUpperBound(
                         ed -> ed.equals(
                             new ExpressionDescriptor.PropertyChain(
                                 "message"
@@ -737,7 +764,7 @@ public class OnMessageHandlerSemantics
                         ),
                         null
                     ).findFirst()
-                    .orElseGet(() -> typeHelper.ANYMESSAGE);
+                    .orElse(initialMsgType);
 
                 prepareBodyState = prepareBodyState.andThen(
                     s -> rves.assertReturnedTrue(
@@ -798,7 +825,7 @@ public class OnMessageHandlerSemantics
 
         //TODO this overwrites the named symbols;
         // however, it would be useful to have a "refine compilation" symbol
-        StaticState inBody = prepareBodyState.apply(afterWhenExpr)
+        StaticState inBody = prepareBodyState.apply(afterWhenExprReturnedTrue)
             .assertNamedSymbol(
                 MessageReceivedContext.messageContentContextGeneratedReference(
                     finalMessageType,
@@ -810,10 +837,8 @@ public class OnMessageHandlerSemantics
                 )
             );
 
-        module.get(ContextManager.class).enterProceduralFeature((
-            mod,
-            out
-        ) -> new OnMessageHandlerContext(
+        module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
+            new OnMessageHandlerContext(
             mod,
             out,
             "message",
