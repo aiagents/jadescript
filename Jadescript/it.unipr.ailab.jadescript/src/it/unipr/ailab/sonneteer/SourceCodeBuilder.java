@@ -73,6 +73,10 @@ public class SourceCodeBuilder {
         return this.dedent().line(closer);
     }
 
+    public SourceCodeBuilder closeAndOpen(String dedentedLine){
+        return this.dedent().line(dedentedLine).indent();
+    }
+
     public String toString(){
         return sb.toString();
     }

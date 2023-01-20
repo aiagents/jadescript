@@ -21,17 +21,17 @@ public class SuperSlotInitializerContext extends Context
     implements NamedSymbol.Searcher {
 
     private final OntologyElementDeclarationContext outer;
-    private final Map<String, IJadescriptType> superSlotsInitScope;
+    private final Map<String, IJadescriptType> superSlotsInitPairs;
 
 
     public SuperSlotInitializerContext(
         SemanticsModule module,
         OntologyElementDeclarationContext outer,
-        Map<String, IJadescriptType> superSlotsInitScope
+        Map<String, IJadescriptType> superSlotsInitPairs
     ) {
         super(module);
         this.outer = outer;
-        this.superSlotsInitScope = new HashMap<>(superSlotsInitScope);
+        this.superSlotsInitPairs = new HashMap<>(superSlotsInitPairs);
     }
 
 
@@ -49,7 +49,7 @@ public class SuperSlotInitializerContext extends Context
     ) {
 
         Stream<Map.Entry<String, IJadescriptType>> stream =
-            superSlotsInitScope.entrySet().stream();
+            superSlotsInitPairs.entrySet().stream();
         stream = safeFilter(stream, Map.Entry::getKey, name);
         stream = safeFilter(stream, Map.Entry::getValue, readingType);
         stream = safeFilter(stream, (__) -> true, canWrite);
@@ -66,7 +66,7 @@ public class SuperSlotInitializerContext extends Context
         scb.open("--> is SuperSlotInitializerContext {");
         scb.open("superSlotsInitScope = [");
         final Set<Map.Entry<String, IJadescriptType>> entries =
-            superSlotsInitScope.entrySet();
+            superSlotsInitPairs.entrySet();
         for (Map.Entry<String, IJadescriptType> entry : entries) {
             scb.line(entry.getKey() + ": " + entry.getValue().getDebugPrint());
         }

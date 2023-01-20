@@ -4,13 +4,12 @@ import com.google.common.collect.HashMultimap;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.javaapi.NativeValueFactory;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.SyntheticExpression;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -21,6 +20,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.ParametricType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.*;
@@ -28,6 +28,7 @@ import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -48,119 +49,179 @@ public class OntologyElementSemantics extends Semantics {
     }
 
 
-    public void validate(Maybe<ExtendingFeature> input, ValidationMessageAcceptor acceptor) {
+    public void validate(
+        Maybe<ExtendingFeature> input,
+        ValidationMessageAcceptor acceptor
+    ) {
         if (input == null) return;
+        if (input.isNothing()) {
+            return;
+        }
+
+
         module.get(ContextManager.class).enterOntologyElementDeclaration();
+
         Maybe<String> ontoElementName = input.__(ExtendingFeature::getName);
-        module.get(ValidationHelper.class).assertNotReservedName(
-                ontoElementName,
-                input,
-                JadescriptPackage.eINSTANCE.getNamedFeature_Name(),
-                acceptor
+
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
+        validationHelper.assertNotReservedName(
+            ontoElementName,
+            input,
+            JadescriptPackage.eINSTANCE.getNamedFeature_Name(),
+            acceptor
         );
 
-        Maybe<? extends JvmParameterizedTypeReference> superType = input.__(ExtendingFeature::getSuperType);
+        Maybe<? extends JvmParameterizedTypeReference> superTypeExpr =
+            input.__(ExtendingFeature::getSuperType);
 
-        InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
 
-        //if native, can only extend native
-        //(isNative) ==> (supertype.isPresent) ==> (superType is content type) ==> (superType.isNative)
+        //if it is native...
         if (input.__(ExtendingFeature::isNative).extract(nullAsFalse)
-                && superType.isPresent()) {
-            final IJadescriptType contentType = module.get(TypeHelper.class).jtFromJvmTypeRef(superType.toNullable());
-            if (contentType instanceof OntoContentType) {
-                module.get(ValidationHelper.class).asserting(
-                        ((OntoContentType) contentType).isNativeOntoContentType(),
-                        "InvalidExtendedType",
-                        "A native type can only extend native types.",
-                        superType,
-                        acceptor
+            // ... and it has an explicit supertype ...
+            && superTypeExpr.isPresent()) {
+            final IJadescriptType superType =
+                typeHelper.jtFromJvmTypeRef(
+                    superTypeExpr.toNullable());
+
+            // ... and the supertype is a OntoContentType
+            //     (added just for cast safety) ...
+            if (superType instanceof OntoContentType) {
+
+                // ... then the super type has to be native
+                validationHelper.asserting(
+                    ((OntoContentType) superType).isNativeOntoContentType(),
+                    "InvalidExtendedType",
+                    "A native type can only extend native types.",
+                    superTypeExpr,
+                    acceptor
                 );
             }
         }
 
-        //if not native, can only extend not native
-        //(!isNative) ==> (supertype.isPresent) ==> (superType is content type) ==> (!superType.isNative)
+        //if it is NOT native ...
         if (!input.__(ExtendingFeature::isNative).extract(nullAsFalse)
-                && superType.isPresent()) {
-            final IJadescriptType contentType = module.get(TypeHelper.class).jtFromJvmTypeRef(superType.toNullable());
-            if (contentType instanceof OntoContentType) {
-                module.get(ValidationHelper.class).asserting(
-                        !((OntoContentType) contentType).isNativeOntoContentType(),
-                        "InvalidExtendedType",
-                        "A non-native type can not extend native types.",
-                        superType,
-                        acceptor
+            // ... and it has an explicit supertype ...
+            && superTypeExpr.isPresent()) {
+            final IJadescriptType superType =
+                typeHelper.jtFromJvmTypeRef(
+                    superTypeExpr.toNullable());
+
+            // ... and the supertype is a OntoContentType
+            //     (added just for cast safety) ...
+            if (superType instanceof OntoContentType) {
+
+                // ... then the super type must not be native
+                validationHelper.asserting(
+                    !((OntoContentType) superType).isNativeOntoContentType(),
+                    "InvalidExtendedType",
+                    "A non-native type can not extend native types.",
+                    superTypeExpr,
+                    acceptor
                 );
             }
 
         }
 
-        if (input.isInstanceOf(it.unipr.ailab.jadescript.jadescript.Predicate.class)) {
-            module.get(ValidationHelper.class).asserting(
-                    Maybe.stream(input
-                                    .__(i -> (Predicate) i)
-                                    .__(FeatureWithSlots::getSlots))
-                            .anyMatch(Maybe::isPresent),
-                    "InvalidPredicateDeclaration",
-                    "Predicates require at least a slot.",
-                    input,
-                    interceptAcceptor
+
+        // if it is a 'predicate' declaration ...
+        if (input.isInstanceOf(
+            it.unipr.ailab.jadescript.jadescript.Predicate.class
+        )) {
+            // then at least a slot is required
+            validationHelper.asserting(
+                Maybe.stream(input
+                        .__(i -> (Predicate) i)
+                        .__(FeatureWithSlots::getSlots))
+                    .anyMatch(Maybe::isPresent),
+                "InvalidPredicateDeclaration",
+                "Predicates require at least a slot.",
+                input,
+                acceptor
             );
         }
 
-        module.get(ValidationHelper.class).assertExpectedType(
-                getBaseOntologyContentType(input),
-                superType
-                        .__((JvmParameterizedTypeReference st) -> (JvmTypeReference) st)
-                        .__(st -> module.get(TypeHelper.class).jtFromJvmTypeRef(st))
-                        .orElse(module.get(TypeHelper.class).ANY),
-                "InvalidOntologyElementSupertype",
-                superType,
-                interceptAcceptor
+        // ensures that the supertype extends the basic type for that
+        // kind of declaration ('concept', 'action' etc...)
+        boolean superTypeCheck = validationHelper.assertExpectedType(
+            getBaseOntologyContentType(input),
+            superTypeExpr
+                .__(st -> (JvmTypeReference) st)
+                .__(typeHelper::jtFromJvmTypeRef)
+                .orElse(typeHelper.ANY),
+            "InvalidOntologyElementSupertype",
+            superTypeExpr,
+            acceptor
         );
 
-        if (!interceptAcceptor.thereAreErrors()) {
-            //force Concepts to NOT extend Actions
-            if (input.__(i -> i instanceof Concept).extract(nullAsFalse)) {
-                superType.safeDo(superTypeSafe -> {
-                    module.get(ValidationHelper.class).asserting(
-                            !module.get(TypeHelper.class).isAssignable(jade.content.AgentAction.class, superTypeSafe),
-                            "InvalidOntologyElementSupertype",
-                            "concepts can not extend agent actions",
-                            superType,
-                            interceptAcceptor
-                    );
-                });
+        if (superTypeCheck == VALID) {
+            // if it is a concept ...
+            if (input.__(i -> i instanceof Concept).extract(nullAsFalse)
+                && superTypeExpr.isPresent()) {
+                final JvmParameterizedTypeReference superTypeSafe =
+                    superTypeExpr.toNullable();
+                // ... it cannot extend an action
+                //     (the previous check fails to detect this because in JADE
+                //      AgentAction extends Concept)
+                validationHelper.asserting(
+                    !typeHelper.isAssignable(
+                        jade.content.AgentAction.class,
+                        superTypeSafe
+                    ),
+                    "InvalidOntologyElementSupertype",
+                    "concepts can not extend agent actions",
+                    superTypeExpr,
+                    acceptor
+                );
             }
         }
 
 
         final HashMap<String, IJadescriptType> slotTypeSet = new HashMap<>();
         final HashMap<String, Maybe<SlotDeclaration>> slotSet = new HashMap<>();
-        InterceptAcceptor subValidation = new InterceptAcceptor(acceptor);
-        if (input.__(i -> i instanceof FeatureWithSlots).extract(nullAsFalse)) { //--> concepts, actions or predicates, NOT propositions
-            Maybe<FeatureWithSlots> inputWithSlots = input.__(i -> (FeatureWithSlots) i);
+
+
+        final Boolean hasSlots = input.__(i -> i instanceof FeatureWithSlots)
+            .extract(nullAsFalse);
+
+        boolean allSlotsCheck = VALID;
+        if (hasSlots) {
+            Maybe<FeatureWithSlots> inputWithSlots =
+                input.__(i -> (FeatureWithSlots) i);
 
             //Validation of each single slot, independently
-            List<Maybe<SlotDeclaration>> slots = toListOfMaybes(inputWithSlots.__(FeatureWithSlots::getSlots));
+            List<Maybe<SlotDeclaration>> slots =
+                toListOfMaybes(inputWithSlots.__(FeatureWithSlots::getSlots));
+
+            TypeExpressionSemantics tes =
+                module.get(TypeExpressionSemantics.class);
+
             for (Maybe<SlotDeclaration> slot : slots) {
-                validateSlotDeclaration(slot, subValidation);
+                boolean slotCheck = validateSlotDeclaration(
+                    slot,
+                    tes,
+                    acceptor
+                );
+                allSlotsCheck = allSlotsCheck && slotCheck;
             }
 
-            if (!subValidation.thereAreErrors()) {
-
+            if (allSlotsCheck == VALID) {
                 //Validation of the set of declared slots
-                checkDuplicateDeclaratedSlots(acceptor, inputWithSlots);
-
+                checkDuplicateDeclaredSlots(acceptor, inputWithSlots);
 
                 for (Maybe<SlotDeclaration> slot : slots) {
                     Maybe<String> slotName = slot.__(SlotDeclaration::getName);
-                    InterceptAcceptor typeValidation = new InterceptAcceptor(acceptor);
-                    module.get(TypeExpressionSemantics.class).validate(slot.__(SlotDeclaration::getType), , typeValidation);
-                    if (!typeValidation.thereAreErrors()) {
-                        IJadescriptType slotType = slot.__(SlotDeclaration::getType)
-                                .extract(module.get(TypeExpressionSemantics.class)::toJadescriptType);
+                    boolean slotTypeCheck = tes.validate(
+                        slot.__(SlotDeclaration::getType),
+                        acceptor
+                    );
+                    if (slotTypeCheck == VALID) {
+                        IJadescriptType slotType = tes.toJadescriptType(
+                            slot.__(SlotDeclaration::getType)
+                        );
+
                         slotName.safeDo(slotNameSafe -> {
                             slotTypeSet.put(slotNameSafe, slotType);
                             slotSet.put(slotNameSafe, slot);
@@ -171,627 +232,1035 @@ public class OntologyElementSemantics extends Semantics {
         }
 
 
-        //Validation of the compatibility of the set of the declared slots with the constraints
-        //  imposed by the super schema
-        if (!subValidation.thereAreErrors()) {
-            Maybe<JvmType> superTypeDeclared = superType.__(JvmParameterizedTypeReference::getType);
-            superTypeDeclared.safeDo(superTypeDeclaredSafe -> {
-                if (superTypeDeclaredSafe instanceof JvmDeclaredType) {
-                    JvmTypeNamespace superNamespace = new JvmTypeNamespace(module, (JvmDeclaredType) superTypeDeclaredSafe);
-                    Map<String, IJadescriptType> superProperties = superNamespace.getPropertiesFromBiggestCtor();
-
-                    HashMap<String, IJadescriptType> superSlotTypeSet = new HashMap<>();
-                    HashMap<String, Integer> superSlotPositionSet = new HashMap<>();
-
-                    boolean isWithSuperSlots = input.__(ExtendingFeature::isWithSuperSlots).extract(nullAsFalse);
-                    if (isWithSuperSlots) {
-                        Maybe<NamedArgumentList> superSlots = input.__(ExtendingFeature::getNamedSuperSlots);
-                        List<Maybe<String>> argNames = toListOfMaybes(superSlots.__(NamedArgumentList::getParameterNames));
-                        List<Maybe<RValueExpression>> args = toListOfMaybes(superSlots.__(NamedArgumentList::getParameterValues));
-
-                        HashMap<String, IJadescriptType> superSlotsInitScope = new HashMap<>();
-                        superSlotsInitScope.putAll(superProperties);
-                        superSlotsInitScope.putAll(slotTypeSet); //matching names override super ones
-
-                        for (int i = 0; i < Math.min(argNames.size(), args.size()); i++) {
-                            int finalI = i;
-                            Maybe<String> argName = argNames.get(i);
-
-
-                            module.get(ValidationHelper.class).asserting(
-                                    module.get(RValueExpressionSemantics.class).isAlwaysPure(args.get(i), ),
-                                    "InvalidSuperSlotInitExpression",
-                                    "Initialization expressions of super-slots must be pure (without side effects).",
-                                    superSlots,
-                                    JadescriptPackage.eINSTANCE.getNamedArgumentList_ParameterValues(),
-                                    i,
-                                    acceptor
-                            );
-
-                            //push a scope; validate the init expression, and compute the type of it
-                            module.get(ContextManager.class).enterSuperSlotInitializer(superSlotsInitScope);
-                            InterceptAcceptor subVal = new InterceptAcceptor(acceptor);
-
-                            module.get(RValueExpressionSemantics.class).validate(args.get(i), , subVal);
-                            IJadescriptType argType;
-                            if (subVal.thereAreErrors()) {
-                                argType = module.get(TypeHelper.class).ANY;
-                            } else {
-                                argType = args.get(i).extract(input1 -> module.get(RValueExpressionSemantics.class).inferType(input1, ));
-                            }
-                            module.get(ContextManager.class).exit();
-
-
-                            //then populate the sets for later checks
-                            argName.safeDo(argNameSafe -> {
-                                superSlotTypeSet.put(argNameSafe, argType);
-                                superSlotPositionSet.put(argNameSafe, finalI);
-                            });
-
-                        }
-                    }
-
-
-                    superProperties.forEach((propName, propType) -> {
-                        boolean isInitialized = isWithSuperSlots && superSlotTypeSet.containsKey(propName);
-                        boolean isRedeclared = slotTypeSet.containsKey(propName);
-
-                        InterceptAcceptor consisentInheritedPropertyCheck = new InterceptAcceptor(acceptor);
-                        //super-properties cannot be both initialized in the extends section
-                        // and re-declared in the parameters section
-                        module.get(ValidationHelper.class).asserting(
-                                !(isInitialized && isRedeclared),
-                                "InvalidSlotInheritance",
-                                "Super-property '" + propName + "' cannot be initialized and redeclared at the same time",
-                                slotSet.get(propName),
-                                consisentInheritedPropertyCheck
-                        );
-
-                        if (superSlotPositionSet.containsKey(propName)) {
-                            module.get(ValidationHelper.class).asserting(
-                                    !(isInitialized && isRedeclared),
-                                    "InvalidSlotInheritance",
-                                    "Super-property '" + propName + "' cannot be initialized and redeclared at the same time",
-                                    input.__(ExtendingFeature::getNamedSuperSlots),
-                                    JadescriptPackage.eINSTANCE.getNamedArgumentList_ParameterNames(),
-                                    superSlotPositionSet.get(propName),
-                                    consisentInheritedPropertyCheck
-                            );
-                        }
-
-
-                        if (!consisentInheritedPropertyCheck.thereAreErrors()) {
-                            //super-properties must be either initialized in the extends section
-                            // or re-declared in the parameters section
-                            module.get(ValidationHelper.class).asserting(
-                                    isInitialized || isRedeclared,
-                                    "InvalidSlotInheritance",
-                                    "Super-property '" + propName + "' must be either initialized or re-declared",
-                                    input.__(ExtendingFeature::getSuperType),
-                                    consisentInheritedPropertyCheck
-                            );
-                        }
-
-
-                        if (!consisentInheritedPropertyCheck.thereAreErrors()) {
-                            if (isInitialized) {
-                                Maybe<NamedArgumentList> superSlots = input.__(ExtendingFeature::getNamedSuperSlots);
-                                Maybe<RValueExpression> argExpression = toListOfMaybes(superSlots.__(NamedArgumentList::getParameterValues))
-                                        .get(superSlotPositionSet.get(propName));
-                                IJadescriptType argType = superSlotTypeSet.get(propName);
-
-                                //initialization of super-properties in extends section must be type conformant
-                                module.get(ValidationHelper.class).assertExpectedType(
-                                        superProperties.getOrDefault(propName, module.get(TypeHelper.class).ANY),
-                                        argType,
-                                        "InvalidSlotInheritance",
-                                        argExpression,
-                                        consisentInheritedPropertyCheck
-                                );
-
-                            } else if (isRedeclared) {
-                                //redeclaration of super-properties in parameters section must be type conformant
-                                if (slotSet.containsKey(propName)) {
-                                    module.get(ValidationHelper.class).assertExpectedType(
-                                            superProperties.getOrDefault(propName, module.get(TypeHelper.class).ANY),
-                                            slotTypeSet.get(propName),
-                                            "InvalidSlotInheritance",
-                                            slotSet.get(propName),
-                                            consisentInheritedPropertyCheck
-                                    );
-                                }
-                            }
-                        }
-
-                    });
-                }
-            });
+        //Validation of the compatibility of the set of the declared slots
+        // with the constraints imposed by the super schema
+        if (allSlotsCheck == VALID) {
+            validateSlotsCompatibility(
+                input,
+                superTypeExpr, slotTypeSet, slotSet, acceptor
+            );
         }
+
         module.get(ContextManager.class).exit();
 
     }
 
-    public void validateSlotDeclaration(Maybe<SlotDeclaration> slotDeclaration, ValidationMessageAcceptor acceptor) {
 
-        module.get(ValidationHelper.class).assertNotReservedName(
-                slotDeclaration.__(SlotDeclaration::getName),
-                slotDeclaration,
-                JadescriptPackage.eINSTANCE.getSlotDeclaration_Name(),
-                acceptor
+    private void validateSlotsCompatibility(
+        Maybe<ExtendingFeature> input,
+        Maybe<? extends JvmParameterizedTypeReference> superTypeExpr,
+        HashMap<String, IJadescriptType> slotTypeSet,
+        HashMap<String, Maybe<SlotDeclaration>> slotSet,
+        ValidationMessageAcceptor acceptor
+    ) {
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
+
+        Maybe<JvmType> superTypeDeclared = superTypeExpr
+            .__(JvmParameterizedTypeReference::getType);
+
+
+        if (superTypeDeclared.isNothing()) {
+            return;
+        }
+
+        final JvmType superTypeDeclaredSafe = superTypeDeclared.toNullable();
+
+        if (!(superTypeDeclaredSafe instanceof JvmDeclaredType)) {
+            return;
+        }
+
+
+        JvmTypeNamespace superNamespace = new JvmTypeNamespace(
+            module,
+            (JvmDeclaredType) superTypeDeclaredSafe
         );
 
-        // checks type expressions of slot declarations: they have to be valid for ontologies
-        final Maybe<TypeExpression> slotTypeExpression = slotDeclaration.__(SlotDeclaration::getType);
-        slotTypeExpression.safeDo(slotTypeExprSafe -> {
+        Map<String, IJadescriptType> superProperties =
+            superNamespace.getPropertiesFromBiggestCtor();
 
-            final TypeExpressionSemantics typeExprSem = module.get(TypeExpressionSemantics.class);
-            typeExprSem.validate(slotTypeExpression, , acceptor);
-            IJadescriptType slotType = typeExprSem.toJadescriptType(slotTypeExpression);
+        HashMap<String, IJadescriptType> superSlotTypeSet =
+            new HashMap<>();
+        HashMap<String, Integer> superSlotPositionSet =
+            new HashMap<>();
 
 
-            module.get(ValidationHelper.class).asserting(
-                    !slotType.isCollection() ||
-                            ((ParametricType) slotType).getTypeArguments().stream()
-                                    .map(TypeArgument::ignoreBound)
-                                    .noneMatch(IJadescriptType::isCollection),
-                    "InvalidSlotType",
-                    "Collections of collections are not supported as slot types.",
-                    slotTypeExpression,
-                    acceptor
+        boolean isWithSuperSlots = input.__(ExtendingFeature::isWithSuperSlots)
+            .extract(nullAsFalse);
 
+        if (isWithSuperSlots) {
+            Maybe<NamedArgumentList> superSlots =
+                input.__(ExtendingFeature::getNamedSuperSlots);
+
+            List<Maybe<String>> argNames = toListOfMaybes(
+                superSlots.__(NamedArgumentList::getParameterNames)
             );
+            List<Maybe<RValueExpression>> args = toListOfMaybes(
+                superSlots.__(NamedArgumentList::getParameterValues)
+            );
+
+            HashMap<String, IJadescriptType> superSlotsInitScope
+                = new HashMap<>();
+
+            superSlotsInitScope.putAll(superProperties);
+            //matching names override super ones:
+            superSlotsInitScope.putAll(slotTypeSet);
+
+            final RValueExpressionSemantics rves =
+                module.get(RValueExpressionSemantics.class);
+
+            for (int i = 0; i < Math.min(argNames.size(), args.size()); i++) {
+                int finalI = i;
+                Maybe<String> argName = argNames.get(i);
+                final Maybe<RValueExpression> arg = args.get(i);
+
+                module.get(ContextManager.class)
+                    .enterSuperSlotInitializer(superSlotsInitScope);
+
+                StaticState beforeInitExpr =
+                    StaticState.beginningOfOperation(module);
+
+                validationHelper.asserting(
+                    rves.isAlwaysPure(arg, beforeInitExpr),
+                    "InvalidSuperSlotInitExpression",
+                    "Initialization expressions of super-slots " +
+                        "must be pure (without side effects).",
+                    superSlots,
+                    JadescriptPackage.eINSTANCE
+                        .getNamedArgumentList_ParameterValues(),
+                    i,
+                    acceptor
+                );
+
+                boolean argCheck = rves.validate(arg, beforeInitExpr, acceptor);
+
+                IJadescriptType argType;
+                if (argCheck == INVALID) {
+                    argType = typeHelper.ANY;
+                } else {
+                    argType = rves.inferType(arg, beforeInitExpr);
+                }
+
+                module.get(ContextManager.class).exit();
+
+
+                //then populate the sets for later checks
+                argName.safeDo(argNameSafe -> {
+                    superSlotTypeSet.put(argNameSafe, argType);
+                    superSlotPositionSet.put(argNameSafe, finalI);
+                });
+
+            }
+        }
+
+
+        superProperties.forEach((propName, propType) -> {
+            boolean isInitialized =
+                isWithSuperSlots && superSlotTypeSet.containsKey(
+                    propName);
+
+            boolean isRedeclared =
+                slotTypeSet.containsKey(propName);
+
+
+            boolean consisentInheritedPropertyCheck = VALID;
+            //super-properties cannot be both initialized in the
+            // extends section and re-declared in the parameters section:
+            if (isInitialized && isRedeclared) {
+                validationHelper.emitError(
+                    "InvalidSlotInheritance",
+                    "Super-property '" + propName + "' cannot be " +
+                        "initialized and redeclared at the same time",
+                    slotSet.get(propName),
+                    acceptor
+                );
+                validationHelper.emitError(
+                    "InvalidSlotInheritance",
+                    "Super-property '" + propName + "' cannot be " +
+                        "initialized and redeclared at the same " +
+                        "time",
+                    input.__(ExtendingFeature::getNamedSuperSlots),
+                    JadescriptPackage.eINSTANCE
+                        .getNamedArgumentList_ParameterNames(),
+                    superSlotPositionSet.get(propName),
+                    acceptor
+                );
+
+                consisentInheritedPropertyCheck = INVALID;
+            }
+
+
+            if (consisentInheritedPropertyCheck == VALID
+                //super-properties must be either initialized in the extends
+                // section or re-declared in the parameters section:
+                && !isInitialized && !isRedeclared) {
+                consisentInheritedPropertyCheck = validationHelper.emitError(
+                    "InvalidSlotInheritance",
+                    "Super-property '" + propName + "' must be " +
+                        "either initialized or re-declared",
+                    input.__(ExtendingFeature::getSuperType),
+                    acceptor
+                );
+            }
+
+
+            if (consisentInheritedPropertyCheck == VALID) {
+                // we can now assume isInitialized XOR isRedeclared
+                if (isInitialized) {
+
+                    Maybe<NamedArgumentList> superSlots =
+                        input.__(ExtendingFeature::getNamedSuperSlots);
+
+                    Maybe<RValueExpression> argExpression = toListOfMaybes(
+                        superSlots.__(NamedArgumentList::getParameterValues)
+                    ).get(superSlotPositionSet.get(propName));
+
+                    IJadescriptType argType = superSlotTypeSet.get(propName);
+
+                    //initialization of super-properties in
+                    // extends section must be type conformant
+                    validationHelper.assertExpectedType(
+                        superProperties.getOrDefault(
+                            propName,
+                            typeHelper.ANY
+                        ),
+                        argType,
+                        "InvalidSlotInheritance",
+                        argExpression,
+                        acceptor
+                    );
+
+                } else if (isRedeclared) {
+                    //redeclaration of super-properties in
+                    // parameters section must be type conformant
+                    if (slotSet.containsKey(propName)) {
+                        validationHelper.assertExpectedType(
+                            superProperties.getOrDefault(
+                                propName,
+                                typeHelper.ANY
+                            ),
+                            slotTypeSet.get(propName),
+                            "InvalidSlotInheritance",
+                            slotSet.get(propName),
+                            acceptor
+                        );
+                    }
+                }
+            }
+
         });
+    }
+
+
+    public boolean validateSlotDeclaration(
+        Maybe<SlotDeclaration> slotDeclaration,
+        TypeExpressionSemantics tes,
+        ValidationMessageAcceptor acceptor
+    ) {
+
+        module.get(ValidationHelper.class).assertNotReservedName(
+            slotDeclaration.__(SlotDeclaration::getName),
+            slotDeclaration,
+            JadescriptPackage.eINSTANCE.getSlotDeclaration_Name(),
+            acceptor
+        );
+
+        // checks type expressions of slot declarations: they have to be
+        // valid for ontologies
+        final Maybe<TypeExpression> slotTypeExpression =
+            slotDeclaration.__(SlotDeclaration::getType);
+        if (slotTypeExpression.isNothing()) {
+            return VALID;
+        }
+
+
+        final boolean slotTypeExprCheck = tes.validate(
+            slotTypeExpression,
+            acceptor
+        );
+
+        if(slotTypeExprCheck == INVALID){
+            return INVALID;
+        }
+
+        IJadescriptType slotType = tes.toJadescriptType(slotTypeExpression);
+
+        return module.get(ValidationHelper.class).asserting(
+            !slotType.isCollection() ||
+                ((ParametricType) slotType).getTypeArguments().stream()
+                    .map(TypeArgument::ignoreBound)
+                    .noneMatch(IJadescriptType::isCollection),
+            "InvalidSlotType",
+            "Collections of collections are not supported as slot types.",
+            slotTypeExpression,
+            acceptor
+        );
 
     }
 
 
-    private void checkDuplicateDeclaratedSlots(ValidationMessageAcceptor acceptor, Maybe<FeatureWithSlots> inputWithSlots) {
+    private void checkDuplicateDeclaredSlots(
+        ValidationMessageAcceptor acceptor,
+        Maybe<FeatureWithSlots> inputWithSlots
+    ) {
         //checks duplicates between slots
         HashMultimap<String, SlotDeclaration> multiMap = HashMultimap.create();
-        for (Maybe<SlotDeclaration> slot : iterate(inputWithSlots.__(FeatureWithSlots::getSlots))) {
-            safeDo(slot, slot.__(SlotDeclaration::getName),
-                    /*NULLSAFE REGION*/(slotSafe, slotNameSafe) -> {
-                        //this portion of code is done  only if slot and
-                        // are != null (and everything in the dotchains that generated them is !=null too)
+        final Maybe<EList<SlotDeclaration>> slots =
+            inputWithSlots.__(FeatureWithSlots::getSlots);
+        for (Maybe<SlotDeclaration> slot : iterate(slots)) {
+            final Maybe<String> slotName = slot.__(SlotDeclaration::getName);
+            if(slot.isNothing()||slotName.isNothing()){
+                continue;
+            }
 
-                        multiMap.put(slotNameSafe, slotSafe);
-
-                    }/*END NULLSAFE REGION - (slotSafe, slotNameSafe)*/
-            );
+            multiMap.put(slotName.toNullable(), slot.toNullable());
         }
 
-        for (Map.Entry<String, Collection<SlotDeclaration>> entry : multiMap.asMap().entrySet()) {
+        for (Map.Entry<String, Collection<SlotDeclaration>> entry :
+            multiMap.asMap().entrySet()) {
             Collection<SlotDeclaration> duplicates = entry.getValue();
             if (duplicates.size() > 1) {
                 for (SlotDeclaration d : duplicates) {
                     acceptor.acceptError(
-                            "Duplicate slot '" + entry.getKey() + "' in ' "
-                                    + inputWithSlots.__(ExtendingFeature::getName).extract(nullAsEmptyString) + "''",
-                            d,
-                            JadescriptPackage.eINSTANCE.getSlotDeclaration_Name(),
-                            ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                            ISSUE_DUPLICATE_ELEMENT
+                        "Duplicate slot '" + entry.getKey() +
+                            "' in ' " + inputWithSlots
+                            .__(ExtendingFeature::getName)
+                            .extract(nullAsEmptyString) + "''",
+                        d,
+                        JadescriptPackage.eINSTANCE.getSlotDeclaration_Name(),
+                        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+                        ISSUE_DUPLICATE_ELEMENT
                     );
                 }
             }
         }
     }
 
+
     public List<JvmDeclaredType> declareTypes(
-            Maybe<ExtendingFeature> input,
-            Maybe<QualifiedName> ontoFullQualifiedName,
-            boolean isPreIndexingPhase
+        Maybe<ExtendingFeature> input,
+        Maybe<QualifiedName> ontoFullQualifiedName,
+        boolean isPreIndexingPhase
     ) {
         return input.toList().stream().flatMap(inputSafe -> {
             if (input.__(ExtendingFeature::isNative).extract(nullAsFalse)) {
-                return generateNativeTypes(input, ontoFullQualifiedName, isPreIndexingPhase, inputSafe);
+                return generateNativeTypes(
+                    input,
+                    ontoFullQualifiedName,
+                    isPreIndexingPhase,
+                    inputSafe
+                );
             } else {
-                return generateConcreteType(input, ontoFullQualifiedName, isPreIndexingPhase, inputSafe);
+                return generateConcreteType(
+                    input,
+                    ontoFullQualifiedName,
+                    isPreIndexingPhase,
+                    inputSafe
+                );
             }
         }).collect(Collectors.toList());
     }
 
-    private Stream<JvmDeclaredType> generateNativeTypes(
-            Maybe<ExtendingFeature> input,
-            Maybe<QualifiedName> ontoFullQualifiedName,
-            boolean isPreindexingPhase,
-            ExtendingFeature inputSafe
-    ) {
-        final QualifiedName fqName = module.get(CompilationHelper.class).getFullyQualifiedName(inputSafe);
-        return Stream.of(module.get(JvmTypesBuilder.class).toClass(
-                inputSafe,
-                fqName != null ? fqName.toString() : null,
-                (JvmGenericType it) -> {
-                    it.setAbstract(true);
-                    module.get(ContextManager.class).enterOntologyElementDeclaration();
-                    if (!isPreindexingPhase) {
-                        List<Maybe<RValueExpression>> superArguments = new ArrayList<>();
-                        List<IJadescriptType> superDestTypes = new ArrayList<>();
-
-                        Maybe<? extends JvmParameterizedTypeReference> superType = input
-                                .__(ExtendingFeature::getSuperType);
-
-                        if (superType.isNothing()) {
-                            it.getSuperTypes().add(module.get(TypeHelper.class)
-                                    .typeRef(getBaseOntologyContentType(input)));
-                        }
-
-                        prepareSuperTypeInitialization(input, it, superArguments, superDestTypes, superType);
-
-                        if (input.__(i -> i instanceof FeatureWithSlots).extract(nullAsFalse)) {
-
-                            for (Maybe<SlotDeclaration> slot : iterate(input.__(i -> (FeatureWithSlots) i)
-                                    .__(FeatureWithSlots::getSlots))) {
-                                addNativeProperty(it.getMembers(), slot);
-                            }
-                        }
-
-                        addToString(it.getMembers(), input);
-
-                        addEquals(it.getMembers(), input);
-
-                        addOntologyElementsConstructor(it.getMembers(), input, superArguments, superDestTypes);
-
-                        it.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(
-                                inputSafe,
-                                "__isNative",
-                                module.get(TypeHelper.class).typeRef(Void.TYPE),
-                                itMethod -> {
-                                    itMethod.setDefault(true);
-                                    itMethod.setAbstract(false);
-                                    module.get(CompilationHelper.class).createAndSetBody(itMethod, scb -> {
-                                        scb.line("// Method used as metadata flag by the Jadescript compiler.");
-                                    });
-                                }
-
-                        ));
-
-                        addGetDeclaringOntology(it.getMembers(), input, ontoFullQualifiedName, true);
-
-                        addMetadataMethod(it.getMembers(), ontoFullQualifiedName, input, true);
-
-                    }
-                    module.get(ContextManager.class).exit();
-                }
-        ), module.get(JvmTypesBuilder.class).toInterface(
-                inputSafe,
-                fqName != null ? (fqName + "Factory") : null,
-                it -> {
-                    final JvmTypeReference conceptTypeRef = module.get(TypeHelper.class)
-                            .typeRef(fqName != null ? fqName.toString() : null);
-                    it.getSuperTypes().add(module.get(TypeHelper.class).typeRef(
-                            NativeValueFactory.class
-                    ));
-
-                    it.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(
-                            inputSafe,
-                            "getImplementationClass",
-                            module.get(TypeHelper.class).typeRef(
-                                    "Class<? extends " + conceptTypeRef.getQualifiedName('.') + ">"
-                            ),
-                            itMethod -> {
-                                itMethod.setDefault(false);
-                                itMethod.setAbstract(true);
-
-                            }
-                    ));
-
-                    it.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(
-                            inputSafe,
-                            "empty",
-                            conceptTypeRef,
-                            itMethod -> {
-                                itMethod.setDefault(false);
-                                itMethod.setAbstract(true);
-                            }
-                    ));
-
-
-                    if (input.__(i -> i instanceof FeatureWithSlots).extract(nullAsFalse)) {
-                        Maybe<FeatureWithSlots> inputWithSlots = input.__(i -> (FeatureWithSlots) i);
-                        Maybe<EList<SlotDeclaration>> slots = inputWithSlots.__(FeatureWithSlots::getSlots);
-
-                        it.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(
-                                inputSafe,
-                                "create",
-                                conceptTypeRef,
-                                itMethod -> {
-                                    for (Maybe<SlotDeclaration> slot : iterate(slots)) {
-
-
-                                        IJadescriptType slotType = module.get(TypeExpressionSemantics.class)
-                                                .toJadescriptType(slot.__(SlotDeclaration::getType));
-
-                                        Maybe<String> slotName = slot.__(SlotDeclaration::getName);
-                                        safeDo(slot, slotName,
-                                                /*NULLSAFE REGION*/(slotSafe, slotNameSafe) -> {
-                                                    //this portion of code is done  only if slot and slotName
-                                                    // are != null (and everything in the dotchains that generated them is !=null too)
-
-                                                    itMethod.getParameters().add(module.get(JvmTypesBuilder.class)
-                                                            .toParameter(
-                                                                    slotSafe,
-                                                                    slotNameSafe,
-                                                                    slotType.asJvmTypeReference()
-                                                            ));
-
-                                                }/*END NULLSAFE REGION - (slotSafe, slotNameSafe)*/
-                                        );
-
-
-                                    }
-                                    itMethod.setDefault(false);
-                                    itMethod.setAbstract(true);
-                                }
-                        ));
-                    }
-                }
-        ));
-    }
 
     private Stream<JvmDeclaredType> generateConcreteType(
-            Maybe<ExtendingFeature> input,
-            Maybe<QualifiedName> ontoFullQualifiedName,
-            boolean isPreIndexingPhase,
-            ExtendingFeature inputSafe
+        Maybe<ExtendingFeature> input,
+        Maybe<QualifiedName> ontoFullQualifiedName,
+        boolean isPreIndexingPhase,
+        ExtendingFeature inputSafe
     ) {
-        return Stream.of(module.get(JvmTypesBuilder.class).toClass(
-                inputSafe,
-                module.get(CompilationHelper.class).getFullyQualifiedName(inputSafe),
-                it -> {
-                    module.get(ContextManager.class).enterOntologyElementDeclaration();
-                    if (!isPreIndexingPhase) {
-                        List<Maybe<RValueExpression>> superArguments = new ArrayList<>();
-                        List<IJadescriptType> superDestTypes = new ArrayList<>();
+        final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
 
-                        Maybe<? extends JvmParameterizedTypeReference> superType =
-                                input.__(ExtendingFeature::getSuperType);
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
 
-                        if (superType.isNothing()) {
-                            it.getSuperTypes().add(module.get(TypeHelper.class)
-                                    .typeRef(getBaseOntologyContentType(input)));
-                        }
+        final QualifiedName fullyQualifiedName =
+            compilationHelper.getFullyQualifiedName(inputSafe);
 
-                        prepareSuperTypeInitialization(input, it, superArguments, superDestTypes, superType);
+        return Stream.of(jvmTB.toClass(
+            inputSafe,
+            fullyQualifiedName,
+            itClass -> {
+                module.get(ContextManager.class)
+                    .enterOntologyElementDeclaration();
 
+                fillConcreteType(
+                    input,
+                    ontoFullQualifiedName,
+                    isPreIndexingPhase,
+                    itClass
+                );
 
-                        if (input.__(i -> i instanceof FeatureWithSlots).extract(nullAsFalse)) {
-
-                            for (Maybe<SlotDeclaration> slot : iterate(input.__(i -> (FeatureWithSlots) i)
-                                    .__(FeatureWithSlots::getSlots))) {
-                                addProperty(it.getMembers(), slot);
-                            }
-                        }
-
-
-                        addToString(it.getMembers(), input);
-
-                        addEquals(it.getMembers(), input);
-
-                        addOntologyElementsConstructor(it.getMembers(), input, superArguments, superDestTypes);
-
-                        addGetDeclaringOntology(it.getMembers(), input, ontoFullQualifiedName, false);
-
-                        addMetadataMethod(it.getMembers(), ontoFullQualifiedName, input, false);
-                    }
-                    module.get(ContextManager.class).exit();
-                }
+                module.get(ContextManager.class).exit();
+            }
         ));
     }
 
-    private void prepareSuperTypeInitialization(
-            Maybe<ExtendingFeature> input,
-            JvmGenericType it,
-            List<Maybe<RValueExpression>> superArguments,
-            List<IJadescriptType> superDestTypes,
-            Maybe<? extends JvmParameterizedTypeReference> superType
+
+    private void fillConcreteType(
+        Maybe<ExtendingFeature> input,
+        Maybe<QualifiedName> ontoFullQualifiedName,
+        boolean isPreIndexingPhase,
+        JvmGenericType itClass
     ) {
-        superType.safeDo(superTypeSafe -> {
-            it.getSuperTypes().add(module.get(JvmTypesBuilder.class).cloneWithProxies(superTypeSafe));
+        if (isPreIndexingPhase) {
+            return;
+        }
+        List<String> compiledSuperArguments = new ArrayList<>();
 
-            if (superTypeSafe.getType() instanceof JvmDeclaredType) {
+        Maybe<? extends JvmParameterizedTypeReference> superType =
+            input.__(ExtendingFeature::getSuperType);
 
-                JvmDeclaredType superTypeDeclaredSafe = (JvmDeclaredType) superTypeSafe.getType();
-                final HashMap<String, IJadescriptType> slotTypeSet = new HashMap<>();
+        if (superType.isNothing()) {
+            final TypeHelper typeHelper = module.get(TypeHelper.class);
+            itClass.getSuperTypes().add(typeHelper.typeRef(
+                getBaseOntologyContentType(input)
+            ));
+        }
+
+        prepareSuperTypeInitialization(
+            input,
+            itClass,
+            superType,
+            compiledSuperArguments // filled here
+        );
 
 
-                if (input.__(i -> i instanceof FeatureWithSlots).extract(nullAsFalse)) {
-                    for (Maybe<SlotDeclaration> slot : iterate(input.__(i -> (FeatureWithSlots) i).__(FeatureWithSlots::getSlots))) {
-                        Maybe<String> slotName = slot.__(SlotDeclaration::getName);
-                        IJadescriptType slotType = slot.__(SlotDeclaration::getType).extract(module.get(TypeExpressionSemantics.class)::toJadescriptType);
-                        slotName.safeDo(slotNameSafe -> {
-                            slotTypeSet.put(slotNameSafe, slotType);
-                        });
+        final Boolean hasSlots =
+            input.__(i -> i instanceof FeatureWithSlots).extract(nullAsFalse);
+
+        if (hasSlots) {
+            final Maybe<EList<SlotDeclaration>> slots = input
+                .__(i -> (FeatureWithSlots) i)
+                .__(FeatureWithSlots::getSlots);
+
+            for (Maybe<SlotDeclaration> slot : iterate(slots)) {
+                addProperty(itClass.getMembers(), slot);
+            }
+        }
+
+
+        addToString(itClass.getMembers(), input);
+
+        addEquals(itClass.getMembers(), input);
+
+        addOntologyElementsConstructor(
+            itClass.getMembers(),
+            input,
+            compiledSuperArguments // consumed here
+        );
+
+        addGetDeclaringOntology(
+            itClass.getMembers(),
+            input,
+            ontoFullQualifiedName,
+            false
+        );
+
+        addMetadataMethod(
+            itClass.getMembers(),
+            ontoFullQualifiedName,
+            input,
+            false
+        );
+
+    }
+
+
+    private Stream<JvmDeclaredType> generateNativeTypes(
+        Maybe<ExtendingFeature> input,
+        Maybe<QualifiedName> ontoFullQualifiedName,
+        boolean isPreindexingPhase,
+        ExtendingFeature inputSafe
+    ) {
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
+        final QualifiedName fqName =
+            compilationHelper.getFullyQualifiedName(inputSafe);
+
+        final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
+
+        return Stream.of(jvmTB.toClass(
+            inputSafe,
+            fqName != null ? fqName.toString() : null,
+            (JvmGenericType itClass) -> {
+                itClass.setAbstract(true);
+                module.get(ContextManager.class)
+                    .enterOntologyElementDeclaration();
+
+                fillNativeType(
+                    input,
+                    ontoFullQualifiedName,
+                    isPreindexingPhase,
+                    inputSafe,
+                    compilationHelper,
+                    jvmTB,
+                    itClass
+                );
+
+                module.get(ContextManager.class).exit();
+            }
+        ), jvmTB.toInterface(
+            inputSafe,
+            fqName != null ? (fqName + "Factory") : null,
+            itClass -> fillNativeInterface(
+                input,
+                inputSafe,
+                fqName,
+                jvmTB,
+                itClass
+            )
+        ));
+    }
+
+
+    private void fillNativeType(
+        Maybe<ExtendingFeature> input,
+        Maybe<QualifiedName> ontoFullQualifiedName,
+        boolean isPreindexingPhase,
+        ExtendingFeature inputSafe,
+        CompilationHelper compilationHelper,
+        JvmTypesBuilder jvmTB,
+        JvmGenericType itClass
+    ) {
+        if (isPreindexingPhase) {
+            return;
+        }
+
+        List<String> compiledSuperArguments = new ArrayList<>();
+
+        Maybe<? extends JvmParameterizedTypeReference> superType =
+            input.__(ExtendingFeature::getSuperType);
+
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        if (superType.isNothing()) {
+            itClass.getSuperTypes().add(
+                typeHelper.typeRef(getBaseOntologyContentType(input))
+            );
+        }
+
+        prepareSuperTypeInitialization(
+            input,
+            itClass,
+            superType,
+            compiledSuperArguments // filled here
+        );
+
+        final Boolean hasSlots =
+            input.__(i -> i instanceof FeatureWithSlots).extract(
+                nullAsFalse);
+        if (hasSlots) {
+
+            final Maybe<EList<SlotDeclaration>> slots = input
+                .__(i -> (FeatureWithSlots) i)
+                .__(FeatureWithSlots::getSlots);
+
+            for (Maybe<SlotDeclaration> slot : iterate(slots)) {
+                addNativeProperty(itClass.getMembers(), slot);
+            }
+        }
+
+        addToString(itClass.getMembers(), input);
+
+        addEquals(itClass.getMembers(), input);
+
+        addOntologyElementsConstructor(
+            itClass.getMembers(),
+            input,
+            compiledSuperArguments // consumed here
+        );
+
+        itClass.getMembers().add(jvmTB.toMethod(
+            inputSafe,
+            "__isNative",
+            typeHelper.typeRef(Void.TYPE),
+            itMethod -> {
+                itMethod.setDefault(true);
+                itMethod.setAbstract(false);
+                compilationHelper.createAndSetBody(
+                    itMethod,
+                    scb -> {
+                        scb.line(
+                            "// Method used as metadata flag by " +
+                                "the Jadescript compiler.");
                     }
-                }
-
-
-                final JvmTypeNamespace superTypeNamespace = new JvmTypeNamespace(module, superTypeDeclaredSafe);
-                Map<String, IJadescriptType> superProperties = superTypeNamespace
-                        .getPropertiesFromBiggestCtor();
-
-                HashMap<String, IJadescriptType> superSlotTypeSet = new HashMap<>();
-                HashMap<String, Integer> superSlotPositionSet = new HashMap<>();
-
-                boolean isWithSuperSlots = input.__(ExtendingFeature::isWithSuperSlots).extract(nullAsFalse);
-                List<Maybe<RValueExpression>> args = new ArrayList<>();
-                if (isWithSuperSlots) {
-                    Maybe<NamedArgumentList> superSlots = input.__(ExtendingFeature::getNamedSuperSlots);
-                    List<Maybe<String>> argNames = toListOfMaybes(superSlots.__(NamedArgumentList::getParameterNames));
-                    args.addAll(toListOfMaybes(superSlots.__(NamedArgumentList::getParameterValues)));
-
-                    HashMap<String, IJadescriptType> superSlotsInitScope = new HashMap<>();
-                    superSlotsInitScope.putAll(superProperties);
-                    superSlotsInitScope.putAll(slotTypeSet); //matching names override super ones
-
-                    for (int i = 0; i < Math.min(argNames.size(), args.size()); i++) {
-                        int finalI = i;
-                        Maybe<String> argName = argNames.get(i);
-
-                        //push a scope; compute the type of the init expression
-                        module.get(ContextManager.class).enterSuperSlotInitializer(superSlotsInitScope);
-                        IJadescriptType argType = args.get(i)
-                                .extract(input1 -> module.get(RValueExpressionSemantics.class).inferType(input1, ));
-                        module.get(ContextManager.class).exit();
-
-                        //then populate the sets for later
-                        argName.safeDo(argNameSafe -> {
-                            superSlotTypeSet.put(argNameSafe, argType);
-                            superSlotPositionSet.put(argNameSafe, finalI);
-                        });
-
-                    }
-
-
-                }
-
-                List<String> ctorArgNames = new ArrayList<>();
-                List<Maybe<RValueExpression>> ctorArgs = new ArrayList<>();
-
-                superProperties.forEach((propName, propType) -> {
-                    //assuming isInitialized XOR isRedeclared (checked by validator):
-                    ctorArgNames.add(propName);
-
-                    if (slotTypeSet.containsKey(propName)) {//redeclared
-                        ctorArgs.add(some(new SyntheticExpression(new SyntheticExpression.SemanticsMethods() {
-                            @Override
-                            public String compile() {
-                                return propName;
-                            }
-                        })));
-                    } else if (isWithSuperSlots && superSlotTypeSet.containsKey(propName)) {//initialized
-                        ctorArgs.add(args.get(superSlotPositionSet.get(propName)));
-                    }
-                });
-
-
-                superTypeNamespace.getBiggestCtor()
-                        .ifPresent(c -> {
-                            superDestTypes.addAll(c.parameterTypes());
-                            superArguments.addAll(CallSemantics.sortToMatchParamNames(
-                                    ctorArgs,
-                                    ctorArgNames,
-                                    c.parameterNames()
-                            ));
-                        });
-
+                );
             }
 
-        });
+        ));
+
+        addGetDeclaringOntology(
+            itClass.getMembers(),
+            input,
+            ontoFullQualifiedName,
+            true
+        );
+
+        addMetadataMethod(
+            itClass.getMembers(),
+            ontoFullQualifiedName,
+            input,
+            true
+        );
+
     }
+
+
+    private void fillNativeInterface(
+        Maybe<ExtendingFeature> input,
+        ExtendingFeature inputSafe,
+        QualifiedName fqName,
+        JvmTypesBuilder jvmTB,
+        JvmGenericType itClass
+    ) {
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        final JvmTypeReference conceptTypeRef =
+            typeHelper.typeRef(fqName != null ? fqName.toString() : null);
+
+        itClass.getSuperTypes().add(typeHelper.typeRef(
+            NativeValueFactory.class
+        ));
+
+        itClass.getMembers().add(jvmTB.toMethod(
+            inputSafe,
+            "getImplementationClass",
+            typeHelper.typeRef(
+                "Class<? extends " + conceptTypeRef.getQualifiedName('.') + ">"
+            ),
+            itMethod -> {
+                itMethod.setDefault(false);
+                itMethod.setAbstract(true);
+
+            }
+        ));
+
+        itClass.getMembers().add(jvmTB.toMethod(
+            inputSafe,
+            "empty",
+            conceptTypeRef,
+            itMethod -> {
+                itMethod.setDefault(false);
+                itMethod.setAbstract(true);
+            }
+        ));
+
+
+        final Boolean hasSlots = input
+            .__(i -> i instanceof FeatureWithSlots)
+            .extract(nullAsFalse);
+
+        if (hasSlots) {
+            Maybe<FeatureWithSlots> inputWithSlots =
+                input.__(i -> (FeatureWithSlots) i);
+
+            Maybe<EList<SlotDeclaration>> slots = inputWithSlots
+                .__(FeatureWithSlots::getSlots);
+
+            final TypeExpressionSemantics tes =
+                module.get(TypeExpressionSemantics.class);
+
+            itClass.getMembers().add(jvmTB.toMethod(
+                inputSafe,
+                "create",
+                conceptTypeRef,
+                itMethod -> {
+                    itMethod.setDefault(false);
+                    itMethod.setAbstract(true);
+                    for (Maybe<SlotDeclaration> slot : iterate(slots)) {
+
+                        final Maybe<TypeExpression> slotTypeExpr =
+                            slot.__(SlotDeclaration::getType);
+
+                        IJadescriptType slotType =
+                            tes.toJadescriptType(slotTypeExpr);
+
+                        Maybe<String> slotName =
+                            slot.__(SlotDeclaration::getName);
+
+
+                        if (slot.isNothing() || slotName.isNothing()) {
+                            continue;
+                        }
+
+                        final SlotDeclaration slotSafe =
+                            slot.toNullable();
+
+                        final String slotNameSafe = slotName.toNullable();
+
+                        itMethod.getParameters().add(
+                            jvmTB
+                                .toParameter(
+                                    slotSafe,
+                                    slotNameSafe,
+                                    slotType.asJvmTypeReference()
+                                ));
+                    }
+                }
+            ));
+        }
+    }
+
+
+    private void prepareSuperTypeInitialization(
+        Maybe<ExtendingFeature> input,
+        JvmGenericType itClass,
+        Maybe<? extends JvmParameterizedTypeReference> superType,
+        List<String> compiledSuperArguments // filled with results
+    ) {
+        if (superType.isNothing()) {
+            return;
+        }
+        final JvmParameterizedTypeReference superTypeSafe =
+            superType.toNullable();
+
+        final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
+
+        itClass.getSuperTypes().add(jvmTB.cloneWithProxies(superTypeSafe));
+
+        if (!(superTypeSafe.getType() instanceof JvmDeclaredType)) {
+            return;
+        }
+
+        JvmDeclaredType superTypeDeclaredSafe =
+            (JvmDeclaredType) superTypeSafe.getType();
+
+        final HashMap<String, IJadescriptType> slotTypeSet = new HashMap<>();
+
+
+        final boolean hasSlots =
+            input.__(i -> i instanceof FeatureWithSlots).extract(nullAsFalse);
+
+        if (hasSlots) {
+            final Maybe<EList<SlotDeclaration>> slots = input
+                .__(i -> (FeatureWithSlots) i)
+                .__(FeatureWithSlots::getSlots);
+
+            final TypeExpressionSemantics tes =
+                module.get(TypeExpressionSemantics.class);
+
+            for (Maybe<SlotDeclaration> slot : iterate(slots)) {
+                Maybe<String> slotName =
+                    slot.__(SlotDeclaration::getName);
+                IJadescriptType slotType =
+                    slot.__(SlotDeclaration::getType).extract(
+                        tes::toJadescriptType);
+                slotName.safeDo(slotNameSafe -> {
+                    slotTypeSet.put(slotNameSafe, slotType);
+                });
+            }
+        }
+
+        final JvmTypeNamespace superTypeNamespace = new JvmTypeNamespace(
+            module,
+            superTypeDeclaredSafe
+        );
+
+        Map<String, IJadescriptType> superProperties =
+            superTypeNamespace.getPropertiesFromBiggestCtor();
+
+        HashMap<String, String> superSlotCompilationMap = new HashMap<>();
+
+        boolean isWithSuperSlots =
+            input.__(ExtendingFeature::isWithSuperSlots).extract(nullAsFalse);
+
+        if (isWithSuperSlots) {
+            Maybe<NamedArgumentList> superSlots =
+                input.__(ExtendingFeature::getNamedSuperSlots);
+
+            List<Maybe<String>> argNames = toListOfMaybes(
+                superSlots.__(NamedArgumentList::getParameterNames)
+            );
+
+            List<Maybe<RValueExpression>> args = new ArrayList<>(toListOfMaybes(
+                superSlots.__(NamedArgumentList::getParameterValues)
+            ));
+
+            HashMap<String, IJadescriptType> superSlotsInitPairs =
+                new HashMap<>();
+
+            superSlotsInitPairs.putAll(superProperties);
+
+            //matching names override super ones
+            superSlotsInitPairs.putAll(slotTypeSet);
+
+            final RValueExpressionSemantics rves =
+                module.get(RValueExpressionSemantics.class);
+
+            final CompilationHelper compilationHelper =
+                module.get(CompilationHelper.class);
+
+
+            for (int i = 0; i < Math.min(argNames.size(), args.size()); i++) {
+
+                Maybe<String> argName = argNames.get(i);
+                final Maybe<RValueExpression> arg = args.get(i);
+
+                if (argName.isNothing()) {
+                    continue;
+                }
+
+                final String argNameSafe = argName.toNullable();
+
+                if (argNameSafe.isBlank()) {
+                    continue;
+                }
+
+                module.get(ContextManager.class)
+                    .enterSuperSlotInitializer(superSlotsInitPairs);
+
+                StaticState state = StaticState.beginningOfOperation(module);
+
+                IJadescriptType argType = rves.inferType(arg, state);
+
+
+                @Nullable
+                IJadescriptType superSlotType =
+                    superSlotsInitPairs.get(argNameSafe);
+
+                String argCompiled = compilationHelper
+                    .compileRValueAsLambdaSupplier(
+                        arg,
+                        state,
+                        argType,
+                        superSlotType
+                    );
+
+                module.get(ContextManager.class).exit();
+
+                // populate the map for later
+                superSlotCompilationMap.put(argNameSafe, argCompiled);
+            }
+
+
+        }
+
+        List<String> ctorArgNames = new ArrayList<>();
+        List<String> superArgs = new ArrayList<>();
+
+        superProperties.forEach((propName, propType) -> {
+            //assuming is initialized XOR is redeclared (checked by validator):
+            ctorArgNames.add(propName);
+
+            if (slotTypeSet.containsKey(propName)) {
+                // The property is redeclared: refer to the property in the
+                // constructor of the sub-type
+                superArgs.add(propName);
+            } else if (isWithSuperSlots
+                && superSlotCompilationMap.containsKey(propName)) {
+                // The super-property is initialized with a specific expression:
+                // use the compiled expression
+                superArgs.add(superSlotCompilationMap.get(propName));
+            }
+        });
+
+
+        superTypeNamespace.getBiggestCtor().ifPresent(c -> {
+            compiledSuperArguments.addAll(CallSemantics
+                .sortToMatchParamNames(
+                    superArgs,
+                    ctorArgNames,
+                    c.parameterNames()
+                ));
+        });
+
+    }
+
 
     private void addMetadataMethod(
-            EList<JvmMember> members,
-            Maybe<QualifiedName> ontoFullQualifiedName,
-            Maybe<ExtendingFeature> input,
-            boolean asDefault
+        EList<JvmMember> members,
+        Maybe<QualifiedName> ontoFullQualifiedName,
+        Maybe<ExtendingFeature> input,
+        boolean inInterface
     ) {
-        safeDo(input, ontoFullQualifiedName, (inputSafe, ontoFullQualifiedNameSafe) -> {
-            String typeFullyQualifiedName = input
-                    .__(module.get(CompilationHelper.class)::getFullyQualifiedName)
-                    .__(fqn -> fqn.toString("."))
-                    .or(input.__(NamedFeature::getName))
-                    .orElse("")
-                    .replaceAll("\\.", "_");
-            members.add(module.get(JvmTypesBuilder.class).toMethod(
-                    inputSafe,
-                    "__metadata_" + typeFullyQualifiedName,
-                    module.get(TypeHelper.class).typeRef(ontoFullQualifiedNameSafe.toString(".")),
-                    itMethod -> {
-                        itMethod.setDefault(asDefault);
-                        if (!asDefault) {
-                            itMethod.setVisibility(JvmVisibility.PRIVATE);
+        if (input.isNothing() || ontoFullQualifiedName.isNothing()) {
+            return;
+        }
+        final ExtendingFeature inputSafe = input.toNullable();
+        final QualifiedName ontoFullQualifiedNameSafe =
+            ontoFullQualifiedName.toNullable();
+
+        String typeFullyQualifiedName = input
+            .__(module.get(CompilationHelper.class)::getFullyQualifiedName)
+            .__(fqn -> fqn.toString("."))
+            .or(input.__(NamedFeature::getName))
+            .orElse("")
+            .replaceAll("\\.", "_");
+
+
+        final JvmTypesBuilder jvmTB =
+            module.get(JvmTypesBuilder.class);
+
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        members.add(jvmTB.toMethod(
+            inputSafe,
+            "__metadata_" + typeFullyQualifiedName,
+            typeHelper.typeRef(ontoFullQualifiedNameSafe.toString(".")),
+            itMethod -> {
+
+                itMethod.setDefault(inInterface);
+                if (!inInterface) {
+                    itMethod.setVisibility(JvmVisibility.PRIVATE);
+                }
+
+                // if is with slots, add a parameter for each slot
+                if (inputSafe instanceof FeatureWithSlots) {
+                    final Maybe<EList<SlotDeclaration>> slots =
+                        some(((FeatureWithSlots) inputSafe).getSlots());
+
+                    final TypeExpressionSemantics typeExpressionSemantics =
+                        module.get(TypeExpressionSemantics.class);
+
+                    for (Maybe<SlotDeclaration> slot : toListOfMaybes(slots)) {
+                        final Maybe<String> slotName =
+                            slot.__(SlotDeclaration::getName);
+
+                        if (slotName.isNothing()) {
+                            continue;
                         }
-                        if (inputSafe instanceof FeatureWithSlots) {
-                            for (Maybe<SlotDeclaration> slot : toListOfMaybes(
-                                some(((FeatureWithSlots) inputSafe).getSlots()))) {
-                                slot.__(SlotDeclaration::getName).safeDo(slotNameSafe -> {
-                                    final JvmTypeReference typeRef = module.get(TypeExpressionSemantics.class)
-                                            .toJadescriptType(slot.__(SlotDeclaration::getType)).asJvmTypeReference();
-                                    itMethod.getParameters().add(module.get(JvmTypesBuilder.class)
-                                            .toParameter(inputSafe, slotNameSafe, typeRef));
-                                });
-                            }
-                        }
-                        module.get(CompilationHelper.class).createAndSetBody(itMethod, scb -> {
-                            scb.line("return null;");
-                        });
+                        final String slotNameSafe = slotName.toNullable();
+
+                        final Maybe<TypeExpression> slotType =
+                            slot.__(SlotDeclaration::getType);
+
+                        final JvmTypeReference typeRef =
+                            typeExpressionSemantics.toJadescriptType(slotType)
+                                .asJvmTypeReference();
+
+                        itMethod.getParameters().add(jvmTB.toParameter(
+                            inputSafe,
+                            slotNameSafe,
+                            typeRef
+                        ));
                     }
-            ));
-        });
+                }
+
+                // just a metadata method, returning null since the important
+                // part is its signature
+                module.get(CompilationHelper.class).createAndSetBody(
+                    itMethod,
+                    scb -> scb.line("return null;")
+                );
+            }
+        ));
     }
 
-    private void addEquals(EList<JvmMember> members, Maybe<ExtendingFeature> input) {
-        input.safeDo(inputSafe -> {
-            members.add(module.get(JvmTypesBuilder.class).toMethod(
+
+    private void addEquals(
+        EList<JvmMember> members,
+        Maybe<ExtendingFeature> input
+    ) {
+        if (input.isNothing()) {
+            return;
+        }
+
+        final ExtendingFeature inputSafe = input.toNullable();
+
+        final String typeName = inputSafe.getName();
+        if (typeName == null || typeName.isBlank()) {
+            return;
+        }
+
+        final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
+
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        members.add(jvmTB.toMethod(
+            inputSafe,
+            "equals",
+            typeHelper.typeRef(Boolean.TYPE),
+            itMethod -> {
+                itMethod.setVisibility(JvmVisibility.PUBLIC);
+
+                itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
-                    "equals",
-                    module.get(TypeHelper.class).typeRef(Boolean.TYPE),
-                    itMethod -> {
-                        itMethod.setVisibility(JvmVisibility.PUBLIC);
-                        itMethod.getParameters().add(module.get(JvmTypesBuilder.class).toParameter(
-                                inputSafe,
-                                "obj",
-                                module.get(TypeHelper.class).typeRef(Object.class)
-                        ));
-                        module.get(CompilationHelper.class).createAndSetBody(itMethod, scb -> {
-                            scb.line("if(obj instanceof " + inputSafe.getName() + ") {");
-                            scb.indent().line(inputSafe.getName() + " o = (" + inputSafe.getName() + ") obj;");
-                            scb.add("return ");
-                            if (input.__(ExtendingFeature::getSuperType).isPresent()) {
-                                scb.add("super.equals(obj)");
-                            } else {
-                                scb.add("true");
-                            }
-                            if (inputSafe instanceof FeatureWithSlots) {
-                                for (Maybe<SlotDeclaration> slot : iterate(some((FeatureWithSlots) inputSafe)
-                                        .__(FeatureWithSlots::getSlots))) {
-                                    scb.add(" && ");
-                                    scb.add("java.util.Objects.equals(");
-                                    final String s = Strings.toFirstUpper(slot.__(SlotDeclaration::getName).orElse(""));
-                                    scb.add("this.get")
-                                            .add(s).add("(), o.get")
-                                            .add(s).add("())");
-                                }
-                            }
-                            scb.line(";");
-                            scb.dedent().line("} else {");
-                            scb.indent().line("return super.equals(obj);");
-                            scb.dedent().line("}");
-                        });
+                    "obj",
+                    typeHelper.typeRef(Object.class)
+                ));
+
+                final CompilationHelper compilationHelper =
+                    module.get(CompilationHelper.class);
+
+                compilationHelper.createAndSetBody(itMethod, scb -> {
+
+                    scb.open("if(obj instanceof " + typeName + ") {");
+                    scb.line(typeName + " o = (" + typeName + ") obj;");
+                    scb.add("return ");
+                    if (input.__(ExtendingFeature::getSuperType).isPresent()) {
+                        scb.add("super.equals(obj)");
+                    } else {
+                        scb.add("true");
                     }
-            ));
-        });
+                    if (inputSafe instanceof FeatureWithSlots) {
+                        final Maybe<EList<SlotDeclaration>> slots =
+                            some((FeatureWithSlots) inputSafe)
+                                .__(FeatureWithSlots::getSlots);
+                        for (Maybe<SlotDeclaration> slot : iterate(slots)) {
+                            final Maybe<String> slotName =
+                                slot.__(SlotDeclaration::getName);
+
+                            if (slotName.isNothing()) {
+                                continue;
+                            }
+
+                            String slotNameSafe =
+                                Strings.toFirstUpper(slotName.toNullable());
+
+                            if (slotNameSafe.isBlank()) {
+                                continue;
+                            }
+
+                            scb.add(" && ");
+                            scb.add("java.util.Objects.equals(");
+                            scb.add("this.get")
+                                .add(slotNameSafe).add("(), o.get")
+                                .add(slotNameSafe).add("())");
+                        }
+                    }
+                    scb.line(";");
+                    scb.closeAndOpen("} else {");
+                    scb.line("return super.equals(obj);");
+                    scb.close("}");
+                });
+            }
+        ));
     }
+
 
     private void addGetDeclaringOntology(
-            EList<JvmMember> members,
-            Maybe<ExtendingFeature> input,
-            Maybe<QualifiedName> ontoFQName,
-            boolean asDefault
+        EList<JvmMember> members,
+        Maybe<ExtendingFeature> input,
+        Maybe<QualifiedName> ontoFQName,
+        boolean asDefault
     ) {
-        safeDo(input, ontoFQName,
-                /*NULLSAFE REGION*/(inputSafe, ontoFQNameSafe) -> {
-                    //this portion of code is done only if input and ontoFullQualifiedName
-                    // are != null
-                    final JvmTypeReference ontoTypeRef = module.get(TypeHelper.class).typeRef(ontoFQNameSafe.toString());
 
-                    members.add(module.get(JvmTypesBuilder.class).toMethod(
-                            inputSafe,
-                            "__getDeclaringOntology",
-                            module.get(TypeHelper.class).typeRef(jade.content.onto.Ontology.class),
-                            it -> {
-                                it.setDefault(asDefault);
+        if (input.isNothing() || ontoFQName.isNothing()) {
+            return;
+        }
+        final ExtendingFeature inputSafe = input.toNullable();
+        final QualifiedName ontoFQNameSafe = ontoFQName.toNullable();
 
-                                module.get(CompilationHelper.class).createAndSetBody(it, scb -> {
-                                    scb.add("return ").add(ontoTypeRef.getQualifiedName('.')).add(".getInstance();");
-                                });
-                            }
-                    ));
+        final JvmTypeReference ontoTypeRef =
+            module.get(TypeHelper.class).typeRef(ontoFQNameSafe.toString());
 
+        members.add(module.get(JvmTypesBuilder.class).toMethod(
+            inputSafe,
+            "__getDeclaringOntology",
+            module.get(TypeHelper.class)
+                .typeRef(jade.content.onto.Ontology.class),
+            it -> {
+                it.setDefault(asDefault);
 
-                }/*END NULLSAFE REGION - (inputSafe, ontoFullQualifiedNameSafe)*/
-        );
+                module.get(CompilationHelper.class).createAndSetBody(
+                    it,
+                    scb -> scb.add("return ")
+                        .add(ontoTypeRef.getQualifiedName('.'))
+                        .add(".getInstance();")
+                );
+            }
+        ));
 
     }
 
@@ -800,264 +1269,377 @@ public class OntologyElementSemantics extends Semantics {
      * Generates the ctor of the concept POJO class
      */
     private void addOntologyElementsConstructor(
-            EList<JvmMember> members,
-            Maybe<ExtendingFeature> input,
-            List<Maybe<RValueExpression>> superArguments,
-            List<IJadescriptType> superDestTypes
+        EList<JvmMember> members,
+        Maybe<ExtendingFeature> input,
+        List<String> compiledSuperArguments
     ) {
-        input.safeDo(inputSafe -> {
+        if (input.isNothing()) {
+            return;
+        }
+        final ExtendingFeature inputSafe = input.toNullable();
 
-            // Constructor without parameters
-            members.add(module.get(JvmTypesBuilder.class).toConstructor(inputSafe, it -> {
+        // Constructor without parameters
+        final JvmTypesBuilder jvmTypesBuilder =
+            module.get(JvmTypesBuilder.class);
 
-                module.get(CompilationHelper.class).createAndSetBody(it, scb -> {
-                    BlockWriter bw = new BlockWriter();
-                    if (input.__(i -> i instanceof FeatureWithSlots).extract(nullAsFalse)) {
-                        Maybe<FeatureWithSlots> inputWithSlots = input.__(i -> (FeatureWithSlots) i);
-                        for (Maybe<SlotDeclaration> slot : iterate(inputWithSlots.__(FeatureWithSlots::getSlots))) {
-                            Maybe<String> slotName = slot.__(SlotDeclaration::getName);
-                            Maybe<TypeExpression> slotType = slot.__(SlotDeclaration::getType);
-                            slotName.safeDo(
-                                    /*NULLSAFE REGION*/(slotNameSafe) -> {
-                                        //this portion of code is done  only if slotName
-                                        // is != null (and everything in the dotchains that generated it
-                                        // is !=null too)
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
 
-                                        bw.addStatement(
-                                                w.callStmnt(
-                                                        "this.set" + Strings.toFirstUpper(slotNameSafe),
-                                                        w.expr(module.get(CompilationHelper.class)
-                                                                .compileEmptyConstructorCall(slotType))
-                                                )
-                                        );
+        final boolean hasSlots = input
+            .__(i -> i instanceof FeatureWithSlots)
+            .extract(nullAsFalse);
 
-                                    }/*END NULLSAFE REGION - (slotNameSafe)*/
-                            );
-                        }
-                    }
-                    bw.writeSonnet(scb);
-                });
-            }));
+        // Add empty constructor, for default value initialization and for
+        //  deserialization from messages
+        members.add(jvmTypesBuilder.toConstructor(inputSafe, itCtor ->
+            compilationHelper.createAndSetBody(itCtor, scb -> {
 
-
-            if (input.__(i -> i instanceof FeatureWithSlots).extract(nullAsFalse)) {
-                Maybe<FeatureWithSlots> inputWithSlots = input.__(i -> (FeatureWithSlots) i);
-                Maybe<EList<SlotDeclaration>> slots = inputWithSlots.__(FeatureWithSlots::getSlots);
-                if (slots.__(List::isEmpty).__(not).extract(nullAsFalse)) {
-
-
-                    // Constructor with parameters
-                    members.add(module.get(JvmTypesBuilder.class).toConstructor(inputSafe, it -> {
-
-
-                        for (Maybe<SlotDeclaration> slot : iterate(slots)) {
-
-
-                            IJadescriptType slotType = module.get(TypeExpressionSemantics.class).toJadescriptType(
-                                    slot.__(SlotDeclaration::getType));
-
-                            Maybe<String> slotName = slot.__(SlotDeclaration::getName);
-                            safeDo(slot, slotName,
-                                    /*NULLSAFE REGION*/(slotSafe, slotNameSafe) -> {
-                                        //this portion of code is done  only if slot and slotName
-                                        // are != null (and everything in the dotchains that generated them is !=null too)
-
-                                        it.getParameters().add(module.get(JvmTypesBuilder.class).toParameter(
-                                                slotSafe,
-                                                slotNameSafe,
-                                                slotType.asJvmTypeReference()
-                                        ));
-
-                                    }/*END NULLSAFE REGION - (slotSafe, slotNameSafe)*/
-                            );
-
-
-                        }
-
-
-                        module.get(CompilationHelper.class).createAndSetBody(it, scb -> {
-
-                            StringBuilder superArgumentsCompiled = new StringBuilder();
-                            for (int i = 0; i < superArguments.size(); i++) {
-                                if (i != 0) {
-                                    superArgumentsCompiled.append(", ");
-                                }
-                                Maybe<RValueExpression> superArgument = superArguments.get(i);
-                                IJadescriptType nullable = null;
-                                if (i < superDestTypes.size()) {
-                                    nullable = superDestTypes.get(i);
-                                }
-                                String lambdaCompiled =
-                                    module.get(CompilationHelper.class)
-                                        .compileRValueAsLambdaSupplier(
-                                                superArgument,
-                                                nullable
-                                        );
-                                superArgumentsCompiled.append(lambdaCompiled);
-                            }
-
-
-                            w.simpleStmt("super(" + superArgumentsCompiled + ")").writeSonnet(scb);
-
-
-                            scb.line();
-                            for (Maybe<SlotDeclaration> slot : iterate(slots)) {
-                                slot.__(SlotDeclaration::getName).safeDo(slotNameSafe -> {
-                                    scb.line("this.set" + Strings.toFirstUpper(slotNameSafe) + "(" + slotNameSafe + ");");
-                                });
-                            }
-                        });
-                    }));
+                if (!hasSlots) {
+                    w.block().writeSonnet(scb);
+                    return; //from lambda
                 }
+
+                BlockWriter block = w.block();
+
+                Maybe<FeatureWithSlots> inputWithSlots =
+                    input.__(i -> (FeatureWithSlots) i);
+
+                final Maybe<EList<SlotDeclaration>> slots =
+                    inputWithSlots.__(FeatureWithSlots::getSlots);
+
+                for (Maybe<SlotDeclaration> slot : iterate(slots)) {
+                    Maybe<String> slotName =
+                        slot.__(SlotDeclaration::getName);
+                    Maybe<TypeExpression> slotType =
+                        slot.__(SlotDeclaration::getType);
+
+                    if (slotName.isNothing()) {
+                        continue;
+                    }
+
+                    String slotNameSafe = slotName.toNullable();
+
+                    if (slotNameSafe.isBlank()) {
+                        continue;
+                    }
+
+                    block.addStatement(w.callStmnt(
+                        "this.set" + Strings.toFirstUpper(slotNameSafe),
+                        w.expr(compilationHelper
+                            .compileDefaultValueForType(slotType))
+                    ));
+                }
+
+                block.writeSonnet(scb);
+            })
+        ));
+
+
+        if (!hasSlots) {
+            return;
+        }
+
+        Maybe<FeatureWithSlots> inputWithSlots =
+            input.__(i -> (FeatureWithSlots) i);
+        List<Maybe<SlotDeclaration>> slots =
+            toListOfMaybes(inputWithSlots.__(FeatureWithSlots::getSlots));
+
+        if (slots.isEmpty()) {
+            return;
+        }
+
+        // Constructor with parameters
+        final TypeExpressionSemantics typeExpressionSemantics =
+            module.get(TypeExpressionSemantics.class);
+
+        members.add(jvmTypesBuilder.toConstructor(inputSafe, itCtor -> {
+            for (Maybe<SlotDeclaration> slot : slots) {
+
+                IJadescriptType slotType = typeExpressionSemantics.
+                    toJadescriptType(slot.__(SlotDeclaration::getType));
+
+                Maybe<String> slotName =
+                    slot.__(SlotDeclaration::getName);
+
+                if (slot.isNothing() || slotName.isNothing()) {
+                    continue;
+                }
+
+                final SlotDeclaration slotSafe = slot.toNullable();
+                final String slotNameSafe = slotName.toNullable();
+
+                if (slotNameSafe.isBlank()) {
+                    continue;
+                }
+
+                itCtor.getParameters().add(jvmTypesBuilder.toParameter(
+                    slotSafe,
+                    slotNameSafe,
+                    slotType.asJvmTypeReference()
+                ));
             }
-        });
+
+
+            compilationHelper.createAndSetBody(itCtor, scb -> {
+                StringBuilder superArgumentsList = new StringBuilder();
+                for (int i = 0; i < compiledSuperArguments.size(); i++) {
+                    if (i != 0) {
+                        superArgumentsList.append(", ");
+                    }
+
+                    final String compiledSuperArgument =
+                        compiledSuperArguments.get(i);
+
+                    superArgumentsList.append(compiledSuperArgument);
+                }
+
+
+                w.simpleStmt("super(" + superArgumentsList + ")")
+                    .writeSonnet(scb);
+
+
+                scb.line();
+
+                for (Maybe<SlotDeclaration> slot : slots) {
+                    final Maybe<String> slotName =
+                        slot.__(SlotDeclaration::getName);
+
+                    if (slotName.isNothing()) {
+                        continue;
+                    }
+
+                    final String slotNameSafe = slotName.toNullable();
+
+                    if (slotNameSafe.isBlank()) {
+                        continue;
+                    }
+
+                    scb.line("this.set" + Strings.toFirstUpper(slotNameSafe) +
+                        "(" + slotNameSafe + ");");
+                }
+            });
+        }));
     }
+
 
     /**
-     * Generates a new property including a private field with corresponding accessors
-     * in the concept POJO class
+     * Generates a new property including a private field with corresponding
+     * accessors in the ontology element class
      */
-    private void addProperty(EList<JvmMember> members, Maybe<SlotDeclaration> slot) {
-        IJadescriptType slotType = module.get(TypeExpressionSemantics.class).toJadescriptType(slot.__(SlotDeclaration::getType));
-        Maybe<String> slotName = slot.__(SlotDeclaration::getName);
-
-        safeDo(slot, slotName,
-                /*NULLSAFE REGION*/(slotSafe, slotNameSafe) -> {
-                    //this portion of code is done only if slot and slotName
-                    // are != null (and everything in the dotchains that generated them is !=null too)
-
-                    members.add(module.get(JvmTypesBuilder.class).toField(
-                            slotSafe,
-                            slotNameSafe,
-                            slotType.asJvmTypeReference(),
-                            it -> {
-                                it.setVisibility(JvmVisibility.PRIVATE);
-                            }
-                    ));
-
-                    members.add(module.get(JvmTypesBuilder.class).toGetter(
-                            slotSafe,
-                            slotNameSafe,
-                            slotType.asJvmTypeReference()
-                    ));
-                    members.add(module.get(JvmTypesBuilder.class).toSetter(
-                            slotSafe,
-                            slotNameSafe,
-                            slotType.asJvmTypeReference()
-                    ));
-
-                }/*END NULLSAFE REGION - (slotSafe, slotNameSafe)*/
+    private void addProperty(
+        EList<JvmMember> members,
+        Maybe<SlotDeclaration> slot
+    ) {
+        final TypeExpressionSemantics tes =
+            module.get(TypeExpressionSemantics.class);
+        IJadescriptType slotType = tes.toJadescriptType(
+            slot.__(SlotDeclaration::getType)
         );
 
+        Maybe<String> slotName = slot.__(SlotDeclaration::getName);
 
+        if (slot.isNothing() || slotName.isNothing()) {
+            return;
+        }
+
+        final SlotDeclaration slotSafe = slot.toNullable();
+        final String slotNameSafe = slotName.toNullable();
+
+        final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
+
+        members.add(jvmTB.toField(
+            slotSafe,
+            slotNameSafe,
+            slotType.asJvmTypeReference(),
+            it -> it.setVisibility(JvmVisibility.PRIVATE)
+        ));
+
+        members.add(jvmTB.toGetter(
+            slotSafe,
+            slotNameSafe,
+            slotType.asJvmTypeReference()
+        ));
+
+        members.add(jvmTB.toSetter(
+            slotSafe,
+            slotNameSafe,
+            slotType.asJvmTypeReference()
+        ));
     }
+
 
     /**
      * Generates a new property for a native type
      */
-    private void addNativeProperty(EList<JvmMember> members, Maybe<SlotDeclaration> slot) {
+    private void addNativeProperty(
+        EList<JvmMember> members,
+        Maybe<SlotDeclaration> slot
+    ) {
         IJadescriptType slotType = module.get(TypeExpressionSemantics.class)
-                .toJadescriptType(slot.__(SlotDeclaration::getType));
+            .toJadescriptType(slot.__(SlotDeclaration::getType));
         Maybe<String> slotName = slot.__(SlotDeclaration::getName);
 
-        safeDo(slot, slotName,
-                /*NULLSAFE REGION*/(slotSafe, slotNameSafe) -> {
-                    //this portion of code is done only if slot and slotName
-                    // are != null (and everything in the dotchains that generated them is !=null too)
+        if (slot.isNothing() || slotName.isNothing()) {
+            return;
+        }
 
-                    members.add(module.get(JvmTypesBuilder.class).toMethod(
-                            slotSafe,
-                            "get" + Strings.toFirstUpper(slotNameSafe),
-                            slotType.asJvmTypeReference(),
-                            it -> {
-                                it.setDefault(false);
-                                it.setAbstract(true);
-                            }
-                    ));
-                    members.add(module.get(JvmTypesBuilder.class).toMethod(
-                            slotSafe,
-                            "set" + Strings.toFirstUpper(slotNameSafe),
-                            module.get(TypeHelper.class).typeRef(Void.TYPE),
-                            it -> {
-                                it.getParameters().add(module.get(JvmTypesBuilder.class).toParameter(
-                                        slotSafe,
-                                        "_value",
-                                        slotType.asJvmTypeReference()
-                                ));
-                                it.setDefault(false);
-                                it.setAbstract(true);
-                            }
-                    ));
+        final SlotDeclaration slotSafe = slot.toNullable();
+        final String slotNameSafe = slotName.toNullable();
 
 
-                }/*END NULLSAFE REGION - (slotSafe, slotNameSafe)*/
-        );
+        final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
 
+        members.add(jvmTB.toMethod(
+            slotSafe,
+            "get" + Strings.toFirstUpper(slotNameSafe),
+            slotType.asJvmTypeReference(),
+            it -> {
+                it.setDefault(false);
+                it.setAbstract(true);
+            }
+        ));
+
+        members.add(jvmTB.toMethod(
+            slotSafe,
+            "set" + Strings.toFirstUpper(slotNameSafe),
+            module.get(TypeHelper.class).typeRef(Void.TYPE),
+            it -> {
+                it.getParameters().add(jvmTB.toParameter(
+                    slotSafe,
+                    "_value",
+                    slotType.asJvmTypeReference()
+                ));
+                it.setDefault(false);
+                it.setAbstract(true);
+            }
+        ));
 
     }
 
-    private void addToString(EList<JvmMember> members, Maybe<ExtendingFeature> feature) {
-        feature.safeDo(extendingFeature -> {
-            members.add(module.get(JvmTypesBuilder.class).toMethod(
-                    extendingFeature,
-                    "toString",
-                    module.get(TypeHelper.class).TEXT.asJvmTypeReference(),
-                    it -> {
-                        it.setVisibility(JvmVisibility.PUBLIC);
 
-                        module.get(CompilationHelper.class).createAndSetBody(it, scb -> {
-                            w.variable("java.lang.StringBuilder", "_sb", w.callExpr("new java.lang.StringBuilder"))
-                                    .writeSonnet(scb);
+    private void addToString(
+        EList<JvmMember> members,
+        Maybe<ExtendingFeature> input
+    ) {
+        if (input.isNothing()) {
+            return;
+        }
 
-                            w.callStmnt("_sb.append", w.stringLiteral(module.get(CompilationHelper.class).getFullyQualifiedName(extendingFeature).toString()))
-                                    .writeSonnet(scb);
+        final ExtendingFeature inputSafe = input.toNullable();
 
-                            if (extendingFeature instanceof FeatureWithSlots) {
-                                FeatureWithSlots featureWithSlots = (FeatureWithSlots) extendingFeature;
-                                EList<SlotDeclaration> slots = featureWithSlots.getSlots();
-                                if (!slots.isEmpty()) {
-                                    w.callStmnt("_sb.append", w.stringLiteral("("))
-                                            .writeSonnet(scb);
+        final JvmTypesBuilder jvmTB =
+            module.get(JvmTypesBuilder.class);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        members.add(jvmTB.toMethod(
+            inputSafe,
+            "toString",
+            typeHelper.TEXT.asJvmTypeReference(),
+            it -> {
+                it.setVisibility(JvmVisibility.PUBLIC);
+                final CompilationHelper compilationHelper =
+                    module.get(CompilationHelper.class);
 
-                                    for (int i = 0; i < slots.size(); i++) {
-                                        SlotDeclaration slot = slots.get(i);
-                                        if (slot != null && slot.getName() != null) {
-                                            if (i != 0) {
-                                                w.callStmnt("_sb.append", w.stringLiteral(", "))
-                                                        .writeSonnet(scb);
-                                            }
+                compilationHelper.createAndSetBody(it, scb -> {
+                    fillToStringMethod(
+                        inputSafe,
+                        typeHelper,
+                        compilationHelper,
+                        scb
+                    );
+                });
+            }
+        ));
+    }
 
-                                            IJadescriptType type = module.get(TypeExpressionSemantics.class).toJadescriptType(
-                                                some(slot.getType()));
-                                            final String getterCall = "get" + Strings.toFirstUpper(slot.getName()) + "()";
-                                            if (module.get(TypeHelper.class).TEXT.isAssignableFrom(type)) {
-                                                w.callStmnt(
-                                                                "_sb.append",
-                                                                w.expr("\"\\\"\" + java.lang.String.valueOf(" + getterCall + ") + \"\\\"\"")
-                                                        )
-                                                        .writeSonnet(scb);
-                                            } else {
-                                                w.callStmnt("_sb.append", w.expr("java.lang.String.valueOf(" + getterCall + ")"))
-                                                        .writeSonnet(scb);
-                                            }
 
-                                        }
-                                    }
+    private void fillToStringMethod(
 
-                                    w.callStmnt("_sb.append", w.stringLiteral(")"))
-                                            .writeSonnet(scb);
-                                }
-                            }
+        ExtendingFeature inputSafe,
+        TypeHelper typeHelper,
+        CompilationHelper compilationHelper,
+        SourceCodeBuilder scb
+    ) {
+        w.variable(
+            "java.lang.StringBuilder",
+            "_sb",
+            w.callExpr("new java.lang.StringBuilder")
+        ).writeSonnet(scb);
 
-                            w.returnStmnt(w.callExpr("_sb.toString"))
-                                    .writeSonnet(scb);
-                        });
+        w.callStmnt(
+            "_sb.append",
+            w.stringLiteral(
+                compilationHelper.getFullyQualifiedName(inputSafe)
+                    .toString()
+            )
+        ).writeSonnet(scb);
+
+        if (inputSafe instanceof FeatureWithSlots) {
+
+            FeatureWithSlots featureWithSlots = (FeatureWithSlots) inputSafe;
+            EList<SlotDeclaration> slots = featureWithSlots.getSlots();
+
+            if (!slots.isEmpty()) {
+                w.callStmnt("_sb.append", w.stringLiteral("("))
+                    .writeSonnet(scb);
+
+                final TypeExpressionSemantics tes =
+                    module.get(TypeExpressionSemantics.class);
+
+                for (int i = 0; i < slots.size(); i++) {
+                    SlotDeclaration slot = slots.get(i);
+
+                    if (slot == null || slot.getName() == null) {
+                        continue;
                     }
-            ));
-        });
+
+
+                    if (i != 0) {
+                        w.callStmnt("_sb.append", w.stringLiteral(", "))
+                            .writeSonnet(scb);
+                    }
+
+                    IJadescriptType type =
+                        tes.toJadescriptType(some(slot.getType()));
+
+                    final String getterCall = "get" + Strings.toFirstUpper(
+                        slot.getName()
+                    ) + "()";
+
+
+                    if (typeHelper.TEXT.isAssignableFrom(type)) {
+                        final String quoteLiteral = "\"\\\"\"";
+                        w.callStmnt(
+                            "_sb.append",
+                            w.expr(quoteLiteral +
+                                " + java.lang.String.valueOf(" + getterCall +
+                                ") + " + quoteLiteral
+                            )
+                        ).writeSonnet(scb);
+                    } else {
+                        w.callStmnt(
+                            "_sb.append",
+                            w.expr("java.lang.String.valueOf("
+                                + getterCall + ")")
+                        ).writeSonnet(scb);
+                    }
+
+                }
+
+                w.callStmnt(
+                    "_sb.append",
+                    w.stringLiteral(")")
+                ).writeSonnet(scb);
+            }
+        }
+
+        w.returnStmnt(w.callExpr("_sb.toString"))
+            .writeSonnet(scb);
     }
 
-    private Class<?> getBaseOntologyContentType(Maybe<ExtendingFeature> feature) {
+
+    private Class<?> getBaseOntologyContentType(
+        Maybe<ExtendingFeature> feature
+    ) {
         return feature.__(extendingFeature -> {
             if (extendingFeature instanceof Concept) {
                 return jadescript.content.JadescriptConcept.class;
@@ -1070,6 +1652,10 @@ public class OntologyElementSemantics extends Semantics {
             } else {
                 return jadescript.content.JadescriptProposition.class;
             }
-        }).orElse(jadescript.content.JadescriptProposition.class); // is the most generic
+        }).orElse(
+            // is the most generic:
+            jadescript.content.JadescriptProposition.class
+        );
     }
+
 }

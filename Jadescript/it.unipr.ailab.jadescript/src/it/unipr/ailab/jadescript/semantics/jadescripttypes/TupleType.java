@@ -218,7 +218,7 @@ public class TupleType extends ParametricType implements EmptyCreatable, Declare
         List<String> newEmptyInstances = new ArrayList<>();
         for (TypeArgument typeArgument : elementTypes) {
             IJadescriptType elementType = typeArgument.ignoreBound();
-            newEmptyInstances.add(CompilationHelper.compileEmptyConstructorCall(elementType));
+            newEmptyInstances.add(CompilationHelper.compileDefaultValueForType(elementType));
         }
         return compileNewInstance(newEmptyInstances, elementTypes);
     }

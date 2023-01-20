@@ -230,14 +230,14 @@ public class ContextManager {
 
 
     public void enterSuperSlotInitializer(
-        Map<String, IJadescriptType> superSlotsInitScope
+        Map<String, IJadescriptType> superSlotsInitPairs
     ) {
         if (this.innerContext instanceof OntologyElementDeclarationContext) {
             this.outerContexts.push(this.innerContext);
             this.innerContext = new SuperSlotInitializerContext(
                 module,
                 (OntologyElementDeclarationContext) this.innerContext,
-                superSlotsInitScope
+                superSlotsInitPairs
             );
             if (GenerationParameters.DEBUG_CONTEXT) {
                 System.out.println("[" + module.getPhase() + "]: entered " +

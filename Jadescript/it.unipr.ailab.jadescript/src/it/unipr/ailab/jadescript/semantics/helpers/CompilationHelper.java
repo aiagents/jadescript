@@ -7,7 +7,6 @@ import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.jvmmodel.JadescriptCompilerUtils;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
-import it.unipr.ailab.jadescript.semantics.context.ScopeType;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
 import it.unipr.ailab.jadescript.semantics.expression.PSR;
@@ -130,7 +129,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
     }
 
 
-    public static String compileEmptyConstructorCall(
+    public static String compileDefaultValueForType(
         final IJadescriptType jadescriptType
     ) {
         if (jadescriptType instanceof EmptyCreatable) {
@@ -241,6 +240,9 @@ public class CompilationHelper implements IQualifiedNameProvider {
     }
 
 
+
+
+
     /**
      * Compiles the expression into a Supplier lambda, which contains all the
      * expression's generated auxiliary statements, and it returns with the
@@ -256,34 +258,19 @@ public class CompilationHelper implements IQualifiedNameProvider {
      * that may need to generate auxiliary statements in order to work
      * correctly, or to initialize fields in the same way.
      *
-     * @param expr
-     */
-    public String compileRValueAsLambdaSupplier(
-        Maybe<RValueExpression> expr,
-        StaticState beforExpr
-    ) {
-        return compileRValueAsLambdaSupplier(expr, beforExpr, null);
-    }
-
-
-    /**
-     * Compiles the expression into a Supplier lambda, which contains all the
-     * expression's generated auxiliary statements, and it returns with the
-     * value which is used to provide the value.
-     * <p></p>
-     * For example, let's say we need to pass a super-argument with the
-     * string "Hello".
-     * Using this to compile the arguments of the super constructor generates:
-     * <p></p>
-     * {@code super(((Supplier<String>)()->{return "Hello";}).get());}.
-     * <p></p>
-     * This is important in order to compile expressions as super-arguments
-     * that may need to generate auxiliary statements in order to work
-     * correctly, or to initialize fields in the same way.
+     * @param expr the expression
+     * @param beforeExpr the state before the expression evaluation
+     * @param inferredType the type inferred from the expression, or null to
+     *                     let this method infer it
+     * @param destinationType the desired type for the result (to apply
+     *                        eventual implicit conversions), or null, to use
+     *                        {@code inferredType} and to apply no conversion
+     * @return the overall compiled lambda expression
      */
     public String compileRValueAsLambdaSupplier(
         Maybe<RValueExpression> expr,
         StaticState beforeExpr,
+        @Nullable IJadescriptType inferredType,
         @Nullable IJadescriptType destinationType
     ) {
         final LambdaWithBlockWriter lambda = w.blockLambda();
@@ -292,7 +279,14 @@ public class CompilationHelper implements IQualifiedNameProvider {
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
-        final IJadescriptType startType = rves.inferType(expr, beforeExpr);
+
+        final IJadescriptType startType;
+        if (inferredType == null) {
+            startType = rves.inferType(expr, beforeExpr);
+        }else{
+            startType = inferredType;
+        }
+
         final String compiled = rves.compile(
             expr,
             beforeExpr,
@@ -304,11 +298,12 @@ public class CompilationHelper implements IQualifiedNameProvider {
             type = startType;
         } else {
             returnExpr =
-                module.get(TypeHelper.class).compileWithEventualImplicitConversions(
-                    compiled,
-                    startType,
-                    destinationType
-                );
+                module.get(TypeHelper.class)
+                    .compileWithEventualImplicitConversions(
+                        compiled,
+                        startType,
+                        destinationType
+                    );
             type = destinationType;
         }
 
@@ -344,11 +339,12 @@ public class CompilationHelper implements IQualifiedNameProvider {
     }
 
 
-    public String compileEmptyConstructorCall(
+    public String compileDefaultValueForType(
         Maybe<TypeExpression> typeExpr
     ) {
-        return compileEmptyConstructorCall(
-            module.get(TypeExpressionSemantics.class).toJadescriptType(typeExpr)
+        return compileDefaultValueForType(
+            module.get(TypeExpressionSemantics.class)
+                .toJadescriptType(typeExpr)
         );
     }
 
@@ -367,8 +363,8 @@ public class CompilationHelper implements IQualifiedNameProvider {
         if (eObject == null)
             //noinspection ReturnOfNull
             return null;
-        return module.get(IQualifiedNameProvider.class).getFullyQualifiedName(
-            eObject);
+        return module.get(IQualifiedNameProvider.class)
+            .getFullyQualifiedName(eObject);
     }
 
 
