@@ -28,7 +28,7 @@ public class LValueExpressionSemantics
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(Maybe<LValueExpression> input) {
+    traverseInternal(Maybe<LValueExpression> input) {
         return Optional.of(new SemanticsBoundToAssignableExpression<>(
             module.get(OfNotationExpressionSemantics.class),
             input.__(i -> (OfNotation) i)

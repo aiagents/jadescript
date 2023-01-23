@@ -5,16 +5,13 @@ import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.Statement;
 import it.unipr.ailab.jadescript.semantics.*;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsDispatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsClassState;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
-import it.unipr.ailab.sonneteer.statement.LocalVarBindingProvider;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -37,20 +34,7 @@ public class BlockSemantics extends Semantics {
             StaticState state
         ) {
             final BlockWriter blockWriter = w.block().addStatement(
-                new StatementWriter() {
-                    @Override
-                    public StatementWriter bindLocalVarUsages(
-                        LocalVarBindingProvider bindingProvider
-                    ) {
-                        return this;
-                    }
-
-
-                    @Override
-                    public void writeSonnet(SourceCodeBuilder s) {
-                        s.add("//do nothing");
-                    }
-                }
+                w.simpleStmt("//do nothing")
             );
 
             return PSR.psr(blockWriter, state);

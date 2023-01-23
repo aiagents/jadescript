@@ -14,8 +14,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -50,19 +49,23 @@ public class TernaryConditionalExpressionSemantics
         final Maybe<RValueExpression> expression2 =
             input.__(TernaryConditional::getExpression2);
 
-        return Util.buildStream(
-            () -> condition.extract(x -> new SemanticsBoundToExpression<>(
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        return Stream.concat(
+            Stream.of(condition)
+                .filter(Maybe::isPresent)
+                .map(i -> new SemanticsBoundToExpression<>(
                 module.get(LogicalOrExpressionSemantics.class),
-                x
+                i
             )),
-            () -> expression1.extract(x -> new SemanticsBoundToExpression<>(
-                module.get(RValueExpressionSemantics.class),
-                x
-            )),
-            () -> expression2.extract(x -> new SemanticsBoundToExpression<>(
-                module.get(RValueExpressionSemantics.class),
-                x
-            ))
+            Stream.of(
+                expression1,
+                expression2
+            ).filter(Maybe::isPresent)
+                .map(i -> new SemanticsBoundToExpression<>(
+                    rves,
+                    i
+                ))
         );
     }
 
@@ -104,7 +107,7 @@ public class TernaryConditionalExpressionSemantics
 
         StaticState after2 = rves.advance(expression2, whenCFalse);
 
-        return after1.intersect(after2);
+        return after1.intersectAlternative(after2);
     }
 
 
@@ -180,7 +183,7 @@ public class TernaryConditionalExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
         Maybe<TernaryConditional> input
     ) {
         final Maybe<LogicalOr> condition =
@@ -324,11 +327,11 @@ public class TernaryConditionalExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<TernaryConditional> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

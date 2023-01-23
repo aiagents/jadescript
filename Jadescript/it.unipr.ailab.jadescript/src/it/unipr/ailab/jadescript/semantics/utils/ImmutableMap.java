@@ -1,13 +1,9 @@
 package it.unipr.ailab.jadescript.semantics.utils;
 
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import org.jetbrains.annotations.Contract;
 
 import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
@@ -77,17 +73,47 @@ public class ImmutableMap<K, V> {
     }
 
 
+    @Contract(pure = true)
     public V getUnsafe(K key) {
         return inner.get(key);
     }
 
 
+    /**
+     * Provides means to perform mutable changes to a mutable {@link Map}
+     * containing all the entries of this immutable map, which is then used to
+     * initialize a new ImmutableMap.
+     */
     @Contract(pure = true)
-    public ImmutableMap<K, V> put(K key, V value) {
+    public ImmutableMap<K, V> change(
+        Consumer<Map<K, V>> doOnMutableMap
+    ) {
         final ImmutableMap<K, V> result = new ImmutableMap<>();
         result.inner.putAll(this.inner);
-        result.inner.put(key, value);
+        doOnMutableMap.accept(result.inner);
         return result;
+    }
+
+
+    @Contract(pure = true)
+    public ImmutableMap<K, V> change(
+        Predicate<ImmutableMap<K, V>> changeCondition,
+        Consumer<Map<K, V>> doOnMutableMap
+    ) {
+        if (changeCondition.test(this)) {
+            return this.change(doOnMutableMap);
+        } else {
+            return this;
+        }
+    }
+
+
+    @Contract(pure = true)
+    public ImmutableMap<K, V> put(K key, V value) {
+        return change(
+            m -> !m.containsKey(key) || !m.get(key).equals(value),
+            m -> m.put(key, value)
+        );
     }
 
 
@@ -100,39 +126,38 @@ public class ImmutableMap<K, V> {
     public ImmutableMap<K, V> mergeAdd(
         K key, V value, BinaryOperator<V> resolveConflict
     ) {
-        final ImmutableMap<K, V> result = new ImmutableMap<>();
-        result.inner.putAll(this.inner);
-        if (result.inner.containsKey(key)) {
-            result.inner.put(key, resolveConflict.apply(
-                result.inner.get(key),
-                value
-            ));
-        } else {
-            result.inner.put(key, value);
-        }
-        return result;
+        return change(m -> {
+            if (m.containsKey(key)) {
+                m.put(key, resolveConflict.apply(
+                    m.get(key),
+                    value
+                ));
+            } else {
+                m.put(key, value);
+            }
+        });
     }
 
 
+    @Contract(pure = true)
     public ImmutableMap<K, V> mergeAddAll(
-        Collection<? extends V> nss,
+        Collection<? extends V> values,
         Function<V, K> associateKey,
         BinaryOperator<V> solveConflicts
     ) {
-        final ImmutableMap<K, V> result = new ImmutableMap<>();
-        result.inner.putAll(this.inner);
-        for (V v : nss) {
-            K k = associateKey.apply(v);
-            if (result.inner.containsKey(k)) {
-                result.inner.put(k, solveConflicts.apply(
-                    result.inner.get(k),
-                    v
-                ));
-            }else{
-                result.inner.put(k, v);
+        return change(m -> {
+            for (V v : values) {
+                K k = associateKey.apply(v);
+                if (m.containsKey(k)) {
+                    m.put(k, solveConflicts.apply(
+                        m.get(k),
+                        v
+                    ));
+                } else {
+                    m.put(k, v);
+                }
             }
-        }
-        return result;
+        });
     }
 
 
@@ -160,8 +185,20 @@ public class ImmutableMap<K, V> {
     }
 
 
+    @Contract(pure = true)
     public Stream<? extends V> streamValues() {
         return this.inner.values().stream();
+    }
+
+
+    public ImmutableMap<K, V> remove(K ed) {
+        if (containsKey(ed)) {
+            return change(m -> {
+                m.remove(ed);
+            });
+        } else {
+            return this;
+        }
     }
 
 }

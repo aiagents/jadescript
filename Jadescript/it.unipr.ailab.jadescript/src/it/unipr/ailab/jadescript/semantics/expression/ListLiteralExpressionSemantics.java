@@ -16,7 +16,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -59,10 +59,13 @@ public class ListLiteralExpressionSemantics
         Maybe<EList<RValueExpression>> values =
             input.__(ListLiteral::getValues);
 
+
+
         return Streams.concat(
                 Stream.of(input.__(ListLiteral::getRest)),
                 Maybe.toListOfMaybes(values).stream()
             )
+            .filter(Maybe::isPresent)
             .map(x -> new SemanticsBoundToExpression<>(
                 module.get(RValueExpressionSemantics.class), x));
     }
@@ -243,7 +246,7 @@ public class ListLiteralExpressionSemantics
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(Maybe<ListLiteral> input) {
+    traverseInternal(Maybe<ListLiteral> input) {
         return Optional.empty();
     }
 
@@ -493,7 +496,7 @@ public class ListLiteralExpressionSemantics
 
         }
 
-        return runningState.intersectAll(shortCircuitedAlternatives);
+        return runningState.intersectAllAlternatives(shortCircuitedAlternatives);
     }
 
 
@@ -842,11 +845,11 @@ public class ListLiteralExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<ListLiteral> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -39,10 +39,13 @@ public class LogicalAndExpressionSemantics
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<LogicalAnd> input
     ) {
+        final EqualityComparisonExpressionSemantics eces = module.get(
+            EqualityComparisonExpressionSemantics.class);
         return Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison))
             .stream()
+            .filter(Maybe::isPresent)
             .map(sbte -> new SemanticsBoundToExpression<>(
-                module.get(EqualityComparisonExpressionSemantics.class),
+                eces,
                 sbte
             ));
     }
@@ -134,7 +137,7 @@ public class LogicalAndExpressionSemantics
         // The result state is the intersection of the
         // "all true" state with each "one false" short-circuited state
 
-        return allTrueState.intersectAll(shortCircuitAlternatives);
+        return allTrueState.intersectAllAlternatives(shortCircuitAlternatives);
     }
 
 
@@ -198,7 +201,7 @@ public class LogicalAndExpressionSemantics
             }
         }
 
-        return StaticState.intersectAll(alternatives, () -> state);
+        return StaticState.intersectAllAlternatives(alternatives, () -> state);
     }
 
 
@@ -229,7 +232,7 @@ public class LogicalAndExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
         Maybe<LogicalAnd> input
     ) {
         if (mustTraverse(input)) {
@@ -337,11 +340,11 @@ public class LogicalAndExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<LogicalAnd> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

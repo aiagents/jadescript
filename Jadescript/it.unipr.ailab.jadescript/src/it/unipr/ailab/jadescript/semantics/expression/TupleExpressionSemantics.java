@@ -15,7 +15,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.TupledExpressions;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -83,9 +83,6 @@ public class TupleExpressionSemantics
     }
 
 
-
-
-
     @Override
     protected boolean validateInternal(
         Maybe<TupledExpressions> input,
@@ -140,9 +137,7 @@ public class TupleExpressionSemantics
         IJadescriptType exprType,
         StaticState state, CompilationOutputAcceptor acceptor
     ) {
-        //TODO fast-l-expr compilation?
-        // (if all elements are l-exprs, just compile it as multi-assignment?
-        // it would be faster than pattern matching)
+        // Cannot assign to a tuple
     }
 
 
@@ -152,9 +147,7 @@ public class TupleExpressionSemantics
         IJadescriptType rightType,
         StaticState state
     ) {
-        //TODO fast-l-expr compilation?
-        // (if all elements are l-exprs, just compile it as multi-assignment?
-        // it would be faster than pattern matching)
+        // Cannot assign to a tuple
         return state;
     }
 
@@ -165,10 +158,8 @@ public class TupleExpressionSemantics
         Maybe<RValueExpression> expression,
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
+        // Cannot assign to a tuple
         return VALID;
-        //TODO fast-l-expr compilation?
-        // (if all elements are l-exprs, just compile it as multi-assignment?
-        // it would be faster than pattern matching)
     }
 
 
@@ -177,18 +168,14 @@ public class TupleExpressionSemantics
         Maybe<TupledExpressions> input,
         ValidationMessageAcceptor acceptor
     ) {
-        //TODO fast-l-expr compilation?
-        // (if all elements are l-exprs, just compile it as multi-assignment?
-        // it would be faster than pattern matching)
+        // Cannot assign to a tuple
         return errorNotLvalue(input, acceptor);
     }
 
 
     @Override
     protected boolean isValidLExprInternal(Maybe<TupledExpressions> input) {
-        //TODO fast-l-expr compilation?
-        // (if all elements are l-exprs, just compile it as multi-assignment?
-        // it would be faster than pattern matching)
+        // Cannot assign to a tuple
         return false;
     }
 
@@ -212,9 +199,8 @@ public class TupleExpressionSemantics
         final RValueExpressionSemantics rves = module.get(
             RValueExpressionSemantics.class);
         return exprs.stream()
-            .map(e -> e.extract(x ->
-                new SemanticsBoundToExpression<>(rves, x)
-            ));
+            .filter(Maybe::isPresent)
+            .map(e -> new SemanticsBoundToExpression<>(rves, e));
     }
 
 
@@ -272,7 +258,7 @@ public class TupleExpressionSemantics
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(Maybe<TupledExpressions> input) {
+    traverseInternal(Maybe<TupledExpressions> input) {
         return Optional.empty();
     }
 
@@ -509,7 +495,8 @@ public class TupleExpressionSemantics
         return sizeCheck && allElemsCheck;
     }
 
-     @Override
+
+    @Override
     protected StaticState advancePatternInternal(
         PatternMatchInput<TupledExpressions> input,
         StaticState state
@@ -524,7 +511,6 @@ public class TupleExpressionSemantics
         final RValueExpressionSemantics rves = module.get(
             RValueExpressionSemantics.class);
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-
 
 
         StaticState runningState = state;
@@ -580,7 +566,6 @@ public class TupleExpressionSemantics
         final RValueExpressionSemantics rves = module.get(
             RValueExpressionSemantics.class);
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-
 
 
         StaticState runningState = state;
@@ -640,11 +625,11 @@ public class TupleExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<TupledExpressions> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

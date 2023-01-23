@@ -11,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -69,7 +69,7 @@ public class RValueExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
         Maybe<RValueExpression> input
     ) {
         if (input.isInstanceOf(SyntheticExpression.class)) {
@@ -192,7 +192,7 @@ public class RValueExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<RValueExpression> input,
         StaticState state
     ) {

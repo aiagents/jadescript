@@ -9,7 +9,7 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.FunctionContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.ParameterizedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.ProcedureContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.PSR;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;

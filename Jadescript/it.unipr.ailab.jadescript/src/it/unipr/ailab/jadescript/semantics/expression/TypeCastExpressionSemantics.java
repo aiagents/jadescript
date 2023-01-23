@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -42,13 +42,12 @@ public class TypeCastExpressionSemantics
         Maybe<TypeCast> input
     ) {
         return Stream.of(
-            input.__(TypeCast::getAtomExpr).<SemanticsBoundToExpression<?>>
-                extract(x -> new SemanticsBoundToExpression<>(
-                    module.get(AtomWithTrailersExpressionSemantics.class),
-                    x
-                )
-            )
-        );
+            input.__(TypeCast::getAtomExpr)
+        ).filter(Maybe::isPresent)
+            .map(i -> new SemanticsBoundToExpression<>(
+                module.get(AtomWithTrailersExpressionSemantics.class),
+                i
+            ));
     }
 
 
@@ -285,7 +284,7 @@ public class TypeCastExpressionSemantics
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(Maybe<TypeCast> input) {
+    traverseInternal(Maybe<TypeCast> input) {
         if (mustTraverse(input)) {
             return Optional.of(new SemanticsBoundToAssignableExpression<>(
                 module.get(AtomWithTrailersExpressionSemantics.class),
@@ -609,17 +608,17 @@ public class TypeCastExpressionSemantics
 
 
     private boolean isNumber(IJadescriptType type) {
-        return module.get(TypeHelper.class).NUMBER.isAssignableFrom(type);
+        return module.get(TypeHelper.class).NUMBER.isSupEqualTo(type);
     }
 
 
     private boolean isCastable(IJadescriptType x1, IJadescriptType x2) {
-        return x1.isAssignableFrom(x2) || x1.isAssignableFrom(x1);
+        return x1.isSupEqualTo(x2) || x1.isSupEqualTo(x1);
     }
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<TypeCast> input,
         StaticState state
     ) {

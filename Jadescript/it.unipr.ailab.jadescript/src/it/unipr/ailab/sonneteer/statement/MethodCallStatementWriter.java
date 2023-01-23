@@ -46,13 +46,4 @@ public class MethodCallStatementWriter extends StatementWriter {
         return parameters;
     }
 
-
-
-    @Override
-    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-        return w.callStmnt(replacePlaceholderInString(methodName, bindingProvider::bindRead), parameters.stream()
-                        .map(ew -> ew.bindVariableUsages(bindingProvider))
-                        .toArray(ExpressionWriter[]::new)
-        );
-    }
 }

@@ -2,11 +2,8 @@ package it.unipr.ailab.sonneteer.statement.controlflow;
 
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
-import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import it.unipr.ailab.sonneteer.statement.LocalVarBindingProvider;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
-
-import java.util.function.Consumer;
 
 public class WhileStatementWriter extends StatementWriter implements LoopWriter{
     private final ExpressionWriter condition;
@@ -26,18 +23,5 @@ public class WhileStatementWriter extends StatementWriter implements LoopWriter{
         body.writeSonnet(s);
     }
 
-    @Override
-    public void getSubBlocks(Consumer<BlockWriter> statementAcceptor) {
-        if(body instanceof BlockWriter) {
-            statementAcceptor.accept(((BlockWriter) body));
-        }
-    }
 
-    @Override
-    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-        return w.whileStmnt(
-                condition.bindVariableUsages(bindingProvider),
-                body.bindLocalVarUsages(bindingProvider)
-        );
-    }
 }

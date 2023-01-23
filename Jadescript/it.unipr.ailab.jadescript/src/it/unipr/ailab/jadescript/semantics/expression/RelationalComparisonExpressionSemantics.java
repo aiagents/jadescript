@@ -12,8 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -42,18 +41,14 @@ public class RelationalComparisonExpressionSemantics
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<RelationalComparison> input
     ) {
-        return Util.buildStream(
-            () -> input.__(RelationalComparison::getLeft)
-                .extract(x -> new SemanticsBoundToExpression<>(
-                    module.get(ContainmentCheckExpressionSemantics.class),
-                    x
-                )),
-            () -> input.__(RelationalComparison::getRight)
-                .extract(x -> new SemanticsBoundToExpression<>(
-                    module.get(ContainmentCheckExpressionSemantics.class),
-                    x
-                ))
-        );
+        final ContainmentCheckExpressionSemantics cces =
+            module.get(ContainmentCheckExpressionSemantics.class);
+
+        return Stream.of(
+                input.__(RelationalComparison::getLeft),
+                input.__(RelationalComparison::getRight)
+            ).filter(Maybe::isPresent)
+            .map(i -> new SemanticsBoundToExpression<>(cces, i));
     }
 
 
@@ -85,12 +80,12 @@ public class RelationalComparisonExpressionSemantics
 
         String rightCompiled = cces.compile(right, afterLeft, acceptor);
         IJadescriptType t2 = cces.inferType(right, afterLeft);
-        if (t1.isAssignableFrom(th.DURATION)
-            && t2.isAssignableFrom(th.DURATION)) {
+        if (t1.isSupEqualTo(th.DURATION)
+            && t2.isSupEqualTo(th.DURATION)) {
             return "jadescript.lang.Duration.compare(" + leftCompiled
                 + ", " + rightCompiled + ") " + relationalOp + " 0";
-        } else if (t1.isAssignableFrom(th.TIMESTAMP)
-            && t2.isAssignableFrom(th.TIMESTAMP)) {
+        } else if (t1.isSupEqualTo(th.TIMESTAMP)
+            && t2.isSupEqualTo(th.TIMESTAMP)) {
             return "jadescript.lang.Timestamp.compare(" + leftCompiled
                 + ", " + rightCompiled + ") " + relationalOp + " 0";
         } else {
@@ -118,17 +113,18 @@ public class RelationalComparisonExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
-        Maybe<RelationalComparison> input
-    ) {
+    protected Optional<? extends SemanticsBoundToExpression<?>>
+    traverseInternal(Maybe<RelationalComparison> input) {
         final Maybe<ContainmentCheck> left =
             input.__(RelationalComparison::getLeft);
+
         if (mustTraverse(input)) {
             return Optional.of(new SemanticsBoundToExpression<>(
                 module.get(ContainmentCheckExpressionSemantics.class),
                 left
             ));
         }
+
         return Optional.empty();
     }
 
@@ -175,7 +171,6 @@ public class RelationalComparisonExpressionSemantics
         PatternMatchInput<RelationalComparison> input,
         StaticState state, CompilationOutputAcceptor acceptor
     ) {
-        //TODO refinement pattern? e.g. p matches Person(name, age >= 18)
         return input.createEmptyCompileOutput();
     }
 
@@ -238,18 +233,18 @@ public class RelationalComparisonExpressionSemantics
             boolean otherValidation = validationHelper.asserting(
                 //implication: if left is NUMBER, right has to be NUMBER too
                 (
-                    !th.NUMBER.isAssignableFrom(typeLeft)
-                        || th.NUMBER.isAssignableFrom(typeRight)
+                    !th.NUMBER.isSupEqualTo(typeLeft)
+                        || th.NUMBER.isSupEqualTo(typeRight)
                 ) && (
                     //implication: if left is DURATION,
                     // right has to be DURATION too
-                    !th.DURATION.isAssignableFrom(typeLeft)
-                        || th.DURATION.isAssignableFrom(typeRight)
+                    !th.DURATION.isSupEqualTo(typeLeft)
+                        || th.DURATION.isSupEqualTo(typeRight)
                 ) && (
                     //implication: if left is TIMESTAMP,
                     // right has to be TIMESTAMP too
-                    !th.TIMESTAMP.isAssignableFrom(typeLeft)
-                        || th.TIMESTAMP.isAssignableFrom(typeRight)
+                    !th.TIMESTAMP.isSupEqualTo(typeLeft)
+                        || th.TIMESTAMP.isSupEqualTo(typeRight)
                 ),
                 "IncongruentOperandTypes",
                 "Incompatible types for comparison: '"
@@ -301,11 +296,11 @@ public class RelationalComparisonExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<RelationalComparison> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

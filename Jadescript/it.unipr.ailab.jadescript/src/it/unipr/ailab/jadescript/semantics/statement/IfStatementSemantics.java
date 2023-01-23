@@ -5,11 +5,12 @@ import it.unipr.ailab.jadescript.jadescript.IfStatement;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
-import it.unipr.ailab.jadescript.semantics.expression.PSR;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -193,7 +194,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
         acceptor.accept(ifsp);
 
-        return StaticState.intersectAll(
+        return StaticState.intersectAllAlternatives(
             afterBranches,
             () -> beforeTheBranches
         );
@@ -357,7 +358,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
         final StaticState beforeTheBranches = runningState;
 
-        return StaticState.intersectAll(
+        return StaticState.intersectAllAlternatives(
             afterBranches,
             () -> beforeTheBranches
         );

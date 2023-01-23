@@ -4,6 +4,7 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.AddStatement;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
@@ -181,8 +182,8 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
                 afterElement
             );
 
-            //TODO instead of checking the type, check the availability of
-            // the operation
+            //TODO instead of checking the type,
+            // check the availability of the operation
             module.get(ValidationHelper.class).asserting(
                 collectionType instanceof ListType
                     || collectionType instanceof MapType

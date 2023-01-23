@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.statement;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.ActivateStatement;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociated;
@@ -186,7 +187,7 @@ public class ActivateStatementSemantics
             final IJadescriptType forAgentType =
                 ((UserDefinedBehaviourType) exprType).getForAgentType();
             validationHelper.asserting(
-                forAgentType.isAssignableFrom(agentType.get()),
+                forAgentType.isSupEqualTo(agentType.get()),
                 "InvalidBehaviourActivation",
                 "An agent of type '" + agentType.get().getJadescriptName() +
                     "' can not activate a behaviour " +

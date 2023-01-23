@@ -14,7 +14,7 @@ public interface IJadescriptType extends TypeArgument {
 
     boolean typeEquals(IJadescriptType other);
 
-    boolean isAssignableFrom(IJadescriptType other);
+    boolean isSupEqualTo(IJadescriptType other);
 
     String getCategoryName();
 

@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.statement;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociation;
@@ -212,7 +213,7 @@ public class SendMessageStatementSemantics
                 // subtype-or-equal of the ontology that declared the
                 // content type
                 ontoCheck = validationHelper.asserting(
-                    declaringOntologyType.isAssignableFrom(ontologyType),
+                    declaringOntologyType.isSupEqualTo(ontologyType),
                     "OntologyMismatch",
                     "The type of this content is declared in ontology "
                         + declaringOntologyType.getJadescriptName()
@@ -459,7 +460,7 @@ public class SendMessageStatementSemantics
                     acceptor
                 );
 
-            } else if (typeHelper.AID.isAssignableFrom(
+            } else if (typeHelper.AID.isSupEqualTo(
 
                 receiversType)) {
                 setReceiver(receiver, messageName, runningState, acceptor);

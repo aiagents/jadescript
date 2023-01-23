@@ -1,6 +1,5 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
-import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.BuiltinHierarchicType;
 import it.unipr.ailab.jadescript.jadescript.CollectionTypeExpression;
 import it.unipr.ailab.jadescript.jadescript.MessageType;
@@ -9,19 +8,13 @@ import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseBehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import jadescript.content.JadescriptOntoElement;
 import org.eclipse.xtext.common.types.JvmTypeReference;
@@ -34,7 +27,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.*;
 

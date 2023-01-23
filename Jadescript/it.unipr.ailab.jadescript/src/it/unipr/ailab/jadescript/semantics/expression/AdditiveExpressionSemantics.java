@@ -13,7 +13,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -44,6 +44,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             input.__(Additive::getMultiplicative)
         );
         return operands.stream()
+            .filter(Maybe::isPresent)
             .map(x -> new ExpressionSemantics.SemanticsBoundToExpression<>(
                 module.get(MultiplicativeExpressionSemantics.class),
                 x
@@ -215,8 +216,8 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             || t2.typeEquals(typeHelper.TEXT))
             && op.wrappedEquals("+")) {
             return typeHelper.TEXT;
-        } else if (typeHelper.NUMBER.isAssignableFrom(t1)
-            || typeHelper.NUMBER.isAssignableFrom(t2)) {
+        } else if (typeHelper.NUMBER.isSupEqualTo(t1)
+            || typeHelper.NUMBER.isSupEqualTo(t2)) {
 
             if (typeHelper.implicitConversionCanOccur(t1, t2)) {
                 return t2;
@@ -266,7 +267,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
     @Override
     protected Optional<? extends SemanticsBoundToExpression<?>>
-    traverse(Maybe<Additive> input) {
+    traverseInternal(Maybe<Additive> input) {
         final List<Maybe<Multiplicative>> operands =
             Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
         if (!mustTraverse(input)) {
@@ -281,11 +282,11 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<Additive> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 
@@ -527,16 +528,16 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             // at least one of the two operands has to be TEXT, INTEGER,
             // REAL, DURATION or TIMESTAMP
             vh.asserting(
-                th.TEXT.isAssignableFrom(t1) ||
-                    th.INTEGER.isAssignableFrom(t1) ||
-                    th.REAL.isAssignableFrom(t1) ||
-                    th.DURATION.isAssignableFrom(t1) ||
-                    th.TIMESTAMP.isAssignableFrom(t1) ||
-                    th.TEXT.isAssignableFrom(t2) ||
-                    th.INTEGER.isAssignableFrom(t2) ||
-                    th.REAL.isAssignableFrom(t2) ||
-                    th.DURATION.isAssignableFrom(t2) ||
-                    th.TIMESTAMP.isAssignableFrom(t2),
+                th.TEXT.isSupEqualTo(t1) ||
+                    th.INTEGER.isSupEqualTo(t1) ||
+                    th.REAL.isSupEqualTo(t1) ||
+                    th.DURATION.isSupEqualTo(t1) ||
+                    th.TIMESTAMP.isSupEqualTo(t1) ||
+                    th.TEXT.isSupEqualTo(t2) ||
+                    th.INTEGER.isSupEqualTo(t2) ||
+                    th.REAL.isSupEqualTo(t2) ||
+                    th.DURATION.isSupEqualTo(t2) ||
+                    th.TIMESTAMP.isSupEqualTo(t2),
                 "InvalidAdditiveOperation",
                 "At least one of the two operands has to be of type " +
                     "'integer', 'real', " +

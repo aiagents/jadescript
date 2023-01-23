@@ -323,7 +323,7 @@ public class OntologyElementSemantics extends Semantics {
                     StaticState.beginningOfOperation(module);
 
                 validationHelper.asserting(
-                    rves.isAlwaysPure(arg, beforeInitExpr),
+                    rves.isWithoutSideEffects(arg, beforeInitExpr),
                     "InvalidSuperSlotInitExpression",
                     "Initialization expressions of super-slots " +
                         "must be pure (without side effects).",
@@ -1606,7 +1606,7 @@ public class OntologyElementSemantics extends Semantics {
                     ) + "()";
 
 
-                    if (typeHelper.TEXT.isAssignableFrom(type)) {
+                    if (typeHelper.TEXT.isSupEqualTo(type)) {
                         final String quoteLiteral = "\"\\\"\"";
                         w.callStmnt(
                             "_sb.append",

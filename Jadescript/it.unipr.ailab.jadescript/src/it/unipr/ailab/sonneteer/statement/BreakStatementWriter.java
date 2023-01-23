@@ -25,10 +25,7 @@ public class BreakStatementWriter extends StatementWriter {
     }
 
 
-    @Override
-    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-        return this;
-    }
+
 
 
     public boolean isContinue() {

@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -42,12 +42,12 @@ public class TypeComparisonExpressionSemantics
         final Maybe<RelationalComparison> left =
             input.__(TypeComparison::getRelationalComparison);
 
-        final SemanticsBoundToExpression<RelationalComparison> extract =
-            left.extract(x -> new SemanticsBoundToExpression<>(
+        return Stream.of(left)
+            .filter(Maybe::isPresent)
+            .map(x -> new SemanticsBoundToExpression<>(
                 module.get(RelationalComparisonExpressionSemantics.class),
                 x
             ));
-        return Stream.of(extract);
     }
 
 
@@ -151,7 +151,7 @@ public class TypeComparisonExpressionSemantics
                 .toJadescriptType(type);
         String compiledTypeExpression =
             jadescriptType.compileToJavaTypeReference();
-        if (module.get(TypeHelper.class).ONTOLOGY.isAssignableFrom(
+        if (module.get(TypeHelper.class).ONTOLOGY.isSupEqualTo(
             jadescriptType)) {
             result = THE_AGENTCLASS + ".__checkOntology(" + result + ", " +
                 compiledTypeExpression + ".class, " +
@@ -190,7 +190,7 @@ public class TypeComparisonExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
         Maybe<TypeComparison> input
     ) {
         if (mustTraverse(input)) {
@@ -268,11 +268,11 @@ public class TypeComparisonExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<TypeComparison> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

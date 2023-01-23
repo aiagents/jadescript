@@ -10,7 +10,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -123,7 +123,7 @@ public class PlaceholderExpressionSemantics
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(
+    traverseInternal(
         Maybe<Primary> input
     ) {
         return Optional.empty();
@@ -262,7 +262,7 @@ public class PlaceholderExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<Primary> input,
         StaticState state
     ) {

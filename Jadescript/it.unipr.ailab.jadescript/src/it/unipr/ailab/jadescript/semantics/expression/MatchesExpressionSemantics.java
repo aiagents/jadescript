@@ -18,7 +18,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
@@ -301,7 +301,7 @@ public class MatchesExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
         Maybe<Matches> input
     ) {
         final Maybe<UnaryPrefix> unary = input.__(Matches::getUnaryExpr);
@@ -405,7 +405,7 @@ public class MatchesExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<Matches> input,
         StaticState state
     ) {
@@ -415,7 +415,7 @@ public class MatchesExpressionSemantics
 
         final UnaryPrefixExpressionSemantics upes =
             module.get(UnaryPrefixExpressionSemantics.class);
-        if (!upes.isAlwaysPure(inputExpr, state)) {
+        if (!upes.isWithoutSideEffects(inputExpr, state)) {
             return false;
         }
 
@@ -453,7 +453,7 @@ public class MatchesExpressionSemantics
             );
         }
         return module.get(LValueExpressionSemantics.class)
-            .isPatternEvaluationPure(pmi, afterInputExpr);
+            .isPatternEvaluationWithoutSideEffects(pmi, afterInputExpr);
     }
 
 

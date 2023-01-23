@@ -49,7 +49,7 @@ public abstract class ExtendingEntitySemantics<T extends ExtendingElement>
                     module.get(ValidationHelper.class).asserting(
                             allowedSuperTypes.stream().anyMatch(sup -> {
                                 final IJadescriptType sub = module.get(TypeHelper.class).jtFromJvmTypeRef(declaredSuperTypeSafe);
-                                return sup.isAssignableFrom(sub);
+                                return sup.isSupEqualTo(sub);
                             }),
                             "InvalidSupertype",
                             "Here is expected a subtype of or same type as " + namesOfAllowedSuperTypes(allowedSuperTypes),

@@ -274,11 +274,6 @@ public class MapType extends ParametricType implements EmptyCreatable, DeclaresO
                         "" + className + ".class);"));
                 describeSchemaWriters.add(new StatementWriter() {
                     @Override
-                    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-                        return this;
-                    }
-
-                    @Override
                     public void writeSonnet(SourceCodeBuilder scb) {
                         EList<TypeExpression> typeParameters = slotTypeExpression
                                 .getCollectionTypeExpression().getTypeParameters();

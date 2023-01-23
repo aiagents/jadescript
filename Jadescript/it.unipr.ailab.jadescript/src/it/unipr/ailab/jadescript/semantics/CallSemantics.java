@@ -21,7 +21,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.jadescript.semantics.utils.Util.Tuple2;
@@ -100,7 +99,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(Maybe<Call> input) {
+    traverseInternal(Maybe<Call> input) {
         return Optional.empty();
     }
 
@@ -971,12 +970,14 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     ) {
         //only arguments can be sub-expressions
         return Maybe.toListOfMaybes(eitherCall(
-            extractSimpleArgs(input), extractNamedArgs(input),
-            SimpleArgumentList::getExpressions,
-            NamedArgumentList::getParameterValues
-        )).stream().map(x -> new SemanticsBoundToExpression<>(
-            module.get(RValueExpressionSemantics.class), x
-        ));
+                extractSimpleArgs(input), extractNamedArgs(input),
+                SimpleArgumentList::getExpressions,
+                NamedArgumentList::getParameterValues
+            )).stream()
+            .filter(Maybe::isPresent)
+            .map(x -> new SemanticsBoundToExpression<>(
+                module.get(RValueExpressionSemantics.class), x
+            ));
     }
 
 
@@ -1113,7 +1114,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
 
     @Override
-    public boolean isAlwaysPureInternal(
+    public boolean isWithoutSideEffectsInternal(
         Maybe<Call> input,
         StaticState state
     ) {
@@ -1127,7 +1128,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             if (!result.get()) {
                 return;
             }
-            result.set(s.isAlwaysPure(i, runningState.get()));
+            result.set(s.isWithoutSideEffects(i, runningState.get()));
             runningState.set(s.advance(i, runningState.get()));
         });
 
@@ -1153,7 +1154,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         final Maybe<? extends CallableSymbol> resolve =
             resolve(input.getPattern(), state, false);
 
-        return resolve.__(CallableSymbol::isWithoutSideEffects).extract(nullAsTrue)
+        return resolve.__(CallableSymbol::isWithoutSideEffects).extract(
+            nullAsTrue)
             //TODO advance pattern on PatternSymbol
             && subPatternEvaluationsAllPure(input, state);
     }
@@ -1246,10 +1248,9 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                 acceptor
             );
         } else { // => methods.size() == 1
-            //TODO this should ensure that the resolved method corresponds to
-            // a pattern-matchable value
-            // => find a metadata method created for this OR use an actual
-            // method
+//TODO this should ensure that the resolved method corresponds to
+// a pattern-matchable value
+// => find a metadata method created for this OR use a specific parameter
 
             final RValueExpressionSemantics rves =
                 module.get(RValueExpressionSemantics.class);
@@ -1434,7 +1435,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         Maybe<String> name = input.__(Call::getName);
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
         if (noArgs
-            && isAlwaysPure(input, state)
+            && isWithoutSideEffects(input, state)
             && name.nullIf(String::isBlank).isPresent()) {
             return Maybe.some(new ExpressionDescriptor.PropertyChain(
                 ImmutableList.of(name.toNullable())

@@ -8,8 +8,10 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 public abstract class EventHandlerContext
         extends ProceduralFeatureContext
         implements MightUseAgentReference {
+
     private final String eventType;
 
+    //TODO 'event type' can be constant in sub-ctors
     public EventHandlerContext(
             SemanticsModule module,
             ProceduralFeatureContainerContext outer,

@@ -16,14 +16,13 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchMode;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Either;
 import it.unipr.ailab.maybe.Maybe;
@@ -52,9 +51,6 @@ public class SingleIdentifierExpressionSemantics
     }
 
 
-    public boolean isThisReference(Maybe<SingleIdentifier> input) {
-        return input.__(SingleIdentifier::getIdent).wrappedEquals(THIS);
-    }
 
 
     @Override
@@ -105,7 +101,6 @@ public class SingleIdentifierExpressionSemantics
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
-        //TODO cached resolution?
         return input.__(SingleIdentifier::getIdent).__(
             identSafe -> state.searchAs(
                 NamedSymbol.Searcher.class,
@@ -119,7 +114,6 @@ public class SingleIdentifierExpressionSemantics
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
-        //TODO cached resolution?
         Maybe<NamedSymbol> named = resolveAsNamedSymbol(input, state);
         if (named.isPresent()) {
             return some(new Either.Left<>(named.toNullable()));
@@ -135,7 +129,6 @@ public class SingleIdentifierExpressionSemantics
 
 
     public boolean resolves(Maybe<SingleIdentifier> input, StaticState state) {
-        //TODO cached resolution?
         return resolve(input, state).isPresent();
     }
 
@@ -162,7 +155,6 @@ public class SingleIdentifierExpressionSemantics
             ).orElse("");
         }
 
-        //TODO move here all special identifiers from Primary?
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
             resolve(input, state);
 
@@ -171,16 +163,7 @@ public class SingleIdentifierExpressionSemantics
         } else if (resolved.toNullable() instanceof Either.Left) {
             final NamedSymbol variable = ((Either.Left<NamedSymbol,
                 CallableSymbol>) resolved.toNullable()).getLeft();
-            if (variable instanceof UserVariable) {
-                UserVariable userVariable = (UserVariable) variable;
-                userVariable.notifyReadUsage();
-                module.get(CompilationHelper.class)
-                    .lateBindingContext() //TODO rethink the latebinding system
-                    .pushVariable(userVariable);
-                return w.varPlaceholder(variable.hashCode());
-            } else {
-                return variable.compileRead("");
-            }
+            return variable.compileRead("");
         } else /*if (resolved.toNullable() instanceof Either.Right)*/ {
             return module.get(CallSemantics.class)
                 .compile(Call.call(input), state, acceptor);
@@ -205,6 +188,7 @@ public class SingleIdentifierExpressionSemantics
 
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
+
         if (variable.isPresent()) {
             String adaptedExpression = compiledExpression;
             if (typeHelper.implicitConversionCanOccur(
@@ -218,48 +202,22 @@ public class SingleIdentifierExpressionSemantics
                 );
             }
 
-            if (variable.toNullable() instanceof UserVariable) {
-                final UserVariable userVariable =
-                    (UserVariable) variable.toNullable();
-                userVariable.notifyWriteUsage();
-                module.get(CompilationHelper.class).lateBindingContext()
-                    .pushVariable(userVariable);
-                //TODO ?
-//                     acceptor.accept(w.varAssPlaceholder(userVariable.name
-//                     (), w.expr(adaptedExpression)));
-                acceptor.accept(w.assign(
-                    w.varPlaceholder(userVariable.hashCode()),
-                    w.expr(adaptedExpression)
-                ));
-            } else {
-                acceptor.accept(
-                    w.simpleStmt(variable.toNullable().compileWrite(
-                        "", adaptedExpression
-                    ))
-                );
-            }
+            acceptor.accept(
+                w.simpleStmt(variable.toNullable().compileWrite(
+                    "", adaptedExpression
+                ))
+            );
         } else {
             // Inferred declaration
             String name = ident.orElse("");
 
-
-            final UserVariable newDeclared = new UserVariable(
-                name,
-                exprType,
-                true
+            acceptor.accept(
+                w.variable(
+                    exprType.compileToJavaTypeReference(),
+                    name,
+                    w.expr(compiledExpression)
+                )
             );
-
-            //NOT NEEDED:
-//            final StaticState newState = state.assertNamedSymbol(newDeclared);
-
-            module.get(CompilationHelper.class).lateBindingContext()
-                .pushVariable(newDeclared);//TODO this should be in state...
-
-            acceptor.accept(w.varDeclPlaceholder(
-                exprType.compileToJavaTypeReference(),
-                name,
-                w.expr(compiledExpression)
-            ));
         }
     }
 
@@ -278,17 +236,11 @@ public class SingleIdentifierExpressionSemantics
             state
         );
         if (variable.isPresent()) {
-            if (variable.toNullable() instanceof UserVariable) {
-                //TODO update state for assignment
-                final UserVariable userVariable =
-                    (UserVariable) variable.toNullable();
-                userVariable.notifyWriteUsage();
-                module.get(CompilationHelper.class).lateBindingContext()
-                    .pushVariable(userVariable);
 
-            }
+            final Maybe<ExpressionDescriptor> descr =
+                describeExpression(input, state);
 
-            return state;
+            return state.assertAssigned(descr);
         } else {
             // Inferred declaration
             String name = ident.orElse("");
@@ -298,8 +250,6 @@ public class SingleIdentifierExpressionSemantics
                 exprType,
                 true
             );
-            module.get(CompilationHelper.class).lateBindingContext()
-                .pushVariable(newDeclared);//TODO integrate it in state
 
             return state.assertNamedSymbol(newDeclared);
         }
@@ -339,13 +289,13 @@ public class SingleIdentifierExpressionSemantics
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(Maybe<SingleIdentifier> input) {
+    traverseInternal(Maybe<SingleIdentifier> input) {
         return Optional.empty();
     }
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
@@ -481,8 +431,15 @@ public class SingleIdentifierExpressionSemantics
                 return state;
             }
         } else {
-            //TODO update usages/reassignments?
-            return state;
+            if(input.getMode().getReassignment()
+            == PatternMatchMode.Reassignment.REQUIRE_REASSIGN){
+                final Maybe<ExpressionDescriptor> described =
+                    describeExpression(input.getPattern(), state);
+
+                return state.assertAssigned(described);
+            }else{
+                return state;
+            }
         }
     }
 
@@ -584,14 +541,29 @@ public class SingleIdentifierExpressionSemantics
         }
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
             resolve(input, state);
-        //TODO validate closure usage when new usage tracking is available
-        return module.get(ValidationHelper.class).asserting(
+
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+        final boolean resolutionCheck =
+            validationHelper.asserting(
             resolved.isPresent(),
             "UnresolvedSymbol",
             "Unresolved symbol: " + ident.orElse("[empty]"),
             input,
             acceptor
         );
+
+        if(resolutionCheck == VALID
+        && resolved.toNullable() instanceof Either.Left
+        && ident.wrappedEquals("agent")){
+            return validationHelper.assertCanUseAgentReference(
+                input,
+                acceptor
+            );
+
+        }
+
+        return resolutionCheck;
     }
 
 
@@ -642,20 +614,6 @@ public class SingleIdentifierExpressionSemantics
                 return INVALID;
             }
 
-            String identSafe = ident.toNullable();
-
-            final UserVariable newDeclared = new UserVariable(
-                identSafe,
-                typeOfRExpression,
-                true
-            );
-            module.get(CompilationHelper.class).lateBindingContext()
-                .pushVariable(newDeclared);
-
-
-            //NOT NEEDED
-//            final StaticState newState = state.assertNamedSymbol(newDeclared);
-
             if (GenerationParameters.VALIDATOR__SHOW_INFO_MARKERS) {
                 module.get(ValidationHelper.class).emitInfo(
                     ISSUE_CODE_PREFIX + "Info",
@@ -666,6 +624,7 @@ public class SingleIdentifierExpressionSemantics
                 );
             }
             return VALID;
+
         } else if (resolve.toNullable() instanceof Either.Left) {
             NamedSymbol variable = (
                 (Either.Left<NamedSymbol, CallableSymbol>) resolve.toNullable()
@@ -751,7 +710,7 @@ public class SingleIdentifierExpressionSemantics
         } else if (either instanceof Either.Right) {
             //Resolves to a function invocation
             return module.get(CallSemantics.class)
-                .isPatternEvaluationPure(input.replacePattern(
+                .isPatternEvaluationWithoutSideEffects(input.replacePattern(
                     Call.call(input.getPattern())
                 ), state);
         } else {

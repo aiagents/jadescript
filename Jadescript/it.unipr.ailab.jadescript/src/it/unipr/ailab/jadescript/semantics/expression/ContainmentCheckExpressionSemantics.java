@@ -16,7 +16,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -51,11 +51,10 @@ public class ContainmentCheckExpressionSemantics
         final AdditiveExpressionSemantics aes =
             module.get(AdditiveExpressionSemantics.class);
         return Stream.of(
-            input.__(ContainmentCheck::getCollection).extract(x ->
-                new ExpressionSemantics.SemanticsBoundToExpression<>(aes, x)),
-            input.__(ContainmentCheck::getElement).extract(x ->
-                new ExpressionSemantics.SemanticsBoundToExpression<>(aes, x))
-        );
+                input.__(ContainmentCheck::getCollection),
+                input.__(ContainmentCheck::getElement)
+            ).filter(Maybe::isPresent)
+            .map(i -> new SemanticsBoundToExpression<>(aes, i));
     }
 
 
@@ -97,11 +96,11 @@ public class ContainmentCheckExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<ContainmentCheck> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 
@@ -219,7 +218,7 @@ public class ContainmentCheckExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
         Maybe<ContainmentCheck> input
     ) {
         if (mustTraverse(input)) {
@@ -400,7 +399,7 @@ public class ContainmentCheckExpressionSemantics
                         t -> t.typeEquals(module.get(TypeHelper.class).BOOLEAN),
                         (size, n) -> size == 1,
                         (size, t) -> size == 1
-                            && t.apply(0).isAssignableFrom(elementType)
+                            && t.apply(0).isSupEqualTo(elementType)
                     )
                 ).collect(Collectors.toList());
 

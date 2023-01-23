@@ -166,8 +166,6 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                 final RValueExpressionSemantics rves =
                     module.get(RValueExpressionSemantics.class);
 
-                //TODO: this ignores state advancement, fix
-
                 contextManager.enterProceduralFeature(
                     FieldInitializerContext::new
                 );

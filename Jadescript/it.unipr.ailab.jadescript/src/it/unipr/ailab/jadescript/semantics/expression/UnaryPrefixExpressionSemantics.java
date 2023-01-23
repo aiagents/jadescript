@@ -20,7 +20,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -49,25 +49,25 @@ public class UnaryPrefixExpressionSemantics
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<UnaryPrefix> input
     ) {
+
         final Maybe<OfNotation> index = input.__(UnaryPrefix::getIndex);
-        final SemanticsBoundToExpression<OfNotation> ofNotation =
-            input.__(UnaryPrefix::getOfNotation).extract(x ->
-                new SemanticsBoundToExpression<>(
-                    module.get(OfNotationExpressionSemantics.class),
-                    x
-                )
-            );
-        if (index.isPresent()) {
-            return Stream.of(
-                ofNotation,
-                index.extract(x -> new SemanticsBoundToExpression<>(
-                    module.get(OfNotationExpressionSemantics.class),
-                    x
-                ))
-            );
-        } else {
-            return Stream.of(ofNotation);
+        final Maybe<OfNotation> ofNotation =
+            input.__(UnaryPrefix::getOfNotation);
+
+        Stream<Maybe<OfNotation>> inputsStream;
+        if(index.isPresent()){
+            inputsStream = Stream.of(index, ofNotation);
+        }else{
+            inputsStream = Stream.of(ofNotation);
         }
+
+        final OfNotationExpressionSemantics ones =
+            module.get(OfNotationExpressionSemantics.class);
+
+        return inputsStream
+            .filter(Maybe::isPresent)
+            .map(i -> new SemanticsBoundToExpression<>(ones, i));
+
     }
 
 
@@ -336,7 +336,7 @@ public class UnaryPrefixExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
         Maybe<UnaryPrefix> input
     ) {
         if (mustTraverse(input)) {
@@ -666,11 +666,11 @@ public class UnaryPrefixExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<UnaryPrefix> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

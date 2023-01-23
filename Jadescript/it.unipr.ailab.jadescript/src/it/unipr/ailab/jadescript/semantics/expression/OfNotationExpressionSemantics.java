@@ -15,7 +15,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.util.Strings;
@@ -27,7 +27,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 
 /**
@@ -48,8 +49,9 @@ public class OfNotationExpressionSemantics
         IJadescriptType prevType,
         boolean isAssignment
     ) {
+        //TODO use properties in type with special compile methods
         if (propName.equals("size") || propName.equals("length")) {
-            if (module.get(TypeHelper.class).TEXT.isAssignableFrom(prevType)) {
+            if (module.get(TypeHelper.class).TEXT.isSupEqualTo(prevType)) {
                 return "length";
             } else {
                 return "size";
@@ -65,10 +67,12 @@ public class OfNotationExpressionSemantics
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<OfNotation> input
     ) {
-        return Stream.of(new SemanticsBoundToExpression<>(
-            module.get(AidLiteralExpressionSemantics.class),
-            input.__(OfNotation::getAidLiteral)
-        ));
+        final AidLiteralExpressionSemantics ales =
+            module.get(AidLiteralExpressionSemantics.class);
+
+        return Stream.of(input.__(OfNotation::getAidLiteral))
+            .filter(Maybe::isPresent)
+            .map(i -> new SemanticsBoundToExpression<>(ales, i));
     }
 
 
@@ -170,7 +174,7 @@ public class OfNotationExpressionSemantics
                     false
                 )).append("()");
             }
-            //TODO read flow-base types
+
             prev = inferTypeProperty(some(propName), prev);
         }
         return r.toString();
@@ -276,9 +280,13 @@ public class OfNotationExpressionSemantics
         final Maybe<AidLiteral> aidLiteral =
             input.__(OfNotation::getAidLiteral);
 
-        //TODO flag property as written
+        final Maybe<ExpressionDescriptor> descriptor = describeExpression(
+            input,
+            state
+        );
 
-        return ales.advance(aidLiteral, state);
+        return ales.advance(aidLiteral, state)
+            .assertAssigned(descriptor);
     }
 
 
@@ -318,7 +326,7 @@ public class OfNotationExpressionSemantics
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(Maybe<OfNotation> input) {
+    traverseInternal(Maybe<OfNotation> input) {
         final Maybe<AidLiteral> aidLiteral =
             input.__(OfNotation::getAidLiteral);
         if (mustTraverse(input)) {
@@ -335,7 +343,6 @@ public class OfNotationExpressionSemantics
         Maybe<String> prop,
         IJadescriptType prevType
     ) {
-        //TODO read flow-based types
         String propSafe = prop.extract(nullAsEmptyString);
         return prevType.namespace().searchAs(
                 NamedSymbol.Searcher.class,
@@ -615,7 +622,7 @@ public class OfNotationExpressionSemantics
                 boolean result = VALID;
                 final TypeHelper typeHelper = module.get(TypeHelper.class);
                 if (!prop.wrappedEquals("length")
-                    || !typeHelper.TEXT.isAssignableFrom(prevType)) {
+                    || !typeHelper.TEXT.isSupEqualTo(prevType)) {
                     result = module.get(ValidationHelper.class)
                         .assertPropertiesOfTypeAccessible(
                             input,
@@ -675,11 +682,11 @@ public class OfNotationExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<OfNotation> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

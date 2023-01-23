@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.statement;
 
 import it.unipr.ailab.jadescript.jadescript.PutbackStatement;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;

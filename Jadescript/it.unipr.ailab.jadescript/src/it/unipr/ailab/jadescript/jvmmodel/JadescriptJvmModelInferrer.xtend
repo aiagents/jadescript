@@ -77,12 +77,12 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 		} else {
 			moduleName = ""
 		}
-		module.get(ContextManager).enterModule(moduleName, Maybe.of(model))
+		module.get(ContextManager).enterModule(moduleName, Maybe.some(model))
 		module.get(ContextManager).enterFile(
 			model.eResource.URI.toString,
 			model.eResource.URI.trimFileExtension.lastSegment,
 			Maybe.toListOfMaybes(
-				Maybe.of(model.importSection).__[it.importSection].__[it.importDeclarations]
+				Maybe.some(model.importSection).__[it.importSection].__[it.importDeclarations]
 			)
 		)
 
@@ -144,7 +144,7 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 
 				var gms = module.get(GlobalMethodSemantics)
 				for (v : functionsMap.get(k)) {
-					gms.addMethod(Maybe.of(v))
+					gms.addMethod(Maybe.some(v))
 
 				}
 				gms.generateDeclaredTypes(gms.getOriginalMethod(k), acceptor, isPreIndexingPhase)
@@ -152,13 +152,13 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 
 			for (ontology : ontologies) {
 				var module = createSemanticsModule(model, phase)
-				module.get(OntologySemantics).generateDeclaredTypes(Maybe.of(ontology), acceptor, isPreIndexingPhase)
+				module.get(OntologySemantics).generateDeclaredTypes(Maybe.some(ontology), acceptor, isPreIndexingPhase)
 
 			}
 
 			for (agent : agents) {
 				var module = createSemanticsModule(model, phase)
-				module.get(AgentSemantics).generateDeclaredTypes(Maybe.of(agent), acceptor, isPreIndexingPhase)
+				module.get(AgentSemantics).generateDeclaredTypes(Maybe.some(agent), acceptor, isPreIndexingPhase)
 
 			}
 
@@ -169,7 +169,7 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 						switch (element as Behaviour) {
 							Behaviour:
 								module.get(TopElementBehaviourSemantics).generateDeclaredTypes(
-									Maybe.of(element as Behaviour),
+									Maybe.some(element as Behaviour),
 									acceptor,
 									isPreIndexingPhase
 								)

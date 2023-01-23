@@ -11,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.OnBehaviourFailureH
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.PSR;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -558,10 +558,12 @@ public class OnBehaviourFailureHandlerSemantics
         final IJadescriptType finalBehaviourType = wexpNarrowedBehaviourType;
 
         StaticState inBody = prepareBodyState.apply(afterWhenExprReturnedTrue)
+            //TODO remove? also in exception and percept
             .assertNamedSymbol(BehaviourFailureHandledContext
                 .failureReasonContextGeneratedReference(
                     finalContentType
                 )
+            //TODO remove? also in exception and percept
             ).assertNamedSymbol(BehaviourFailureHandledContext
                 .behaviourContextGeneratedReference(
                     finalBehaviourType

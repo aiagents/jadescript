@@ -3,12 +3,9 @@ package it.unipr.ailab.jadescript.semantics.context.clashing;
 import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.FQNameLocation;
-import it.unipr.ailab.jadescript.semantics.context.search.JadescriptTypeLocation;
-import it.unipr.ailab.jadescript.semantics.context.search.JvmTypeLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import org.eclipse.xtext.util.Strings;
 
@@ -83,7 +80,7 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
             final IJadescriptType alreadyPresentType = ((FQNameLocation) alreadyPresentLocation).extractType(module);
             final IJadescriptType toBeAddedType = ((FQNameLocation) toBeAddedLocation).extractType(module);
             // is overriding if...
-            return alreadyPresentType.isAssignableFrom(toBeAddedType) // it is a supertype
+            return alreadyPresentType.isSupEqualTo(toBeAddedType) // it is a supertype
                     && !alreadyPresentType.typeEquals(toBeAddedType) // it has to be strictly a supertype
                     && isSignatureCompatibleForOverriding(alreadyPresent, toBeAdded); // the signature is compatible (in the Java sense)
         }
@@ -113,7 +110,7 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
         if (alreadyPresent.arity() != toBeAdded.arity()) {
             return false;
         }
-        if(!alreadyPresent.returnType().isAssignableFrom(toBeAdded.returnType())){
+        if(!alreadyPresent.returnType().isSupEqualTo(toBeAdded.returnType())){
             return false;
         }
         final List<IJadescriptType> apTypes = alreadyPresent.parameterTypes();

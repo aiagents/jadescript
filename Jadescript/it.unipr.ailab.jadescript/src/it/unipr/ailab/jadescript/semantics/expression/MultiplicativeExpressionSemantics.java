@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -293,12 +293,12 @@ public class MultiplicativeExpressionSemantics
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<Multiplicative> input
     ) {
-        return Maybe.toListOfMaybes(
-            input.__(Multiplicative::getMatches)).stream().map(
-            x -> new SemanticsBoundToExpression<>(module.get(
-                MatchesExpressionSemantics.class), x
-            )
-        );
+        final MatchesExpressionSemantics mes =
+            module.get(MatchesExpressionSemantics.class);
+        return Maybe.toListOfMaybes(input.__(Multiplicative::getMatches))
+            .stream()
+            .filter(Maybe::isPresent)
+            .map(x -> new SemanticsBoundToExpression<>(mes, x));
     }
 
 
@@ -345,16 +345,17 @@ public class MultiplicativeExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
-        Maybe<Multiplicative> input
-    ) {
+    protected Optional<? extends SemanticsBoundToExpression<?>>
+    traverseInternal(Maybe<Multiplicative> input) {
         if (mustTraverse(input)) {
-            final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(input.__(
-                Multiplicative::getMatches));
+            final List<Maybe<Matches>> matches =
+                Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
+
             return Optional.of(new SemanticsBoundToExpression<>(
                 module.get(MatchesExpressionSemantics.class),
                 matches.get(0)
             ));
+
         }
         return Optional.empty();
     }
@@ -562,11 +563,11 @@ public class MultiplicativeExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<Multiplicative> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

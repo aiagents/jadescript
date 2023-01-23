@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.NamedArgumentList;
 import it.unipr.ailab.jadescript.jadescript.ProcedureCallStatement;
 import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
 import it.unipr.ailab.jadescript.semantics.CallSemantics;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;

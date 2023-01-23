@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.statement;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;

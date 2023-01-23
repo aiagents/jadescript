@@ -11,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -49,11 +49,12 @@ public class InvokeExpressionSemantics
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
+
         return Stream.concat(
-            Stream.of(new SemanticsBoundToExpression<>(rves, expr)),
-            argValues.stream().map(x -> new
-                SemanticsBoundToExpression<>(rves, x))
-        );
+                Stream.of(expr),
+                argValues.stream()
+            ).filter(Maybe::isPresent)
+            .map(i -> new SemanticsBoundToExpression<>(rves, i));
 
     }
 
@@ -339,7 +340,7 @@ public class InvokeExpressionSemantics
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(Maybe<InvokeExpression> input) {
+    traverseInternal(Maybe<InvokeExpression> input) {
         return Optional.empty();
     }
 
@@ -421,7 +422,7 @@ public class InvokeExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<InvokeExpression> input,
         StaticState state
     ) {

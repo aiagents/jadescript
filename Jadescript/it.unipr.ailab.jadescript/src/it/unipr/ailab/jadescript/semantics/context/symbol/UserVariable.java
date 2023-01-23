@@ -36,7 +36,8 @@ public class UserVariable extends LocalVariable {
     }
 
     private VariableCompilationMode getCompilationMode() {
-        return capturedVariable.__(UserVariable::getCompilationMode).orElse(compilationMode);
+        return capturedVariable.__(UserVariable::getCompilationMode)
+            .orElse(compilationMode);
     }
 
     private void changeCompilationMode(VariableCompilationMode newMode) {

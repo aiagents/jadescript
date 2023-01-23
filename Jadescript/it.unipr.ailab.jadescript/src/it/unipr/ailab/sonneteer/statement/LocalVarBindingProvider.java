@@ -25,7 +25,6 @@ public interface LocalVarBindingProvider {
         public String bindRead(String varName) {
             return "/*defaultbinding*/"+varName;
         }
-
     };
 
     VariableDeclarationWriter bindDeclaration(

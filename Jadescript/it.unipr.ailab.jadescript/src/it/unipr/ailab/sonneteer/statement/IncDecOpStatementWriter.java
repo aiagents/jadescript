@@ -4,18 +4,6 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 public class IncDecOpStatementWriter extends StatementWriter {
 
-
-    @Override
-    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-        switch (mode){
-            case DEC:
-                return bindingProvider.bindWrite(varName, w.expr(bindingProvider.bindRead(varName) + "- 1"));
-            case INC:
-            default:
-                return bindingProvider.bindWrite(varName, w.expr(bindingProvider.bindRead(varName) + "+ 1"));
-        }
-    }
-
     public enum Mode{
         INC, DEC
     }

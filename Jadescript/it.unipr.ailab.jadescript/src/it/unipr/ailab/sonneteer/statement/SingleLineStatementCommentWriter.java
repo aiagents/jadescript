@@ -15,10 +15,4 @@ public class SingleLineStatementCommentWriter extends StatementWriter {
         s.line("//"+comment);
     }
 
-
-
-    @Override
-    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-        return this;
-    }
 }

@@ -7,7 +7,7 @@ import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnDeactivateHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.PSR;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.maybe.Maybe;
@@ -24,7 +24,8 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
-public class OnDeactivateHandlerSemantics extends FeatureSemantics<OnDeactivateHandler> {
+public class OnDeactivateHandlerSemantics
+    extends FeatureSemantics<OnDeactivateHandler> {
 
     public OnDeactivateHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);

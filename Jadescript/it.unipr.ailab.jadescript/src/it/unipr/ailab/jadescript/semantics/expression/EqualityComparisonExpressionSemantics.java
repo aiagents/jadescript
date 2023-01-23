@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -46,17 +46,10 @@ public class EqualityComparisonExpressionSemantics
         final TypeComparisonExpressionSemantics tces =
             module.get(TypeComparisonExpressionSemantics.class);
         return Stream.of(
-            input.__(EqualityComparison::getLeft).extract(sbte ->
-                new ExpressionSemantics.SemanticsBoundToExpression<>(
-                    tces,
-                    sbte
-                )),
-            input.__(EqualityComparison::getRight).extract(sbte ->
-                new ExpressionSemantics.SemanticsBoundToExpression<>(
-                    tces,
-                    sbte
-                ))
-        );
+                input.__(EqualityComparison::getLeft),
+                input.__(EqualityComparison::getRight)
+            ).filter(Maybe::isPresent)
+            .map(i -> new SemanticsBoundToExpression<>(tces, i));
     }
 
 
@@ -205,7 +198,7 @@ public class EqualityComparisonExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverse(
+    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
         Maybe<EqualityComparison> input
     ) {
         if (mustTraverse(input)) {
@@ -396,13 +389,13 @@ public class EqualityComparisonExpressionSemantics
 
         if (equalityOp.equals(NOT_EQUALS_OPERATOR)
             || !tces.isHoled(left, state)) {
-            return isAlwaysPure(input.getPattern(), state);
+            return isWithoutSideEffects(input.getPattern(), state);
         } else {
             final StaticState afterRight = tces.advance(right, state);
-            return tces.isPatternEvaluationPure(
+            return tces.isPatternEvaluationWithoutSideEffects(
                 input.replacePattern(right),
                 state
-            ) && tces.isPatternEvaluationPure(
+            ) && tces.isPatternEvaluationWithoutSideEffects(
                 input.replacePattern(left),
                 afterRight
             );
@@ -612,11 +605,11 @@ public class EqualityComparisonExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<EqualityComparison> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

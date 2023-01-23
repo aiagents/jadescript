@@ -37,7 +37,7 @@ public class BasicType extends JadescriptType implements EmptyCreatable{
     }
 
     @Override
-    public boolean isAssignableFrom(IJadescriptType other) {
+    public boolean isSupEqualTo(IJadescriptType other) {
         other = other.postResolve();
         return this.typeEquals(other);
     }

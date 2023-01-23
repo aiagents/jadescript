@@ -15,7 +15,7 @@ import it.unipr.ailab.jadescript.semantics.context.search.ModuleGlobalLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.UnknownLocation;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.PSR;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.feature.OperationDeclarationSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;

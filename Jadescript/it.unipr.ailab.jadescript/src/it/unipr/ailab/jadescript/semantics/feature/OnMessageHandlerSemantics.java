@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.OnMessageHandlerWhe
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.PSR;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -443,17 +443,7 @@ public class OnMessageHandlerSemantics
             );
 
 
-        StaticState inBody = prepareBodyState.apply(afterWhenExprRetunedTrue)
-            .assertNamedSymbol(
-                MessageReceivedContext.messageContentContextGeneratedReference(
-                    finalMessageType,
-                    finalContentType
-                )
-            ).assertNamedSymbol(
-                MessageReceivedContext.messageContextGeneratedReference(
-                    finalMessageType
-                )
-            );
+        StaticState inBody = prepareBodyState.apply(afterWhenExprRetunedTrue);
 
 
         module.get(ContextManager.class).enterProceduralFeature((
@@ -802,7 +792,7 @@ public class OnMessageHandlerSemantics
 
         if (pattern.isPresent() || whenExpr.isPresent()) {
             module.get(ValidationHelper.class).advice(
-                contentUpperBound.isAssignableFrom(finalContentType),
+                contentUpperBound.isSupEqualTo(finalContentType),
                 "UnexpectedContent",
                 "Suspicious content type; Messages with performative '"
                     + performativeString + "' expect contents of type "
@@ -820,22 +810,7 @@ public class OnMessageHandlerSemantics
             /*normalizeToUpperBounds=*/ true
         );
 
-        //TODO this overwrites the named symbols;
-        // however, it would be useful to have a "refine compilation" symbol
-        //  ... do we really need this (also in compile and also in other
-        //  event handlers)? .. Probably the state already contains the required
-        //  info.
-        StaticState inBody = prepareBodyState.apply(afterWhenExprReturnedTrue)
-            .assertNamedSymbol(
-                MessageReceivedContext.messageContentContextGeneratedReference(
-                    finalMessageType,
-                    finalContentType
-                )
-            ).assertNamedSymbol(
-                MessageReceivedContext.messageContextGeneratedReference(
-                    finalMessageType
-                )
-            );
+        StaticState inBody = prepareBodyState.apply(afterWhenExprReturnedTrue);
 
         module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
             new OnMessageHandlerContext(

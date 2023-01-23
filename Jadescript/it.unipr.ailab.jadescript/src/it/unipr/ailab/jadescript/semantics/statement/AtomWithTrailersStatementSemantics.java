@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.statement;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.AtomExpr;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.AtomWithTrailersExpressionSemantics;

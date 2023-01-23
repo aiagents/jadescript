@@ -25,7 +25,7 @@ public abstract class ForAgentDeclarationContext
 
     private final IJadescriptType agentType;
     private final LazyValue<TypeNamespace> agentNamespace;
-    private final LazyValue<NamedSymbol> agentElement;
+    private final LazyValue<NamedSymbol> agentSymbol;
 
     public ForAgentDeclarationContext(
             SemanticsModule module,
@@ -36,7 +36,7 @@ public abstract class ForAgentDeclarationContext
         super(module, outer, ontologyTypes);
         this.agentType = agentType;
         this.agentNamespace = new LazyValue<>(agentType::namespace);
-        this.agentElement = new LazyValue<>(() -> new ContextGeneratedReference(
+        this.agentSymbol = new LazyValue<>(() -> new ContextGeneratedReference(
                 THE_AGENT,
                 agentType,
                 (__) -> THE_AGENT + "()"
@@ -54,7 +54,7 @@ public abstract class ForAgentDeclarationContext
         agentRefStream = safeFilter(agentRefStream, (__) -> THE_AGENT, name);
         agentRefStream = safeFilter(agentRefStream, (__) -> agentType, readingType);
         agentRefStream = safeFilter(agentRefStream, (__) -> false, canWrite);
-        return agentRefStream.map((__) -> agentElement.get());
+        return agentRefStream.map((__) -> agentSymbol.get());
     }
 
 

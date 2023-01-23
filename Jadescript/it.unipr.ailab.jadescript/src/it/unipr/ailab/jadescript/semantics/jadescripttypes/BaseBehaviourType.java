@@ -143,14 +143,14 @@ public class BaseBehaviourType extends ParametricType implements EmptyCreatable,
     }
 
     @Override
-    public boolean isAssignableFrom(IJadescriptType other) {
+    public boolean isSupEqualTo(IJadescriptType other) {
         other = other.postResolve();
         if (other instanceof UserDefinedBehaviourType) {
             return (this.getBehaviourKind().equals(Kind.Base) ||
                     this.getBehaviourKind().equals(((UserDefinedBehaviourType) other).getBehaviourKind()))
-                    && this.getForAgentType().isAssignableFrom(((UserDefinedBehaviourType) other).getForAgentType());
+                    && this.getForAgentType().isSupEqualTo(((UserDefinedBehaviourType) other).getForAgentType());
         }
-        return super.isAssignableFrom(other);
+        return super.isSupEqualTo(other);
     }
 
     @Override

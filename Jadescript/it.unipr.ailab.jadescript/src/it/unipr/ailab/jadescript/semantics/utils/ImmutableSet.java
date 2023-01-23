@@ -54,6 +54,10 @@ public class ImmutableSet<E> implements Iterable<E> {
     }
 
 
+    public int size(){
+        return this.wrapped.size();
+    }
+
     @Contract(pure = true)
     @SuppressWarnings("unchecked")
     public ImmutableSet<E> addAll(Iterable<? extends E> other) {

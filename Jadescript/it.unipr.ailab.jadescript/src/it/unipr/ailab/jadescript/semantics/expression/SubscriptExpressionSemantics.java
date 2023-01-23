@@ -17,7 +17,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Subscript;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -38,6 +38,13 @@ public class SubscriptExpressionSemantics
 
     public SubscriptExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
+    }
+
+
+    @Override
+    protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
+    traverseInternal(Maybe<Subscript> input) {
+        return Optional.empty();
     }
 
 
@@ -200,7 +207,7 @@ public class SubscriptExpressionSemantics
         }
 
         keyCheck = module.get(ValidationHelper.class).asserting(
-            !module.get(TypeHelper.class).TEXT.isAssignableFrom(restType),
+            !module.get(TypeHelper.class).TEXT.isSupEqualTo(restType),
             "InvalidAssignment",
             "Invalid assignment; values of 'text' are immutable.",
             key,
@@ -230,8 +237,8 @@ public class SubscriptExpressionSemantics
                         null,
                         (s, n) -> s == 2,
                         (s, t) -> s == 2
-                            && t.apply(0).isAssignableFrom(keyType)
-                            && t.apply(1).isAssignableFrom(rightType)
+                            && t.apply(0).isSupEqualTo(keyType)
+                            && t.apply(1).isSupEqualTo(rightType)
                     )
                 ).collect(Collectors.toList());
 
@@ -284,12 +291,13 @@ public class SubscriptExpressionSemantics
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<Subscript> input
     ) {
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
         return Stream.concat(
             doOnRest(input, ExpressionSemantics::getSubExpressions),
-            Stream.of(new SemanticsBoundToExpression<>(
-                module.get(RValueExpressionSemantics.class),
-                input.__(Subscript::getKey)
-            ))
+            Stream.of(input.__(Subscript::getKey))
+                .filter(Maybe::isPresent)
+                .map(i -> new SemanticsBoundToExpression<>(rves, i))
         );
     }
 
@@ -322,7 +330,7 @@ public class SubscriptExpressionSemantics
 //                .advance(key, afterRest);
 
 
-        if (module.get(TypeHelper.class).TEXT.isAssignableFrom(restType)) {
+        if (module.get(TypeHelper.class).TEXT.isSupEqualTo(restType)) {
             return "(\"\"+" + restCompiled + ".charAt(" + keyCompiled + "))";
         } else if (restType instanceof TupleType) {
             final Optional<Integer> integer = extractIntegerIfAvailable(key);
@@ -381,7 +389,7 @@ public class SubscriptExpressionSemantics
             (s, i) -> s.inferType(i, state)
         );
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-        if (typeHelper.TEXT.isAssignableFrom(restType)) {
+        if (typeHelper.TEXT.isSupEqualTo(restType)) {
             return typeHelper.TEXT;
         }
         if (restType instanceof TupleType) {
@@ -485,7 +493,7 @@ public class SubscriptExpressionSemantics
             return indexValidation;
 
         } else if (module.get(TypeHelper.class).TEXT
-            .isAssignableFrom(restType)) {
+            .isSupEqualTo(restType)) {
             return module.get(ValidationHelper.class).assertExpectedType(
                 module.get(TypeHelper.class).INTEGER,
                 keyType,
@@ -502,7 +510,7 @@ public class SubscriptExpressionSemantics
                         "get",
                         null,
                         (s, n) -> s == 1,
-                        (s, t) -> s == 1 && t.apply(0).isAssignableFrom(keyType)
+                        (s, t) -> s == 1 && t.apply(0).isSupEqualTo(keyType)
                     )
                 ).collect(Collectors.toList());
 
@@ -560,11 +568,11 @@ public class SubscriptExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<Subscript> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

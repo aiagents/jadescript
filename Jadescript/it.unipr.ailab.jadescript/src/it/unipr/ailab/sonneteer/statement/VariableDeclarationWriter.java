@@ -57,13 +57,4 @@ public class VariableDeclarationWriter extends StatementWriter {
         this.isFinal = true;
         return this;
     }
-
-    @Override
-    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-        if(initExpression == null) {
-            return this;
-        }else{
-            return w.variable(type, name, initExpression.bindVariableUsages(bindingProvider));
-        }
-    }
 }

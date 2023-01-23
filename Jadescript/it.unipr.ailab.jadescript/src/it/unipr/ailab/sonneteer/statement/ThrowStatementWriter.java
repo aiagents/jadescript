@@ -24,11 +24,4 @@ public class ThrowStatementWriter extends StatementWriter{
 
 
 
-    @Override
-    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-        if(expression!=null){
-            return w.throwStmt(expression.bindVariableUsages(bindingProvider));
-        }else{
-            return this;
-        }
-    }}
+}

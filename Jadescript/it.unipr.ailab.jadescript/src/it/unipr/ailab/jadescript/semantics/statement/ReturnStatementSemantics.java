@@ -4,6 +4,7 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.ReturnStatement;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.ReturnExpectedContext;
@@ -135,7 +136,7 @@ public class ReturnStatementSemantics
 
         IJadescriptType actualType = rves.inferType(expr, state);
         validationHelper.asserting(
-            expectedReturn.get().isAssignableFrom(actualType),
+            expectedReturn.get().isSupEqualTo(actualType),
             "InvalidReturnStatement",
             "Expected returned value type: " + expectedReturn.get()
                 + "; found: " + actualType,

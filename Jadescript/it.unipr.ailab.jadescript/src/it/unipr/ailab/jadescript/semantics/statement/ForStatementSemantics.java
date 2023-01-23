@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.ForStatement;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.GenerationParameters;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
@@ -12,7 +13,7 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
-import it.unipr.ailab.jadescript.semantics.expression.PSR;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -131,7 +132,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                 compiledBlock
             ));
 
-            return afterEndIndex.intersect(afterBlock);
+            return afterEndIndex.intersectAlternative(afterBlock);
 
         } else if (
             input.__(ForStatement::isMapIteration).extract(nullAsFalse)
@@ -196,7 +197,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                 compiledBlock
             ));
 
-            return afterCollection.intersect(afterBlock);
+            return afterCollection.intersectAlternative(afterBlock);
         } else {
             // Something's wrong: best-effort compiling
 
@@ -231,7 +232,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             ));
 
 
-            return afterCollection.intersect(afterBlock);
+            return afterCollection.intersectAlternative(afterBlock);
         }
 
 
@@ -391,7 +392,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                 acceptor
             );
 
-            return afterForHeader.intersect(afterBody);
+            return afterForHeader.intersectAlternative(afterBody);
 
         } else {
             if (input.__(ForStatement::isMapIteration).extract(
@@ -465,7 +466,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                     acceptor
                 );
 
-                return afterForHeader.intersect(afterBody);
+                return afterForHeader.intersectAlternative(afterBody);
             } else {
                 IJadescriptType firstVarType;
                 if (collectionType instanceof MapType) {
@@ -500,7 +501,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                     afterForHeader,
                     acceptor
                 );
-                return afterForHeader.intersect(afterBody);
+                return afterForHeader.intersectAlternative(afterBody);
             }
         }
     }

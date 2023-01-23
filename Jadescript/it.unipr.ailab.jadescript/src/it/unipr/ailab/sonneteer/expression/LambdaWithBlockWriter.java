@@ -54,14 +54,16 @@ public class LambdaWithBlockWriter extends ExpressionWriter{
     }
 
     @Override
-    public ExpressionWriter bindVariableUsages(LocalVarBindingProvider varBindingProvider) {
+    public ExpressionWriter bindVariableUsages(
+        LocalVarBindingProvider varBindingProvider
+    ) {
         var l = w.blockLambda().setParameters(
                 this.parameters
         );
 
-        final BlockWriter block = w.block().addAll(this.body.getBlockElements());
-
-        block.bindLocalVarUsages(varBindingProvider);
+        final BlockWriter block = w.block().addAll(
+            this.body.getBlockElements()
+        );
 
         return l.setBody(block);
     }

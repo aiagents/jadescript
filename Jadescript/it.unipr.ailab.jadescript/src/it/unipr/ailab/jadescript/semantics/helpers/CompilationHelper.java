@@ -8,8 +8,7 @@ import it.unipr.ailab.jadescript.jvmmodel.JadescriptCompilerUtils;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
-import it.unipr.ailab.jadescript.semantics.expression.PSR;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
@@ -19,12 +18,8 @@ import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.WriterFactory;
 import it.unipr.ailab.sonneteer.comment.MultilineCommentWriter;
-import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.expression.LambdaWithBlockWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
-import it.unipr.ailab.sonneteer.statement.LocalVarBindingProvider;
-import it.unipr.ailab.sonneteer.statement.StatementWriter;
-import it.unipr.ailab.sonneteer.statement.VariableDeclarationWriter;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtend2.lib.StringConcatenationClient;
 import org.eclipse.xtext.common.types.JvmExecutable;
@@ -39,76 +34,14 @@ import org.eclipse.xtext.xbase.typesystem.references.LightweightTypeReference;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-import java.util.function.BiConsumer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class CompilationHelper implements IQualifiedNameProvider {
 
     private final static WriterFactory w = WriterFactory.getInstance();
-    private final static LateVarBindingContext bindingContext =
-        new LateVarBindingContext();
-    public static final LocalVarBindingProvider userBlockLocalVars =
-        new LocalVarBindingProvider() {
-            @Override
-            public VariableDeclarationWriter bindDeclaration(
-                String chosenType,
-                String varName,
-                ExpressionWriter nullableInitExpression
-            ) {
-                final Optional<UserVariable> variable =
-                    bindingContext.findVariable(varName);
-                if (variable.isPresent()) {
-                    return variable.get().bindDeclaration(nullableInitExpression);
-                } else {
-                    return DEFAULT_VAR_BINDING_PROVIDER.bindDeclaration(
-                        chosenType,
-                        varName,
-                        nullableInitExpression
-                    );
-                }
-            }
 
-
-            @Override
-            public StatementWriter bindWrite(
-                String varName,
-                ExpressionWriter expression
-            ) {
-                final Optional<UserVariable> variable =
-                    bindingContext.findVariable(varName);
-                if (variable.isPresent()) {
-                    if (variable.get().isCapturedInAClosure()) {
-                        return variable.get().bindWriteInClosure(expression);
-                    } else {
-                        return variable.get().bindWrite(expression);
-                    }
-                } else {
-                    return DEFAULT_VAR_BINDING_PROVIDER.bindWrite(
-                        varName,
-                        expression
-                    );
-                }
-            }
-
-
-            @Override
-            public String bindRead(String varName) {
-                final Optional<UserVariable> variable =
-                    bindingContext.findVariable(varName);
-                if (variable.isPresent()) {
-                    if (variable.get().isCapturedInAClosure()) {
-                        return variable.get().bindReadInClosure();
-                    } else {
-                        return variable.get().bindRead();
-                    }
-                } else {
-                    return DEFAULT_VAR_BINDING_PROVIDER.bindRead(varName);
-                }
-            }
-
-
-        };
     private final SemanticsModule module;
 
 
@@ -118,13 +51,17 @@ public class CompilationHelper implements IQualifiedNameProvider {
 
 
     @NotNull
-    public static String extractOntologyVarName(JvmTypeReference jvmTypeReference) {
+    public static String extractOntologyVarName(
+        JvmTypeReference jvmTypeReference
+    ) {
         return SemanticsConsts.ONTOLOGY_VAR_NAME + "__" +
             jvmTypeReference.getQualifiedName('.').replaceAll("\\.", "_");
     }
 
 
-    public static String extractOntologyVarName(IJadescriptType usedOntologyType) {
+    public static String extractOntologyVarName(
+        IJadescriptType usedOntologyType
+    ) {
         return extractOntologyVarName(usedOntologyType.asJvmTypeReference());
     }
 
@@ -140,7 +77,9 @@ public class CompilationHelper implements IQualifiedNameProvider {
     }
 
 
-    public static Maybe<String> sourceToLocationText(Maybe<? extends EObject> input) {
+    public static Maybe<String> sourceToLocationText(
+        Maybe<? extends EObject> input
+    ) {
         return Util.extractEObject(input).__(eObject -> {
             final ICompositeNode node = NodeModelUtils.getNode(eObject);
             int startLine = node.getStartLine();
@@ -240,9 +179,6 @@ public class CompilationHelper implements IQualifiedNameProvider {
     }
 
 
-
-
-
     /**
      * Compiles the expression into a Supplier lambda, which contains all the
      * expression's generated auxiliary statements, and it returns with the
@@ -258,10 +194,10 @@ public class CompilationHelper implements IQualifiedNameProvider {
      * that may need to generate auxiliary statements in order to work
      * correctly, or to initialize fields in the same way.
      *
-     * @param expr the expression
-     * @param beforeExpr the state before the expression evaluation
-     * @param inferredType the type inferred from the expression, or null to
-     *                     let this method infer it
+     * @param expr            the expression
+     * @param beforeExpr      the state before the expression evaluation
+     * @param inferredType    the type inferred from the expression, or null to
+     *                        let this method infer it
      * @param destinationType the desired type for the result (to apply
      *                        eventual implicit conversions), or null, to use
      *                        {@code inferredType} and to apply no conversion
@@ -283,7 +219,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
         final IJadescriptType startType;
         if (inferredType == null) {
             startType = rves.inferType(expr, beforeExpr);
-        }else{
+        } else {
             startType = inferredType;
         }
 
@@ -318,11 +254,6 @@ public class CompilationHelper implements IQualifiedNameProvider {
     }
 
 
-    public LateVarBindingContext lateBindingContext() {
-        return bindingContext;
-    }
-
-
     public PSR<SourceCodeBuilder> compileBlockToNewSCB(
         StaticState initialState,
         Maybe<CodeBlock> cb
@@ -332,9 +263,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
             module.get(BlockSemantics.class).compile(cb, initialState);
         final StaticState afterBlock = blockPSR.state();
         final BlockWriter result = blockPSR.result();
-        result.setBindingProvider(userBlockLocalVars);
         result.writeSonnet(ssb);
-        bindingContext.clear();
         return PSR.psr(ssb, afterBlock);
     }
 
@@ -374,31 +303,5 @@ public class CompilationHelper implements IQualifiedNameProvider {
             arg0);
     }
 
-
-    public static class LateVarBindingContext {
-
-        private final Map<String, UserVariable> map = new HashMap<>();
-
-
-        public synchronized Optional<UserVariable> findVariable(String varCode) {
-            return Optional.ofNullable(map.get(varCode));
-        }
-
-
-        public synchronized void pushVariable(UserVariable variable) {
-            map.put("V" + Integer.toHexString(variable.hashCode()), variable);
-        }
-
-
-        public synchronized void clear() {
-            map.clear();
-        }
-
-
-        public synchronized void forEach(BiConsumer<String, UserVariable> action) {
-            map.forEach(action);
-        }
-
-    }
 
 }

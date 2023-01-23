@@ -7,7 +7,6 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.MatchingResult;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.SubPattern;
@@ -17,7 +16,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -55,10 +54,13 @@ public class SetLiteralExpressionSemantics
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<MapOrSetLiteral> input
     ) {
-        final List<Maybe<RValueExpression>> keys = toListOfMaybes(input.__(
-            MapOrSetLiteral::getKeys));
+        final List<Maybe<RValueExpression>> keys =
+            toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
+
         final Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
+
         return Streams.concat(keys.stream(), Stream.of(rest))
+            .filter(Maybe::isPresent)
             .map(k -> new SemanticsBoundToExpression<>(module.get(
                 RValueExpressionSemantics.class), k));
 
@@ -283,7 +285,8 @@ public class SetLiteralExpressionSemantics
 
 
         return rves.advancePattern(restSubpattern, afterElements)
-            .intersect(afterElements);//short-circuted (when rest did not match)
+            //short-circuted (when rest did not match):
+            .intersectAlternative(afterElements);
     }
 
 
@@ -344,7 +347,7 @@ public class SetLiteralExpressionSemantics
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(Maybe<MapOrSetLiteral> input) {
+    traverseInternal(Maybe<MapOrSetLiteral> input) {
         return Optional.empty();
     }
 
@@ -365,13 +368,13 @@ public class SetLiteralExpressionSemantics
 
         StaticState runningState = state;
         for (Maybe<RValueExpression> element : elements) {
-            if (!rves.isAlwaysPure(element, runningState)) {
+            if (!rves.isWithoutSideEffects(element, runningState)) {
                 return false;
             }
             runningState = rves.advance(element, runningState);
         }
 
-        return rves.isPatternEvaluationPure(
+        return rves.isPatternEvaluationWithoutSideEffects(
             input.replacePattern(rest),
             runningState
         );
@@ -682,11 +685,11 @@ public class SetLiteralExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<MapOrSetLiteral> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

@@ -258,7 +258,8 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
                     some(typeExpression));
 
                 if (type instanceof DeclaresOntologyAdHocClass) {
-                    ((DeclaresOntologyAdHocClass) type).declareSpecificOntologyClass(
+                    ((DeclaresOntologyAdHocClass) type)
+                        .declareSpecificOntologyClass(
                             members,
                             feature,
                             generatedSpecificClasses,
@@ -418,16 +419,16 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
             return some("jade.content.schema.AgentActionSchema");
         } else if (type instanceof ListType) {
             return some("jade.content.schema.TermSchema");
-        } else if (module.get(TypeHelper.class).CONCEPT.isAssignableFrom(type)
-                || module.get(TypeHelper.class).AID.isAssignableFrom(type)
-                || module.get(TypeHelper.class).TIMESTAMP.isAssignableFrom(type)
-                || module.get(TypeHelper.class).DURATION.isAssignableFrom(type)) {
+        } else if (module.get(TypeHelper.class).CONCEPT.isSupEqualTo(type)
+                || module.get(TypeHelper.class).AID.isSupEqualTo(type)
+                || module.get(TypeHelper.class).TIMESTAMP.isSupEqualTo(type)
+                || module.get(TypeHelper.class).DURATION.isSupEqualTo(type)) {
             return some("jade.content.schema.ConceptSchema");
-        } else if (module.get(TypeHelper.class).PROPOSITION.isAssignableFrom(type)
-                || module.get(TypeHelper.class).PREDICATE.isAssignableFrom(type)
-                || module.get(TypeHelper.class).ATOMIC_PROPOSITION.isAssignableFrom(type)) {
+        } else if (module.get(TypeHelper.class).PROPOSITION.isSupEqualTo(type)
+                || module.get(TypeHelper.class).PREDICATE.isSupEqualTo(type)
+                || module.get(TypeHelper.class).ATOMIC_PROPOSITION.isSupEqualTo(type)) {
             return some("jade.content.schema.PredicateSchema");
-        } else if (module.get(TypeHelper.class).ACTION.isAssignableFrom(type)) {
+        } else if (module.get(TypeHelper.class).ACTION.isSupEqualTo(type)) {
             return some("jade.content.schema.AgentActionSchema");
         } else if (module.get(TypeHelper.class).isTypeWithPrimitiveOntologySchema(type)) {
             return some("jade.content.schema.PrimitiveSchema");

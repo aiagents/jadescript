@@ -22,10 +22,4 @@ public class AssignmentWriter extends StatementWriter {
         s.line(";");
     }
 
-
-    @Override
-    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-        //USE VariableAssignmentPlaceholder if you want this
-        return this;
-    }
 }

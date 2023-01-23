@@ -100,7 +100,7 @@ public abstract class ParametricType extends JadescriptType {
 
 
     @Override
-    public boolean isAssignableFrom(IJadescriptType other) {
+    public boolean isSupEqualTo(IJadescriptType other) {
         other = other.postResolve();
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         if (other.typeEquals(typeHelper.NOTHING)) {
@@ -138,11 +138,11 @@ public abstract class ParametricType extends JadescriptType {
 
                         if (t1.typeEquals(t2)) {
                             return v2 == BoundedTypeArgument.Variance.INVARIANT || v1 == v2;
-                        } else if (t1.isAssignableFrom(t2)) {
+                        } else if (t1.isSupEqualTo(t2)) {
                             return v1 == BoundedTypeArgument.Variance.EXTENDS
                                     && (v2 == BoundedTypeArgument.Variance.INVARIANT
                                     || v2 == BoundedTypeArgument.Variance.EXTENDS);
-                        } else if (t2.isAssignableFrom(t1)) {
+                        } else if (t2.isSupEqualTo(t1)) {
                             return v1 == BoundedTypeArgument.Variance.SUPER
                                     && (v2 == BoundedTypeArgument.Variance.INVARIANT
                                     || v2 == BoundedTypeArgument.Variance.SUPER);
@@ -159,7 +159,7 @@ public abstract class ParametricType extends JadescriptType {
         }
 
 
-        return super.isAssignableFrom(other);
+        return super.isSupEqualTo(other);
     }
 
     @Override

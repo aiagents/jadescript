@@ -5,10 +5,10 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.stream.Stream;
 
-public class ImmutableList<E>
-    implements Iterable<E> {
+public class ImmutableList<E> implements Iterable<E> {
 
     private static final ImmutableList<?> EMPTY = new ImmutableList<>();
+
     //TODO optimize
     private final LinkedList<E> inner = new LinkedList<>();
 

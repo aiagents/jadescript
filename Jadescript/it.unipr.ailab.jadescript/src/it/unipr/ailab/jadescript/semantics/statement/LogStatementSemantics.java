@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.statement;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.LogStatement;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;

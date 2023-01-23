@@ -5,12 +5,13 @@ import it.unipr.ailab.jadescript.jadescript.LValueExpression;
 import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.WhenMatchesStatement;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.PSR;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -202,7 +203,7 @@ public class WhenMatchesStatementSemantics
         StaticState beforeBranches = runningState;
 
 
-        return StaticState.intersectAll(
+        return StaticState.intersectAllAlternatives(
             afterBranches,
             () -> beforeBranches
         );
@@ -330,7 +331,7 @@ public class WhenMatchesStatementSemantics
 
         final StaticState beforeTheBranches = runningState;
 
-        return StaticState.intersectAll(
+        return StaticState.intersectAllAlternatives(
             afterBranches,
             () -> beforeTheBranches
         );

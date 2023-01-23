@@ -93,10 +93,4 @@ public class LocalClassStatementWriter extends StatementWriter implements IClass
         delegate.setOrderConvention(orderConvention);
     }
 
-
-
-    @Override
-    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-        return this;
-    }
 }

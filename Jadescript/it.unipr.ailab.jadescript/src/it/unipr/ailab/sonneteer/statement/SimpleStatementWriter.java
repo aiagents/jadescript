@@ -16,10 +16,4 @@ public class SimpleStatementWriter extends StatementWriter {
         s.add(stmt).line(";");
     }
 
-
-
-    @Override
-    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-        return w.simpleStmt(SimpleExpressionWriter.replacePlaceholderInString(stmt, bindingProvider::bindRead));
-    }
 }

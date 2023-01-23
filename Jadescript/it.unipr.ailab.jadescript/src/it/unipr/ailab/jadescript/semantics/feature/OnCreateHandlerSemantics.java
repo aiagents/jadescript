@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -9,7 +10,6 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.OnCreateHandlerCont
 import it.unipr.ailab.jadescript.semantics.context.search.UserLocalDefinition;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ActualParameter;
-import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -33,7 +33,8 @@ import java.util.stream.Collectors;
 import static it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace.symbolFromJvmParameter;
 import static it.unipr.ailab.maybe.Maybe.*;
 
-public class OnCreateHandlerSemantics extends FeatureSemantics<OnCreateHandler> {
+public class OnCreateHandlerSemantics
+    extends FeatureSemantics<OnCreateHandler> {
 
     public OnCreateHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -342,9 +343,6 @@ public class OnCreateHandlerSemantics extends FeatureSemantics<OnCreateHandler> 
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
     ) {
-        //TODO
-//        InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
-
         Maybe<EList<FormalParameter>> parameters =
             input.__(OnCreateHandler::getParameters);
 

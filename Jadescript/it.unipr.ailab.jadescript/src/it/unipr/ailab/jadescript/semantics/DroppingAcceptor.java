@@ -1,6 +1,5 @@
 package it.unipr.ailab.jadescript.semantics;
 
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;

@@ -8,7 +8,6 @@ import it.unipr.ailab.sonneteer.statement.StatementWriter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class TryCatchWriter extends StatementWriter {
@@ -51,23 +50,5 @@ public class TryCatchWriter extends StatementWriter {
             s.spaced("finally");
             fbSafe.writeSonnet(s);
         });
-    }
-
-    @Override
-    public void getSubBlocks(Consumer<BlockWriter> statementAcceptor) {
-        statementAcceptor.accept(tryBranch);
-        catchBranches.forEach(statementAcceptor);
-    }
-
-    @Override
-    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-        var tryc = w.tryCatch(this.tryBranch.bindLocalVarUsages(bindingProvider));
-        tryc.exceptionTypes.addAll(exceptionTypes);
-        tryc.varNames.addAll(varNames);
-        tryc.catchBranches.addAll(this.catchBranches.stream()
-        .map(bw -> bw.bindLocalVarUsages(bindingProvider))
-        .collect(Collectors.toList()));
-        tryc.finallyBranch = this.finallyBranch.__(bw -> bw.bindLocalVarUsages(bindingProvider));
-        return tryc;
     }
 }

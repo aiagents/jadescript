@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.statement;
 
 import com.google.inject.Singleton;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;

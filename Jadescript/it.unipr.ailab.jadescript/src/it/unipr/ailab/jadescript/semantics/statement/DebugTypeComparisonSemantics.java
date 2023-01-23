@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.statement;
 
 import it.unipr.ailab.jadescript.jadescript.DebugTypeComparison;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
@@ -10,7 +11,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.List;
 import java.util.stream.Stream;
 
 public class DebugTypeComparisonSemantics
@@ -63,11 +63,11 @@ public class DebugTypeComparisonSemantics
                 ") are equal.\n";
         }
 
-        if (type1.isAssignableFrom(type2)) {
+        if (type1.isSupEqualTo(type2)) {
             result += "TypeA(" + type1 + ") >= TypeB(" + type2 + ").\n";
         }
 
-        if (type2.isAssignableFrom(type1)) {
+        if (type2.isSupEqualTo(type1)) {
             result += "TypeA(" + type1 + ") <= TypeB(" + type2 + ").\n";
         }
         return result;

@@ -4,18 +4,16 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.BreakStatement;
 import it.unipr.ailab.jadescript.jadescript.ForStatement;
 import it.unipr.ailab.jadescript.jadescript.WhileStatement;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.effectanalysis.Effect;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.PSR;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.xtext.EcoreUtil2;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.List;
 import java.util.stream.Stream;
 
 /**

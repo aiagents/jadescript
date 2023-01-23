@@ -11,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.XNumberLiteral;
@@ -177,7 +177,7 @@ public class LiteralExpressionSemantics
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(Maybe<Literal> input) {
+    traverseInternal(Maybe<Literal> input) {
         final Maybe<StringLiteralSimple> string = input.__(Literal::getString);
         final Maybe<ListLiteral> list = input.__(Literal::getList);
         final Maybe<MapOrSetLiteral> mapOrSet = input.__(Literal::getMap);
@@ -442,7 +442,7 @@ public class LiteralExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<Literal> input,
         StaticState state
     ) {

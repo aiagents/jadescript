@@ -18,7 +18,7 @@ public interface MessageReceivedContext extends SemanticsConsts {
 
 
     @NotNull
-    static ContextGeneratedReference messageContentContextGeneratedReference(
+    private static ContextGeneratedReference messageContentContextGeneratedReference(
         IJadescriptType messageType,
         IJadescriptType contentType
     ) {
@@ -30,7 +30,7 @@ public interface MessageReceivedContext extends SemanticsConsts {
     }
 
     @NotNull
-    static ContextGeneratedReference messageContextGeneratedReference(
+    private static ContextGeneratedReference messageContextGeneratedReference(
          IJadescriptType messageType
     ){
         return new ContextGeneratedReference(

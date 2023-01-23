@@ -745,13 +745,8 @@ Primary:
 	{Primary}( //level 0
 	('(' exprs+=RValueExpression (',' exprs+=RValueExpression)* ')')
 	| literal=Literal 
-	| identifier=(Identifier | 'aid' | 'this') 
+	| identifier=(Identifier | 'aid' | 'this' | 'agent' | 'percept' | 'exception' | 'behaviour' | 'message') 
 	| placeholder?='_'
-	| agent='agent'
-	| message='message'
-	| percept='percept'
-	| exception='exception'
-	| behaviour='behaviour'
 	| invokeExpression=InvokeExpression)
 	;
 

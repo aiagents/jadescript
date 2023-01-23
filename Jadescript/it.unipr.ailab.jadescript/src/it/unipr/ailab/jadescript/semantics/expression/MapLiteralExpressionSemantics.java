@@ -15,7 +15,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
@@ -66,20 +66,17 @@ public class MapLiteralExpressionSemantics
             module.get(RValueExpressionSemantics.class);
         return Stream.concat(
             zip(
-                keys.stream(),
-                values.stream(),
+                keys.stream().filter(Maybe::isPresent),
+                values.stream().filter(Maybe::isPresent),
                 (k, v) -> Util.buildStream(
                     () -> new SemanticsBoundToExpression<>(rves, k),
                     () -> new SemanticsBoundToExpression<>(rves, v)
                 )
             ).flatMap(x -> x),
-            Util.buildStream(
-                () -> input.__(MapOrSetLiteral::getRest).extract(x ->
-                    new SemanticsBoundToExpression<>(
-                        rves,
-                        x
-                    )
-                ))
+            Stream.of(
+                input.__(MapOrSetLiteral::getRest)
+            ).filter(Maybe::isPresent)
+                .map(i -> new SemanticsBoundToExpression<>(rves, i))
         );
     }
 
@@ -379,7 +376,7 @@ public class MapLiteralExpressionSemantics
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(Maybe<MapOrSetLiteral> input) {
+    traverseInternal(Maybe<MapOrSetLiteral> input) {
         return Optional.empty();
     }
 
@@ -692,7 +689,6 @@ public class MapLiteralExpressionSemantics
             return PatternType.simple(inferType(input.getPattern(), state));
         }
 
-        //TODO treat the two type parameters separately
         return PatternType.holed(inputType -> {
             final TypeHelper typeHelper = module.get(TypeHelper.class);
             if (inputType instanceof MapType) {
@@ -928,7 +924,7 @@ public class MapLiteralExpressionSemantics
             );
         }
 
-        return runningState.intersectAll(
+        return runningState.intersectAllAlternatives(
             shortCircuitedAlternatives
         );
     }
@@ -1085,11 +1081,11 @@ public class MapLiteralExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<MapOrSetLiteral> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

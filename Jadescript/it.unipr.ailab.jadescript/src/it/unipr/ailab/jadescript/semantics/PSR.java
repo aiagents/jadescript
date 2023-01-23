@@ -1,4 +1,4 @@
-package it.unipr.ailab.jadescript.semantics.expression;
+package it.unipr.ailab.jadescript.semantics;
 
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 

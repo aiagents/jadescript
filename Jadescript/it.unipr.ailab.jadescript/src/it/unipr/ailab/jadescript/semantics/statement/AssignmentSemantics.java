@@ -4,6 +4,7 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.Assignment;
 import it.unipr.ailab.jadescript.jadescript.LValueExpression;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;

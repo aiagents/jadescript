@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -444,19 +444,12 @@ public class AidLiteralExpressionSemantics
     ) {
         final TypeCastExpressionSemantics tces =
             module.get(TypeCastExpressionSemantics.class);
-        final SemanticsBoundToExpression<TypeCast> localName =
-            input.__(AidLiteral::getTypeCast)
-                .extract(x -> new SemanticsBoundToExpression<>(tces, x));
 
-        Stream<SemanticsBoundToExpression<?>> result = Stream.of(localName);
-
-        if (input.__(AidLiteral::getHap).isPresent()) {
-            final SemanticsBoundToExpression<TypeCast> hap =
+        return Stream.of(
+                input.__(AidLiteral::getTypeCast),
                 input.__(AidLiteral::getHap)
-                    .extract(x -> new SemanticsBoundToExpression<>(tces, x));
-            result = Stream.concat(result, Stream.of(hap));
-        }
-        return result;
+            ).filter(Maybe::isPresent)
+            .map(i -> new SemanticsBoundToExpression<>(tces, i));
     }
 
 
@@ -513,7 +506,7 @@ public class AidLiteralExpressionSemantics
 
     @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
-    traverse(Maybe<AidLiteral> input) {
+    traverseInternal(Maybe<AidLiteral> input) {
         if (mustTraverse(input)) {
             return Optional.ofNullable(input.__(AidLiteral::getTypeCast))
                 .map(x -> new SemanticsBoundToAssignableExpression<>(
@@ -526,11 +519,11 @@ public class AidLiteralExpressionSemantics
 
 
     @Override
-    protected boolean isAlwaysPureInternal(
+    protected boolean isWithoutSideEffectsInternal(
         Maybe<AidLiteral> input,
         StaticState state
     ) {
-        return subExpressionsAllAlwaysPure(input, state);
+        return subExpressionsAllWithoutSideEffects(input, state);
     }
 
 

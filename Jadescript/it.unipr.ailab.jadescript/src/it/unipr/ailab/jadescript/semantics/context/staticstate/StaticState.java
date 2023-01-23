@@ -19,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -27,22 +28,22 @@ import java.util.stream.Stream;
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
 /**
- * Monotonic knowledge base for flow-sensitive analysis and scope management
- * inside procedural blocks.
+ * Immutable implementation of a knowledge base for flow-sensitive analysis
+ * and scope management inside procedural blocks.
  */
-//TODO optimize:
-// - idempotent operations should not generate new instances
-// - aggregate (transactional) operations should use internal mutability
 public final class StaticState
     implements Searcheable,
     NamedSymbol.Searcher,
     FlowSensitiveInferrer,
     SemanticsConsts {
 
+    //TODO change: introduce 'descriptor coreferent' semantics
+    // - several expressions could be referring to the same value
+    //   - e.g., 'X', 'X' of this where X is a property of the behaviour
+
     private final SemanticsModule module;
     private final Searcheable outer;
-    private final
-    ImmutableMap<String, NamedSymbol> namedSymbols;
+    private final ImmutableMap<String, NamedSymbol> variables;
     private final
     ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds;
     private final boolean valid;
@@ -60,7 +61,7 @@ public final class StaticState
         this.module = module;
         this.outer = outer;
         this.scopeType = scopeType;
-        this.namedSymbols = new ImmutableMap<>();
+        this.variables = new ImmutableMap<>();
         this.upperBounds = new ImmutableMap<>();
         this.valid = valid;
         if (outer instanceof StaticState) {
@@ -76,13 +77,13 @@ public final class StaticState
         SemanticsModule module,
         Searcheable outer,
         ScopeType scopeType,
-        ImmutableMap<String, NamedSymbol> namedSymbols,
+        ImmutableMap<String, NamedSymbol> variables,
         ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds
     ) {
         this.module = module;
         this.outer = outer;
         this.scopeType = scopeType;
-        this.namedSymbols = namedSymbols;
+        this.variables = variables;
         this.upperBounds = upperBounds;
         this.valid = valid;
         if (outer instanceof StaticState) {
@@ -90,20 +91,6 @@ public final class StaticState
         } else {
             this.scopeDepth = 0;
         }
-    }
-
-
-
-    public static StaticState afterEnd(
-        SemanticsModule module,
-        StaticState last
-    ) {
-        return new StaticState(
-            false,
-            module,
-            last.outerContext(),
-            last.scopeType
-        );
     }
 
 
@@ -117,61 +104,30 @@ public final class StaticState
     }
 
 
-    //TODO optimize
-    public static StaticState intersectAll(
+    public static StaticState intersectAllAlternatives(
         @NotNull Collection<StaticState> states,
         Supplier<? extends StaticState> ifEmpty
     ) {
         return states.stream().reduce(
-            StaticState::intersect
+            StaticState::intersectAlternative
         ).orElseGet(ifEmpty);
     }
 
 
-    private Stream<StaticState> outerScopes() {
-        int size = Math.max(scopeDepth - 1, 0);
-        if (size == 0) {
-            return Stream.empty();
-        }
-
-        final Stream.Builder<StaticState> builder = Stream.builder();
-
-        StaticState ss = this;
-        // As long as we can extract an upper scope
-        while (
-            (ss = ss.outerContext() instanceof StaticState
-                ? ((StaticState) ss.outerContext())
-                : null) != null
-        ) {
-            builder.accept(ss);
-        }
-
-        return builder.build();
-    }
-
-
-    private boolean allScopesMatch(Predicate<StaticState> predicate) {
-        return predicate.test(this) && this.allOuterScopesMatch(predicate);
-    }
-
-
-    private boolean allOuterScopesMatch(Predicate<StaticState> predicate) {
-        return outerScopes().allMatch(predicate);
-    }
-
-
+    @Contract(pure = true)
     public boolean isValid() {
         return valid;
     }
 
 
     @Override
+    @Contract(pure = true)
     public Stream<? extends NamedSymbol> searchName(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite
     ) {
-        Stream<? extends NamedSymbol> result = namedSymbols.streamValues();
+        Stream<? extends NamedSymbol> result = variables.streamValues();
 
         result = safeFilter(result, NamedSymbol::name, name);
         result = safeFilter(result, NamedSymbol::readingType, readingType);
@@ -182,33 +138,39 @@ public final class StaticState
 
 
     @Override
+    @Contract(pure = true)
     public Maybe<? extends Searcheable> superSearcheable() {
         return Maybe.some(outer);
     }
 
 
+    @Contract(pure = true)
     public Searcheable outerContext() {
         return outer;
     }
 
 
     @Override
+    @Contract(pure = true)
     public SearchLocation currentLocation() {
         return UserLocalDefinition.getInstance();
     }
 
 
+    @Contract(pure = true)
     public ImmutableMap<String, NamedSymbol> getLocalScopeNamedSymbols() {
-        return namedSymbols;
+        return variables;
     }
 
 
+    @Contract(pure = true)
     public ImmutableMap<ExpressionDescriptor, IJadescriptType>
     getLocalScopeFlowTypingUpperBounds() {
         return upperBounds;
     }
 
 
+    @Contract(pure = true)
     public IJadescriptType getUpperBound(
         ExpressionDescriptor forExpression
     ) {
@@ -218,6 +180,7 @@ public final class StaticState
 
 
     @Override
+    @Contract(pure = true)
     public Stream<IJadescriptType> inferUpperBound(
         @Nullable Predicate<ExpressionDescriptor> forExpression,
         @Nullable Predicate<IJadescriptType> upperBound
@@ -239,6 +202,7 @@ public final class StaticState
     }
 
 
+    @Contract(pure = true)
     public StaticState assertFlowTypingUpperBound(
         ExpressionDescriptor expressionDescriptor,
         IJadescriptType bound
@@ -272,6 +236,7 @@ public final class StaticState
     }
 
 
+    @Contract(pure = true)
     public StaticState assertFlowTypingUpperBound(
         Maybe<ExpressionDescriptor> expressionDescriptorMaybe,
         IJadescriptType bound
@@ -287,6 +252,7 @@ public final class StaticState
     }
 
 
+    @Contract(pure = true)
     public StaticState assertExpressionsEqual(
         Maybe<ExpressionDescriptor> ed1,
         Maybe<ExpressionDescriptor> ed2
@@ -318,12 +284,62 @@ public final class StaticState
     }
 
 
+    public StaticState assertAssigned(
+        ExpressionDescriptor ed
+    ){
+        if(inferUpperBound(
+            ed1 -> ed1.equals(ed),
+            null
+        ).findAny().isEmpty()){
+            return this;
+        }
+
+        final Optional<IJadescriptType> localUpperBound =
+            getLocalScopeFlowTypingUpperBounds().get(ed);
+        if(localUpperBound.isPresent()){
+            return new StaticState(
+                this.isValid(),
+                this.module,
+                this.outerContext(),
+                this.scopeType,
+                this.getLocalScopeNamedSymbols(),
+                this.getLocalScopeFlowTypingUpperBounds()
+                    .remove(ed)
+            );
+        }
+
+
+        if(!(this.outerContext() instanceof StaticState)){
+            return this;
+        }
+
+        return new StaticState(
+            this.isValid(),
+            this.module,
+            ((StaticState) this.outerContext()).assertAssigned(ed),
+            this.scopeType,
+            this.getLocalScopeNamedSymbols(),
+            this.getLocalScopeFlowTypingUpperBounds()
+        );
+    }
+
+    public StaticState assertAssigned(
+        Maybe<ExpressionDescriptor> ed
+    ){
+        if(ed.isNothing()){
+            return this;
+        }else{
+            return assertAssigned(ed.toNullable());
+        }
+    }
+
+
     @Contract(pure = true)
     public StaticState enterScope() {
         return new StaticState(
             true,
             this.module,
-            this,
+            this, //This becomes the outer scope of the resulting state
             ScopeType.INNER
         );
     }
@@ -334,12 +350,13 @@ public final class StaticState
         return new StaticState(
             true,
             this.module,
-            this,
+            this, //This becomes the outer scope of the resulting state
             ScopeType.LOOP_ROOT
         );
     }
 
 
+    @Contract(pure = true)
     public StaticState exitScope() {
         final Searcheable outerContext = this.outerContext();
         if (outerContext instanceof StaticState) {
@@ -352,6 +369,7 @@ public final class StaticState
     }
 
 
+    @Contract(pure = true)
     public StaticState assertNamedSymbol(NamedSymbol ns) {
         final ImmutableMap<String, NamedSymbol> namedSymbols =
             this.getLocalScopeNamedSymbols();
@@ -377,54 +395,27 @@ public final class StaticState
     }
 
 
-    public StaticState assertNamedSymbols(
-        Collection<? extends NamedSymbol> nss
-    ) {
-        final ImmutableMap<String, NamedSymbol> namedSymbols =
-            this.getLocalScopeNamedSymbols();
-
-        boolean changed = false;
-        for (NamedSymbol ns : nss) {
-            if (!namedSymbols.containsKey(ns.name()) ||
-                !namedSymbols.getUnsafe(ns.name()).getSignature()
-                    .equals(ns.getSignature())) {
-                changed = true;
-                break;
-            }
-        }
-
-        if (!changed) {
-            return this;
-        }
-
-        return new StaticState(
-            true,
-            this.module,
-            this.outerContext(),
-            this.scopeType,
-            this.getLocalScopeNamedSymbols().mergeAddAll(
-                nss,
-                NamedSymbol::name,
-                (n1, __) -> n1
-            ),
-            this.getLocalScopeFlowTypingUpperBounds()
-        );
-    }
-
-
     /**
-     * Intersect a state with another state, recursively on all the scopes.
+     * Intersects a state with an alternative state, recursively on all the
+     * scopes.
+     * Useful to generate a state which is the consequence of two
+     * alternative courses of events (e.g., the two branches of a ternary
+     * operation).
+     * This operation is also important to model correctly the state used to
+     * evaluate operands in operations with short-circuited semantics.
      * The scope depth of both states has to be equal, otherwise a
      * {@link RuntimeException} is thrown.
-     * Useful to generate a state which is the consequence of two
-     * alternative courses of events (e.g., the two branches of an ternary
-     * operation).
-     * All common symbols/bounds with same type are kept in the resulting state.
+     * In the resulting state, all common symbols/bounds with same type are kept
+     * as they are.
      * All common symbols/bounds with different type are widened to their LUB.
-     * All symbols/bounds not appearing on both input states, will be absent
-     * in the resulting state.
+     * Finally, symbols/bounds not appearing on both input states, will be
+     * absent in the resulting state.
+     * The intersection of two invalidated scopes produces an invalidated scope.
+     * The intersection of a valid scope with an invalidated scope
+     * (or vice-versa) returns the valid scope unchanged.
      */
-    public StaticState intersect(StaticState other) {
+    @Contract(pure = true)
+    public StaticState intersectAlternative(StaticState other) {
 
         final Searcheable thisOuterContext = this.outerContext();
         final Searcheable otherOuterContext = other.outerContext();
@@ -445,7 +436,7 @@ public final class StaticState
         }
 
         StaticState outerIntersected = ((StaticState) thisOuterContext)
-            .intersect(((StaticState) otherOuterContext));
+            .intersectAlternative(((StaticState) otherOuterContext));
 
         if (!this.valid && !other.valid) {
             return new StaticState(
@@ -471,15 +462,15 @@ public final class StaticState
     }
 
 
-    //TODO optimize
-    public StaticState intersectAll(
+    @Contract(pure = true)
+    public StaticState intersectAllAlternatives(
         @NotNull Collection<StaticState> others
     ) {
-        return others.stream().reduce(this, StaticState::intersect);
+        return others.stream().reduce(this, StaticState::intersectAlternative);
     }
 
 
-    //TODO optimize
+
     private ImmutableMap<String, NamedSymbol> intersectSymbols(
         StaticState other
     ) {
@@ -487,6 +478,7 @@ public final class StaticState
         ImmutableMap<String, NamedSymbol> b = other.getLocalScopeNamedSymbols();
 
         ImmutableSet<String> keys = a.getKeys().intersection(b.getKeys());
+
         return keys.associateOpt(key ->
             SymbolUtils.intersectNamedSymbols(
                 Set.of(a.getUnsafe(key), b.getUnsafe(key)),
@@ -494,8 +486,6 @@ public final class StaticState
             )
         );
     }
-
-
 
 
     private ImmutableMap<ExpressionDescriptor, IJadescriptType>
@@ -507,8 +497,10 @@ public final class StaticState
         ImmutableMap<ExpressionDescriptor, IJadescriptType> b =
             other.getLocalScopeFlowTypingUpperBounds();
 
-        ImmutableSet<ExpressionDescriptor> keys =
-            a.getKeys().intersection(b.getKeys());
+        final ImmutableSet<ExpressionDescriptor> aKeys = a.getKeys();
+        final ImmutableSet<ExpressionDescriptor> bKeys = b.getKeys();
+
+        ImmutableSet<ExpressionDescriptor> keys = aKeys.intersection(bKeys);
 
         final TypeHelper th = module.get(TypeHelper.class);
         return keys.associate(
@@ -521,10 +513,11 @@ public final class StaticState
      * Creates a state which is invalidated until the scope is exited up
      * to the innermost loop's body (used for break-continue semantics).
      */
+    @Contract(pure = true)
     public StaticState invalidateUntilExitLoop() {
 
-        if(!(outerContext() instanceof StaticState)
-            || this.scopeType.equals(ScopeType.LOOP_ROOT)){
+        if (!(outerContext() instanceof StaticState)
+            || this.scopeType.equals(ScopeType.LOOP_ROOT)) {
             return new StaticState(
                 false,
                 module,
@@ -549,9 +542,10 @@ public final class StaticState
      * to the operation's body. Used for semantics of return, throw, fail-this,
      * destroy-this, deactivate-this.
      */
+    @Contract(pure = true)
     public StaticState invalidateUntilExitOperation() {
-        if(!(outerContext() instanceof StaticState)
-            || this.scopeType.equals(ScopeType.OPERATION_ROOT)){
+        if (!(outerContext() instanceof StaticState)
+            || this.scopeType.equals(ScopeType.OPERATION_ROOT)) {
             return new StaticState(
                 false,
                 module,

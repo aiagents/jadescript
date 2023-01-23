@@ -22,7 +22,8 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class TupleType extends ParametricType implements EmptyCreatable, DeclaresOntologyAdHocClass {
+public class TupleType extends ParametricType
+    implements EmptyCreatable, DeclaresOntologyAdHocClass {
     private final List<TypeArgument> elementTypes;
 
     private final Map<String, Property> properties = new HashMap<>();
@@ -269,11 +270,6 @@ public class TupleType extends ParametricType implements EmptyCreatable, Declare
                 addSchemaWriters.add(w.simpleStmt("add(new jade.content.schema.AgentActionSchema(\"" + className + "\"), " +
                         "" + className + ".class);"));
                 describeSchemaWriters.add(new StatementWriter() {
-                    @Override
-                    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-                        return this;
-                    }
-
                     @Override
                     public void writeSonnet(SourceCodeBuilder scb) {
                         if (slotTypeExpression != null && slotTypeExpression.getSubExprs() != null) {

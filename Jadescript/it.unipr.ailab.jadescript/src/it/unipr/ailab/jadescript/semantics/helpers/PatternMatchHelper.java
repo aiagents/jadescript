@@ -2,16 +2,11 @@ package it.unipr.ailab.jadescript.semantics.helpers;
 
 import it.unipr.ailab.jadescript.jadescript.LValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.AssignmentDeconstruction;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.HandlerHeader;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.MatchesExpression;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.WhenMatchesStatement;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;

@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.statement;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.RemoveStatement;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
@@ -60,7 +61,7 @@ public class RemoveStatementSemantics
             final IJadescriptType elementType = rves.inferType(element, state);
             String elementCompiled = rves.compile(element, state, acceptor);
 
-            if (typeHelper.INTEGER.isAssignableFrom(elementType)) {
+            if (typeHelper.INTEGER.isSupEqualTo(elementType)) {
                 //Using a cast to (java.lang.Integer) to specify the removal
                 // of the Integer element, not the removal by int index.
                 elementCompiled = "(Integer) " + elementCompiled;

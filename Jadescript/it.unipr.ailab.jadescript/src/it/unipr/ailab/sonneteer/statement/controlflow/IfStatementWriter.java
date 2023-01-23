@@ -3,13 +3,10 @@ package it.unipr.ailab.sonneteer.statement.controlflow;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
-import it.unipr.ailab.sonneteer.statement.LocalVarBindingProvider;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 
 public class IfStatementWriter extends StatementWriter {
@@ -25,7 +22,10 @@ public class IfStatementWriter extends StatementWriter {
         this.ifBranch = ifBranch;
     }
 
-    public IfStatementWriter addElseIfBranch(ExpressionWriter condition, BlockWriter elseIfBranch){
+    public IfStatementWriter addElseIfBranch(
+        ExpressionWriter condition,
+        BlockWriter elseIfBranch
+    ){
         elseIfConditions.add(condition);
         elseIfBranches.add(elseIfBranch);
         return this;
@@ -77,30 +77,4 @@ public class IfStatementWriter extends StatementWriter {
         return ifBranch;
     }
 
-    @Override
-    public void getSubBlocks(Consumer<BlockWriter> statementAcceptor) {
-        statementAcceptor.accept(ifBranch);
-        elseIfBranches.forEach(statementAcceptor);
-        if (elseBranch != null) {
-            statementAcceptor.accept(elseBranch);
-        }
-    }
-
-    @Override
-    public StatementWriter bindLocalVarUsages(LocalVarBindingProvider bindingProvider) {
-        var ifst = new IfStatementWriter(
-                condition.bindVariableUsages(bindingProvider),
-                ifBranch.bindLocalVarUsages(bindingProvider)
-        );
-        ifst.elseIfConditions.addAll(this.elseIfConditions.stream()
-                .map(ew -> ew.bindVariableUsages(bindingProvider))
-                .collect(Collectors.toList()));
-        ifst.elseIfBranches.addAll(this.elseIfBranches.stream()
-                .map(ew -> ew.bindLocalVarUsages(bindingProvider))
-                .collect(Collectors.toList()));
-        if(elseBranch !=null) {
-        ifst.elseBranch = this.elseBranch.bindLocalVarUsages(bindingProvider);
-        }
-        return ifst;
-    }
 }

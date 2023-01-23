@@ -10,13 +10,16 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.statement.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Optional;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 
@@ -49,9 +52,48 @@ public abstract class AssignableExpressionSemantics<T>
 
 
     @Override
+    protected abstract Optional<?
+        extends SemanticsBoundToAssignableExpression<?>>
+    traverseInternal(Maybe<T> input);
+
+
+    @SuppressWarnings("unchecked")
+    @Override
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
     traverse(Maybe<T> input) {
-        return Optional.empty();
+        return (Optional<? extends SemanticsBoundToAssignableExpression<?>>)
+            super.traverse(input);
+    }
+
+
+    @SuppressWarnings("unchecked")
+    protected <R, S> R traversingAssignableSemanticsMap(
+        Maybe<T> input,
+        BiFunction<? super AssignableExpressionSemantics<S>, Maybe<S>, R>
+            traversing,
+        Supplier<R> actual
+    ) {
+        return traverse(input).map(sbte -> traversing.apply(
+            (AssignableExpressionSemantics<S>) sbte.getSemantics(),
+            (Maybe<S>) sbte.getInput()
+        )).orElseGet(actual);
+    }
+
+
+    @SuppressWarnings("unchecked")
+    protected <S> void traversingAssignableSemanticsDo(
+        Maybe<T> input,
+        BiConsumer<? super AssignableExpressionSemantics<S>, Maybe<S>>
+            traversing,
+        Runnable actual
+    ) {
+        traverse(input).ifPresentOrElse(
+            sbte -> traversing.accept(
+                (AssignableExpressionSemantics<S>) sbte.getSemantics(),
+                (Maybe<S>) sbte.getInput()
+            ),
+            actual
+        );
     }
 
 
@@ -62,19 +104,22 @@ public abstract class AssignableExpressionSemantics<T>
         StaticState state,
         CompilationOutputAcceptor acceptor
     ) {
-        traverse(input).ifPresentOrElse(x -> x.getSemantics().compileAssignment(
-            x.getInput(),
-            compiledExpression,
-            exprType,
-            state,
-            acceptor
-        ),/*else*/ () -> compileAssignmentInternal(
+        this.traversingAssignableSemanticsDo(
             input,
-            compiledExpression,
-            exprType,
-            state,
-            acceptor
-        ));
+            (s, i) -> s.compileAssignment(
+                i,
+                compiledExpression,
+                exprType,
+                state,
+                acceptor
+            ), () -> compileAssignmentInternal(
+                input,
+                compiledExpression,
+                exprType,
+                state,
+                acceptor
+            )
+        );
     }
 
 
@@ -92,15 +137,11 @@ public abstract class AssignableExpressionSemantics<T>
         IJadescriptType rightType,
         StaticState state
     ) {
-        return traverse(left).map(x -> x.getSemantics().advanceAssignment(
-            x.getInput(),
-            rightType,
-            state
-        )).orElseGet(() -> advanceAssignmentInternal(
+        return traversingAssignableSemanticsMap(
             left,
-            rightType,
-            state
-        ));
+            (s, i) -> s.advanceAssignment(i, rightType, state),
+            () -> advanceAssignmentInternal(left, rightType, state)
+        );
     }
 
 
@@ -117,18 +158,11 @@ public abstract class AssignableExpressionSemantics<T>
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        return traverse(input)
-            .map(x -> x.getSemantics().validateAssignment(
-                x.getInput(),
-                expression,
-                state,
-                acceptor
-            )).orElseGet(() -> validateAssignmentInternal(
-                input,
-                expression,
-                state,
-                acceptor
-            ));
+        return traversingAssignableSemanticsMap(
+            input,
+            (s, i) -> s.validateAssignment(i, expression, state, acceptor),
+            () -> validateAssignmentInternal(input, expression, state, acceptor)
+        );
     }
 
 
@@ -145,15 +179,11 @@ public abstract class AssignableExpressionSemantics<T>
         Maybe<T> input,
         ValidationMessageAcceptor acceptor
     ) {
-        return traverse(input)
-            .map(x -> x.getSemantics().syntacticValidateLValue(
-                x.getInput(),
-                acceptor
-            ))
-            .orElseGet(() -> syntacticValidateLValueInternal(
-                input,
-                acceptor
-            ));
+        return traversingAssignableSemanticsMap(
+            input,
+            (s, i) -> s.syntacticValidateLValue(i, acceptor),
+            () -> syntacticValidateLValueInternal(input, acceptor)
+        );
     }
 
 
@@ -163,21 +193,17 @@ public abstract class AssignableExpressionSemantics<T>
         ValidationMessageAcceptor acceptor
     );
 
+
     public final boolean validateAsStatement(
         Maybe<T> input,
         StaticState state,
         ValidationMessageAcceptor acceptor
-    ){
-        return traverse(input)
-            .map(x -> x.getSemantics().validateAsStatement(
-                x.getInput(),
-                state,
-                acceptor
-            )).orElseGet(() -> validateAsStatementInternal(
-                input,
-                state,
-                acceptor
-            ));
+    ) {
+        return traversingAssignableSemanticsMap(
+            input,
+            (s, i) -> s.validateAsStatement(i, state, acceptor),
+            () -> validateAsStatementInternal(input, state, acceptor)
+        );
     }
 
 
@@ -185,9 +211,10 @@ public abstract class AssignableExpressionSemantics<T>
         Maybe<T> input,
         StaticState state,
         ValidationMessageAcceptor acceptor
-    ){
+    ) {
         return errorNotStatement(input, acceptor);
     }
+
 
     /**
      * Produces an error validator message that notifies that the input
@@ -285,6 +312,13 @@ public abstract class AssignableExpressionSemantics<T>
 
 
         @Override
+        protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
+        traverseInternal(Maybe<X> input) {
+            return Optional.empty();
+        }
+
+
+        @Override
         protected boolean mustTraverse(Maybe<X> input) {
             return false;
         }
@@ -354,7 +388,7 @@ public abstract class AssignableExpressionSemantics<T>
 
 
         @Override
-        protected boolean isAlwaysPureInternal(
+        protected boolean isWithoutSideEffectsInternal(
             Maybe<X> input,
             StaticState state
         ) {
