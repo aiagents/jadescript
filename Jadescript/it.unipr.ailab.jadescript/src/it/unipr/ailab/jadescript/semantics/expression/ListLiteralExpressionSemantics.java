@@ -16,7 +16,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -74,7 +74,7 @@ public class ListLiteralExpressionSemantics
     @Override
     protected String compileInternal(
         Maybe<ListLiteral> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         //TODO pipe-literal
         Maybe<EList<RValueExpression>> values =
@@ -504,7 +504,7 @@ public class ListLiteralExpressionSemantics
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<ListLiteral> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         List<Maybe<RValueExpression>> values =
             toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
@@ -854,7 +854,7 @@ public class ListLiteralExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<ListLiteral> input) {
+    protected boolean isLExpreableInternal(Maybe<ListLiteral> input) {
         return false;
     }
 
@@ -866,12 +866,21 @@ public class ListLiteralExpressionSemantics
 
 
     @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<ListLiteral> input,
+        StaticState state
+    ) {
+        return false;
+    }
+
+
+    @Override
     protected void compileAssignmentInternal(
         Maybe<ListLiteral> input,
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
 
     }

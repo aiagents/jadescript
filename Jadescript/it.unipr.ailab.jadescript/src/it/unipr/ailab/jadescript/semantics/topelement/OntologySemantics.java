@@ -66,14 +66,14 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
         super.validate(input, acceptor);
         if (input == null) return;
 
-        Maybe<EList<JvmParameterizedTypeReference>> superTypes = input.__(FeatureContainer::getSuperTypes);//FUTURETODO multiple ontologies
+        Maybe<EList<JvmParameterizedTypeReference>> superTypes = input.__(FeatureContainer::getSuperTypes);//TODO multiple ontologies
 
         if (!superTypes
                 .__(List::isEmpty)
                 .extract(nullAsTrue)) {
             module.get(ValidationHelper.class).assertExpectedType(
                     jade.content.onto.Ontology.class,
-                    superTypes//FUTURETODO multiple ontologies
+                    superTypes//TODO multiple ontologies
                             .__(EList::get, 0)
                             .__(st -> module.get(TypeHelper.class).jtFromJvmTypeRef(st))
                             .orElse(module.get(TypeHelper.class).ANY),
@@ -103,7 +103,7 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
     @Override
     public void populateMainMembers(Maybe<Ontology> input, EList<JvmMember> members, JvmDeclaredType itClass) {
         super.populateMainMembers(input, members, itClass);
-        JvmTypeReference superOntologyType = input//FUTURETODO multiple ontologies
+        JvmTypeReference superOntologyType = input//TODO multiple ontologies
                 .__(FeatureContainer::getSuperTypes)
                 .nullIf(List::isEmpty)
                 .__(List::get, 0)
@@ -113,7 +113,7 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
         input.safeDo(inputsafe -> {
 
 
-            members.add(module.get(JvmTypesBuilder.class).toField(inputsafe, SUPER_ONTOLOGY_VAR, //FUTURETODO multiple ontologies
+            members.add(module.get(JvmTypesBuilder.class).toField(inputsafe, SUPER_ONTOLOGY_VAR, //TODO multiple ontologies
                     superOntologyType, itField -> {
                         itField.setVisibility(JvmVisibility.PRIVATE);
                         itField.setStatic(true);

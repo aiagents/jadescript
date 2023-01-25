@@ -241,9 +241,4 @@ public class BlockSemantics extends Semantics {
 
 
     }
-
-    //TODO in functions, validate mandatory exit by checking that the
-    // after-block state is invalidated
-
-
 }

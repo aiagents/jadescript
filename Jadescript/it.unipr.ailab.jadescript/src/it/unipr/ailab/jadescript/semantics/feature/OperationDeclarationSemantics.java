@@ -32,60 +32,8 @@ import static it.unipr.ailab.maybe.Maybe.*;
 /**
  * Created on 2019-05-17.
  */
-public interface OperationDeclarationSemantics extends SemanticsConsts {
-
-    static boolean endsWithReturn(Maybe<CodeBlock> body) {
-        if (body.isNothing()) return false;
-
-        List<Maybe<Statement>> statements =
-            toListOfMaybes(body.__(CodeBlock::getStatements));
-
-        Maybe<Statement> lastStatement = statements.isEmpty()
-            ? nothing()
-            : statements.get(statements.size() - 1);
-
-        if (lastStatement.isInstanceOf(ReturnStatement.class)) {
-            return true;
-        }
-        if (!lastStatement.isInstanceOf(IfStatement.class)) {
-            return false;
-        }
-
-
-        Maybe<IfStatement> ifStatement =
-            lastStatement.__(l -> (IfStatement) l);
-        final Boolean isExhaustiveIfElse =
-            ifStatement.__(IfStatement::isWithElseBranch).extract(nullAsFalse);
-
-        if (!isExhaustiveIfElse) {
-            return false;
-        }
-
-
-        Maybe<CodeBlock> thenBranch =
-            ifStatement.__(IfStatement::getThenBranch).__(
-                OptionalBlock::getBlock);
-        Maybe<CodeBlock> elseBranch =
-            ifStatement.__(IfStatement::getElseBranch).__(
-                OptionalBlock::getBlock);
-        List<Maybe<OptionalBlock>> elseIfBranches = toListOfMaybes(
-            ifStatement.__(IfStatement::getElseIfBranches));
-        if (!endsWithReturn(thenBranch)) {
-            return false;
-        }
-
-        if (!endsWithReturn(elseBranch)) {
-            return false;
-        }
-
-        for (Maybe<OptionalBlock> elseIfBranchOpt : elseIfBranches) {
-            if (!endsWithReturn(elseIfBranchOpt.__(OptionalBlock::getBlock))) {
-                return false;
-            }
-        }
-
-        return true;
-    }
+public interface OperationDeclarationSemantics
+    extends SemanticsConsts {
 
 
     default void validateGenericFunctionOrProcedure(
@@ -208,18 +156,23 @@ public interface OperationDeclarationSemantics extends SemanticsConsts {
         inBody = inBody.enterScope();
 
         if (body.isPresent()) {
-            validationHelper.asserting(
-                Util.implication(
-                    type.isPresent(),
-                    endsWithReturn(body)
-                ),
-                "MissingReturnStatement",
-                "Functions must return a value",
-                type,
+            final StaticState endOfBody = blockSemantics.validate(
+                body,
+                inBody,
                 acceptor
             );
 
-            blockSemantics.validate(body, inBody, acceptor);
+            validationHelper.asserting(
+                Util.implication(
+                    type.isPresent(),
+                    !endOfBody.isValid()
+                ),
+                "MissingReturnStatement",
+                "Functions must explicitly exit in their last statement (use " +
+                    "return or throw).",
+                type,
+                acceptor
+            );
         } else {
             validationHelper.emitError(
                 SemanticsConsts.ISSUE_CODE_PREFIX + "InvalidBody",

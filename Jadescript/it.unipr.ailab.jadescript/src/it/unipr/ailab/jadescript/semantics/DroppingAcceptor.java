@@ -5,7 +5,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-public class DroppingAcceptor implements ValidationMessageAcceptor, CompilationOutputAcceptor {
+public class DroppingAcceptor implements ValidationMessageAcceptor, BlockElementAcceptor {
     @Override
     public void acceptError(
             String message,

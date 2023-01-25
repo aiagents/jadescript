@@ -22,7 +22,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Either;
 import it.unipr.ailab.maybe.Maybe;
@@ -35,6 +35,8 @@ import java.util.stream.Stream;
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 import static it.unipr.ailab.maybe.Maybe.some;
 
+//TODO fix all pattern semantics for this: they should check if resolve as
+// pattern (because of PatternSymbol)
 
 /**
  * Created on 26/08/18.
@@ -145,7 +147,7 @@ public class SingleIdentifierExpressionSemantics
     protected String compileInternal(
         Maybe<SingleIdentifier> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         if (input == null) return "";
         Maybe<String> ident = input.__(SingleIdentifier::getIdent);
@@ -176,7 +178,7 @@ public class SingleIdentifierExpressionSemantics
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         if (input == null) return;
         final Maybe<String> ident = input.__(SingleIdentifier::getIdent);
@@ -350,7 +352,7 @@ public class SingleIdentifierExpressionSemantics
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<SingleIdentifier> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final String identifier = input.getPattern()
             .__(SingleIdentifier::getIdent).orElse("");
@@ -686,7 +688,7 @@ public class SingleIdentifierExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<SingleIdentifier> input) {
+    protected boolean isLExpreableInternal(Maybe<SingleIdentifier> input) {
         return true;
     }
 
@@ -740,6 +742,20 @@ public class SingleIdentifierExpressionSemantics
 
     @Override
     protected boolean canBeHoledInternal(Maybe<SingleIdentifier> input) {
+        return true;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<SingleIdentifier> input,
+        StaticState state
+    ) {
+
+        if(resolves(input.getPattern(), state)){
+            return false;
+        }
+
         return true;
     }
 

@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -54,7 +54,7 @@ public class LogicalAndExpressionSemantics
     @Override
     protected String compileInternal(
         Maybe<LogicalAnd> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         if (input == null) return "";
         StringBuilder result = new StringBuilder();
@@ -314,7 +314,7 @@ public class LogicalAndExpressionSemantics
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<LogicalAnd> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }
@@ -349,7 +349,7 @@ public class LogicalAndExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<LogicalAnd> input) {
+    protected boolean isLExpreableInternal(Maybe<LogicalAnd> input) {
         return false;
     }
 
@@ -383,6 +383,15 @@ public class LogicalAndExpressionSemantics
 
     @Override
     protected boolean canBeHoledInternal(Maybe<LogicalAnd> input) {
+        return false;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<LogicalAnd> input,
+        StaticState state
+    ) {
         return false;
     }
 

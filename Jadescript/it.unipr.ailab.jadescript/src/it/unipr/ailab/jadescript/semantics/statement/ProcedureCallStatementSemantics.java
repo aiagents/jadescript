@@ -5,15 +5,12 @@ import it.unipr.ailab.jadescript.jadescript.NamedArgumentList;
 import it.unipr.ailab.jadescript.jadescript.ProcedureCallStatement;
 import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
 import it.unipr.ailab.jadescript.semantics.CallSemantics;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-
-import java.util.stream.Stream;
 
 /**
  * Created on 29/04/18.
@@ -32,7 +29,7 @@ public class ProcedureCallStatementSemantics
     public StaticState compileStatement(
         Maybe<ProcedureCallStatement> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
 
         if (input.__(ProcedureCallStatement::isIsNothing)
@@ -64,27 +61,6 @@ public class ProcedureCallStatementSemantics
         ));
 
         return mcs.advance(mcInput, state);
-    }
-
-
-    @Override
-    public Stream<SemanticsBoundToExpression<?>>
-    includedExpressions(Maybe<ProcedureCallStatement> input) {
-        Maybe<String> name =
-            input.__(ProcedureCallStatement::getName);
-        Maybe<SimpleArgumentList> simpleArgs =
-            input.__(ProcedureCallStatement::getSimpleArgs);
-        Maybe<NamedArgumentList> namedArgs =
-            input.__(ProcedureCallStatement::getNamedArgs);
-        return module.get(CallSemantics.class).getSubExpressions(
-            Call.call(
-                input,
-                name,
-                simpleArgs,
-                namedArgs,
-                Call.IS_PROCEDURE
-            )
-        );
     }
 
 

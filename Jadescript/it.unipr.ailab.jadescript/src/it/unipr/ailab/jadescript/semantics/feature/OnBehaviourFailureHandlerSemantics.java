@@ -267,7 +267,7 @@ public class OnBehaviourFailureHandlerSemantics
                 s
             );
 
-            part1 = matcher.operationInvocationText(
+            part1 = matcher.rootInvocationText(
                 FAILURE_REASON_VAR_NAME
             );
         } else {
@@ -385,7 +385,6 @@ public class OnBehaviourFailureHandlerSemantics
             (mod, out) -> new OnBehaviourFailureHandlerContext(
                 mod,
                 out,
-                "behaviour failure",
                 finalBehaviourType,
                 finalContentType
             )
@@ -574,7 +573,6 @@ public class OnBehaviourFailureHandlerSemantics
             new OnBehaviourFailureHandlerContext(
                 mod,
                 out,
-                "behaviour failre",
                 finalBehaviourType,
                 finalContentType
             )

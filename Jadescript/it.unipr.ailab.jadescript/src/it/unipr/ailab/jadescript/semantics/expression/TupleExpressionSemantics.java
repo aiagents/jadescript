@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -15,7 +16,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.TupledExpressions;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -135,7 +135,7 @@ public class TupleExpressionSemantics
         Maybe<TupledExpressions> input,
         String compiledExpression,
         IJadescriptType exprType,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         // Cannot assign to a tuple
     }
@@ -174,7 +174,7 @@ public class TupleExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<TupledExpressions> input) {
+    protected boolean isLExpreableInternal(Maybe<TupledExpressions> input) {
         // Cannot assign to a tuple
         return false;
     }
@@ -207,7 +207,7 @@ public class TupleExpressionSemantics
     @Override
     protected String compileInternal(
         Maybe<TupledExpressions> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         final Integer initialCapacity =
             input.__(TupledExpressions::getSize).orElse(2);
@@ -295,7 +295,7 @@ public class TupleExpressionSemantics
     compilePatternMatchInternal(
         PatternMatchInput<TupledExpressions> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         List<Maybe<RValueExpression>> terms = input.getPattern().__(
                 TupledExpressions::getTuples)
@@ -635,6 +635,69 @@ public class TupleExpressionSemantics
 
     @Override
     protected boolean canBeHoledInternal(Maybe<TupledExpressions> input) {
+        return true;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<TupledExpressions> input,
+        StaticState state
+    ) {
+
+        List<Maybe<RValueExpression>> terms = input.getPattern()
+            .__(TupledExpressions::getTuples)
+            .extract(Maybe::nullAsEmptyList);
+        IJadescriptType solvedPatternType = inferPatternType(input, state)
+            .solve(input.getProvidedInputType());
+        int elementCount = terms.size();
+
+        final RValueExpressionSemantics rves = module.get(
+            RValueExpressionSemantics.class);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        StaticState runningState = state;
+        for (int i = 0; i < terms.size(); i++) {
+            final Maybe<RValueExpression> term = terms.get(i);
+            IJadescriptType termType;
+            if (solvedPatternType instanceof TupleType) {
+                final List<IJadescriptType> elementTypes =
+                    ((TupleType) solvedPatternType).getElementTypes();
+                if (elementTypes.size() > i) {
+                    termType = elementTypes.get(i);
+                } else {
+                    termType = typeHelper.TOP.apply(
+                        PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
+                            i,
+                            elementCount
+                        )
+                    );
+                }
+            } else {
+                termType = typeHelper.TOP.apply(
+                    PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
+                        i,
+                        elementCount
+                    )
+                );
+            }
+            final SubPattern<RValueExpression, TupledExpressions>
+                termSubpattern = input.subPattern(
+                termType,
+                __ -> term.toNullable(),
+                "_" + i
+            );
+
+            if(!rves.isPredictablePatternMatchSuccess(
+                termSubpattern,
+                runningState
+            )){
+                return false;
+            }
+
+            runningState = rves.assertDidMatch(termSubpattern, runningState);
+        }
+
         return true;
     }
 

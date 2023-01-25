@@ -56,7 +56,7 @@ public interface SemanticsConsts {
 
     String BEHAVIOUR_FAILURE_HANDLER_METHOD_NAME = "__handleBehaviourFailure";
     String THE_AGENTCLASS = "jadescript.core.Agent";
-    String SUPER_ONTOLOGY_VAR = "_superOntology"; //FUTURETODO multiple ontologies
+    String SUPER_ONTOLOGY_VAR = "_superOntology"; //TODO multiple ontologies
 
     String THIS = "this";
 

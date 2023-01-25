@@ -3,21 +3,18 @@ package it.unipr.ailab.jadescript.semantics.statement;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.DeactivateStatement;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  * Created on 2019-07-11.
@@ -35,7 +32,7 @@ public class DeactivateStatementSemantics
     public StaticState compileStatement(
         Maybe<DeactivateStatement> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         Maybe<RValueExpression> target =
             input.__(DeactivateStatement::getTarget);
@@ -134,17 +131,6 @@ public class DeactivateStatementSemantics
 
         //TODO invalidate state for "deactivate this"
         return runningState;
-    }
-
-
-    @Override
-    public Stream<SemanticsBoundToExpression<?>> includedExpressions(
-        Maybe<DeactivateStatement> input
-    ) {
-        return Util.buildStream(() -> new SemanticsBoundToExpression<>(
-            module.get(RValueExpressionSemantics.class),
-            input.__(DeactivateStatement::getTarget)
-        ));
     }
 
 

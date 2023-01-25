@@ -6,7 +6,6 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
-import it.unipr.ailab.jadescript.semantics.context.c2feature.MessageReceivedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnMessageHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnMessageHandlerWhenExpressionContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
@@ -253,7 +252,7 @@ public class OnMessageHandlerSemantics
                 s
             );
 
-            part1 = matcher.operationInvocationText(
+            part1 = matcher.rootInvocationText(
                 initialMsgType.namespace().getContentProperty()
                     .compileRead(MESSAGE_VAR_NAME)
             );
@@ -452,7 +451,6 @@ public class OnMessageHandlerSemantics
         ) -> new OnMessageHandlerContext(
             mod,
             out,
-            "message",
             input.__(OnMessageHandler::getPerformative),
             finalMessageType,
             finalContentType
@@ -816,7 +814,6 @@ public class OnMessageHandlerSemantics
             new OnMessageHandlerContext(
             mod,
             out,
-            "message",
             input.__(OnMessageHandler::getPerformative),
             finalMessageType,
             finalContentType

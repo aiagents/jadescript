@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -12,7 +13,6 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -42,8 +42,8 @@ public class TypeCastExpressionSemantics
         Maybe<TypeCast> input
     ) {
         return Stream.of(
-            input.__(TypeCast::getAtomExpr)
-        ).filter(Maybe::isPresent)
+                input.__(TypeCast::getAtomExpr)
+            ).filter(Maybe::isPresent)
             .map(i -> new SemanticsBoundToExpression<>(
                 module.get(AtomWithTrailersExpressionSemantics.class),
                 i
@@ -56,9 +56,9 @@ public class TypeCastExpressionSemantics
         Maybe<TypeCast> input,
         String compiledExpression,
         IJadescriptType exprType,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
-        //TODO typed declarations?
+        //IDEA typed declarations?
     }
 
 
@@ -68,7 +68,7 @@ public class TypeCastExpressionSemantics
         IJadescriptType rightType,
         StaticState state
     ) {
-        //TODO typed declarations?
+        //IDEA typed declarations?
         return state;
     }
 
@@ -79,7 +79,7 @@ public class TypeCastExpressionSemantics
         Maybe<RValueExpression> expression,
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        //TODO typed declarations?
+        //IDEA typed declarations?
         return VALID;
     }
 
@@ -89,14 +89,14 @@ public class TypeCastExpressionSemantics
         Maybe<TypeCast> input,
         ValidationMessageAcceptor acceptor
     ) {
-        //TODO typed declarations?
+        //IDEA typed declarations?
         return errorNotLvalue(input, acceptor);
     }
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<TypeCast> input) {
-        //TODO update: if the the sub-expression is a single identifier,
+    protected boolean isLExpreableInternal(Maybe<TypeCast> input) {
+        //IDEA update: if the the sub-expression is a single identifier,
         // and the identifier does not resolve, this
         // could be a typed declaration of a local variable.
         return false;
@@ -134,7 +134,7 @@ public class TypeCastExpressionSemantics
     protected String compileInternal(
         Maybe<TypeCast> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         if (input == null) return "";
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
@@ -298,7 +298,7 @@ public class TypeCastExpressionSemantics
     @Override
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<TypeCast> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
@@ -321,7 +321,7 @@ public class TypeCastExpressionSemantics
         PatternMatchInput<TypeCast> input,
         List<IJadescriptType> castsTypes,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         //Note: not advancing state since typecasting doesn't mutate it
         final AtomWithTrailersExpressionSemantics awtes =
@@ -575,7 +575,7 @@ public class TypeCastExpressionSemantics
                 IJadescriptType typeBefore =
                     tes.toJadescriptType(casti);
                 final boolean typeExpressionValidationNext =
-                    tes.validate(typeCasts.get(i),  acceptor);
+                    tes.validate(typeCasts.get(i), acceptor);
                 result = result && typeExpressionValidationNext;
                 IJadescriptType typeAfter =
                     tes.toJadescriptType(typeCasts.get(i));
@@ -658,5 +658,22 @@ public class TypeCastExpressionSemantics
     protected boolean canBeHoledInternal(Maybe<TypeCast> input) {
         return true;
     }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<TypeCast> input,
+        StaticState state
+    ) {
+        final AtomWithTrailersExpressionSemantics awtes =
+            module.get(AtomWithTrailersExpressionSemantics.class);
+        return awtes.isPredictablePatternMatchSuccess(
+            input.mapPattern(
+                TypeCast::getAtomExpr
+            ),
+            state
+        );
+    }
+
 
 }

@@ -11,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.XNumberLiteral;
@@ -113,7 +113,7 @@ public class LiteralExpressionSemantics
     @Override
     protected String compileInternal(
         Maybe<Literal> input, StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         if (input == null) return "";
 
@@ -228,7 +228,7 @@ public class LiteralExpressionSemantics
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
 
     }
@@ -307,7 +307,7 @@ public class LiteralExpressionSemantics
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<Literal> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final Maybe<String> number = input.getPattern().__(Literal::getNumber);
         final Maybe<String> bool = input.getPattern().__(Literal::getBool);
@@ -451,7 +451,7 @@ public class LiteralExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<Literal> input) {
+    protected boolean isLExpreableInternal(Maybe<Literal> input) {
         return false;
     }
 
@@ -482,6 +482,15 @@ public class LiteralExpressionSemantics
 
     @Override
     protected boolean canBeHoledInternal(Maybe<Literal> input) {
+        return false;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<Literal> input,
+        StaticState state
+    ) {
         return false;
     }
 

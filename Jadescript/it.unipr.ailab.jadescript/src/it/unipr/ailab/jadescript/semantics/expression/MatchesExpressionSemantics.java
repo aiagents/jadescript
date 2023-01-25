@@ -5,21 +5,19 @@ import it.unipr.ailab.jadescript.jadescript.LValueExpression;
 import it.unipr.ailab.jadescript.jadescript.Matches;
 import it.unipr.ailab.jadescript.jadescript.Pattern;
 import it.unipr.ailab.jadescript.jadescript.UnaryPrefix;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.HandlerWhenExpressionContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.HandlerHeader;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.MatchesExpression;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -27,7 +25,8 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nothing;
+import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
  * Created on 2019-08-18.
@@ -182,7 +181,7 @@ public class MatchesExpressionSemantics
     @Override
     protected String compileInternal(
         Maybe<Matches> input, StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final Maybe<UnaryPrefix> inputExpr = input.__(Matches::getUnaryExpr);
         final Maybe<LValueExpression> pattern =
@@ -207,6 +206,7 @@ public class MatchesExpressionSemantics
         LValueExpressionSemantics lves =
             module.get(LValueExpressionSemantics.class);
 
+
         if (handlerHeaderContext.isPresent()) {
             //We are in a handler header, probably in a when-expression
 
@@ -222,7 +222,7 @@ public class MatchesExpressionSemantics
                     acceptor
                 );
 
-            return matcher.operationInvocationText(compiledInputExpr);
+            return matcher.rootInvocationText(compiledInputExpr);
         } else {
             String localClassName =
                 patternMatchHelper.getPatternMatcherClassName(pattern);
@@ -252,7 +252,7 @@ public class MatchesExpressionSemantics
                 + localClassName + "()")));
 
 
-            return matcher.operationInvocationText(compiledInputExpr);
+            return matcher.rootInvocationText(compiledInputExpr);
         }
     }
 
@@ -301,9 +301,8 @@ public class MatchesExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
-        Maybe<Matches> input
-    ) {
+    protected Optional<? extends SemanticsBoundToExpression<?>>
+    traverseInternal(Maybe<Matches> input) {
         final Maybe<UnaryPrefix> unary = input.__(Matches::getUnaryExpr);
         return Optional.of(new SemanticsBoundToExpression<>(
             module.get(UnaryPrefixExpressionSemantics.class), unary
@@ -377,7 +376,7 @@ public class MatchesExpressionSemantics
     compilePatternMatchInternal(
         PatternMatchInput<Matches> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
         return input.createEmptyCompileOutput();
@@ -431,25 +430,18 @@ public class MatchesExpressionSemantics
                 .currentContext()
                 .actAs(HandlerWhenExpressionContext.class)
                 .findFirst();
-        String localClassName =
-            "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
-        final String variableName = localClassName + "_obj";
+
+        final PatternMatchHelper pmh = module.get(PatternMatchHelper.class);
         final PatternMatchInput<LValueExpression> pmi;
         if (handlerHeaderContext.isPresent()) {
-            pmi = new HandlerHeader<>(
-                module,
+            pmi = pmh.handlerHeader(
                 inputExprType,
-                pattern,
-                "__",
-                variableName
+                pattern
             );
         } else {
-            pmi = new MatchesExpression<>(
-                module,
+            pmi = pmh.matchesExpression(
                 inputExprType,
-                pattern,
-                "__",
-                variableName
+                pattern
             );
         }
         return module.get(LValueExpressionSemantics.class)
@@ -458,7 +450,7 @@ public class MatchesExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<Matches> input) {
+    protected boolean isLExpreableInternal(Maybe<Matches> input) {
         return false;
     }
 
@@ -493,6 +485,15 @@ public class MatchesExpressionSemantics
     @Override
     protected boolean canBeHoledInternal(Maybe<Matches> input) {
         // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
+        return false;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<Matches> input,
+        StaticState state
+    ) {
         return false;
     }
 

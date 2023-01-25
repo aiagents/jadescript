@@ -2,6 +2,8 @@ module example
 
 agent FizzBuzz
     on create do
+        
+        
         # To activate and deactivate the same
         #  behaviours, we need to assign them
         #  to variables.
@@ -15,13 +17,13 @@ agent FizzBuzz
         deactivate fizz after "PT60S" as duration
         deactivate buzz after "PT60S" as duration
 
-        
+#        
 cyclic behaviour RepeatLog
     property counter = 0
     property msg as text
     
     on create with msg as text do
-        msg of this = msg 
+        msg of this = msg
         
     on execute do
         if length of msg = 0 do

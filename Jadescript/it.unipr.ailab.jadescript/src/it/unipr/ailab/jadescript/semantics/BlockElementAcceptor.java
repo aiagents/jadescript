@@ -6,9 +6,7 @@ import it.unipr.ailab.sonneteer.WriterFactory;
 import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
 import org.eclipse.emf.ecore.EObject;
 
-import java.util.List;
-
-public interface CompilationOutputAcceptor {
+public interface BlockElementAcceptor {
 
     static final WriterFactory w = WriterFactory.getInstance();
 

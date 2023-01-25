@@ -2,13 +2,12 @@ package it.unipr.ailab.jadescript.semantics.statement;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociation;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -30,7 +29,6 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociation.OntologyAssociationKind;
 import static it.unipr.ailab.maybe.Maybe.iterate;
@@ -310,7 +308,7 @@ public class SendMessageStatementSemantics
     public StaticState compileStatement(
         Maybe<SendMessageStatement> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         String messageName = hashBasedName(
             "_synthesizedMessage",
@@ -427,7 +425,7 @@ public class SendMessageStatementSemantics
         Maybe<CommaSeparatedListOfRExpressions> receivers,
         String messageName,
         StaticState afterContent,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         Maybe<EList<RValueExpression>> rexprs = receivers
             .__(CommaSeparatedListOfRExpressions::getExpressions);
@@ -480,7 +478,7 @@ public class SendMessageStatementSemantics
         String componentType,
         String receiversTypeName,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -533,7 +531,7 @@ public class SendMessageStatementSemantics
         Maybe<RValueExpression> re,
         String messageName,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -586,7 +584,7 @@ public class SendMessageStatementSemantics
                         OntologyAssociationComputer.class,
                         OntologyAssociationComputer
                             ::computeAllOntologyAssociations
-                    ).sorted().findFirst()//FUTURETODO multiple ontologies
+                    ).sorted().findFirst()//TODO multiple ontologies
                     .map(oa -> oa.getOntology().compileToJavaTypeReference())
                     .map(s -> s + ".getInstance()")
                     .orElse("null") +
@@ -607,7 +605,7 @@ public class SendMessageStatementSemantics
         String contentVarName,
         String messageName,
         Maybe<String> performative,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
 
         Maybe<UsesOntologyElement> container = input.__(
@@ -677,23 +675,5 @@ public class SendMessageStatementSemantics
         });
     }
 
-
-    @Override
-    public Stream<SemanticsBoundToExpression<?>> includedExpressions(
-        Maybe<SendMessageStatement> input
-    ) {
-        final RValueExpressionSemantics rves =
-            module.get(RValueExpressionSemantics.class);
-
-        return Stream.concat(
-                Stream.of(input.__(SendMessageStatement::getContent)),
-                Stream.of(input.__(SendMessageStatement::getReceivers))
-                    .filter(Maybe::isPresent)
-                    .map(Maybe::toNullable)
-                    .flatMap(c -> c.getExpressions().stream())
-                    .map(Maybe::some)
-            ).filter(Maybe::isPresent)
-            .map(i -> new SemanticsBoundToExpression<>(rves, i));
-    }
 
 }

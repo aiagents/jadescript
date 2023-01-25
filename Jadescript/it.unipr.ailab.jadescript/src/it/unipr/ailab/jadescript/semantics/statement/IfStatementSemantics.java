@@ -5,11 +5,10 @@ import it.unipr.ailab.jadescript.jadescript.IfStatement;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -22,7 +21,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
@@ -43,7 +41,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
     public StaticState compileStatement(
         Maybe<IfStatement> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         Maybe<RValueExpression> condition = input.__(IfStatement::getCondition);
         Maybe<OptionalBlock> thenBranch = input.__(IfStatement::getThenBranch);
@@ -198,23 +196,6 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
             afterBranches,
             () -> beforeTheBranches
         );
-    }
-
-
-    @Override
-    public Stream<SemanticsBoundToExpression<?>> includedExpressions(
-        Maybe<IfStatement> input
-    ) {
-        Maybe<RValueExpression> condition = input.__(IfStatement::getCondition);
-        List<Maybe<RValueExpression>> elseIfConditions =
-            toListOfMaybes(input.__(
-                IfStatement::getElseIfConditions));
-        final RValueExpressionSemantics rves =
-            module.get(RValueExpressionSemantics.class);
-
-        return Stream.concat(Stream.of(condition), elseIfConditions.stream())
-            .filter(Maybe::isPresent)
-            .map(i -> new SemanticsBoundToExpression<>(rves, i));
     }
 
 

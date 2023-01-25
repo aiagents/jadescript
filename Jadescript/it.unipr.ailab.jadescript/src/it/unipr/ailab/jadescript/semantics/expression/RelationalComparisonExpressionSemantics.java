@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -56,7 +56,7 @@ public class RelationalComparisonExpressionSemantics
     protected String compileInternal(
         Maybe<RelationalComparison> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         if (input == null) return "";
         final Maybe<ContainmentCheck> left =
@@ -169,7 +169,7 @@ public class RelationalComparisonExpressionSemantics
     public PatternMatcher
     compilePatternMatchInternal(
         PatternMatchInput<RelationalComparison> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }
@@ -305,7 +305,7 @@ public class RelationalComparisonExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<RelationalComparison> input) {
+    protected boolean isLExpreableInternal(Maybe<RelationalComparison> input) {
         return false;
     }
 
@@ -339,6 +339,15 @@ public class RelationalComparisonExpressionSemantics
 
     @Override
     protected boolean canBeHoledInternal(Maybe<RelationalComparison> input) {
+        return false;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<RelationalComparison> input,
+        StaticState state
+    ) {
         return false;
     }
 

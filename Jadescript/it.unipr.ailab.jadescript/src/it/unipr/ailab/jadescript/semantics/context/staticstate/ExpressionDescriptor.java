@@ -3,9 +3,12 @@ package it.unipr.ailab.jadescript.semantics.context.staticstate;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
 
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public interface ExpressionDescriptor {
+
     public static class PropertyChain implements ExpressionDescriptor {
+
         private final ImmutableList<String> properties;
 
 
@@ -18,8 +21,9 @@ public interface ExpressionDescriptor {
             this.properties = properties;
         }
 
-        public PropertyChain(String... properties){
-            if(properties.length==0){
+
+        public PropertyChain(String... properties) {
+            if (properties.length == 0) {
                 throw new IllegalArgumentException(
                     "Property chain cannot be empty."
                 );
@@ -49,5 +53,15 @@ public interface ExpressionDescriptor {
             return properties != null ? properties.hashCode() : 0;
         }
 
+
+        @Override
+        public String toString() {
+            return "PropertyChain["
+                + properties.stream()
+                .collect(Collectors.joining(", "))
+                + "]";
+        }
+
     }
+
 }

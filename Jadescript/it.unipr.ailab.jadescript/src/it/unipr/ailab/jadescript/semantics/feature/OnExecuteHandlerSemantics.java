@@ -91,7 +91,8 @@ public class OnExecuteHandlerSemantics
                     compilationHelper.createAndSetInitializer(itField, scb -> {
                         scb.add(" new ")
                             .add(module.get(TypeHelper.class)
-                                .typeRef(eventClass).toString())
+                                .typeRef(eventClass)
+                                .getQualifiedName('.'))
                             .add("()");
                     });
                 }
@@ -112,8 +113,7 @@ public class OnExecuteHandlerSemantics
             module.get(ContextManager.class).enterProceduralFeature((
                     mod,
                     out
-                ) ->
-                    new SimpleHandlerContext(mod, out, "execute")
+                ) -> new SimpleHandlerContext(mod, out, "execute")
             );
 
             StaticState state = StaticState.beginningOfOperation(module);

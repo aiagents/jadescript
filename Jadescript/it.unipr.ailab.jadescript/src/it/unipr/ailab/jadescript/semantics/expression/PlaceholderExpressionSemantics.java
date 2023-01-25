@@ -10,7 +10,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -98,7 +98,7 @@ public class PlaceholderExpressionSemantics
     protected String compileInternal(
         Maybe<Primary> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return "/*ERROR: placeholder compiled*/null";
     }
@@ -136,7 +136,7 @@ public class PlaceholderExpressionSemantics
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
 
     }
@@ -211,7 +211,7 @@ public class PlaceholderExpressionSemantics
     @Override
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<Primary> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         return input.createPlaceholderMethodOutput(
             input.getProvidedInputType()
@@ -271,13 +271,22 @@ public class PlaceholderExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<Primary> input) {
+    protected boolean isLExpreableInternal(Maybe<Primary> input) {
         return false;
     }
 
 
     @Override
     protected boolean canBeHoledInternal(Maybe<Primary> input) {
+        return true;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<Primary> input,
+        StaticState state
+    ) {
         return true;
     }
 

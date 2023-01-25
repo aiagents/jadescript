@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -162,7 +162,7 @@ public class AidLiteralExpressionSemantics
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         // CANNOT BE L-EXPRESSION
     }
@@ -201,7 +201,7 @@ public class AidLiteralExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<AidLiteral> input) {
+    protected boolean isLExpreableInternal(Maybe<AidLiteral> input) {
         return false;
     }
 
@@ -277,6 +277,15 @@ public class AidLiteralExpressionSemantics
 
 
     @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<AidLiteral> input,
+        StaticState state
+    ) {
+        return false;
+    }
+
+
+    @Override
     protected boolean isHoledInternal(
         Maybe<AidLiteral> input,
         StaticState state
@@ -307,7 +316,7 @@ public class AidLiteralExpressionSemantics
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<AidLiteral> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final Maybe<TypeCast> hap = input.getPattern().__(AidLiteral::getHap);
         final TypeCastExpressionSemantics tces =
@@ -457,7 +466,7 @@ public class AidLiteralExpressionSemantics
     protected String compileInternal(
         Maybe<AidLiteral> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final Maybe<TypeCast> localName = input.__(AidLiteral::getTypeCast);
         final TypeCastExpressionSemantics tces =

@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -95,7 +95,7 @@ public class MultiplicativeExpressionSemantics
         List<Maybe<Matches>> operands,
         List<Maybe<String>> operators,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         if (operands.isEmpty()) return "";
         final MatchesExpressionSemantics mes =
@@ -186,7 +186,7 @@ public class MultiplicativeExpressionSemantics
         IJadescriptType t1,
         Maybe<String> op,
         Maybe<Matches> op2,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         IJadescriptType t2 =
             module.get(MatchesExpressionSemantics.class).inferType(op2, state);
@@ -306,7 +306,7 @@ public class MultiplicativeExpressionSemantics
     protected String compileInternal(
         Maybe<Multiplicative> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         if (input == null) return "";
         final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(
@@ -538,7 +538,7 @@ public class MultiplicativeExpressionSemantics
     compilePatternMatchInternal(
         PatternMatchInput<Multiplicative> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }
@@ -572,7 +572,7 @@ public class MultiplicativeExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<Multiplicative> input) {
+    protected boolean isLExpreableInternal(Maybe<Multiplicative> input) {
         return false;
     }
 
@@ -606,6 +606,15 @@ public class MultiplicativeExpressionSemantics
 
     @Override
     protected boolean canBeHoledInternal(Maybe<Multiplicative> input) {
+        return false;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<Multiplicative> input,
+        StaticState state
+    ) {
         return false;
     }
 

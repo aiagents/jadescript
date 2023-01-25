@@ -16,7 +16,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -105,7 +105,7 @@ public class ContainmentCheckExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<ContainmentCheck> input) {
+    protected boolean isLExpreableInternal(Maybe<ContainmentCheck> input) {
         return false;
     }
 
@@ -113,7 +113,7 @@ public class ContainmentCheckExpressionSemantics
     @Override
     protected String compileInternal(
         Maybe<ContainmentCheck> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         final Maybe<Additive> collection =
             input.__(ContainmentCheck::getCollection);
@@ -307,11 +307,20 @@ public class ContainmentCheckExpressionSemantics
 
 
     @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<ContainmentCheck> input,
+        StaticState state
+    ) {
+        return false;
+    }
+
+
+    @Override
     public PatternMatcher
     compilePatternMatchInternal(
         PatternMatchInput<ContainmentCheck> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }

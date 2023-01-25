@@ -2,16 +2,13 @@ package it.unipr.ailab.jadescript.semantics.statement;
 
 import it.unipr.ailab.jadescript.jadescript.DebugTypeComparison;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-
-import java.util.stream.Stream;
 
 public class DebugTypeComparisonSemantics
     extends StatementSemantics<DebugTypeComparison> {
@@ -78,7 +75,7 @@ public class DebugTypeComparisonSemantics
     public StaticState compileStatement(
         Maybe<DebugTypeComparison> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final Maybe<TypeExpression> typEx1 =
             input.__(DebugTypeComparison::getType1);
@@ -94,11 +91,5 @@ public class DebugTypeComparisonSemantics
         return state;
     }
 
-
-    @Override
-    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>>
-    includedExpressions(Maybe<DebugTypeComparison> input) {
-        return Stream.empty();
-    }
 
 }

@@ -225,7 +225,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
     }
 
 
-    public PatternMatcher.AsSingleConditionMethod createSingleConditionMethodOutput(
+    public PatternMatcher.AsSingleConditionMethod
+    createSingleConditionMethodOutput(
         IJadescriptType solvedPatternType,
         String condition
     ) {
@@ -256,7 +257,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
     }
 
 
-    public PatternMatcher.AsFieldAssigningMethod createFieldAssigningMethodOutput(
+    public PatternMatcher.AsFieldAssigningMethod
+    createFieldAssigningMethodOutput(
         IJadescriptType solvedPatternType,
         String fieldName
     ) {
@@ -274,7 +276,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
             TypeRelationship.Related.class,
             PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
-            PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+            PatternMatchMode.PatternApplicationSideEffects
+                .CAN_HAVE_SIDE_EFFECTS,
             PatternMatchMode.Reassignment.CHECK_EQUALITY,
             PatternMatchMode.Unification.WITH_VAR_DECLARATION,
             PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
@@ -321,7 +324,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
             TypeRelationship.SubtypeOrEqual.class,
             PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
-            PatternMatchMode.PatternApplicationPurity.HAS_TO_BE_PURE,
+            PatternMatchMode.PatternApplicationSideEffects
+                .HAS_TO_BE_WITHOUT_SIDE_EFFECTS,
             PatternMatchMode.Reassignment.CHECK_EQUALITY,
             PatternMatchMode.Unification.WITH_VAR_DECLARATION,
             PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
@@ -368,7 +372,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             PatternMatchMode.HolesAndGroundness.ACCEPTS_NONVAR_HOLES_ONLY,
             TypeRelationship.Related.class,
             PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
-            PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+            PatternMatchMode.PatternApplicationSideEffects
+                .CAN_HAVE_SIDE_EFFECTS,
             PatternMatchMode.Reassignment.CHECK_EQUALITY,
             PatternMatchMode.Unification.WITHOUT_VAR_DECLARATION,
             PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
@@ -409,14 +414,16 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
     }
 
-    public static class AssignmentDeconstruction<T> extends PatternMatchInput<T> {
+    public static class AssignmentDeconstruction<T>
+        extends PatternMatchInput<T> {
 
         public static final PatternMatchMode MODE = new PatternMatchMode(
             PatternMatchMode.HolesAndGroundness
                 .REQUIRES_FREE_OR_ASSIGNABLE_VARS,
             TypeRelationship.SupertypeOrEqual.class,
             PatternMatchMode.RequiresSuccessfulMatch.REQUIRES_SUCCESSFUL_MATCH,
-            PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+            PatternMatchMode.PatternApplicationSideEffects
+                .CAN_HAVE_SIDE_EFFECTS,
             PatternMatchMode.Reassignment.REQUIRE_REASSIGN,
             PatternMatchMode.Unification.WITH_VAR_DECLARATION,
             PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
@@ -444,7 +451,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
 
         @Override
-        public <R> AssignmentDeconstruction<R> mapPattern(Function<T, R> function) {
+        public <R> AssignmentDeconstruction<R>
+        mapPattern(Function<T, R> function) {
             return new AssignmentDeconstruction<>(
                 module,
                 rightType,
@@ -480,9 +488,10 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 new PatternMatchMode(
                     PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_VARS,
                     TypeRelationship.SupertypeOrEqual.class,
-                    PatternMatchMode.RequiresSuccessfulMatch.
-                        REQUIRES_SUCCESSFUL_MATCH,
-                    PatternMatchMode.PatternApplicationPurity.IMPURE_OK,
+                    PatternMatchMode.RequiresSuccessfulMatch
+                        .REQUIRES_SUCCESSFUL_MATCH,
+                    PatternMatchMode.PatternApplicationSideEffects
+                        .CAN_HAVE_SIDE_EFFECTS,
                     PatternMatchMode.Reassignment.REQUIRE_REASSIGN,
                     PatternMatchMode.Unification.WITH_VAR_DECLARATION,
                     PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
@@ -536,7 +545,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             Maybe<T> pattern,
             String suffixID
         ) {
-            this(module, inputInfo, rootInput, pattern, suffixID, null);
+            this(module, inputInfo, rootInput, pattern,
+                rootInput.getTermID() + suffixID, null);
         }
 
 
@@ -556,7 +566,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                         : holesAndGroundnessRequirement,
                     // Subpatterns always have a "related" requirement,
                     // except when in assignment/declarations.
-                    rootInput.getMode().getPatternLocation() == PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
+                    rootInput.getMode().getPatternLocation() == PatternMatchMode
+                        .PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
                         ? TypeRelationship.SupertypeOrEqual.class
                         : TypeRelationship.Related.class,
                     rootInput.getMode().getRequiresSuccessfulMatch(),

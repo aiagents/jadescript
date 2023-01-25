@@ -13,7 +13,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -56,7 +56,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         List<Maybe<Multiplicative>> operands,
         List<Maybe<String>> operators,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         if (operands.isEmpty()) return "";
         IJadescriptType t = module.get(MultiplicativeExpressionSemantics.class)
@@ -139,7 +139,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         IJadescriptType t1,
         Maybe<String> op,
         Maybe<Multiplicative> op2,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final MultiplicativeExpressionSemantics mes =
             module.get(MultiplicativeExpressionSemantics.class);
@@ -233,7 +233,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     protected String compileInternal(
         Maybe<Additive> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final List<Maybe<Multiplicative>> operands =
             Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
@@ -291,7 +291,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<Additive> input) {
+    protected boolean isLExpreableInternal(Maybe<Additive> input) {
         return false;
     }
 
@@ -366,10 +366,19 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
 
     @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<Additive> input,
+        StaticState state
+    ) {
+        return false;
+    }
+
+
+    @Override
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<Additive> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }

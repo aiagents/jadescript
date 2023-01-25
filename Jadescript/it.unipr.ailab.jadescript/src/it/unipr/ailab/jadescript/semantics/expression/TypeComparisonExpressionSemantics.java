@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -135,7 +135,7 @@ public class TypeComparisonExpressionSemantics
     @Override
     protected String compileInternal(
         Maybe<TypeComparison> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         if (input == null) return "";
 
@@ -190,9 +190,8 @@ public class TypeComparisonExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
-        Maybe<TypeComparison> input
-    ) {
+    protected Optional<? extends SemanticsBoundToExpression<?>>
+    traverseInternal(Maybe<TypeComparison> input) {
         if (mustTraverse(input)) {
             return Optional.of(new SemanticsBoundToExpression<>(
                     module.get(RelationalComparisonExpressionSemantics.class),
@@ -243,7 +242,7 @@ public class TypeComparisonExpressionSemantics
     compilePatternMatchInternal(
         PatternMatchInput<TypeComparison> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }
@@ -277,7 +276,7 @@ public class TypeComparisonExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<TypeComparison> input) {
+    protected boolean isLExpreableInternal(Maybe<TypeComparison> input) {
         return false;
     }
 
@@ -311,6 +310,15 @@ public class TypeComparisonExpressionSemantics
 
     @Override
     protected boolean canBeHoledInternal(Maybe<TypeComparison> input) {
+        return false;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<TypeComparison> input,
+        StaticState state
+    ) {
         return false;
     }
 

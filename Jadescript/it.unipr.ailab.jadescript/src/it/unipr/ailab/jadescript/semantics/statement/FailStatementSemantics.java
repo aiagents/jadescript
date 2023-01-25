@@ -2,17 +2,14 @@ package it.unipr.ailab.jadescript.semantics.statement;
 
 import it.unipr.ailab.jadescript.jadescript.FailStatement;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-
-import java.util.stream.Stream;
 
 public class FailStatementSemantics extends StatementSemantics<FailStatement> {
 
@@ -25,7 +22,7 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
     public StaticState compileStatement(
         Maybe<FailStatement> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         Maybe<RValueExpression> target = input.__(FailStatement::getTarget);
         Maybe<RValueExpression> reason = input.__(FailStatement::getReason);
@@ -82,23 +79,9 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
             );
             runningState = rves.advance(reason, runningState);
         }
-        //TODO invalidate state for fail this
+        //TODO invalidate state for "fail this"
         return runningState;
     }
-
-
-    @Override
-    public Stream<SemanticsBoundToExpression<?>>
-    includedExpressions(Maybe<FailStatement> input) {
-        final RValueExpressionSemantics rves =
-            module.get(RValueExpressionSemantics.class);
-        return Stream.of(
-                input.__(FailStatement::getTarget),
-                input.__(FailStatement::getReason)
-            ).filter(Maybe::isPresent)
-            .map(i -> new SemanticsBoundToExpression<>(rves, i));
-    }
-
 
 
 }

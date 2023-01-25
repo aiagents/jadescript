@@ -1,7 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol;
 
 
-import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 

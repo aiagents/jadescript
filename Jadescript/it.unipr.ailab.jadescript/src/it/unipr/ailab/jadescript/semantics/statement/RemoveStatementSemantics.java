@@ -3,10 +3,9 @@ package it.unipr.ailab.jadescript.semantics.statement;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.RemoveStatement;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -18,7 +17,6 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Arrays;
-import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
@@ -42,7 +40,7 @@ public class RemoveStatementSemantics
         Maybe<RValueExpression> index,
         boolean isWithIndex,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
 
         final RValueExpressionSemantics rves =
@@ -81,7 +79,7 @@ public class RemoveStatementSemantics
         String collectionCompiled,
         Maybe<RValueExpression> key,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -99,7 +97,7 @@ public class RemoveStatementSemantics
         Maybe<RValueExpression> argCollection,
         boolean isRetain,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -119,7 +117,7 @@ public class RemoveStatementSemantics
     public StaticState compileStatement(
         Maybe<RemoveStatement> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -313,19 +311,5 @@ public class RemoveStatementSemantics
         }
     }
 
-
-    @Override
-    public Stream<SemanticsBoundToExpression<?>> includedExpressions(
-        Maybe<RemoveStatement> input
-    ) {
-        final RValueExpressionSemantics rves =
-            module.get(RValueExpressionSemantics.class);
-        return Stream.of(
-                input.__(RemoveStatement::getCollection),
-                input.__(RemoveStatement::getElement),
-                input.__(RemoveStatement::getIndex)
-            ).filter(Maybe::isPresent)
-            .map(x -> new SemanticsBoundToExpression<>(rves, x));
-    }
 
 }

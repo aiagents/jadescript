@@ -6,10 +6,12 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementStructuralPattern;
+import it.unipr.ailab.jadescript.semantics.context.symbol.PatternSymbol;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmOperationSymbol;
 import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -22,7 +24,9 @@ import java.util.stream.Stream;
 import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.some;
 
-public interface OntologyType extends IJadescriptType {
+public interface OntologyType
+    extends IJadescriptType {
+
     SearchLocation getLocation();
 
     boolean isSuperOrEqualOntology(OntologyType other);
@@ -31,73 +35,132 @@ public interface OntologyType extends IJadescriptType {
     OntologyTypeNamespace namespace();
 
     class OntologyTypeNamespace
-            extends JadescriptTypeNamespace
-            implements OntologyAssociated {
+        extends JadescriptTypeNamespace
+        implements OntologyAssociated, PatternSymbol.Searcher {
 
         private final OntologyType ontologyType;
         private final LazyValue<JvmTypeNamespace> jvmNamespace;
 
+
         public OntologyTypeNamespace(
-                SemanticsModule module,
-                OntologyType ontologyType
+            SemanticsModule module,
+            OntologyType ontologyType
         ) {
             super(module);
             this.ontologyType = ontologyType;
-            this.jvmNamespace = new LazyValue<>(() -> JvmTypeNamespace.fromTypeReference(
-                    this.module,
-                    this.ontologyType.asJvmTypeReference()
+            this.jvmNamespace =
+                new LazyValue<>(() -> JvmTypeNamespace.fromTypeReference(
+                this.module,
+                this.ontologyType.asJvmTypeReference()
             ));
         }
 
 
         @Override
         public Stream<? extends CallableSymbol> searchCallable(
-                String name,
-                Predicate<IJadescriptType> returnType,
-                BiPredicate<Integer, Function<Integer, String>> parameterNames,
-                BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
+            String name,
+            Predicate<IJadescriptType> returnType,
+            BiPredicate<Integer, Function<Integer, String>> parameterNames,
+            BiPredicate<Integer, Function<Integer, IJadescriptType>>
+                parameterTypes
         ) {
             return jvmNamespace.get().searchCallable(
-                            name, returnType, parameterNames, parameterTypes
-                    ).filter(f -> f instanceof JvmOperationSymbol
-                            && ((JvmOperationSymbol) f).isStatic());
+                name, returnType, parameterNames, parameterTypes
+            ).filter(f -> f instanceof JvmOperationSymbol
+                && ((JvmOperationSymbol) f).isStatic());
         }
+
 
         @Override
         public Stream<? extends CallableSymbol> searchCallable(
-                Predicate<String> name,
-                Predicate<IJadescriptType> returnType,
-                BiPredicate<Integer, Function<Integer, String>> parameterNames,
-                BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
+            Predicate<String> name,
+            Predicate<IJadescriptType> returnType,
+            BiPredicate<Integer, Function<Integer, String>> parameterNames,
+            BiPredicate<Integer, Function<Integer, IJadescriptType>>
+                parameterTypes
         ) {
             return jvmNamespace.get().searchCallable(
-                    name, returnType, parameterNames, parameterTypes
+                name, returnType, parameterNames, parameterTypes
             ).filter(f -> f instanceof JvmOperationSymbol
-                    && ((JvmOperationSymbol) f).isStatic());
+                && ((JvmOperationSymbol) f).isStatic());
 
         }
 
+
+        @Override
+        public Stream<? extends PatternSymbol> searchPattern(
+            String name,
+            Predicate<IJadescriptType> inputType,
+            BiPredicate<Integer, Function<Integer, String>> termNames,
+            BiPredicate<Integer, Function<Integer, IJadescriptType>> termTypes
+        ) {
+            //TODO restrict the search
+            return jvmNamespace.get().searchCallable(
+                name, inputType, termNames, termTypes
+            ).filter(f -> f instanceof JvmOperationSymbol
+                && ((JvmOperationSymbol) f).isStatic()
+            ).map(cs ->
+                new OntologyElementStructuralPattern(
+                    cs.name(),
+                    cs.returnType(),
+                    cs.parameterNames(),
+                    cs.parameterTypesByName(),
+                    cs.sourceLocation()
+                )
+            );
+        }
+
+
+        @Override
+        public Stream<? extends PatternSymbol> searchPattern(
+            Predicate<String> name,
+            Predicate<IJadescriptType> inputType,
+            BiPredicate<Integer, Function<Integer, String>> termNames,
+            BiPredicate<Integer, Function<Integer, IJadescriptType>> termTypes
+        ) {
+            //TODO restrict the search
+            return jvmNamespace.get().searchCallable(
+                name, inputType, termNames, termTypes
+            ).filter(f -> f instanceof JvmOperationSymbol
+                && ((JvmOperationSymbol) f).isStatic()
+            ).map(cs ->
+                new OntologyElementStructuralPattern(
+                    cs.name(),
+                    cs.returnType(),
+                    cs.parameterNames(),
+                    cs.parameterTypesByName(),
+                    cs.sourceLocation()
+                )
+            );
+        }
+
+
         @Override
         public Stream<? extends NamedSymbol> searchName(
-                Predicate<String> name,
-                Predicate<IJadescriptType> readingType,
-                Predicate<Boolean> canWrite
+            Predicate<String> name,
+            Predicate<IJadescriptType> readingType,
+            Predicate<Boolean> canWrite
         ) {
             return Stream.empty();
         }
 
+
         @Override
         public Maybe<? extends TypeNamespace> getSuperTypeNamespace() {
             if (ontologyType instanceof UserDefinedOntologyType) {
-                return some(((UserDefinedOntologyType) ontologyType).getSuperOntologyType().namespace());//FUTURETODO multiple ontologies
+                return some(((UserDefinedOntologyType) ontologyType)
+                    .getSuperOntologyType().namespace());
+                //TODO multiple ontologies
             }
             return nothing();
         }
+
 
         @Override
         public SearchLocation currentLocation() {
             return ontologyType.getLocation();
         }
+
 
         @Override
         public void debugDump(SourceCodeBuilder scb) {
@@ -109,19 +172,29 @@ public interface OntologyType extends IJadescriptType {
             scb.close("}");
         }
 
+
         @Override
-        public Stream<OntologyAssociation> computeCurrentOntologyAssociations() {
-            return Stream.of(new OntologyAssociation(ontologyType, OntologyAssociation.O.INSTANCE));
+        public Stream<OntologyAssociation>
+        computeCurrentOntologyAssociations() {
+            return Stream.of(new OntologyAssociation(
+                ontologyType,
+                OntologyAssociation.O.INSTANCE
+            ));
         }
+
 
         @Override
         public Stream<OntologyAssociation> computeUsingOntologyAssociations() {
             return Stream.empty();
         }
 
+
         @Override
-        public Stream<OntologyAssociation> computeForClauseOntologyAssociations() {
+        public Stream<OntologyAssociation>
+        computeForClauseOntologyAssociations() {
             return Stream.empty();
         }
+
     }
+
 }

@@ -42,17 +42,17 @@ import static it.unipr.ailab.maybe.Maybe.*;
  * Created on 2019-05-13.
  */
 @Singleton
-public class GlobalMethodSemantics
+public class GlobalOperationSemantics
     extends UsesOntologyEntitySemantics<GlobalFunctionOrProcedure>
     implements OperationDeclarationSemantics {
 
-    private final Map<String, List<Maybe<GlobalFunctionOrProcedure>>> methodsMap
-        = new HashMap<>();
+    private final Map<String, List<Maybe<GlobalFunctionOrProcedure>>>
+        methodsMap = new HashMap<>();
     private final Map<String, Maybe<GlobalFunctionOrProcedure>>
         originalMethodMap = new HashMap<>();
 
 
-    public GlobalMethodSemantics(SemanticsModule semanticsModule) {
+    public GlobalOperationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 

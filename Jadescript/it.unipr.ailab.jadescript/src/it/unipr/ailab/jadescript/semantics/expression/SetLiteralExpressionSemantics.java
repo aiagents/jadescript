@@ -16,7 +16,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -88,7 +88,7 @@ public class SetLiteralExpressionSemantics
     @Override
     protected String compileInternal(
         Maybe<MapOrSetLiteral> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         final List<Maybe<RValueExpression>> elements =
             toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
@@ -474,7 +474,7 @@ public class SetLiteralExpressionSemantics
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<MapOrSetLiteral> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         List<Maybe<RValueExpression>> values =
             toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
@@ -694,7 +694,7 @@ public class SetLiteralExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<MapOrSetLiteral> input) {
+    protected boolean isLExpreableInternal(Maybe<MapOrSetLiteral> input) {
         return false;
     }
 
@@ -706,12 +706,21 @@ public class SetLiteralExpressionSemantics
 
 
     @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<MapOrSetLiteral> input,
+        StaticState state
+    ) {
+        return false;
+    }
+
+
+    @Override
     protected void compileAssignmentInternal(
         Maybe<MapOrSetLiteral> input,
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
 
     }

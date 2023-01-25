@@ -9,7 +9,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -40,7 +40,7 @@ public class SyntheticExpressionSemantics
     @Override
     protected String compileInternal(
         Maybe<SyntheticExpression> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         final SyntheticExpression.SemanticsMethods customSemantics = input.__(
                 SyntheticExpression::getSemanticsMethods)
@@ -201,7 +201,7 @@ public class SyntheticExpressionSemantics
     compilePatternMatchInternal(
         PatternMatchInput<SyntheticExpression> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }
@@ -235,7 +235,7 @@ public class SyntheticExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<SyntheticExpression> input) {
+    protected boolean isLExpreableInternal(Maybe<SyntheticExpression> input) {
         return false;
     }
 
@@ -269,6 +269,15 @@ public class SyntheticExpressionSemantics
 
     @Override
     protected boolean canBeHoledInternal(Maybe<SyntheticExpression> input) {
+        return false;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<SyntheticExpression> input,
+        StaticState state
+    ) {
         return false;
     }
 

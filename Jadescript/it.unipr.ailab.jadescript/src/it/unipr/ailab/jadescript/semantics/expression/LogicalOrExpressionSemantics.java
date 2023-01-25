@@ -13,7 +13,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -57,7 +57,7 @@ public class LogicalOrExpressionSemantics
     protected String compileInternal(
         Maybe<LogicalOr> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         if (input == null) return "";
         StringBuilder result = new StringBuilder();
@@ -244,9 +244,8 @@ public class LogicalOrExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
-        Maybe<LogicalOr> input
-    ) {
+    protected Optional<? extends SemanticsBoundToExpression<?>>
+    traverseInternal(Maybe<LogicalOr> input) {
         if (mustTraverse(input)) {
             List<Maybe<LogicalAnd>> ands =
                 Maybe.toListOfMaybes(input.__(LogicalOr::getLogicalAnd));
@@ -311,7 +310,7 @@ public class LogicalOrExpressionSemantics
     compilePatternMatchInternal(
         PatternMatchInput<LogicalOr> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }
@@ -345,7 +344,7 @@ public class LogicalOrExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<LogicalOr> input) {
+    protected boolean isLExpreableInternal(Maybe<LogicalOr> input) {
         return false;
     }
 
@@ -379,6 +378,15 @@ public class LogicalOrExpressionSemantics
 
     @Override
     protected boolean canBeHoledInternal(Maybe<LogicalOr> input) {
+        return false;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<LogicalOr> input,
+        StaticState state
+    ) {
         return false;
     }
 

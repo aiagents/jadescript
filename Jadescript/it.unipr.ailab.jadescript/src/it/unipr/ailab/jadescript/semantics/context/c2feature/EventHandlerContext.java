@@ -11,7 +11,6 @@ public abstract class EventHandlerContext
 
     private final String eventType;
 
-    //TODO 'event type' can be constant in sub-ctors
     public EventHandlerContext(
             SemanticsModule module,
             ProceduralFeatureContainerContext outer,

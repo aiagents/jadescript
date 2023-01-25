@@ -14,10 +14,9 @@ public class OnExceptionHandlerContext
     public OnExceptionHandlerContext(
         SemanticsModule module,
         ProceduralFeatureContainerContext outer,
-        String eventType,
         IJadescriptType exceptionReasonType
     ) {
-        super(module, outer, eventType);
+        super(module, outer, "exception");
         this.exceptionReasonType = exceptionReasonType;
     }
 

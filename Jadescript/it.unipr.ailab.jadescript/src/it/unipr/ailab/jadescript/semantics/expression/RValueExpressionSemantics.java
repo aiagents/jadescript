@@ -11,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -44,7 +44,7 @@ public class RValueExpressionSemantics
     protected String compileInternal(
         Maybe<RValueExpression> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return "";
     }
@@ -140,7 +140,7 @@ public class RValueExpressionSemantics
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<RValueExpression> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }
@@ -201,7 +201,7 @@ public class RValueExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<RValueExpression> input) {
+    protected boolean isLExpreableInternal(Maybe<RValueExpression> input) {
         return false;
     }
 
@@ -235,6 +235,15 @@ public class RValueExpressionSemantics
 
     @Override
     protected boolean canBeHoledInternal(Maybe<RValueExpression> input) {
+        return false;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<RValueExpression> input,
+        StaticState state
+    ) {
         return false;
     }
 

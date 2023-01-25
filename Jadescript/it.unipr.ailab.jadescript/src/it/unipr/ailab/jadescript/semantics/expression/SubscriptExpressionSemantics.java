@@ -17,7 +17,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Subscript;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -96,7 +96,7 @@ public class SubscriptExpressionSemantics
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final IJadescriptType restType = this.doOnRest(
             input,
@@ -306,7 +306,7 @@ public class SubscriptExpressionSemantics
     protected String compileInternal(
         Maybe<Subscript> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final IJadescriptType restType = doOnRest(
             input,
@@ -577,7 +577,7 @@ public class SubscriptExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<Subscript> input) {
+    protected boolean isLExpreableInternal(Maybe<Subscript> input) {
         return true;
     }
 
@@ -656,10 +656,19 @@ public class SubscriptExpressionSemantics
 
 
     @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<Subscript> input,
+        StaticState state
+    ) {
+        return false;
+    }
+
+
+    @Override
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<Subscript> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }

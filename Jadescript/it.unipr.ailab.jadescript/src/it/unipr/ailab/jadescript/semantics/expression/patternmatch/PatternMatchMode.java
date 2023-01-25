@@ -8,7 +8,7 @@ public class PatternMatchMode {
     private final HolesAndGroundness holesAndGroundness;
     private final Class<? extends TypeRelationship> typeRelationshipRequirement;
     private final RequiresSuccessfulMatch requiresSuccessfulMatch;
-    private final PatternApplicationPurity patternApplicationPurity;
+    private final PatternApplicationSideEffects patternApplicationSideEffects;
     private final Reassignment reassignment;
     /* Expectations on the pattern match evaluation results: */
     private final Unification unification;
@@ -21,7 +21,7 @@ public class PatternMatchMode {
         HolesAndGroundness holesAndGroundness,
         Class<? extends TypeRelationship> typeRelationshipRequirement,
         RequiresSuccessfulMatch requiresSuccessfulMatch,
-        PatternApplicationPurity patternApplicationPurity,
+        PatternApplicationSideEffects patternApplicationSideEffects,
         Reassignment reassignment,
         Unification unification,
         NarrowsTypeOfInput narrowsTypeOfInput,
@@ -30,7 +30,7 @@ public class PatternMatchMode {
         this.holesAndGroundness = holesAndGroundness;
         this.typeRelationshipRequirement = typeRelationshipRequirement;
         this.requiresSuccessfulMatch = requiresSuccessfulMatch;
-        this.patternApplicationPurity = patternApplicationPurity;
+        this.patternApplicationSideEffects = patternApplicationSideEffects;
         this.reassignment = reassignment;
         this.unification = unification;
         this.narrowsTypeOfInput = narrowsTypeOfInput;
@@ -53,8 +53,8 @@ public class PatternMatchMode {
     }
 
 
-    public PatternApplicationPurity getPatternApplicationPurity() {
-        return patternApplicationPurity;
+    public PatternApplicationSideEffects getPatternApplicationPurity() {
+        return patternApplicationSideEffects;
     }
 
 
@@ -190,16 +190,15 @@ public class PatternMatchMode {
     }
 
 
-    public enum PatternApplicationPurity {
+    public enum PatternApplicationSideEffects {
         /**
-         * Requires the pattern matching operation to be pure, i.e., without
-         * causing side effects.
+         * Requires the pattern matching operation to be without side effects.
          */
-        HAS_TO_BE_PURE,
+        HAS_TO_BE_WITHOUT_SIDE_EFFECTS,
         /**
          * The pattern matching operation can cause side effects.
          */
-        IMPURE_OK
+        CAN_HAVE_SIDE_EFFECTS
     }
 
 

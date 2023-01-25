@@ -16,12 +16,11 @@ public class OnMessageHandlerContext
     public OnMessageHandlerContext(
             SemanticsModule module,
             ProceduralFeatureContainerContext outer,
-            String eventType,
             Maybe<String> performative,
             IJadescriptType messageType,
             IJadescriptType messageContentType
     ) {
-        super(module, outer, eventType);
+        super(module, outer, "message");
         this.performative = performative;
         this.messageContentType = messageContentType;
         this.messageType = messageType;

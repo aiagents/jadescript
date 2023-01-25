@@ -7,7 +7,7 @@ package it.unipr.ailab.jadescript.semantics;
 public class GenerationParameters {
     private GenerationParameters(){} //can not instantiate
 
-    public static final boolean DEBUG = false;
+    public static final boolean DEBUG = true;
     public static final boolean DEBUG_SEARCH = false;
     public static final boolean DEBUG_CONTEXT = false;
     public static final boolean VALIDATOR__SHOW_INFO_MARKERS = false;

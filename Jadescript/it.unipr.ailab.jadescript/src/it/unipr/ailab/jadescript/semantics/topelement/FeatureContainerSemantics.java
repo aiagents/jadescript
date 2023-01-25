@@ -174,7 +174,6 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                     StaticState.beginningOfOperation(module);
 
                 //TODO change: use 'descriptor coreferent' semantics
-
                 List<? extends List<String>> listOfLists =
                     rves.collectFromAllNodes(right, (i, sem) -> {
                         final Maybe<ExpressionDescriptor> descriptorMaybe =

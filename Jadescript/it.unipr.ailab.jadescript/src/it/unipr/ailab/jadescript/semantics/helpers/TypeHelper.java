@@ -52,7 +52,8 @@ public class TypeHelper implements SemanticsConsts {
     public static final String builtinPrefix = "BUILTIN#";
     public static final String VOID_TYPEID = builtinPrefix + "JAVAVOID";
     // Top and bottom
-    //TODO use new TOP/BOTTOM system when possible, check if messages are shown
+    //TODO use new TOP/BOTTOM system when possible
+    //TODO check if messages are correctly shown in validator markers
     public final Function<String, UtilityType> TOP;
     public final Function<String, UtilityType> BOTTOM;
     public final UtilityType ANY;
@@ -1747,7 +1748,7 @@ public class TypeHelper implements SemanticsConsts {
         Maybe<OntologyType> mt1,
         Maybe<OntologyType> mt2,
         List<Maybe<OntologyType>> mts
-    ) {//FUTURETODO multiple ontologies
+    ) {//TODO multiple ontologies
         Maybe<OntologyType> result = getOntologyGLB(mt1, mt2);
         for (Maybe<OntologyType> mt : mts) {
             if (result.isNothing()) {
@@ -1762,7 +1763,7 @@ public class TypeHelper implements SemanticsConsts {
     public Maybe<OntologyType> getOntologyGLB(
         Maybe<OntologyType> mt1,
         Maybe<OntologyType> mt2
-    ) {//FUTURETODO multiple ontologies
+    ) {//TODO multiple ontologies
         if (mt1.isNothing()) {
             return nothing();
         }
@@ -2163,7 +2164,7 @@ public class TypeHelper implements SemanticsConsts {
             return true;
         }
 
-        //TODO better solution
+        //TODO design better solution
         if (left.getQualifiedName().equals("jadescript.lang.Tuple")) {
             //ad hoc fix for tuple types
             return right.getQualifiedName('.')

@@ -15,7 +15,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
@@ -85,7 +85,7 @@ public class MapLiteralExpressionSemantics
     protected String compileInternal(
         Maybe<MapOrSetLiteral> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final List<Maybe<RValueExpression>> values =
             Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
@@ -489,7 +489,7 @@ public class MapLiteralExpressionSemantics
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<MapOrSetLiteral> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         boolean isWithPipe = input.getPattern()
             .__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
@@ -1090,7 +1090,7 @@ public class MapLiteralExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<MapOrSetLiteral> input) {
+    protected boolean isLExpreableInternal(Maybe<MapOrSetLiteral> input) {
         return false;
     }
 
@@ -1102,12 +1102,21 @@ public class MapLiteralExpressionSemantics
 
 
     @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<MapOrSetLiteral> input,
+        StaticState state
+    ) {
+        return false;
+    }
+
+
+    @Override
     protected void compileAssignmentInternal(
         Maybe<MapOrSetLiteral> input,
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
 
     }

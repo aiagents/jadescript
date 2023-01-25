@@ -5,11 +5,10 @@ import it.unipr.ailab.jadescript.jadescript.LValueExpression;
 import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.WhenMatchesStatement;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
@@ -17,7 +16,6 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
@@ -27,7 +25,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
@@ -49,7 +46,7 @@ public class WhenMatchesStatementSemantics
     public StaticState compileStatement(
         Maybe<WhenMatchesStatement> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final Maybe<RValueExpression> inputExpr =
             input.__(WhenMatchesStatement::getInputExpr);
@@ -142,7 +139,7 @@ public class WhenMatchesStatementSemantics
             StaticState inBranch = lves.assertDidMatch(pmi, runningState);
 
             String condition =
-                output.operationInvocationText(compiledInputExpr);
+                output.rootInvocationText(compiledInputExpr);
 
             inBranch = inBranch.enterScope();
 
@@ -208,17 +205,6 @@ public class WhenMatchesStatementSemantics
             () -> beforeBranches
         );
 
-    }
-
-
-    @Override
-    public Stream<SemanticsBoundToExpression<?>> includedExpressions(
-        Maybe<WhenMatchesStatement> input
-    ) {
-        return Util.buildStream(() -> new SemanticsBoundToExpression<>(
-            module.get(RValueExpressionSemantics.class),
-            input.__(WhenMatchesStatement::getInputExpr)
-        ));
     }
 
 

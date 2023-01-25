@@ -276,7 +276,7 @@ public class OnPerceptHandlerSemantics
                 s
             );
 
-            part1 = matcher.operationInvocationText(PERCEPT_CONTENT_VAR_NAME);
+            part1 = matcher.rootInvocationText(PERCEPT_CONTENT_VAR_NAME);
         } else {
             prepareBodyState = Function.identity();
             afterPatternDidMatch = beforePattern;
@@ -443,7 +443,6 @@ public class OnPerceptHandlerSemantics
             (mod, out) -> new OnPerceptHandlerContext(
                 mod,
                 out,
-                "percept",
                 finalContentType
             )
         );
@@ -682,7 +681,6 @@ public class OnPerceptHandlerSemantics
             new OnPerceptHandlerContext(
                 mod,
                 out,
-                "percept",
                 finalContentType
             )
         );

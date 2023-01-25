@@ -4,17 +4,14 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.BreakStatement;
 import it.unipr.ailab.jadescript.jadescript.ForStatement;
 import it.unipr.ailab.jadescript.jadescript.WhileStatement;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.xtext.EcoreUtil2;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-
-import java.util.stream.Stream;
 
 /**
  * Created on 26/04/18.
@@ -32,7 +29,7 @@ public class BreakStatementSemantics
     public StaticState compileStatement(
         Maybe<BreakStatement> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
 
         StatementWriter result;
@@ -66,13 +63,6 @@ public class BreakStatementSemantics
             return state;
         }
         return state.invalidateUntilExitLoop();
-    }
-
-
-    @Override
-    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>>
-    includedExpressions(Maybe<BreakStatement> input) {
-        return Stream.empty();
     }
 
 

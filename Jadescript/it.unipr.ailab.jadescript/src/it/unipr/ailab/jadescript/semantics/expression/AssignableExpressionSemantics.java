@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -10,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
@@ -25,7 +26,7 @@ import java.util.stream.Stream;
 
 /**
  * Base abstract class for the semantics of those expressions which can be
- * (by the syntax rules) used at the left side of the '=' in a
+ * (by the syntax rules) used at the left of the '=' in a
  * declaration/assignment statement.
  */
 @Singleton
@@ -33,9 +34,9 @@ public abstract class AssignableExpressionSemantics<T>
     extends ExpressionSemantics<T> {
 
 
-    private final AssignableExpressionSemantics<?>
+    private final LazyValue<AssignableExpressionSemantics<?>>
         EMPTY_ASSIGNABLE_EXPRESSION_SEMANTICS =
-        new AssignableAdapter<>(this.module);
+        new LazyValue<>(() -> new AssignableAdapter<>(this.module));
 
 
     public AssignableExpressionSemantics(SemanticsModule semanticsModule) {
@@ -47,7 +48,7 @@ public abstract class AssignableExpressionSemantics<T>
     public final <X> AssignableExpressionSemantics<X>
     emptyAssignableSemantics() {
         return (AssignableExpressionSemantics<X>)
-            EMPTY_ASSIGNABLE_EXPRESSION_SEMANTICS;
+            EMPTY_ASSIGNABLE_EXPRESSION_SEMANTICS.get();
     }
 
 
@@ -102,7 +103,7 @@ public abstract class AssignableExpressionSemantics<T>
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         this.traversingAssignableSemanticsDo(
             input,
@@ -128,7 +129,7 @@ public abstract class AssignableExpressionSemantics<T>
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     );
 
 
@@ -335,7 +336,7 @@ public abstract class AssignableExpressionSemantics<T>
         protected String compileInternal(
             Maybe<X> input,
             StaticState state,
-            CompilationOutputAcceptor acceptor
+            BlockElementAcceptor acceptor
         ) {
             return "";
         }
@@ -397,7 +398,7 @@ public abstract class AssignableExpressionSemantics<T>
 
 
         @Override
-        protected boolean isValidLExprInternal(Maybe<X> input) {
+        protected boolean isLExpreableInternal(Maybe<X> input) {
             return false;
         }
 
@@ -472,10 +473,19 @@ public abstract class AssignableExpressionSemantics<T>
 
 
         @Override
+        protected boolean isPredictablePatternMatchSuccessInternal(
+            PatternMatchInput<X> input,
+            StaticState state
+        ) {
+            return false;
+        }
+
+
+        @Override
         public PatternMatcher compilePatternMatchInternal(
             PatternMatchInput<X> input,
             StaticState state,
-            CompilationOutputAcceptor acceptor
+            BlockElementAcceptor acceptor
         ) {
             return input.createEmptyCompileOutput();
         }
@@ -506,7 +516,7 @@ public abstract class AssignableExpressionSemantics<T>
             String compiledExpression,
             IJadescriptType exprType,
             StaticState state,
-            CompilationOutputAcceptor acceptor
+            BlockElementAcceptor acceptor
         ) {
             //do nothing
         }

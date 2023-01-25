@@ -11,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -65,7 +65,7 @@ public class InvokeExpressionSemantics
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         //CANNOT ASSIGN TO AN INVOKE EXPRESSION
     }
@@ -106,7 +106,7 @@ public class InvokeExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<InvokeExpression> input) {
+    protected boolean isLExpreableInternal(Maybe<InvokeExpression> input) {
         //CANNOT ASSIGN TO AN INVOKE-EXPRESSION
         return false;
     }
@@ -212,7 +212,7 @@ public class InvokeExpressionSemantics
     protected String compileInternal(
         Maybe<InvokeExpression> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         final Maybe<String> name = input.__(InvokeExpression::getName);
         final boolean isStatic = input.__(InvokeExpression::isStatic)
@@ -350,7 +350,7 @@ public class InvokeExpressionSemantics
     compilePatternMatchInternal(
         PatternMatchInput<InvokeExpression> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }
@@ -464,6 +464,15 @@ public class InvokeExpressionSemantics
     @Override
     protected boolean canBeHoledInternal(Maybe<InvokeExpression> input) {
         // CANNOT BE HOLED
+        return false;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<InvokeExpression> input,
+        StaticState state
+    ) {
         return false;
     }
 

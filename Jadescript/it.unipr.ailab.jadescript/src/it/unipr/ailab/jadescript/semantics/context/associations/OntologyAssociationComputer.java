@@ -25,8 +25,9 @@ public interface OntologyAssociationComputer extends WithSupertype {
     private Stream<OntologyAssociation> computeOntologyAssociationsFromSupertype() {
         Maybe<Searcheable> ms = superTypeSearcheable();
         if (ms.isPresent() && ms.toNullable() instanceof OntologyAssociated) {
-            return ((OntologyAssociated) ms.toNullable()).computeAllOntologyAssociations()
-                    .map(OntologyAssociation::applyExtends);
+            return ((OntologyAssociated) ms.toNullable())
+                .computeAllOntologyAssociations()
+                .map(OntologyAssociation::applyExtends);
         } else {
             return Stream.empty();
         }

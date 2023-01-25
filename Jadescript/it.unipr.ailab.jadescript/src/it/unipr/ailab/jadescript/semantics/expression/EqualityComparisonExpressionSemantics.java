@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.EqualityComparison;
 import it.unipr.ailab.jadescript.jadescript.TypeComparison;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -12,7 +13,6 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -147,7 +147,7 @@ public class EqualityComparisonExpressionSemantics
     protected String compileInternal(
         Maybe<EqualityComparison> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
         final TypeComparisonExpressionSemantics tces =
@@ -198,7 +198,8 @@ public class EqualityComparisonExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
+    protected Optional<? extends SemanticsBoundToExpression<?>>
+    traverseInternal(
         Maybe<EqualityComparison> input
     ) {
         if (mustTraverse(input)) {
@@ -304,7 +305,7 @@ public class EqualityComparisonExpressionSemantics
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<EqualityComparison> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         Maybe<TypeComparison> left = input.getPattern()
             .__(EqualityComparison::getLeft);
@@ -614,7 +615,7 @@ public class EqualityComparisonExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<EqualityComparison> input) {
+    protected boolean isLExpreableInternal(Maybe<EqualityComparison> input) {
         return false;
     }
 
@@ -622,6 +623,69 @@ public class EqualityComparisonExpressionSemantics
     @Override
     protected boolean canBeHoledInternal(Maybe<EqualityComparison> input) {
         return true;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<EqualityComparison> input,
+        StaticState state
+    ) {
+        Maybe<TypeComparison> left = input.getPattern()
+            .__(EqualityComparison::getLeft);
+        Maybe<TypeComparison> right = input.getPattern()
+            .__(EqualityComparison::getRight);
+        String equalityOp = input.getPattern()
+            .__(EqualityComparison::getEqualityOp).orElse("");
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
+            || !tces.isHoled(left, state)) {
+            // Just an expression
+            return false;
+        } else {
+            final SubPattern<TypeComparison, EqualityComparison>
+                rightSubpattern =
+                input.subPattern(
+                    input.getProvidedInputType(),
+                    __ -> right.toNullable(),
+                    "_right"
+                );
+
+            boolean rightResult = tces.isPredictablePatternMatchSuccess(
+                rightSubpattern,
+                state
+            );
+
+            if(!rightResult){
+                return false;
+            }
+
+            final IJadescriptType rType = tces.inferPatternType(
+                rightSubpattern, state
+            ).solve(input.getProvidedInputType());
+
+            StaticState afterRight = tces.advancePattern(
+                rightSubpattern,
+                state
+            );
+
+            final SubPattern<
+                TypeComparison,
+                EqualityComparison
+                > leftSubpattern = input.subPattern(
+                rType,
+                __ -> left.toNullable(),
+                "_left"
+            );
+
+            return tces.isPredictablePatternMatchSuccess(
+                leftSubpattern,
+                afterRight
+            );
+
+        }
+
     }
 
 

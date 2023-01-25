@@ -269,7 +269,7 @@ public class OnExceptionHandlerSemantics
                 s
             );
 
-            part1 = matcher.operationInvocationText(
+            part1 = matcher.rootInvocationText(
                 EXCEPTION_REASON_VAR_NAME
             );
         } else {
@@ -377,7 +377,6 @@ public class OnExceptionHandlerSemantics
                 new OnExceptionHandlerContext(
                     mod,
                     out,
-                    "exception",
                     finalContentType
                 )
         );
@@ -540,7 +539,6 @@ public class OnExceptionHandlerSemantics
             new OnExceptionHandlerContext(
                 mod,
                 out,
-                "exception",
                 finalContentType
             )
         );

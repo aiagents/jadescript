@@ -251,6 +251,7 @@ public class ValidationHelper implements SemanticsConsts {
     ) {
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
+
         boolean indexCheck = rves.validate(
             indexExpression,
             beforeIndex,

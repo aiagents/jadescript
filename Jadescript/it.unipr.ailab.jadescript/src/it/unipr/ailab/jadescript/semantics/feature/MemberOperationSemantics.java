@@ -33,12 +33,12 @@ import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
  * Created on 27/04/18.
  */
 @Singleton
-public class UserOperationSemantics
+public class MemberOperationSemantics
     extends FeatureSemantics<FunctionOrProcedure>
     implements OperationDeclarationSemantics {
 
 
-    public UserOperationSemantics(SemanticsModule semanticsModule) {
+    public MemberOperationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
@@ -79,7 +79,8 @@ public class UserOperationSemantics
         final FunctionOrProcedure inputSafe = input.toNullable();
         final String nameSafe = name.toNullable();
 
-        final ContextManager contextManager = module.get(ContextManager.class);
+        final ContextManager contextManager =
+            module.get(ContextManager.class);
 
         final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);

@@ -10,7 +10,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
@@ -170,7 +170,7 @@ public class StringLiteralSemantics
     @Override
     protected String compileInternal(
         Maybe<StringLiteralSimple> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         return adaptStringConstant(input.__(StringLiteralSimple::getValue))
             .orElse("");
@@ -240,7 +240,7 @@ public class StringLiteralSemantics
     compilePatternMatchInternal(
         PatternMatchInput<StringLiteralSimple> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }
@@ -275,7 +275,7 @@ public class StringLiteralSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<StringLiteralSimple> input) {
+    protected boolean isLExpreableInternal(Maybe<StringLiteralSimple> input) {
         return false;
     }
 
@@ -314,6 +314,15 @@ public class StringLiteralSemantics
 
 
     @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<StringLiteralSimple> input,
+        StaticState state
+    ) {
+        return false;
+    }
+
+
+    @Override
     protected StaticState advancePatternInternal(
         PatternMatchInput<StringLiteralSimple> input,
         StaticState state
@@ -328,7 +337,7 @@ public class StringLiteralSemantics
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
 
     }

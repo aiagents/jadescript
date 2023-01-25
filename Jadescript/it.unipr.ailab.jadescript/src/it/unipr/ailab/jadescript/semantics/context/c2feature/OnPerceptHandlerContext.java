@@ -13,10 +13,9 @@ public class OnPerceptHandlerContext
     public OnPerceptHandlerContext(
             SemanticsModule module,
             ProceduralFeatureContainerContext outer,
-            String eventType,
             IJadescriptType perceptContentType
     ) {
-        super(module, outer, eventType);
+        super(module, outer, "percept");
         this.perceptContentType = perceptContentType;
     }
 

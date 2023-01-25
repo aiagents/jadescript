@@ -15,7 +15,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.util.Strings;
@@ -141,7 +141,7 @@ public class OfNotationExpressionSemantics
     @Override
     protected String compileInternal(
         Maybe<OfNotation> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(
             OfNotation::getProperties));
@@ -187,7 +187,7 @@ public class OfNotationExpressionSemantics
         String compiledExpression,
         IJadescriptType exprType,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
 
         final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(
@@ -547,7 +547,7 @@ public class OfNotationExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<OfNotation> input) {
+    protected boolean isLExpreableInternal(Maybe<OfNotation> input) {
         return true;
     }
 
@@ -657,7 +657,7 @@ public class OfNotationExpressionSemantics
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<OfNotation> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }
@@ -719,6 +719,15 @@ public class OfNotationExpressionSemantics
 
     @Override
     protected boolean canBeHoledInternal(Maybe<OfNotation> input) {
+        return false;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<OfNotation> input,
+        StaticState state
+    ) {
         return false;
     }
 

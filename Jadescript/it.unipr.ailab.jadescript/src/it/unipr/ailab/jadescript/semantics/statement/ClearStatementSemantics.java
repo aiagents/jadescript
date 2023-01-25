@@ -4,19 +4,15 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.ClearStatement;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-
-import java.util.stream.Stream;
 
 /**
  * Created on 10/05/18.
@@ -32,21 +28,10 @@ public class ClearStatementSemantics
 
 
     @Override
-    public Stream<ExpressionSemantics.SemanticsBoundToExpression<?>>
-    includedExpressions(Maybe<ClearStatement> input) {
-        final RValueExpressionSemantics rves =
-            module.get(RValueExpressionSemantics.class);
-        return Stream.of(input.__(ClearStatement::getCollection))
-            .filter(Maybe::isPresent)
-            .map( i -> new SemanticsBoundToExpression<>(rves, i));
-    }
-
-
-    @Override
     public StaticState compileStatement(
         Maybe<ClearStatement> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         if (input == null) {
             return state;

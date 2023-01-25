@@ -11,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.topelement.AgentSemantics;
-import it.unipr.ailab.jadescript.semantics.topelement.GlobalMethodSemantics;
+import it.unipr.ailab.jadescript.semantics.topelement.GlobalOperationSemantics;
 import it.unipr.ailab.jadescript.semantics.topelement.OntologySemantics;
 import it.unipr.ailab.jadescript.semantics.topelement.TopElementBehaviourSemantics;
 import it.unipr.ailab.maybe.Maybe;
@@ -174,7 +174,8 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
             for (final String k : functionsMap.keySet()) {
                 {
                     SemanticsModule module = createSemanticsModule(m, "Validation");
-                    GlobalMethodSemantics gms = module.get(GlobalMethodSemantics.class);
+                    GlobalOperationSemantics gms = module.get(
+                        GlobalOperationSemantics.class);
                     for (final GlobalFunctionOrProcedure v : functionsMap.get(k)) {
                         gms.addMethod(Maybe.some(v));
                     }

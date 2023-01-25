@@ -16,21 +16,23 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class UsingOntologyDeclarationContext
-        extends TopLevelDeclarationContext
-        implements OntologyAssociated {
+    extends TopLevelDeclarationContext
+    implements OntologyAssociated {
+
     private final List<IJadescriptType> ontologyTypes;
     private final List<LazyValue<TypeNamespace>> ontoNamespaces;
 
+
     public UsingOntologyDeclarationContext(
-            SemanticsModule module,
-            FileContext outer,
-            List<IJadescriptType> ontologyTypes
+        SemanticsModule module,
+        FileContext outer,
+        List<IJadescriptType> ontologyTypes
     ) {
         super(module, outer);
         this.ontologyTypes = ontologyTypes;
         this.ontoNamespaces = ontologyTypes.stream()
-                .map(ot -> new LazyValue<>(ot::namespace))
-                .collect(Collectors.toList());
+            .map(ot -> new LazyValue<>(ot::namespace))
+            .collect(Collectors.toList());
     }
 
 
@@ -38,38 +40,47 @@ public abstract class UsingOntologyDeclarationContext
     public Stream<OntologyAssociation> computeUsingOntologyAssociations() {
         Stream<OntologyAssociation> result = Stream.empty();
 
-        for (int i = 0; i < Math.min(ontologyTypes.size(), ontoNamespaces.size()); i++) {
-            final LazyValue<TypeNamespace> ontoNamespace = ontoNamespaces.get(i);
-            final IJadescriptType ontologyType = ontologyTypes.get(i);
+        final int assumedSize =
+            Math.min(ontologyTypes.size(), ontoNamespaces.size());
+
+        for (int i = 0; i < assumedSize; i++) {
+            final LazyValue<TypeNamespace> ontoNamespace =
+                ontoNamespaces.get(i);
+            final IJadescriptType ontologyType =
+                ontologyTypes.get(i);
             if (ontoNamespace.get() instanceof OntologyAssociationComputer) {
                 result = Streams.concat(
-                        result,
-                        ((OntologyAssociationComputer) ontoNamespace.get())
-                                .computeAllOntologyAssociations()
-                                .map(OntologyAssociation::applyUsesOntology)
+                    result,
+                    ((OntologyAssociationComputer) ontoNamespace.get())
+                        .computeAllOntologyAssociations()
+                        .map(OntologyAssociation::applyUsesOntology)
                 );
             } else {
-                result = Streams.concat(
-                        result,
-                        Stream.of(new OntologyAssociation(ontologyType, OntologyAssociation.U_O.INSTANCE))
+                result = Streams.concat(result,
+                    Stream.of(new OntologyAssociation(
+                        ontologyType,
+                        OntologyAssociation.U_O.INSTANCE
+                    ))
                 );
             }
         }
         return result;
     }
 
+
     @Override
     public void debugDump(SourceCodeBuilder scb) {
         super.debugDump(scb);
         scb.line("--> is UsesOntologyDeclarationContext {").indent();
         scb.line("Ontology types = [" +
-                ontologyTypes.stream()
-                        .map(IJadescriptType::getDebugPrint)
-                        .collect(Collectors.joining(", "))
-                + "]");
+            ontologyTypes.stream()
+                .map(IJadescriptType::getDebugPrint)
+                .collect(Collectors.joining(", "))
+            + "]");
 
         scb.dedent().line("}");
         scb.dedent().line("}");
         debugDumpOntologyAssociations(scb);
     }
+
 }

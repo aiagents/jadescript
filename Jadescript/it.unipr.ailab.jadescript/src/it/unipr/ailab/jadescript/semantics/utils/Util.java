@@ -224,6 +224,8 @@ public class Util implements SemanticsConsts {
     }
 
 
+
+
     public static ITextRegionWithLineInformation getLocationForEObject(
         EObject inputSafe
     ) {

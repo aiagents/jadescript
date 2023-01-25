@@ -14,11 +14,13 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableMap;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableSet;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -39,7 +41,7 @@ public final class StaticState
 
     //TODO change: introduce 'descriptor coreferent' semantics
     // - several expressions could be referring to the same value
-    //   - e.g., 'X', 'X' of this where X is a property of the behaviour
+    //   - e.g., 'X' and 'X of this' where X is a property of the behaviour
 
     private final SemanticsModule module;
     private final Searcheable outer;
@@ -286,17 +288,17 @@ public final class StaticState
 
     public StaticState assertAssigned(
         ExpressionDescriptor ed
-    ){
-        if(inferUpperBound(
+    ) {
+        if (inferUpperBound(
             ed1 -> ed1.equals(ed),
             null
-        ).findAny().isEmpty()){
+        ).findAny().isEmpty()) {
             return this;
         }
 
         final Optional<IJadescriptType> localUpperBound =
             getLocalScopeFlowTypingUpperBounds().get(ed);
-        if(localUpperBound.isPresent()){
+        if (localUpperBound.isPresent()) {
             return new StaticState(
                 this.isValid(),
                 this.module,
@@ -309,7 +311,7 @@ public final class StaticState
         }
 
 
-        if(!(this.outerContext() instanceof StaticState)){
+        if (!(this.outerContext() instanceof StaticState)) {
             return this;
         }
 
@@ -323,12 +325,13 @@ public final class StaticState
         );
     }
 
+
     public StaticState assertAssigned(
         Maybe<ExpressionDescriptor> ed
-    ){
-        if(ed.isNothing()){
+    ) {
+        if (ed.isNothing()) {
             return this;
-        }else{
+        } else {
             return assertAssigned(ed.toNullable());
         }
     }
@@ -419,24 +422,33 @@ public final class StaticState
 
         final Searcheable thisOuterContext = this.outerContext();
         final Searcheable otherOuterContext = other.outerContext();
+
         if (!(thisOuterContext instanceof StaticState)
-            || !(otherOuterContext instanceof StaticState)) {
+            && otherOuterContext instanceof StaticState
+            || thisOuterContext instanceof StaticState
+            && !(otherOuterContext instanceof StaticState)) {
             throw new RuntimeException(
                 "Attempted to intesect two states with different scope depths: "
                     + this.scopeDepth + ", " + other.scopeDepth
             );
         }
 
-        if (((StaticState) thisOuterContext).scopeType
+
+        final Searcheable outerIntersected;
+        if (!(thisOuterContext instanceof StaticState)) {
+            outerIntersected = thisOuterContext;
+        } else if (((StaticState) thisOuterContext).scopeType
             != ((StaticState) otherOuterContext).scopeType) {
             throw new RuntimeException(
                 "Attempted to intesect two states with different scope type: "
                     + this.scopeType + ", " + other.scopeType
             );
+        } else {
+            outerIntersected = ((StaticState) thisOuterContext)
+                .intersectAlternative(((StaticState) otherOuterContext));
+
         }
 
-        StaticState outerIntersected = ((StaticState) thisOuterContext)
-            .intersectAlternative(((StaticState) otherOuterContext));
 
         if (!this.valid && !other.valid) {
             return new StaticState(
@@ -470,7 +482,6 @@ public final class StaticState
     }
 
 
-
     private ImmutableMap<String, NamedSymbol> intersectSymbols(
         StaticState other
     ) {
@@ -479,12 +490,13 @@ public final class StaticState
 
         ImmutableSet<String> keys = a.getKeys().intersection(b.getKeys());
 
-        return keys.associateOpt(key ->
-            SymbolUtils.intersectNamedSymbols(
-                Set.of(a.getUnsafe(key), b.getUnsafe(key)),
-                module
-            )
-        );
+
+        return keys.associateOpt(key -> {
+            Set<NamedSymbol> nss = new HashSet<>();
+            nss.add(a.getUnsafe(key));
+            nss.add(b.getUnsafe(key));
+            return SymbolUtils.intersectNamedSymbols(nss, module);
+        });
     }
 
 
@@ -562,6 +574,37 @@ public final class StaticState
             outer.invalidateUntilExitOperation(),
             this.scopeType
         );
+    }
+
+
+    @Override
+    public void debugDump(SourceCodeBuilder scb) {
+        scb.open("*** STATIC STATE (" + this.scopeDepth +
+            ", " + this.scopeType + ") ***");
+        if (isValid()) {
+            scb.open("Variables = [");
+            for (String key : this.getLocalScopeNamedSymbols().getKeys()) {
+                this.getLocalScopeNamedSymbols().getUnsafe(key)
+                    .debugDumpNamedSymbol(scb);
+            }
+            scb.close("]");
+            scb.open("UpperBounds = [");
+            for (ExpressionDescriptor ed :
+                this.getLocalScopeFlowTypingUpperBounds().getKeys()) {
+                final IJadescriptType ub =
+                    this.getLocalScopeFlowTypingUpperBounds().getUnsafe(ed);
+                scb.line(ed + " <= " + ub.getJadescriptName());
+            }
+            scb.close("]");
+        } else {
+            scb.line("~~~~~~~ INVALID ~~~~~~~");
+        }
+        scb.close("*** END STATIC STATE (" + this.scopeDepth +
+            ", " + this.scopeType + ") ***");
+
+        if (this.outerContext() instanceof StaticState) {
+            this.outerContext().debugDump(scb);
+        }
     }
 
 }

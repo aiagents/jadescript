@@ -40,14 +40,14 @@ public class UserDefinedOntologyType extends UserDefinedType<BaseOntologyType> i
         return new OntologyTypeNamespace(module, this);
     }
 
-    public OntologyType getSuperOntologyType() { //FUTURETODO multiple ontologies
+    public OntologyType getSuperOntologyType() { //TODO multiple ontologies
         JvmModelBasedNamespace jvmNamespace = jvmNamespace();
 
         return (
                 jvmNamespace == null
                         ? Stream.empty()
                         : jvmNamespace.searchName(
-                        SUPER_ONTOLOGY_VAR, //FUTURETODO multiple ontologies
+                        SUPER_ONTOLOGY_VAR, //TODO multiple ontologies
                         null,
                         null
                 )
@@ -62,7 +62,7 @@ public class UserDefinedOntologyType extends UserDefinedType<BaseOntologyType> i
     }
 
     @Override
-    public boolean isSuperOrEqualOntology(OntologyType other) { //FUTURETODO multiple ontologies
+    public boolean isSuperOrEqualOntology(OntologyType other) { //TODO multiple ontologies
         if (this.typeEquals(other)) {
             return true;
         }

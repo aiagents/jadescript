@@ -2,19 +2,15 @@ package it.unipr.ailab.jadescript.semantics.statement;
 
 import it.unipr.ailab.jadescript.jadescript.PutbackStatement;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-
-import java.util.stream.Stream;
 
 public class PutBackStatementSemantics
     extends StatementSemantics<PutbackStatement> {
@@ -25,21 +21,10 @@ public class PutBackStatementSemantics
 
 
     @Override
-    public Stream<SemanticsBoundToExpression<?>> includedExpressions(
-        Maybe<PutbackStatement> input
-    ) {
-        return Util.buildStream(() -> new SemanticsBoundToExpression<>(
-            module.get(RValueExpressionSemantics.class),
-            input.__(PutbackStatement::getMessage)
-        ));
-    }
-
-
-    @Override
     public StaticState compileStatement(
         Maybe<PutbackStatement> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         if (input == null || input.isNothing()) {
             return state;

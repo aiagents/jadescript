@@ -15,7 +15,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.TupledExpressions;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -174,7 +174,11 @@ public class PrimaryExpressionSemantics
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class)
                 .advancePattern(
-                    input.replacePattern(exprs.get(0)),
+                    input.subPattern(
+                        input.getProvidedInputType(),
+                        __ -> exprs.get(0).toNullable(),
+                        "__paren"
+                    ),
                     state
                 );
         } else {
@@ -188,7 +192,7 @@ public class PrimaryExpressionSemantics
     protected String compileInternal(
         Maybe<Primary> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
 
         final List<Maybe<RValueExpression>> exprs =
@@ -337,7 +341,7 @@ public class PrimaryExpressionSemantics
         Maybe<Primary> input,
         String compiledExpression,
         IJadescriptType exprType,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         // parenthesized expressions cannot be assigned
     }
@@ -376,7 +380,7 @@ public class PrimaryExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<Primary> input) {
+    protected boolean isLExpreableInternal(Maybe<Primary> input) {
         // parenthesized expressions cannot be assigned
         return false;
     }
@@ -418,7 +422,7 @@ public class PrimaryExpressionSemantics
     @Override
     public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<Primary> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         final List<Maybe<RValueExpression>> exprs =
             Maybe.toListOfMaybes(input.getPattern()
@@ -428,7 +432,11 @@ public class PrimaryExpressionSemantics
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class)
                 .compilePatternMatch(
-                    input.replacePattern(exprs.get(0)),
+                    input.subPattern(
+                        input.getProvidedInputType(),
+                        __ -> exprs.get(0).toNullable(),
+                        "__paren"
+                    ),
                     state,
                     acceptor
                 );
@@ -452,7 +460,11 @@ public class PrimaryExpressionSemantics
 
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class).inferPatternType(
-                input.replacePattern(exprs.get(0)),
+                input.subPattern(
+                        input.getProvidedInputType(),
+                        __ -> exprs.get(0).toNullable(),
+                        "__paren"
+                    ),
                 state
             );
         }
@@ -474,7 +486,11 @@ public class PrimaryExpressionSemantics
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class)
                 .validatePatternMatch(
-                    input.replacePattern(exprs.get(0)),
+                    input.subPattern(
+                        input.getProvidedInputType(),
+                        __ -> exprs.get(0).toNullable(),
+                        "__paren"
+                    ),
                     state,
                     acceptor
                 );
@@ -496,6 +512,32 @@ public class PrimaryExpressionSemantics
     @Override
     protected boolean canBeHoledInternal(Maybe<Primary> input) {
         return subExpressionsAllMatch(input, ExpressionSemantics::canBeHoled);
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<Primary> input,
+        StaticState state
+    ) {
+        final List<Maybe<RValueExpression>> exprs =
+            Maybe.toListOfMaybes(input.getPattern()
+                    .__(Primary::getExprs)).stream()
+                .filter(Maybe::isPresent)
+                .collect(Collectors.toList());
+        if (exprs.size() == 1) {
+            return module.get(RValueExpressionSemantics.class)
+                .isPredictablePatternMatchSuccess(
+                    input.subPattern(
+                        input.getProvidedInputType(),
+                        __ -> exprs.get(0).toNullable(),
+                        "__paren"
+                    ),
+                    state
+                );
+        } else {
+            return VALID;
+        }
     }
 
 }

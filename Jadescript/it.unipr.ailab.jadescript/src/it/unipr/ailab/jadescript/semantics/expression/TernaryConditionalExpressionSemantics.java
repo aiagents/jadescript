@@ -14,7 +14,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -123,7 +123,7 @@ public class TernaryConditionalExpressionSemantics
     @Override
     protected String compileInternal(
         Maybe<TernaryConditional> input,
-        StaticState state, CompilationOutputAcceptor acceptor
+        StaticState state, BlockElementAcceptor acceptor
     ) {
         final Maybe<LogicalOr> condition =
             input.__(TernaryConditional::getCondition);
@@ -302,7 +302,7 @@ public class TernaryConditionalExpressionSemantics
     compilePatternMatchInternal(
         PatternMatchInput<TernaryConditional> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         return input.createEmptyCompileOutput();
     }
@@ -336,7 +336,7 @@ public class TernaryConditionalExpressionSemantics
 
 
     @Override
-    protected boolean isValidLExprInternal(Maybe<TernaryConditional> input) {
+    protected boolean isLExpreableInternal(Maybe<TernaryConditional> input) {
         return false;
     }
 
@@ -370,6 +370,15 @@ public class TernaryConditionalExpressionSemantics
 
     @Override
     protected boolean canBeHoledInternal(Maybe<TernaryConditional> input) {
+        return false;
+    }
+
+
+    @Override
+    protected boolean isPredictablePatternMatchSuccessInternal(
+        PatternMatchInput<TernaryConditional> input,
+        StaticState state
+    ) {
         return false;
     }
 

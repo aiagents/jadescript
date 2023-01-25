@@ -13,7 +13,7 @@ import it.unipr.ailab.jadescript.jadescript.Ontology
 import it.unipr.ailab.jadescript.jadescript.TopElement
 import it.unipr.ailab.jadescript.semantics.SemanticsModule
 import it.unipr.ailab.jadescript.semantics.topelement.AgentSemantics
-import it.unipr.ailab.jadescript.semantics.topelement.GlobalMethodSemantics
+import it.unipr.ailab.jadescript.semantics.topelement.GlobalOperationSemantics
 import it.unipr.ailab.jadescript.semantics.topelement.OntologySemantics
 import it.unipr.ailab.jadescript.semantics.topelement.TopElementBehaviourSemantics
 import it.unipr.ailab.maybe.Maybe
@@ -142,7 +142,7 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 			for (k : functionsMap.keySet) {
 				var module = createSemanticsModule(model, phase)
 
-				var gms = module.get(GlobalMethodSemantics)
+				var gms = module.get(GlobalOperationSemantics)
 				for (v : functionsMap.get(k)) {
 					gms.addMethod(Maybe.some(v))
 

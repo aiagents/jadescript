@@ -5,14 +5,13 @@ import it.unipr.ailab.jadescript.jadescript.ForStatement;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.semantics.CompilationOutputAcceptor;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.GenerationParameters;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
-import it.unipr.ailab.jadescript.semantics.expression.ExpressionSemantics.SemanticsBoundToExpression;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -21,13 +20,10 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-
-import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.*;
 
@@ -42,13 +38,12 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         super(semanticsModule);
     }
 
-
     //TODO new var assignment semantics
     @Override
     public StaticState compileStatement(
         Maybe<ForStatement> input,
         StaticState state,
-        CompilationOutputAcceptor acceptor
+        BlockElementAcceptor acceptor
     ) {
         Maybe<RValueExpression> collection =
             input.__(ForStatement::getCollection);
@@ -58,11 +53,13 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             input.__(ForStatement::getVar2Name);
         Maybe<OptionalBlock> forBody =
             input.__(ForStatement::getForBody);
+
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
 
         IJadescriptType collectionType = rves.inferType(collection, state);
+
         IJadescriptType firstVarType;
 
         if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
@@ -77,25 +74,22 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             firstVarType = module.get(TypeHelper.class).ANY;
         }
 
-
         final String compiledCollection = rves.compile(
             collection,
             state,
             acceptor
         );
+
         final StaticState afterCollection = rves.advance(collection, state);
 
         if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
-
             Maybe<RValueExpression> end = input.__(ForStatement::getEndIndex);
 
-            final String compiledEndIndex = rves
-                .compile(end, afterCollection, acceptor);
+            final String compiledEndIndex =
+                rves.compile(end, afterCollection, acceptor);
 
-            final StaticState afterEndIndex = rves.advance(
-                end,
-                afterCollection
-            );
+            final StaticState afterEndIndex =
+                rves.advance(end, afterCollection);
 
             ExpressionWriter completeCollExpression = w.expr(
                 "new jadescript.util.IntegerRange(" + compiledCollection +
@@ -107,7 +101,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                     varName.extract(nullAsEmptyString),
                     firstVarType,
                     true
-                ) //TODO specific NS for for-variables
+                ) //TODO specific NamedSymbol for for-variables
             );
 
 
@@ -236,20 +230,6 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         }
 
 
-    }
-
-
-    @Override
-    public Stream<SemanticsBoundToExpression<?>>
-    includedExpressions(Maybe<ForStatement> input) {
-        final RValueExpressionSemantics rves =
-            module.get(RValueExpressionSemantics.class);
-        return Util.buildStream(
-                () -> input.__(ForStatement::getCollection),
-                () -> input.__(ForStatement::getEndIndex)
-            )
-            .filter(Maybe::isPresent)
-            .map(x -> new SemanticsBoundToExpression<>(rves, x));
     }
 
 

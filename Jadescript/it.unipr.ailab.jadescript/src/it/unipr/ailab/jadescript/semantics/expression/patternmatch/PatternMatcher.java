@@ -83,7 +83,14 @@ public abstract class PatternMatcher {
     public abstract Stream<? extends ClassMemberWriter> getWriters();
 
 
+    public String rootInvocationText(String input) {
+        return patternMatchInput.getRootPatternMatchVariableName() +
+            "." + operationInvocationText(input);
+    }
+
+
     public abstract String operationInvocationText(String input);
+
 
     public static abstract class AsMethod extends PatternMatcher {
 
@@ -253,8 +260,9 @@ public abstract class PatternMatcher {
             for (int i = 0; i < subResults.size(); i++) {
                 PatternMatcher subResult = subResults.get(i);
                 sb.append(" && ");
-                sb.append(subResult.operationInvocationText(compiledSubInputs.apply(
-                    i)));
+                sb.append(subResult.operationInvocationText(
+                    compiledSubInputs.apply(i)
+                ));
             }
             m.getBody().addStatement(w.returnStmnt(w.expr(sb.toString())));
             return m;
