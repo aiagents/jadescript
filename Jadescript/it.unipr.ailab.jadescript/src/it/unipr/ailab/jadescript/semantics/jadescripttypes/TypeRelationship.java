@@ -13,6 +13,10 @@ public interface TypeRelationship {
     }
 
     public static final NotRelated NOT_RELATED = new NotRelated() {
+        @Override
+        public String toString() {
+            return "NotRelated";
+        }
     };
 
     public interface SubtypeOrEqual extends Related {
@@ -25,18 +29,30 @@ public interface TypeRelationship {
     }
 
     public static final Equal EQUAL = new Equal() {
+        @Override
+        public String toString() {
+            return "Equal";
+        }
     };
 
     public interface StrictSubtype extends SubtypeOrEqual {
     }
 
     public static final StrictSubtype STRICT_SUBTYPE = new StrictSubtype() {
+        @Override
+        public String toString() {
+            return "StricSubtype";
+        }
     };
 
     public interface StrictSupertype extends SupertypeOrEqual {
     }
 
     public static final StrictSupertype STRICT_SUPERTYPE = new StrictSupertype() {
+        @Override
+        public String toString() {
+            return "StrictSupertype";
+        }
     };
 
 }

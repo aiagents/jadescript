@@ -38,6 +38,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import static it.unipr.ailab.maybe.Maybe.nothing;
+import static it.unipr.ailab.maybe.Maybe.some;
+
 public class CompilationHelper implements IQualifiedNameProvider {
 
     private final static WriterFactory w = WriterFactory.getInstance();
@@ -90,6 +93,19 @@ public class CompilationHelper implements IQualifiedNameProvider {
                 return "from line " + startLine + " to line " + endLine;
             }
         });
+    }
+
+    public static Maybe<String> sourceToTextAny(Maybe<?> input){
+        if(input.isNothing()){
+            return nothing();
+        }
+
+        final Object o = input.toNullable();
+        if(o instanceof EObject){
+            return sourceToText(some(((EObject) o)));
+        }else{
+            return nothing();
+        }
     }
 
 

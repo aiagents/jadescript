@@ -90,9 +90,7 @@ public class OnExecuteHandlerSemantics
                     itField.setVisibility(JvmVisibility.PRIVATE);
                     compilationHelper.createAndSetInitializer(itField, scb -> {
                         scb.add(" new ")
-                            .add(module.get(TypeHelper.class)
-                                .typeRef(eventClass)
-                                .getQualifiedName('.'))
+                            .add(eventClass.getQualifiedName('.'))
                             .add("()");
                     });
                 }

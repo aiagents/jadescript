@@ -1425,7 +1425,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                         PatternSymbol.Searcher.termCountIs(assumedSize),
                         PatternSymbol.Searcher.termCountIs(assumedSize)
                     )
-                ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                )
+                .filter(Util.dinstinctBy(Symbol::sourceLocation))
                 .collect(Collectors.toList());
 
         } else  /*ASSUMING  (noArgs || simpleArgs.isPresent())*/ {
@@ -1435,6 +1436,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
             int argsize = noArgs ? 0 : args.size();
 
+
             return state.searchAs(
                     PatternSymbol.Searcher.class,
                     searcher -> searcher.searchPattern(
@@ -1443,7 +1445,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                         CallableSymbol.Searcher.arityIs(argsize),
                         CallableSymbol.Searcher.arityIs(argsize)
                     )
-                ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                )
+                .filter(Util.dinstinctBy(Symbol::sourceLocation))
                 .collect(Collectors.toList());
         }
     }
@@ -1453,13 +1456,14 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         Maybe<Call> input,
         StaticState state
     ) {
-        final List<? extends PatternSymbol> callableSymbols =
+        final List<? extends PatternSymbol> patternSymbols =
             resolvePatternCandidates(
                 input,
                 state
             );
-        if (callableSymbols.size() == 1) {
-            return Maybe.some(callableSymbols.get(0));
+
+        if (patternSymbols.size() == 1) {
+            return Maybe.some(patternSymbols.get(0));
         } else {
             return Maybe.nothing();
         }

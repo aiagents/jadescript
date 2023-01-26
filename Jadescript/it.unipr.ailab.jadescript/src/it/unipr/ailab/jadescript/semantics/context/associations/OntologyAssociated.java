@@ -4,6 +4,8 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 public interface OntologyAssociated extends OntologyAssociationComputer, Associated {
 
+
+
     default void debugDumpOntologyAssociations(SourceCodeBuilder scb) {
         scb.open("--> is OntologyAssociated {");
         scb.line("*** Ontology associations: ***");

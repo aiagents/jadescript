@@ -6,10 +6,7 @@ import it.unipr.ailab.jadescript.semantics.context.Context;
 import it.unipr.ailab.jadescript.semantics.context.associations.*;
 import it.unipr.ailab.jadescript.semantics.context.c1toplevel.TopLevelDeclarationContext;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedReference;
-import it.unipr.ailab.jadescript.semantics.context.symbol.SymbolUtils;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
@@ -27,7 +24,10 @@ import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
 public class ProceduralFeatureContainerContext
         extends Context
-        implements SelfAssociated, CallableSymbol.Searcher, NamedSymbol.Searcher {
+        implements SelfAssociated,
+    CallableSymbol.Searcher,
+    NamedSymbol.Searcher,
+    PatternSymbol.Searcher {
     private final TopLevelDeclarationContext outer;
     private final Maybe<IJadescriptType> thisReferenceType;
     private final Maybe<? extends EObject> featureContainer;
@@ -72,24 +72,6 @@ public class ProceduralFeatureContainerContext
 
     }
 
-    @Override
-    public Stream<? extends CallableSymbol> searchCallable(
-            String name,
-            Predicate<IJadescriptType> returnType,
-            BiPredicate<Integer, Function<Integer, String>> parameterNames,
-            BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
-    ) {
-        return searchAs(
-                Associated.class,
-                x -> AnyAssociationComputer.computeAllAssociations(x)
-                        .flatMap(a -> a.getAssociatedType()
-                                .namespace()
-                                .searchCallable(name, returnType, parameterNames, parameterTypes)
-                                .flatMap(c -> dereference(a, c)))
-
-        );
-    }
-
     private Stream<CallableSymbol> dereference(Association a, CallableSymbol c) {
         if (a instanceof SelfAssociation || a instanceof BehaviourAssociation) {
             return Stream.of(SymbolUtils.setDereferenceByVariable(
@@ -131,6 +113,24 @@ public class ProceduralFeatureContainerContext
 
     @Override
     public Stream<? extends CallableSymbol> searchCallable(
+        String name,
+        Predicate<IJadescriptType> returnType,
+        BiPredicate<Integer, Function<Integer, String>> parameterNames,
+        BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
+    ) {
+        return searchAs(
+            Associated.class,
+            x -> AnyAssociationComputer.computeAllAssociations(x)
+                .flatMap(a -> a.getAssociatedType()
+                    .namespace()
+                    .searchCallable(name, returnType, parameterNames, parameterTypes)
+                    .flatMap(c -> dereference(a, c)))
+
+        );
+    }
+
+    @Override
+    public Stream<? extends CallableSymbol> searchCallable(
             Predicate<String> name,
             Predicate<IJadescriptType> returnType,
             BiPredicate<Integer, Function<Integer, String>> parameterNames,
@@ -144,6 +144,63 @@ public class ProceduralFeatureContainerContext
                                 .searchCallable(name, returnType, parameterNames, parameterTypes)
                                 .flatMap(c -> dereference(a, c)))
 
+        );
+    }
+
+    @Override
+    public Stream<? extends PatternSymbol> searchPattern(
+        String name,
+        Predicate<IJadescriptType> inputType,
+        BiPredicate<Integer, Function<Integer, String>> termNames,
+        BiPredicate<Integer, Function<Integer, IJadescriptType>> termTypes
+    ) {
+        return searchAs(
+            Associated.class,
+            x -> AnyAssociationComputer.computeAllAssociations(x)
+                .flatMap(a -> {
+                    final TypeNamespace associatedNamespace =
+                        a.getAssociatedType().namespace();
+                    if(associatedNamespace instanceof PatternSymbol.Searcher){
+                        return ((PatternSymbol.Searcher) associatedNamespace)
+                            .searchPattern(
+                                name,
+                                inputType,
+                                termNames,
+                                termTypes
+                            );
+                    }else{
+                        return Stream.empty();
+                    }
+                })
+        );
+    }
+
+
+    @Override
+    public Stream<? extends PatternSymbol> searchPattern(
+        Predicate<String> name,
+        Predicate<IJadescriptType> inputType,
+        BiPredicate<Integer, Function<Integer, String>> termNames,
+        BiPredicate<Integer, Function<Integer, IJadescriptType>> termTypes
+    ) {
+        return searchAs(
+            Associated.class,
+            x -> AnyAssociationComputer.computeAllAssociations(x)
+                .flatMap(a -> {
+                    final TypeNamespace associatedNamespace =
+                        a.getAssociatedType().namespace();
+                    if(associatedNamespace instanceof PatternSymbol.Searcher){
+                        return ((PatternSymbol.Searcher) associatedNamespace)
+                            .searchPattern(
+                                name,
+                                inputType,
+                                termNames,
+                                termTypes
+                            );
+                    }else{
+                        return Stream.empty();
+                    }
+                })
         );
     }
 
@@ -166,7 +223,11 @@ public class ProceduralFeatureContainerContext
             thisStream = thisReferenceNamespace.get().__(thisNamespace -> {
                 Stream<Integer> thisStream2 = Stream.of(0);
                 thisStream2 = safeFilter(thisStream2, (__) -> THIS, name);
-                thisStream2 = safeFilter(thisStream2, (__) -> thisReferenceType, readingType);
+                thisStream2 = safeFilter(
+                    thisStream2,
+                    (__) -> thisReferenceType,
+                    readingType
+                );
                 thisStream2 = safeFilter(thisStream2, (__) -> false, canWrite);
                 return thisStream2.map((__) -> thisElement);
             }).orElseGet(Stream::empty);
@@ -217,6 +278,8 @@ public class ProceduralFeatureContainerContext
         return thisReferenceType.__(it -> Stream.of(new SelfAssociation(it, SelfAssociation.T.INSTANCE)))
                 .orElseGet(Stream::empty);
     }
+
+
 
 
 }

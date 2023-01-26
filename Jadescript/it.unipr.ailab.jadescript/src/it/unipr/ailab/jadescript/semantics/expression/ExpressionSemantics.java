@@ -2,7 +2,6 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -12,6 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchMode;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -39,8 +39,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
     private final LazyValue<ExpressionSemantics<?>> EMPTY_EXPRESSION_SEMANTICS =
         new LazyValue<>(() -> new Adapter<>(this.module));
-
-
 
 
     public ExpressionSemantics(SemanticsModule semanticsModule) {
@@ -166,11 +164,11 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     protected Optional<?
         extends SemanticsBoundToExpression<?>> traverse(Maybe<T> input) {
 
-    	if(input.isNothing()){
-    		return Optional.empty();
-    	}
-    	
-    	return traverseInternal(input);
+        if (input.isNothing()) {
+            return Optional.empty();
+        }
+
+        return traverseInternal(input);
 //        if (input.isNothing()) {
 //            return Optional.of(new SemanticsBoundToExpression<>(
 //                emptySemantics(),
@@ -238,7 +236,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     public final SemanticsBoundToExpression<?> deepTraverse(
-        Maybe<RValueExpression> input
+        Maybe<T> input
     ) {
         Optional<SemanticsBoundToExpression> x = Optional.of(
             new SemanticsBoundToExpression(this, input)
@@ -968,11 +966,13 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         PatternMatchInput<T> patternMatchInput,
         StaticState state
     ) {
-        return isSubPatternGroundForEquality(
-            patternMatchInput.getPattern(),
-            patternMatchInput.getMode(),
-            state
-        );
+        Maybe<T> pattern = patternMatchInput.getPattern();
+        PatternMatchMode mode = patternMatchInput.getMode();
+        PatternMatchMode.PatternLocation location = mode.getPatternLocation();
+
+
+        return location == PatternMatchMode.PatternLocation.SUB_PATTERN
+            && !isHoled(pattern, state);
     }
 
 
@@ -984,29 +984,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
             == PatternMatchMode.PatternLocation.SUB_PATTERN
             && !isHoled(patternMatchInput.getPattern(), state)
             && isLExpreable(patternMatchInput.getPattern());
-    }
-
-
-    private boolean isSubPatternGroundForEquality(
-        Maybe<T> pattern,
-        PatternMatchMode mode,
-        StaticState state
-    ) {
-        return isSubPatternGroundForEquality(
-            pattern,
-            mode.getPatternLocation(),
-            state
-        );
-    }
-
-
-    private boolean isSubPatternGroundForEquality(
-        Maybe<T> pattern,
-        PatternMatchMode.PatternLocation location,
-        StaticState state
-    ) {
-        return location == PatternMatchMode.PatternLocation.SUB_PATTERN
-            && !isHoled(pattern, state);
     }
 
 
@@ -1312,19 +1289,34 @@ public abstract class ExpressionSemantics<T> extends Semantics {
             }
 
             if (asPatternCheck == VALID) {
-                final IJadescriptType patternType =
-                    inferPatternType(
-                        input,
-                        state
-                    ).solve(input.getProvidedInputType());
-                boolean patternTypeCheck = patternType.validateType(
-                    eObject,
-                    acceptor
+
+                final PatternType patternType = inferPatternType(
+                    input,
+                    state
                 );
+                final IJadescriptType solvedPattType = patternType
+                    .solve(input.getProvidedInputType());
+
+                final String src =
+                    CompilationHelper.sourceToTextAny(
+                    input.getPattern()).orElse("");
+                final String sem = deepTraverse(input.getPattern())
+                    .getSemantics().getClass().getSimpleName();
+
+                final String ptName = patternType.toString();
+
+                //TODO
+                System.out.println(sem+" says that pattern '"+src+"' has type "+ptName);
+
+//                boolean patternTypeCheck = solvedPattType.validateType(
+//                    eObject,
+//                    acceptor
+//                );
+                boolean patternTypeCheck = VALID;
                 if (patternTypeCheck == VALID) {
                     asPatternCheck = validatePatternTypeRelationshipRequirement(
                         input,
-                        state,
+                        solvedPattType,
                         acceptor
                     );
                 } else {
@@ -1349,53 +1341,31 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
 
     private boolean validatePatternTypeRelationshipRequirement(
-        Maybe<T> pattern,
-        Class<? extends TypeRelationship> requirement,
-        TypeRelationship actualRelationship,
-        IJadescriptType providedInputType,
-        IJadescriptType solvedPatternType,
+        PatternMatchInput<T> input,
+        IJadescriptType solvedType,
         ValidationMessageAcceptor acceptor
     ) {
+        Maybe<T> pattern = input.getPattern();
+        Class<? extends TypeRelationship> requirement =
+            input.getMode().getTypeRelationshipRequirement();
+        TypeRelationship actualRelationship =
+            module.get(TypeHelper.class).getTypeRelationship(
+            solvedType,
+            input.getProvidedInputType()
+        );
+        IJadescriptType providedInputType = input.getProvidedInputType();
+
+        System.out.println("REQUIREMENT = "+requirement.getName());
+        System.out.println("ACTUAL REL  = "+actualRelationship.toString());
+
         return module.get(ValidationHelper.class).asserting(
             requirement.isInstance(actualRelationship),
             "InvalidProvidedInput",
             "Cannot apply here an input of type "
                 + providedInputType.getJadescriptName()
                 + " to a pattern which expects an input of type "
-                + solvedPatternType.getJadescriptName(),
+                + solvedType.getJadescriptName(),
             Util.extractEObject(pattern),
-            acceptor
-        );
-    }
-
-
-    private boolean validatePatternTypeRelationshipRequirement(
-        PatternMatchInput<T> input,
-        IJadescriptType solvedType,
-        ValidationMessageAcceptor acceptor
-    ) {
-        return validatePatternTypeRelationshipRequirement(
-            input.getPattern(),
-            input.getMode().getTypeRelationshipRequirement(),
-            module.get(TypeHelper.class).getTypeRelationship(
-                solvedType,
-                input.getProvidedInputType()
-            ),
-            input.getProvidedInputType(),
-            solvedType,
-            acceptor
-        );
-    }
-
-
-    private boolean validatePatternTypeRelationshipRequirement(
-        PatternMatchInput<T> input,
-        StaticState state,
-        ValidationMessageAcceptor acceptor
-    ) {
-        return validatePatternTypeRelationshipRequirement(
-            input,
-            inferPatternType(input, state).solve(input.getProvidedInputType()),
             acceptor
         );
     }
