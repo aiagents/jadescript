@@ -5,6 +5,7 @@ package it.unipr.ailab.jadescript.ui;
 
 import org.eclipse.jface.viewers.ILabelProvider;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
+import org.eclipse.xtext.ide.editor.contentassist.CompletionPrefixProvider;
 import org.eclipse.xtext.ui.editor.XtextEditor;
 import org.eclipse.xtext.ui.editor.contentassist.ContentProposalLabelProvider;
 import org.eclipse.xtext.ui.editor.hover.IEObjectHoverProvider;
@@ -12,11 +13,10 @@ import org.eclipse.xtext.ui.editor.hover.html.IEObjectHoverDocumentationProvider
 import org.eclipse.xtext.ui.editor.syntaxcoloring.AbstractAntlrTokenToAttributeIdMapper;
 import org.eclipse.xtext.ui.editor.syntaxcoloring.IHighlightingConfiguration;
 import org.eclipse.xtext.ui.wizard.IProjectCreator;
-import org.eclipse.xtext.xbase.ui.hover.XbaseHoverDocumentationProvider;
-import org.eclipse.xtext.xbase.ui.hover.XbaseHoverProvider;
 
 import com.google.inject.Binder;
 
+import it.unipr.ailab.jadescript.ui.contentassist.IndentationAwareCompletionPrefixProviderWithFix;
 import it.unipr.ailab.jadescript.ui.editor.JadescriptEditorExtended;
 import it.unipr.ailab.jadescript.ui.hover.JadescriptEObjectHoverDocumentationProvider;
 import it.unipr.ailab.jadescript.ui.hover.JadescriptEObjectHoverProvider;
@@ -80,4 +80,10 @@ public class JadescriptUiModule extends AbstractJadescriptUiModule {
 	public Class<? extends XtextEditor> bindXtextEditor() {
 		return JadescriptEditorExtended.class;
 	}
+	
+	public Class<? extends CompletionPrefixProvider> bindCompletionPrefixProvider() {
+		return IndentationAwareCompletionPrefixProviderWithFix.class;
+	}
+	
+	
 }
