@@ -415,20 +415,15 @@ public class SingleIdentifierExpressionSemantics
                 IJadescriptType solvedPatternType =
                     inferPatternType(input, state)
                         .solve(input.getProvidedInputType());
-                String localClassName = "__PatternMatcher" + input.getPattern()
-                    .__(ProxyEObject::getProxyEObject)
-                    .__(Objects::hashCode)
-                    .orElse(0);
 
                 final PatternMatchUnifiedVariable deconstructedVariable
                     = new PatternMatchUnifiedVariable(
                     identifier,
                     solvedPatternType,
-                    localClassName + "_obj."
+                    input.getRootPatternMatchVariableName()+"."
                 );
 
                 return state.assertNamedSymbol(deconstructedVariable);
-
             } else {
                 return state;
             }

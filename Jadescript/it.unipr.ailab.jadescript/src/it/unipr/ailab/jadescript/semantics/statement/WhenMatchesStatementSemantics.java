@@ -124,7 +124,7 @@ public class WhenMatchesStatementSemantics
             final LocalClassStatementWriter localClass =
                 PatternMatchHelper.w.localClass(localClassName);
 
-            output.getWriters().forEach(localClass::addMember);
+            output.getAllWriters().forEach(localClass::addMember);
 
             acceptor.accept(localClass);
             acceptor.accept(PatternMatchHelper.w.variable(

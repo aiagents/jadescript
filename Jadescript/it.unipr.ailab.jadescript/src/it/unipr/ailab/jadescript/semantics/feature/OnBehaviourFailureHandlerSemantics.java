@@ -242,7 +242,7 @@ public class OnBehaviourFailureHandlerSemantics
                 patternMatcherClassName
             );
 
-            matcher.getWriters().forEach(patternMatchClass::addMember);
+            matcher.getAllWriters().forEach(patternMatchClass::addMember);
 
             patternMatchClass.writeSonnet(scb);
 

@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.function.Function;
@@ -108,32 +109,6 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
     public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
         IJadescriptType solvedPatternType,
         List<String> additionalPreconditions,
-        Function<Integer, String> compiledSubInputs
-    ) {
-        return new PatternMatcher.AsCompositeMethod(
-            this,
-            solvedPatternType,
-            additionalPreconditions,
-            compiledSubInputs
-        );
-    }
-
-
-    public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
-        IJadescriptType solvedPatternType,
-        Function<Integer, String> compiledSubInputs
-    ) {
-        return new PatternMatcher.AsCompositeMethod(
-            this,
-            solvedPatternType,
-            compiledSubInputs
-        );
-    }
-
-
-    public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
-        IJadescriptType solvedPatternType,
-        List<String> additionalPreconditions,
         Function<Integer, String> compiledSubInputs,
         List<PatternMatcher> subResults
     ) {
@@ -165,36 +140,6 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
         List<StatementWriter> auxiliaryStatements,
         IJadescriptType solvedPatternType,
         List<String> additionalPreconditions,
-        Function<Integer, String> compiledSubInputs
-    ) {
-        return new PatternMatcher.AsCompositeMethod(
-            this,
-            auxiliaryStatements,
-            solvedPatternType,
-            additionalPreconditions,
-            compiledSubInputs
-        );
-    }
-
-
-    public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
-        List<StatementWriter> auxiliaryStatements,
-        IJadescriptType solvedPatternType,
-        Function<Integer, String> compiledSubInputs
-    ) {
-        return new PatternMatcher.AsCompositeMethod(
-            this,
-            auxiliaryStatements,
-            solvedPatternType,
-            compiledSubInputs
-        );
-    }
-
-
-    public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
-        List<StatementWriter> auxiliaryStatements,
-        IJadescriptType solvedPatternType,
-        List<String> additionalPreconditions,
         Function<Integer, String> compiledSubInputs,
         List<PatternMatcher> subResults
     ) {
@@ -203,22 +148,6 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             auxiliaryStatements,
             solvedPatternType,
             additionalPreconditions,
-            compiledSubInputs,
-            subResults
-        );
-    }
-
-
-    public PatternMatcher.AsCompositeMethod createCompositeMethodOutput(
-        List<StatementWriter> auxiliaryStatements,
-        IJadescriptType solvedPatternType,
-        Function<Integer, String> compiledSubInputs,
-        List<PatternMatcher> subResults
-    ) {
-        return new PatternMatcher.AsCompositeMethod(
-            this,
-            auxiliaryStatements,
-            solvedPatternType,
             compiledSubInputs,
             subResults
         );
@@ -545,8 +474,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             Maybe<T> pattern,
             String suffixID
         ) {
-            this(module, inputInfo, rootInput, pattern,
-                rootInput.getTermID() + suffixID, null);
+            this(module, inputInfo, rootInput, pattern, suffixID, null);
         }
 
 
@@ -560,23 +488,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
         ) {
             super(
                 module,
-                new PatternMatchMode(
-                    holesAndGroundnessRequirement == null
-                        ? rootInput.getMode().getHolesAndGroundness()
-                        : holesAndGroundnessRequirement,
-                    // Subpatterns always have a "related" requirement,
-                    // except when in assignment/declarations.
-                    rootInput.getMode().getPatternLocation() == PatternMatchMode
-                        .PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
-                        ? TypeRelationship.SupertypeOrEqual.class
-                        : TypeRelationship.Related.class,
-                    rootInput.getMode().getRequiresSuccessfulMatch(),
-                    rootInput.getMode().getPatternApplicationPurity(),
-                    rootInput.getMode().getReassignment(),
-                    rootInput.getMode().getUnification(),
-                    rootInput.getMode().getNarrowsTypeOfInput(),
-                    PatternMatchMode.PatternLocation.SUB_PATTERN
-                ),
+                subPatternMode(rootInput, holesAndGroundnessRequirement),
                 pattern,
                 rootInput.termID + suffixID,
                 rootInput.getRootPatternMatchVariableName()
@@ -584,6 +496,32 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             this.rootInput = rootInput;
             this.suffixID = suffixID;
             this.inputInfo = inputInfo;
+        }
+
+
+        @NotNull
+        private static <RT> PatternMatchMode subPatternMode(
+            PatternMatchInput<RT> rootInput,
+            PatternMatchMode.HolesAndGroundness holesAndGroundnessRequirement
+        ) {
+            return new PatternMatchMode(
+                holesAndGroundnessRequirement == null
+                    ? rootInput.getMode().getHolesAndGroundness()
+                    : holesAndGroundnessRequirement,
+                // Subpatterns always have a "related" requirement,
+                // except when in a successful match is required.
+                rootInput.getMode().getRequiresSuccessfulMatch()
+                    == PatternMatchMode.RequiresSuccessfulMatch
+                    .REQUIRES_SUCCESSFUL_MATCH
+                    ? TypeRelationship.SupertypeOrEqual.class
+                    : TypeRelationship.Related.class,
+                rootInput.getMode().getRequiresSuccessfulMatch(),
+                rootInput.getMode().getPatternApplicationPurity(),
+                rootInput.getMode().getReassignment(),
+                rootInput.getMode().getUnification(),
+                rootInput.getMode().getNarrowsTypeOfInput(),
+                PatternMatchMode.PatternLocation.SUB_PATTERN
+            );
         }
 
 

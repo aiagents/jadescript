@@ -244,7 +244,7 @@ public class OnExceptionHandlerSemantics
                 patternMatcherClassName
             );
 
-            matcher.getWriters().forEach(patternMatchClass::addMember);
+            matcher.getAllWriters().forEach(patternMatchClass::addMember);
 
             patternMatchClass.writeSonnet(scb);
 

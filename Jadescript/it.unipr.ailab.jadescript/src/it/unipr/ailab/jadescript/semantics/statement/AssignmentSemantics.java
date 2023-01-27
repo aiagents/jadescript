@@ -69,7 +69,7 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
 //            final LocalClassStatementWriter localClass =
 //                w.localClass(localClassName);
 //
-//            patternMatcher.getWriters().forEach(localClass::addMember);
+//            patternMatcher.getDirectWriters().forEach(localClass::addMember);
 //
 //            final String matcherVariableName =
 //                patternMatchHelper.getPatternMatcherVariableName(left);

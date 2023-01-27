@@ -2379,9 +2379,9 @@ public class TypeHelper implements SemanticsConsts {
         if (t1.typeEquals(t2)) {
             return TypeRelationship.EQUAL;
         } else if (t1.isSupEqualTo(t2)) {
-            return TypeRelationship.STRICT_SUBTYPE;
-        } else if (t2.isSupEqualTo(t1)) {
             return TypeRelationship.STRICT_SUPERTYPE;
+        } else if (t2.isSupEqualTo(t1)) {
+            return TypeRelationship.STRICT_SUBTYPE;
         } else {
             return TypeRelationship.NOT_RELATED;
         }

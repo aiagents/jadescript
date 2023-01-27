@@ -252,7 +252,7 @@ public class OnPerceptHandlerSemantics
                 patternMatcherClassName
             );
 
-            matcher.getWriters().forEach(patternMatchClass::addMember);
+            matcher.getAllWriters().forEach(patternMatchClass::addMember);
 
             patternMatchClass.writeSonnet(scb);
 
@@ -276,7 +276,7 @@ public class OnPerceptHandlerSemantics
                 s
             );
 
-            part1 = matcher.rootInvocationText(PERCEPT_CONTENT_VAR_NAME);
+            part1 = matcher.rootInvocationText(PERCEPT_CONTENT_VAR_NAME+".");
         } else {
             prepareBodyState = Function.identity();
             afterPatternDidMatch = beforePattern;
@@ -409,6 +409,10 @@ public class OnPerceptHandlerSemantics
             MESSAGE_TEMPLATE_NAME,
             composedMT
         ).writeSonnet(scb);
+
+        //        Message __receivedPercept = null;
+        w.variable("jadescript.core.message.Message", PERCEPT_VAR_NAME, w.Null)
+            .writeSonnet(scb);
 
 //        if(myAgent!=null) {
 //            __receivedPercept = jadescript.core.message.Message.wrap

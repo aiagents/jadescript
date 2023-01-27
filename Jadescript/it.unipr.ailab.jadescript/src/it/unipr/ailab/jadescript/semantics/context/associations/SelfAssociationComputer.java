@@ -21,7 +21,8 @@ public interface SelfAssociationComputer extends WithSupertype {
     private Stream<SelfAssociation> computeSelfAssociationsFromSupertype() {
         Maybe<Searcheable> ms = superTypeSearcheable();
         if (ms.isPresent() && ms.toNullable() instanceof SelfAssociated) {
-            return ((SelfAssociated) ms.toNullable()).computeAllSelfAssociations()
+            return ((SelfAssociated) ms.toNullable())
+                .computeAllSelfAssociations()
                     .map(SelfAssociation::applyExtends);
         } else {
             return Stream.empty();

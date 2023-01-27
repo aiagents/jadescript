@@ -1305,14 +1305,13 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
                 final String ptName = patternType.toString();
 
-                //TODO
-                System.out.println(sem+" says that pattern '"+src+"' has type "+ptName);
 
-//                boolean patternTypeCheck = solvedPattType.validateType(
-//                    eObject,
-//                    acceptor
-//                );
-                boolean patternTypeCheck = VALID;
+                //TODO change order of validation for better explanation: an
+                // unresolved pattern might be inferred to an invalid type
+                boolean patternTypeCheck = solvedPattType.validateType(
+                    eObject,
+                    acceptor
+                );
                 if (patternTypeCheck == VALID) {
                     asPatternCheck = validatePatternTypeRelationshipRequirement(
                         input,
@@ -1348,16 +1347,14 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         Maybe<T> pattern = input.getPattern();
         Class<? extends TypeRelationship> requirement =
             input.getMode().getTypeRelationshipRequirement();
+
         TypeRelationship actualRelationship =
             module.get(TypeHelper.class).getTypeRelationship(
             solvedType,
             input.getProvidedInputType()
         );
+
         IJadescriptType providedInputType = input.getProvidedInputType();
-
-        System.out.println("REQUIREMENT = "+requirement.getName());
-        System.out.println("ACTUAL REL  = "+actualRelationship.toString());
-
         return module.get(ValidationHelper.class).asserting(
             requirement.isInstance(actualRelationship),
             "InvalidProvidedInput",

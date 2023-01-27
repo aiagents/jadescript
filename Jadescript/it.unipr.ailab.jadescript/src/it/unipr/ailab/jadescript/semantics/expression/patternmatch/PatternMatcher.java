@@ -76,11 +76,18 @@ public abstract class PatternMatcher {
 
 
     public Stream<? extends ClassMemberWriter> getAllSubwriters() {
-        return subResults.stream().flatMap(PatternMatcher::getWriters);
+        return subResults.stream().flatMap(PatternMatcher::getDirectWriters);
     }
 
 
-    public abstract Stream<? extends ClassMemberWriter> getWriters();
+    public abstract Stream<? extends ClassMemberWriter> getDirectWriters();
+
+    public final Stream<? extends ClassMemberWriter> getAllWriters() {
+        return Stream.concat(
+            getAllSubwriters(),
+            getDirectWriters()
+        );
+    }
 
 
     public String rootInvocationText(String input) {
@@ -129,20 +136,6 @@ public abstract class PatternMatcher {
             PatternMatchInput<?> patternMatchInput,
             IJadescriptType solvedPatternType,
             List<String> additionalPreconditions,
-            Function<Integer, String> compiledSubInputs
-        ) {
-            super(patternMatchInput, solvedPatternType);
-            this.compiledSubInputs = compiledSubInputs;
-            this.additionalPreconditions = additionalPreconditions;
-            this.auxiliaryStatements = List.of();
-
-        }
-
-
-        public AsCompositeMethod(
-            PatternMatchInput<?> patternMatchInput,
-            IJadescriptType solvedPatternType,
-            List<String> additionalPreconditions,
             Function<Integer, String> compiledSubInputs,
             List<? extends PatternMatcher> subResults
         ) {
@@ -157,18 +150,6 @@ public abstract class PatternMatcher {
         public AsCompositeMethod(
             PatternMatchInput<?> patternMatchInput,
             IJadescriptType solvedPatternType,
-            Function<Integer, String> compiledSubInputs
-        ) {
-            super(patternMatchInput, solvedPatternType);
-            this.compiledSubInputs = compiledSubInputs;
-            this.additionalPreconditions = List.of();
-            this.auxiliaryStatements = List.of();
-        }
-
-
-        public AsCompositeMethod(
-            PatternMatchInput<?> patternMatchInput,
-            IJadescriptType solvedPatternType,
             Function<Integer, String> compiledSubInputs,
             List<PatternMatcher> subResults
         ) {
@@ -185,55 +166,12 @@ public abstract class PatternMatcher {
             List<StatementWriter> auxiliaryStatements,
             IJadescriptType solvedPatternType,
             List<String> additionalPreconditions,
-            Function<Integer, String> compiledSubInputs
-        ) {
-            super(patternMatchInput, solvedPatternType);
-            this.compiledSubInputs = compiledSubInputs;
-            this.additionalPreconditions = additionalPreconditions;
-            this.auxiliaryStatements = auxiliaryStatements;
-
-        }
-
-
-        public AsCompositeMethod(
-            PatternMatchInput<?> patternMatchInput,
-            List<StatementWriter> auxiliaryStatements,
-            IJadescriptType solvedPatternType,
-            List<String> additionalPreconditions,
             Function<Integer, String> compiledSubInputs,
             List<PatternMatcher> subResults
         ) {
             super(patternMatchInput, solvedPatternType);
             this.compiledSubInputs = compiledSubInputs;
             this.additionalPreconditions = additionalPreconditions;
-            this.subResults.addAll(subResults);
-            this.auxiliaryStatements = auxiliaryStatements;
-        }
-
-
-        public AsCompositeMethod(
-            PatternMatchInput<?> patternMatchInput,
-            List<StatementWriter> auxiliaryStatements,
-            IJadescriptType solvedPatternType,
-            Function<Integer, String> compiledSubInputs
-        ) {
-            super(patternMatchInput, solvedPatternType);
-            this.compiledSubInputs = compiledSubInputs;
-            this.additionalPreconditions = List.of();
-            this.auxiliaryStatements = auxiliaryStatements;
-        }
-
-
-        public AsCompositeMethod(
-            PatternMatchInput<?> patternMatchInput,
-            List<StatementWriter> auxiliaryStatements,
-            IJadescriptType solvedPatternType,
-            Function<Integer, String> compiledSubInputs,
-            List<PatternMatcher> subResults
-        ) {
-            super(patternMatchInput, solvedPatternType);
-            this.compiledSubInputs = compiledSubInputs;
-            this.additionalPreconditions = List.of();
             this.subResults.addAll(subResults);
             this.auxiliaryStatements = auxiliaryStatements;
         }
@@ -248,6 +186,7 @@ public abstract class PatternMatcher {
                     patternMatchInput.getTermID()
                 )
                 .addParameter(w.param("java.lang.Object", "__objx"));
+
             m.getBody().addStatements(compiledAdaptType);
 
             m.getBody().addStatements(auxiliaryStatements);
@@ -270,7 +209,7 @@ public abstract class PatternMatcher {
 
 
         @Override
-        public Stream<? extends ClassMemberWriter> getWriters() {
+        public Stream<? extends ClassMemberWriter> getDirectWriters() {
             return Stream.of(generatedMethod());
         }
 
@@ -307,7 +246,7 @@ public abstract class PatternMatcher {
 
 
         @Override
-        public Stream<? extends ClassMemberWriter> getWriters() {
+        public Stream<? extends ClassMemberWriter> getDirectWriters() {
             return Stream.of(generatedWriter());
         }
 
@@ -322,7 +261,7 @@ public abstract class PatternMatcher {
 
 
         @Override
-        public Stream<? extends ClassMemberWriter> getWriters() {
+        public Stream<? extends ClassMemberWriter> getDirectWriters() {
             return Stream.empty();
         }
 
@@ -340,7 +279,7 @@ public abstract class PatternMatcher {
 
 
         @Override
-        public Stream<? extends ClassMemberWriter> getWriters() {
+        public Stream<? extends ClassMemberWriter> getDirectWriters() {
             return Stream.empty();
         }
 
@@ -401,9 +340,11 @@ public abstract class PatternMatcher {
 
 
         @Override
-        public Stream<? extends ClassMemberWriter> getWriters() {
+        public Stream<? extends ClassMemberWriter> getDirectWriters() {
             return Stream.of(generatedField(), generatedMethod());
         }
+
+
 
     }
 
@@ -433,7 +374,7 @@ public abstract class PatternMatcher {
 
 
         @Override
-        public Stream<? extends ClassMemberWriter> getWriters() {
+        public Stream<? extends ClassMemberWriter> getDirectWriters() {
             return Stream.of(generatedWriter());
         }
 

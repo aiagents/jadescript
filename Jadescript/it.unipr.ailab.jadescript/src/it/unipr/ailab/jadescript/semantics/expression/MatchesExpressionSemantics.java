@@ -244,7 +244,7 @@ public class MatchesExpressionSemantics
             final LocalClassStatementWriter localClass =
                 PatternMatchHelper.w.localClass(localClassName);
 
-            matcher.getWriters().forEach(localClass::addMember);
+            matcher.getAllWriters().forEach(localClass::addMember);
 
             acceptor.accept(localClass);
             acceptor.accept(PatternMatchHelper.w.variable(localClassName,

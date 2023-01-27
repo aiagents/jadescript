@@ -136,8 +136,7 @@ public class OnMessageHandlerSemantics
         ).writeSonnet(scb);
 
 
-//        Message __receivedPercept = null;
-        w.variable("jadescript.core.message.Message", PERCEPT_VAR_NAME, w.Null);
+
 
 //        [... message template auxiliary statements...]
 //        MessageTemplate _mt = [...]
@@ -228,7 +227,7 @@ public class OnMessageHandlerSemantics
                 patternMatcherClassName
             );
 
-            matcher.getWriters().forEach(patternMatchClass::addMember);
+            matcher.getAllWriters().forEach(patternMatchClass::addMember);
 
             patternMatchClass.writeSonnet(scb);
 
@@ -254,7 +253,7 @@ public class OnMessageHandlerSemantics
 
             part1 = matcher.rootInvocationText(
                 initialMsgType.namespace().getContentProperty()
-                    .compileRead(MESSAGE_VAR_NAME)
+                    .compileRead(MESSAGE_VAR_NAME+".")
             );
         } else {
             prepareBodyState = Function.identity();
@@ -373,6 +372,7 @@ public class OnMessageHandlerSemantics
         }
 
 
+
         // if there is a when-exprssion or a pattern,then add
         // the corresponding constraint
         if (whenBody.isPresent() || contentPattern.isPresent()) {
@@ -382,14 +382,20 @@ public class OnMessageHandlerSemantics
                 );
 
             messageTemplateExpressions.add(
-                TemplateCompilationHelper.customMessage(w.block()
+                TemplateCompilationHelper.customMessage("__templMsg", w.block()
                     .addStatement(w.ifStmnt(
                         w.expr("!jadescript.lang.acl.ContentMessageTemplate" +
                             ".MatchClass(" +
-                            THE_AGENT + "().getContentManager(), " +
+                            THE_AGENT + "().getContentManager(), " + //TODO is it actually needed?
                             contentTypeCompiled + ".class" +
-                            ").match(" + MESSAGE_VAR_NAME + ")"),
+                            ").match(__templMsg)"),
                         w.block().addStatement(w.returnStmnt(w.expr("false")))
+                    ))
+                    .addStatement(w.variable(
+                        "jadescript.core.message.Message",
+                        MESSAGE_VAR_NAME,
+                        w.expr("jadescript.core.message.Message" +
+                            ".wrap(__templMsg)")
                     )).addStatement(w.tryCatch(w.block()
                         .addStatement(w.returnStmnt(w.expr(compiledExpression)))
                     ).addCatchBranch("java.lang.Throwable", "_e", w.block()
@@ -415,6 +421,9 @@ public class OnMessageHandlerSemantics
             composedMT
         ).writeSonnet(scb);
 
+//        Message __receivedMessage = null;
+        w.variable("jadescript.core.message.Message", MESSAGE_VAR_NAME, w.Null)
+            .writeSonnet(scb);
 
 //        if(myAgent!=null) {
 //            __receivedMessage = jadescript.core.message.Message.wrap

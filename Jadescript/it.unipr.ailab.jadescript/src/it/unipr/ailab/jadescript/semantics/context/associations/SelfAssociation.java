@@ -62,8 +62,6 @@ public class SelfAssociation
 T
 ST
      */
-
-
     @Override
     public int compareTo(@NotNull SelfAssociation o) {
         return Comparator.<SelfAssociation>comparingInt(a ->

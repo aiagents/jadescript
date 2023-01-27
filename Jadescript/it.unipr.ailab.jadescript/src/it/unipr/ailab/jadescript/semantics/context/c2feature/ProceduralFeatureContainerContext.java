@@ -176,6 +176,8 @@ public class ProceduralFeatureContainerContext
     }
 
 
+    //TODO: new generation of procedural contexts
+    // - produce a scope by mixing in the contexts
     @Override
     public Stream<? extends PatternSymbol> searchPattern(
         Predicate<String> name,
