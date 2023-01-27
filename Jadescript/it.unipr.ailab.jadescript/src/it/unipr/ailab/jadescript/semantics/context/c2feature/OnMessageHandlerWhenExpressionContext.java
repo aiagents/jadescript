@@ -37,7 +37,6 @@ public class OnMessageHandlerWhenExpressionContext
         Maybe<Performative> performative,
         ProceduralFeatureContainerContext outer
     ) {
-
         super(module, outer);
         this.messageNamespace =
             new LazyValue<>(() -> getMessageType().namespace());

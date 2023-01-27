@@ -230,7 +230,7 @@ public class PatternMatchHelper implements SemanticsConsts {
             module,
             rightType,
             pattern,
-            "__",
+            "deconstruct",
             getPatternMatcherVariableName(pattern)
         );
     }
@@ -244,7 +244,7 @@ public class PatternMatchHelper implements SemanticsConsts {
             module,
             inputExprType,
             pattern,
-            "__",
+            "whenMatch",
             getPatternMatcherVariableName(pattern)
         );
     }
@@ -258,7 +258,7 @@ public class PatternMatchHelper implements SemanticsConsts {
             module,
             inputExprType,
             pattern,
-            "__",
+            "match",
             getPatternMatcherVariableName(pattern)
         );
     }
@@ -271,7 +271,7 @@ public class PatternMatchHelper implements SemanticsConsts {
             module,
             contentUpperBound,
             pattern,
-            "__",
+            "headerMatch",
             getPatternMatcherVariableName(pattern)
         );
     }

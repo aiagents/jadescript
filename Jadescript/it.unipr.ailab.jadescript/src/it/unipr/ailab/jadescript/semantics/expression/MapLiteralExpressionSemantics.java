@@ -559,7 +559,7 @@ public class MapLiteralExpressionSemantics
 
                     final PatternMatcher keyOutput =
                         input.subPatternGroundTerm(keyType,
-                            __ -> kterm.toNullable(), "_key" + i
+                            __ -> kterm.toNullable(), "_mapkey" + i
                         ).createInlineConditionOutput(
                             (ignored) -> "__x.containsKey(" +
                                 keyReferenceName + ")"
@@ -571,7 +571,7 @@ public class MapLiteralExpressionSemantics
                         valueSubpattern = input.subPattern(
                         valueType,
                         __ -> vterm.toNullable(),
-                        "_" + i
+                        "_mapval" + i
                     );
 
                     valuesSubPatterns.add(valueSubpattern);
@@ -602,7 +602,7 @@ public class MapLiteralExpressionSemantics
                     input.subPattern(
                         solvedPatternType,
                         __ -> rest.toNullable(),
-                        "_rest"
+                        "_maprest"
                     );
 
                 if (!valuesSubPatterns.isEmpty()) {
@@ -768,7 +768,7 @@ public class MapLiteralExpressionSemantics
                     rves.validatePatternMatch(input.subPatternGroundTerm(
                         keyType,
                         __ -> kterm.toNullable(),
-                        "_key" + i
+                        "_mapkey" + i
                     ), runningState, acceptor);
                 runningState = rves.advance(kterm, state);
 
@@ -777,7 +777,7 @@ public class MapLiteralExpressionSemantics
                     input.subPattern(
                         valueType,
                         __ -> vterm.toNullable(),
-                        "_" + i
+                        "_mapval" + i
                     );
 
                 valuesSubPatterns.add(valueSubpattern);
@@ -815,7 +815,7 @@ public class MapLiteralExpressionSemantics
                 input.subPattern(
                     solvedPatternType,
                     MapOrSetLiteral::getRest,
-                    "_rest"
+                    "_maprest"
                 );
             pipeCheck = rves.validatePatternMatch(
                 restSubpattern,
@@ -880,7 +880,7 @@ public class MapLiteralExpressionSemantics
                     valueSubpattern = input.subPattern(
                     valueType,
                     __ -> vterm.toNullable(),
-                    "_" + i
+                    "_mapval" + i
                 );
 
                 valuesSubPatterns.add(valueSubpattern);
@@ -906,7 +906,7 @@ public class MapLiteralExpressionSemantics
                 input.subPattern(
                     solvedPatternType,
                     MapOrSetLiteral::getRest,
-                    "_rest"
+                    "_maprest"
                 );
 
             shortCircuitedAlternatives.add(runningState);
@@ -964,7 +964,7 @@ public class MapLiteralExpressionSemantics
                 input.subPattern(
                     valueType,
                     (__) -> value.toNullable(),
-                    "_" + i
+                    "_mapval" + i
                 ),
                 state
             );
@@ -975,7 +975,7 @@ public class MapLiteralExpressionSemantics
                 input.subPattern(
                     solvedPatternType,
                     MapOrSetLiteral::getRest,
-                    "_rest"
+                    "_maprest"
                 ),
                 state
             );

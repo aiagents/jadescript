@@ -95,6 +95,8 @@ public class WhenMatchesStatementSemantics
 
         List<StaticState> afterBranches = new ArrayList<>(assumedSize);
 
+
+
         StaticState runningState = afterInputExpr;
         for (int i = 0; i < assumedSize; ++i) {
             final Maybe<LValueExpression> pattern = patterns.get(i);
@@ -105,14 +107,11 @@ public class WhenMatchesStatementSemantics
             final String variableName =
                 patternMatchHelper.getPatternMatcherVariableName(pattern);
 
-            final PatternMatchInput.WhenMatchesStatement<LValueExpression>
-                pmi = new PatternMatchInput.WhenMatchesStatement<>(
-                module,
-                inputExprType,
-                pattern,
-                "__",
-                variableName
-            );
+             final PatternMatchInput.WhenMatchesStatement<LValueExpression>
+                 pmi = patternMatchHelper.whenMatchesStatement(
+                    inputExprType,
+                    pattern
+                );
 
             final PatternMatcher output =
                 lves.compilePatternMatch(

@@ -10,14 +10,17 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.OnMessageHandlerCon
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnMessageHandlerWhenExpressionContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.SingleIdentifierExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.helpers.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseMessageType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -450,8 +453,12 @@ public class OnMessageHandlerSemantics
                 /*normalizeToUpperBounds=*/ true
             );
 
+        final StaticState preparedState = prepareBodyState.apply(
+            afterWhenExprRetunedTrue);
 
-        StaticState inBody = prepareBodyState.apply(afterWhenExprRetunedTrue);
+
+        StaticState inBody = StaticState.beginningOfOperation(module)
+            .copyInnermostContentFrom(preparedState);
 
 
         module.get(ContextManager.class).enterProceduralFeature((
@@ -466,11 +473,34 @@ public class OnMessageHandlerSemantics
         ));
 
         inBody = inBody.enterScope();
+
+        //TODO remove
+        SingleIdentifierExpressionSemantics sies =
+            module.get(SingleIdentifierExpressionSemantics.class);
+
+        Maybe<SingleIdentifier> si = SingleIdentifier.singleIdentifier(
+            "sender",
+            input
+        );
+
+        final Maybe<NamedSymbol> senderNS = sies.resolveAsNamedSymbol(
+            si,
+            inBody
+        );
+
+        senderNS.safeDo(sns -> {
+            SourceCodeBuilder scb2 = new SourceCodeBuilder();
+            sns.debugDumpNamedSymbol(scb2);
+            System.out.println(scb2);
+        });
+        //TODO remove ^^^
+
+
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
+
         final PSR<SourceCodeBuilder> bodyPSR =
-            module.get(CompilationHelper.class).compileBlockToNewSCB(
-                inBody,
-                body
-            );
+            compilationHelper.compileBlockToNewSCB(inBody, body);
 
 
         final StatementWriter tryCatchWrappedBody =
@@ -817,7 +847,12 @@ public class OnMessageHandlerSemantics
             /*normalizeToUpperBounds=*/ true
         );
 
-        StaticState inBody = prepareBodyState.apply(afterWhenExprReturnedTrue);
+        final StaticState preparedState = prepareBodyState.apply(
+            afterWhenExprReturnedTrue);
+
+
+        StaticState inBody = StaticState.beginningOfOperation(module)
+            .copyInnermostContentFrom(preparedState);
 
         module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
             new OnMessageHandlerContext(

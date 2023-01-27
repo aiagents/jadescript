@@ -337,7 +337,11 @@ public class TupleExpressionSemantics
             }
 
             SubPattern<RValueExpression, TupledExpressions> termSubpattern =
-                input.subPattern(termType, __ -> term.toNullable(), "_" + i);
+                input.subPattern(
+                    termType,
+                    __ -> term.toNullable(),
+                    "_tupleelem" + i
+                );
             final PatternMatcher subResult =
                 rves.compilePatternMatch(
                     termSubpattern,
@@ -411,7 +415,7 @@ public class TupleExpressionSemantics
                     termSubpattern = input.subPattern(
                     inputElementType,
                     (__) -> expr.toNullable(),
-                    "_" + i
+                    "_tupleelem" + i
                 );
                 elementTypes.add(
                     rves.inferPatternType(termSubpattern, runningState)
@@ -481,7 +485,7 @@ public class TupleExpressionSemantics
                 termSubpattern = input.subPattern(
                 termType,
                 __ -> term.toNullable(),
-                "_" + i
+                "_tupleelem" + i
             );
             boolean elemCheck = rves.validatePatternMatch(
                 termSubpattern,
@@ -542,7 +546,7 @@ public class TupleExpressionSemantics
                 termSubpattern = input.subPattern(
                 termType,
                 __ -> term.toNullable(),
-                "_" + i
+                "_tupleelem" + i
             );
             runningState = rves.advancePattern(termSubpattern, runningState);
         }
@@ -597,7 +601,7 @@ public class TupleExpressionSemantics
                 termSubpattern = input.subPattern(
                 termType,
                 __ -> term.toNullable(),
-                "_" + i
+                "_tupleelem" + i
             );
             runningState = rves.assertDidMatch(termSubpattern, runningState);
         }
@@ -685,7 +689,7 @@ public class TupleExpressionSemantics
                 termSubpattern = input.subPattern(
                 termType,
                 __ -> term.toNullable(),
-                "_" + i
+                "_tupleelem" + i
             );
 
             if(!rves.isPredictablePatternMatchSuccess(

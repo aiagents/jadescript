@@ -280,7 +280,7 @@ public class SetLiteralExpressionSemantics
                 inferPatternType(input, state)
                     .solve(input.getProvidedInputType()),
                 (__) -> rest.toNullable(),
-                "_rest"
+                "_setrest"
             );
 
 
@@ -314,7 +314,7 @@ public class SetLiteralExpressionSemantics
                 inferPatternType(input, state)
                     .solve(input.getProvidedInputType()),
                 (__) -> rest.toNullable(),
-                "_rest"
+                "_setrest"
             );
 
         return rves.assertDidMatch(restSubpattern, state);
@@ -524,7 +524,7 @@ public class SetLiteralExpressionSemantics
                     PatternMatcher elemOutput = input.subPatternGroundTerm(
                         elementType,
                         __ -> term.toNullable(),
-                        "_" + i
+                        "_setelem" + i
                     ).createInlineConditionOutput(
                         (__) -> "__x.contains(" + compiledTerm + ")"
                     );
@@ -540,7 +540,7 @@ public class SetLiteralExpressionSemantics
                     input.subPattern(
                         solvedPatternType,
                         __ -> rest.toNullable(),
-                        "_rest"
+                        "_setrest"
                     ),
                     runningState,
                     acceptor
@@ -655,7 +655,7 @@ public class SetLiteralExpressionSemantics
                     input.subPatternGroundTerm(
                         elementType,
                         __ -> term.toNullable(),
-                        "_" + i
+                        "_setelem" + i
                     ),
                     runningState,
                     acceptor
@@ -671,7 +671,7 @@ public class SetLiteralExpressionSemantics
                 input.subPattern(
                     solvedPatternType,
                     MapOrSetLiteral::getRest,
-                    "_rest"
+                    "_setrest"
                 ),
                 runningState,
                 acceptor

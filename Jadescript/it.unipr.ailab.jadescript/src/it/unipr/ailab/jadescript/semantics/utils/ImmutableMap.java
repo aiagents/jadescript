@@ -201,4 +201,17 @@ public class ImmutableMap<K, V> {
         }
     }
 
+
+    public ImmutableMap<K, V> putAll(
+        ImmutableMap<K, V> other
+    ) {
+        return putAll(other.inner);
+    }
+
+    public ImmutableMap<K, V> putAll(
+        Map<K, V> other
+    ){
+        return this.change(m -> m.putAll(other));
+    }
+
 }

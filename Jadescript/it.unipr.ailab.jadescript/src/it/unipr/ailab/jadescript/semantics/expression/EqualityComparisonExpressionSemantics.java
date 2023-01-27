@@ -112,7 +112,7 @@ public class EqualityComparisonExpressionSemantics
                 input.subPattern(
                     input.getProvidedInputType(),
                     __ -> right.toNullable(),
-                    "_right"
+                    "_eqright"
                 );
             final IJadescriptType rType = tces.inferPatternType(
                 rightSubpattern,
@@ -131,7 +131,7 @@ public class EqualityComparisonExpressionSemantics
                 > leftSubpattern = input.subPattern(
                 rType,
                 __ -> left.toNullable(),
-                "_left"
+                "_eqleft"
             );
 
 
@@ -327,7 +327,7 @@ public class EqualityComparisonExpressionSemantics
                 rightSubpattern = input.subPattern(
                 input.getProvidedInputType(),
                 __ -> right.toNullable(),
-                "_right"
+                "_eqright"
             );
             final IJadescriptType rType = tces.inferPatternType(
                 rightSubpattern,
@@ -345,7 +345,7 @@ public class EqualityComparisonExpressionSemantics
                 > leftSubpattern = input.subPattern(
                 rType,
                 __ -> left.toNullable(),
-                "_left"
+                "_eqleft"
             );
             PatternMatcher leftResult = tces.compilePatternMatch(
                 leftSubpattern,
@@ -425,7 +425,7 @@ public class EqualityComparisonExpressionSemantics
                 rightSubpattern = input.subPattern(
                 input.getProvidedInputType(),
                 __ -> right.toNullable(),
-                "_right"
+                "_eqright"
             );
             final IJadescriptType rType = tces.inferPatternType(
                 rightSubpattern,
@@ -439,7 +439,7 @@ public class EqualityComparisonExpressionSemantics
                 input.subPattern(
                     rType,
                     __ -> left.toNullable(),
-                    "_left"
+                    "_eqleft"
                 );
 
             return tces.assertDidMatch(
@@ -531,7 +531,7 @@ public class EqualityComparisonExpressionSemantics
                 input.subPattern(
                     input.getProvidedInputType(),
                     __ -> right.toNullable(),
-                    "_right"
+                    "_eqright"
                 ),
                 state
             );
@@ -567,7 +567,7 @@ public class EqualityComparisonExpressionSemantics
                 input.subPattern(
                     input.getProvidedInputType(),
                     __ -> right.toNullable(),
-                    "_right"
+                    "_eqright"
                 );
             final IJadescriptType rType = tces.inferPatternType(
                 rightSubpattern, state
@@ -590,7 +590,7 @@ public class EqualityComparisonExpressionSemantics
                 > leftSubpattern = input.subPattern(
                 rType,
                 __ -> left.toNullable(),
-                "_left"
+                "_eqleft"
             );
 
             boolean leftResult = tces.validatePatternMatch(
@@ -649,7 +649,7 @@ public class EqualityComparisonExpressionSemantics
                 input.subPattern(
                     input.getProvidedInputType(),
                     __ -> right.toNullable(),
-                    "_right"
+                    "_eqright"
                 );
 
             boolean rightResult = tces.isPredictablePatternMatchSuccess(
@@ -676,7 +676,7 @@ public class EqualityComparisonExpressionSemantics
                 > leftSubpattern = input.subPattern(
                 rType,
                 __ -> left.toNullable(),
-                "_left"
+                "_eqleft"
             );
 
             return tces.isPredictablePatternMatchSuccess(

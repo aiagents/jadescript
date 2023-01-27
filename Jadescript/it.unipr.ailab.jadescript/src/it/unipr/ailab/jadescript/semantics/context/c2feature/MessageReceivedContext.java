@@ -18,11 +18,14 @@ public interface MessageReceivedContext extends SemanticsConsts {
 
 
     @NotNull
-    private static ContextGeneratedReference messageContentContextGeneratedReference(
+    private static ContextGeneratedReference
+    messageContentContextGeneratedReference(
         IJadescriptType messageType,
         IJadescriptType contentType
     ) {
-        return new ContextGeneratedReference(CONTENT_VAR_NAME, contentType,
+        return new ContextGeneratedReference(
+            CONTENT_VAR_NAME,
+            contentType,
             (__) -> "(" + messageType.compileAsJavaCast() + " "
                 + MESSAGE_VAR_NAME + ")" +
                 ".getContent(" + THE_AGENT + "().getContentManager())"

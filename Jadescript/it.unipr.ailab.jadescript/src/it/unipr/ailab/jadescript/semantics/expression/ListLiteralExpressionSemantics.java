@@ -310,7 +310,7 @@ public class ListLiteralExpressionSemantics
                     termSubpattern = input.subPattern(
                     elementType,
                     __ -> term.toNullable(),
-                    "_" + i
+                    "_listelem" + i
                 );
 
                 subPatterns.add(termSubpattern);
@@ -322,7 +322,7 @@ public class ListLiteralExpressionSemantics
                 input.subPattern(
                     solvedPatternType,
                     __ -> rest.toNullable(),
-                    "_rest"
+                    "_listrest"
                 );
 
 
@@ -450,7 +450,7 @@ public class ListLiteralExpressionSemantics
                     termSubpattern = input.subPattern(
                     elementType,
                     __ -> term.toNullable(),
-                    "_" + i
+                    "_listelem" + i
                 );
 
                 subPatterns.add(termSubpattern);
@@ -476,7 +476,7 @@ public class ListLiteralExpressionSemantics
                 input.subPattern(
                     solvedPatternType,
                     __ -> rest.toNullable(),
-                    "_rest"
+                    "_listrest"
                 );
             shortCircuitedAlternatives.add(runningState);
 
@@ -555,7 +555,7 @@ public class ListLiteralExpressionSemantics
                         termSubpattern = input.subPattern(
                         elementType,
                         __ -> term.toNullable(),
-                        "_" + i
+                        "_listelem" + i
                     );
 
                     subPatterns.add(termSubpattern);
@@ -589,7 +589,7 @@ public class ListLiteralExpressionSemantics
                     input.subPattern(
                         solvedPatternType,
                         __ -> rest.toNullable(),
-                        "_rest"
+                        "_listrest"
                     );
 
                 if (!subPatterns.isEmpty()) {
@@ -712,7 +712,7 @@ public class ListLiteralExpressionSemantics
                     input.subPattern(
                         elementType,
                         __ -> subPattern.toNullable(),
-                        "_" + i
+                        "_listelem" + i
                     );
                 subPatterns.add(termSubpattern);
 
@@ -750,7 +750,7 @@ public class ListLiteralExpressionSemantics
             pipeCheck = rves.validatePatternMatch(input.subPattern(
                 solvedPatternType,
                 ListLiteral::getRest,
-                "_rest"
+                "_listrest"
             ), runningState, acceptor);
         }
 

@@ -365,7 +365,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                 input.subPattern(
                     upperBound,
                     __ -> term.toNullable(),
-                    "_" + i
+                    "_structterm" + i
                 );
             runningState = rves.advancePattern(
                 termSubpattern,
@@ -1065,7 +1065,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                     input.subPattern(
                         upperBound,
                         __ -> term.toNullable(),
-                        "_" + i
+                        "_structterm" + i
                     );
                 final PatternMatcher termOutput = rves.compilePatternMatch(
                     termSubpattern,
@@ -1257,7 +1257,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                     input.subPattern(
                         upperBound,
                         __ -> term.toNullable(),
-                        "_" + i
+                        "_structterm" + i
                     );
                 boolean argCheck = rves.validatePatternMatch(
                     termSubPattern,

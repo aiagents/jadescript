@@ -19,12 +19,10 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
@@ -237,6 +235,19 @@ public final class StaticState
         );
     }
 
+    public StaticState assertAllFlowTypingUpperBound(
+        ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds
+    ) {
+        return new StaticState(
+            this.valid,
+            this.module,
+            this.outerContext(),
+            this.scopeType,
+            this.getLocalScopeNamedSymbols(),
+            this.getLocalScopeFlowTypingUpperBounds().putAll(upperBounds)
+        );
+    }
+
 
     @Contract(pure = true)
     public StaticState assertFlowTypingUpperBound(
@@ -391,6 +402,24 @@ public final class StaticState
             namedSymbols.mergeAdd(
                 ns.name(),
                 ns,
+                (__, n2) -> n2 // Force redeclaration
+            ),
+            this.getLocalScopeFlowTypingUpperBounds()
+        );
+    }
+
+    public StaticState assertAllNamedSymbols(
+        Collection<? extends NamedSymbol> nss
+    ){
+
+        return new StaticState(
+            true,
+            module,
+            this.outerContext(),
+            scopeType,
+            getLocalScopeNamedSymbols().mergeAddAll(
+                nss,
+                NamedSymbol::name,
                 (__, n2) -> n2 // Force redeclaration
             ),
             this.getLocalScopeFlowTypingUpperBounds()
@@ -574,6 +603,19 @@ public final class StaticState
             outer.invalidateUntilExitOperation(),
             this.scopeType
         );
+    }
+
+    @Contract(pure = true)
+    public StaticState copyInnermostContentFrom(StaticState other){
+        final List<? extends NamedSymbol> namedSymbols =
+            other.getLocalScopeNamedSymbols().streamValues()
+            .collect(Collectors.toList());
+
+        final ImmutableMap<ExpressionDescriptor, IJadescriptType> ubs =
+            other.getLocalScopeFlowTypingUpperBounds();
+
+        return this.assertAllNamedSymbols(namedSymbols)
+            .assertAllFlowTypingUpperBound(ubs);
     }
 
 
