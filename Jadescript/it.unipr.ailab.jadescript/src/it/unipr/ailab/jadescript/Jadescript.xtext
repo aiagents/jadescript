@@ -537,7 +537,7 @@ IfStatement:
 
 
 WhenMatchesStatement:
-	'when' inputExpr=RValueExpression 'matches' patterns+=Pattern 'do' branches+=OptionalBlock
+	'when' '(' inputExpr=RValueExpression ')' 'matches' patterns+=Pattern 'do' branches+=OptionalBlock
 	((ENDLINE)? 'else' 'matches' patterns+=Pattern 'do' branches+=OptionalBlock)*
 	(=> (ENDLINE)? withElseBranch?='else' 'do' elseBranch=OptionalBlock)?;
 

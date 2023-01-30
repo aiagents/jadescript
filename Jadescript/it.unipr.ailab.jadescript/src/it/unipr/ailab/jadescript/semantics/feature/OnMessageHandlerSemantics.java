@@ -385,8 +385,7 @@ public class OnMessageHandlerSemantics
 //                    .addStatement(w.ifStmnt(
 //                        w.expr("!jadescript.lang.acl.ContentMessageTemplate" +
 //                            ".MatchClass(" +
-//                            THE_AGENT + "().getContentManager(), " + //TODO
-//                             is it actually needed?
+//                            THE_AGENT + "().getContentManager(), " + //TODO is it actually needed?
 //                            contentTypeCompiled + ".class" +
 //                            ").match(__templMsg)"),
 //                        w.block().addStatement(w.returnStmnt(w.expr("false")))
@@ -469,27 +468,6 @@ public class OnMessageHandlerSemantics
             .copyInnermostContentFrom(preparedState);
 
         inBody = inBody.enterScope();
-
-        //TODO remove
-        SingleIdentifierExpressionSemantics sies =
-            module.get(SingleIdentifierExpressionSemantics.class);
-
-        Maybe<SingleIdentifier> si = SingleIdentifier.singleIdentifier(
-            "sender",
-            input
-        );
-
-        final Maybe<NamedSymbol> senderNS = sies.resolveAsNamedSymbol(
-            si,
-            inBody
-        );
-
-        senderNS.safeDo(sns -> {
-            SourceCodeBuilder scb2 = new SourceCodeBuilder();
-            sns.debugDumpNamedSymbol(scb2);
-            System.out.println(scb2);
-        });
-        //TODO remove ^^^
 
 
         final CompilationHelper compilationHelper =

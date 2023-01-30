@@ -47,10 +47,10 @@ cyclic behaviour SetAlarmAndWait
     on activate do
         send message request WakeUp(time, aid of agent) to 'AlarmClock'@
         
-    on message inform TimeOut(result) when sender of message = 'AlarmClock'@ do
+    on message inform TimeOut(result) when sender = 'AlarmClock'@ do
         log "I am awake! (seconds= "+result+")"
         
-    on message agree (WakeUp(t, _), True) when sender of message = 'AlarmClock'@ do
+    on message agree (WakeUp(t, _), True) when sender = 'AlarmClock'@ do
         log "Alarm set at time: '"+t+"'"
         
     on message refuse when sender of message = 'AlarmClock'@ do
@@ -72,13 +72,12 @@ cyclic behaviour HandleAlarmRequests
     
     on message request WakeUp(requestedTime, target) do
         if requestedTime ≤ now do
-            send message refuse (content of message, TimeIsInThePast) to sender of message
+            send message refuse (content of message, TimeIsInThePast) to sender
         else do
             log "Alarm set at "+requestedTime+" for agent '" +name of target+"'"
             log "now is "+now
-            send message agree (WakeUp(requestedTime, target), True) to sender of message
-            activate WakeUpAgent(target) 
-                at requestedTime
+            send message agree (WakeUp(requestedTime, target), True) to sender
+            activate WakeUpAgent(target) at requestedTime
 
 
 

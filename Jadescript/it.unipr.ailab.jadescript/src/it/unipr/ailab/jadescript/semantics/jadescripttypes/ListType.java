@@ -14,6 +14,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.jadescript.semantics.helpers.TypeHelper.builtinPrefix;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class ListType extends ParametricType implements EmptyCreatable {
 
@@ -129,6 +130,11 @@ public class ListType extends ParametricType implements EmptyCreatable {
 
     public IJadescriptType getElementType() {
         return getTypeArguments().get(0).ignoreBound();
+    }
+
+    @Override
+    public Maybe<IJadescriptType> getElementTypeIfCollection() {
+        return some(getElementType());
     }
 
     @Override

@@ -7,7 +7,6 @@ agent Ping
         log "Agent 'Ping' created."
         activate WaitFromPong
         activate SendRequest(0)
-         
 
 
 agent Pong
@@ -23,14 +22,12 @@ ontology PingPong
     action Reply(id as integer)
 
 
-
 cyclic behavior WaitAndReply 
     for agent Pong
     uses ontology PingPong 
     
     on message request Reply(id) do
-        sender = sender of message
-        log "received '" + id + "' from agent '"  
+        log "received '" + id + "' from agent '"
             + name of sender + "'"
         inform Received(id) to sender
 
@@ -55,7 +52,6 @@ cyclic behaviour WaitFromPong
     uses ontology PingPong
     
     on message inform Received(id) do
-        sender = sender of message
         log "received '" + id + "' from agent '" 
             + name of sender + "'"
         activate SendRequest(id+1) after "PT1S" as duration

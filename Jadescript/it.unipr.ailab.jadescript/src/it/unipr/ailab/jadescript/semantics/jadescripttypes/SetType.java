@@ -26,6 +26,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.jadescript.semantics.helpers.TypeHelper.builtinPrefix;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class SetType extends ParametricType implements EmptyCreatable, DeclaresOntologyAdHocClass {
 
@@ -182,6 +183,11 @@ public class SetType extends ParametricType implements EmptyCreatable, DeclaresO
             getElementType().compileToJavaTypeReference() + ">()";
     }
 
+
+    @Override
+    public Maybe<IJadescriptType> getElementTypeIfCollection() {
+        return some(getElementType());
+    }
 
 
     private Map<String, Property> getBuiltinProperties() {

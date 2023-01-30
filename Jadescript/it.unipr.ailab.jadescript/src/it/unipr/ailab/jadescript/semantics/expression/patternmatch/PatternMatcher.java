@@ -76,7 +76,7 @@ public abstract class PatternMatcher {
 
 
     public Stream<? extends ClassMemberWriter> getAllSubwriters() {
-        return subResults.stream().flatMap(PatternMatcher::getDirectWriters);
+        return subResults.stream().flatMap(PatternMatcher::getAllWriters);
     }
 
 

@@ -9,7 +9,7 @@ cyclic behaviour ProcessOrders for agent SellerAgent uses ontology MusicShopOnto
             when receivedItem matches Item(serialNumber) 
         do 
             log name of agent + ": Accepted proposal!"
-
+            
             if catalogue contains key serialNumber do
                 price = catalogue[serialNumber]
                 remove at serialNumber from catalogue

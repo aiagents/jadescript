@@ -12,7 +12,6 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.HandlerWhenExpressi
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
-import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.MatchesExpression;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
@@ -207,53 +206,50 @@ public class MatchesExpressionSemantics
             module.get(LValueExpressionSemantics.class);
 
 
+        final PatternMatchInput<LValueExpression> patternMatchInput;
+
+
         if (handlerHeaderContext.isPresent()) {
             //We are in a handler header, probably in a when-expression
-
-            final PatternMatchInput<LValueExpression> patternMatchInput =
-                patternMatchHelper.handlerHeader(
-                    inputExprType,
-                    pattern
-                );
-
-            final PatternMatcher matcher = lves.compilePatternMatch(
-                    patternMatchInput,
-                    afterLeft,
-                    acceptor
-                );
-
-            return matcher.rootInvocationText(compiledInputExpr);
+            patternMatchInput = patternMatchHelper.handlerHeader(
+                inputExprType,
+                pattern
+            );
         } else {
-            String localClassName =
-                patternMatchHelper.getPatternMatcherClassName(pattern);
-
-            final String variableName =
-                patternMatchHelper.getPatternMatcherVariableName(pattern);
-
-            final MatchesExpression<LValueExpression> patternMatchInput =
+            patternMatchInput =
                 patternMatchHelper.matchesExpression(
                     inputExprType,
                     pattern
                 );
 
-            final PatternMatcher matcher = lves.compilePatternMatch(
-                    patternMatchInput, afterLeft, acceptor
-                );
-
-
-            final LocalClassStatementWriter localClass =
-                PatternMatchHelper.w.localClass(localClassName);
-
-            matcher.getAllWriters().forEach(localClass::addMember);
-
-            acceptor.accept(localClass);
-            acceptor.accept(PatternMatchHelper.w.variable(localClassName,
-                variableName, PatternMatchHelper.w.expr("new "
-                + localClassName + "()")));
-
-
-            return matcher.rootInvocationText(compiledInputExpr);
         }
+
+        String localClassName =
+            patternMatchHelper.getPatternMatcherClassName(pattern);
+
+        final String variableName =
+            patternMatchHelper.getPatternMatcherVariableName(pattern);
+
+
+        final PatternMatcher matcher = lves.compilePatternMatch(
+            patternMatchInput, afterLeft, acceptor
+        );
+
+
+        final LocalClassStatementWriter localClass =
+            PatternMatchHelper.w.localClass(localClassName);
+
+        matcher.getAllWriters().forEach(localClass::addMember);
+
+        acceptor.accept(localClass);
+        acceptor.accept(PatternMatchHelper.w.variable(
+            localClassName,
+            variableName,
+            PatternMatchHelper.w.expr("new " + localClassName + "()")
+        ));
+
+
+        return matcher.rootInvocationText(compiledInputExpr);
     }
 
 
@@ -303,10 +299,15 @@ public class MatchesExpressionSemantics
     @Override
     protected Optional<? extends SemanticsBoundToExpression<?>>
     traverseInternal(Maybe<Matches> input) {
+
         final Maybe<UnaryPrefix> unary = input.__(Matches::getUnaryExpr);
-        return Optional.of(new SemanticsBoundToExpression<>(
-            module.get(UnaryPrefixExpressionSemantics.class), unary
-        ));
+        if (mustTraverse(input)) {
+            return Optional.of(new SemanticsBoundToExpression<>(
+                module.get(UnaryPrefixExpressionSemantics.class), unary
+            ));
+        } else {
+            return Optional.empty();
+        }
     }
 
 

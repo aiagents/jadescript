@@ -66,6 +66,11 @@ public interface IJadescriptType extends TypeArgument {
     @Override
     String getJadescriptName();
 
+    /**
+     * It returns the type of the elements if this is a list or set type, the
+     * type of the mapped values if this is a map type, and
+     * {@link Maybe#nothing()} otherwise.
+     */
     Maybe<IJadescriptType> getElementTypeIfCollection();
 
     boolean isCollection();

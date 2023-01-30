@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.InvokeExpression;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -11,7 +12,6 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -41,19 +41,17 @@ public class InvokeExpressionSemantics
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<InvokeExpression> input
     ) {
-        final Maybe<RValueExpression> expr = input
-            .__(InvokeExpression::getExpr);
-        final List<Maybe<RValueExpression>> argValues = toListOfMaybes(
-            input.__(InvokeExpression::getArgumentValues)
-        );
+        final Maybe<RValueExpression> expr =
+            input.__(InvokeExpression::getExpr);
+
+        final List<Maybe<RValueExpression>> argValues =
+            toListOfMaybes(input.__(InvokeExpression::getArgumentValues));
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        return Stream.concat(
-                Stream.of(expr),
-                argValues.stream()
-            ).filter(Maybe::isPresent)
+        return Stream.concat(Stream.of(expr), argValues.stream())
+            .filter(Maybe::isPresent)
             .map(i -> new SemanticsBoundToExpression<>(rves, i));
 
     }
@@ -268,20 +266,27 @@ public class InvokeExpressionSemantics
         }
         sb.append(", \"").append(name).append("\", java.util.Arrays.asList(");
 
+        List<String> argClasses = new ArrayList<>();
         List<String> compiledArgs = new ArrayList<>();
+
         for (int i = 0; i < argValues.size(); i++) {
             Maybe<RValueExpression> argumentValue = argValues.get(i);
-            if (i != 0) {
-                sb.append(",");
-            }
-            sb.append(debox(rves
-                .inferType(argumentValue, newState).compileToJavaTypeReference()
-            )).append(".class");
-            compiledArgs.add(rves.compile(
+
+            final IJadescriptType argType =
+                rves.inferType(argumentValue, newState);
+
+            final String argClass = debox(argType.compileToJavaTypeReference())
+                + ".class";
+
+            argClasses.add(argClass);
+
+            final String argCompiled = rves.compile(
                 argumentValue,
                 newState,
                 acceptor
-            ));
+            );
+
+            compiledArgs.add(argCompiled);
 
             if (i < argValues.size() - 1) { //Excluding last
                 newState = rves.advance(
@@ -290,8 +295,14 @@ public class InvokeExpressionSemantics
                 );
             }
         }
-        sb.append(")");
+        sb.append(String.join(", ", argClasses)).append(")");
+
+        if(!compiledArgs.isEmpty()){
+            sb.append(",");
+        }
+
         sb.append(String.join(", ", compiledArgs));
+
         sb.append(")");
 
         return sb.toString();

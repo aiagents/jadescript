@@ -2214,8 +2214,8 @@ public class TypeHelper implements SemanticsConsts {
             //if left and right are array types, just see if their component
             // types matches isAssignable
             return isAssignable(
-                getArrayListMapComponentType(left),
-                getArrayListMapComponentType(right)
+                ((JvmGenericArrayTypeReference) left).getComponentType(),
+                ((JvmGenericArrayTypeReference) right).getComponentType()
             );
         } else if (left instanceof JvmGenericArrayTypeReference
             && right.getType() instanceof JvmDeclaredType
@@ -2226,56 +2226,6 @@ public class TypeHelper implements SemanticsConsts {
         } else {
             return false;
         }
-    }
-
-
-    public JvmTypeReference getArrayListMapComponentType(
-        JvmTypeReference arrayOrListType
-    ) {
-        if (arrayOrListType instanceof JvmGenericArrayTypeReference) {
-            return ((JvmGenericArrayTypeReference) arrayOrListType)
-                .getComponentType();
-        } else if (arrayOrListType instanceof JvmParameterizedTypeReference) {
-            JvmParameterizedTypeReference genericReference =
-                (JvmParameterizedTypeReference) arrayOrListType;
-
-            final JvmTypeReference listTypeRef =
-                typeRef(
-                    List.class,
-                    genericReference.getArguments()
-                        .toArray(new JvmTypeReference[0])
-                );
-
-            final JvmTypeReference setTypeRef =
-                typeRef(
-                    Set.class,
-                    genericReference.getArguments()
-                        .toArray(new JvmTypeReference[0])
-                );
-
-            if (
-                genericReference.getArguments().size() == 1
-                    && (isAssignable(listTypeRef, genericReference)
-                    || isAssignable(setTypeRef, genericReference))
-            ) {
-                return genericReference.getArguments().get(0);
-            } else {
-                final JvmTypeReference mapTypeRef = typeRef(
-                    Map.class,
-                    genericReference.getArguments()
-                        .toArray(new JvmTypeReference[0])
-                );
-                if (
-                    genericReference.getArguments().size() == 2
-                        && isAssignable(
-                        mapTypeRef,
-                        genericReference
-                    )) {
-                    return genericReference.getArguments().get(1);
-                }
-            }
-        }
-        return this.typeRef(Object.class);
     }
 
 

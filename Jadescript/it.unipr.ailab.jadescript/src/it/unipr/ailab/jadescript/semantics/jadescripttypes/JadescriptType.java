@@ -14,19 +14,21 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.jetbrains.annotations.Nullable;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.some;
 
-public abstract class JadescriptType implements SemanticsConsts, IJadescriptType {
+public abstract class JadescriptType implements SemanticsConsts,
+    IJadescriptType {
+
     protected final SemanticsModule module;
     protected final String typeID;
     protected final String simpleName;
     protected final String categoryName;
 
+
     public JadescriptType(
-            SemanticsModule module,
-            String typeID,
-            String simpleName,
-            String categoryName
+        SemanticsModule module,
+        String typeID,
+        String simpleName,
+        String categoryName
     ) {
         this.module = module;
         this.typeID = typeID;
@@ -34,21 +36,25 @@ public abstract class JadescriptType implements SemanticsConsts, IJadescriptType
         this.categoryName = categoryName;
     }
 
+
     @Override
     public boolean typeEquals(IJadescriptType other) {
         if (other == null) return false;
         return this == other || this.getID().equals(other.getID());
     }
 
+
     @Override
     public String getCategoryName() {
         return categoryName;
     }
 
+
     @Override
     public SearchLocation getLocation() {
         return new JadescriptTypeLocation(this);
     }
+
 
     @Override
     public boolean isSupEqualTo(IJadescriptType other) {
@@ -67,10 +73,11 @@ public abstract class JadescriptType implements SemanticsConsts, IJadescriptType
         }
 
         return typeHelper.isAssignable(
-                this.asJvmTypeReference(),
-                other.asJvmTypeReference()
+            this.asJvmTypeReference(),
+            other.asJvmTypeReference()
         );
     }
+
 
     public abstract void addProperty(Property prop);
 
@@ -87,13 +94,14 @@ public abstract class JadescriptType implements SemanticsConsts, IJadescriptType
         ValidationMessageAcceptor acceptor
     ) {
         return module.get(ValidationHelper.class).asserting(
-                !isErroneous(),
-                "InvalidType",
-                "Invalid type: '" + getJadescriptName() + "'.",
-                input,
-                acceptor
+            !isErroneous(),
+            "InvalidType",
+            "Invalid type: '" + getJadescriptName() + "'.",
+            input,
+            acceptor
         );
     }
+
 
     @Override
     public String toString() {
@@ -109,15 +117,7 @@ public abstract class JadescriptType implements SemanticsConsts, IJadescriptType
 
     @Override
     public Maybe<IJadescriptType> getElementTypeIfCollection() {
-        if (this instanceof MapType) {
-            return some(((MapType) this).getValueType());
-        } else if (this instanceof ListType) {
-            return some(((ListType) this).getElementType());
-        } else if (this instanceof SetType) {
-            return some(((SetType) this).getElementType());
-        } else {
-            return nothing();
-        }
+        return nothing();
     }
 
 
@@ -125,8 +125,9 @@ public abstract class JadescriptType implements SemanticsConsts, IJadescriptType
     public String compileConversionType() {
 
         return "new jadescript.util.types.JadescriptTypeReference(" +
-                "jadescript.util.types.JadescriptBaseType." + getCategoryName() + ")";
+            "jadescript.util.types.JadescriptBaseType." + getCategoryName() + ")";
     }
+
 
     /**
      * The JADE Ontology schema name of this type, when used as type of slot.
@@ -136,10 +137,12 @@ public abstract class JadescriptType implements SemanticsConsts, IJadescriptType
         return this.asJvmTypeReference().getSimpleName();
     }
 
+
     @Override
     public IJadescriptType ignoreBound() {
         return this;
     }
+
 
     @Override
     public String compileAsJavaCast() {
@@ -150,16 +153,21 @@ public abstract class JadescriptType implements SemanticsConsts, IJadescriptType
     @Override
     @Nullable
     public JvmModelBasedNamespace jvmNamespace() {
-        return JvmModelBasedNamespace.fromTypeReference(module, asJvmTypeReference());
+        return JvmModelBasedNamespace.fromTypeReference(
+            module,
+            asJvmTypeReference()
+        );
     }
+
 
     @Override
     public String getDebugPrint() {
         return getJadescriptName()
-                + "{Class=("
-                + getClass().getSimpleName()
-                + "); JvmTypeReference=("
-                + compileToJavaTypeReference()
-                + ")}";
+            + "{Class=("
+            + getClass().getSimpleName()
+            + "); JvmTypeReference=("
+            + compileToJavaTypeReference()
+            + ")}";
     }
+
 }

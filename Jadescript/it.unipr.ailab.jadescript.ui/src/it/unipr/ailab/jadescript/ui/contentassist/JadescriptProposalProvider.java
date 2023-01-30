@@ -26,7 +26,12 @@ public class JadescriptProposalProvider extends AbstractJadescriptProposalProvid
 	@Inject
 	private IJvmTypeProvider.Factory typeProviderFactory;
 
-	public void completeJvmParameterizedTypeReference_Type(EObject model, Assignment assignment, ContentAssistContext context, ICompletionProposalAcceptor acceptor) {
+	public void completeJvmParameterizedTypeReference_Type(
+			EObject model, 
+			Assignment assignment, 
+			ContentAssistContext context, 
+			ICompletionProposalAcceptor acceptor
+	) {
 		// Do nothing, disabling proposals from cross-references (pointing to any Java types for JvmTypeReferences)
 	}
 	
@@ -51,9 +56,7 @@ public class JadescriptProposalProvider extends AbstractJadescriptProposalProvid
 			model.eResource().getResourceSet()
 		);	
 		
-		JvmType type = typeProvider.findTypeByName(
-			clazz.getName()
-		);
+		JvmType type = typeProvider.findTypeByName(clazz.getName());
 			
 		if(type == null) {
 			return;

@@ -400,11 +400,8 @@ public class SubscriptExpressionSemantics
                 );
             }
         }
-        return typeHelper.jtFromJvmTypeRef(
-            typeHelper.getArrayListMapComponentType(
-                restType.asJvmTypeReference()
-            )
-        );
+        return restType.getElementTypeIfCollection()
+            .orElseGet(() -> typeHelper.ANY);
     }
 
 

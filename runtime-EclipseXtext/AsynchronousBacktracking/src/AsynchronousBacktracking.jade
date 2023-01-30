@@ -122,7 +122,7 @@ cyclic behavior AwaitTermination
         if reason is NoSolution do
             log "The algorithm terminated with no solution found."
         else do
-            when reason matches Failure(msg) do
+            when (reason) matches Failure(msg) do
                 log WARNING "ABT Failure from agent '" +
                     name of sender of message+"': '" + msg + "'"  
         send message request Terminate to agentList 
@@ -242,7 +242,7 @@ cyclic behavior RunningABT
             add a to nogoods
     
         for nogood in nogoods do
-            when nogood matches Assignment(v, d) do
+            when (nogood) matches Assignment(v, d) do
                 if not(neighbors contains v) do
                     put d in agentView at v
                     send message request AddNeighbor(aid of agent) to v
