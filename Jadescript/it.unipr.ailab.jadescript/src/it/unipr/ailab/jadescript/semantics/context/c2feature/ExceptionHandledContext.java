@@ -19,8 +19,9 @@ public interface ExceptionHandledContext extends SemanticsConsts {
         IJadescriptType exceptionReasonType
     ) {
         return new ContextGeneratedReference(
-            EXCEPTION_REASON_VAR_NAME,
-            exceptionReasonType
+            "exception",
+            exceptionReasonType,
+            (__) -> EXCEPTION_REASON_VAR_NAME
         );
     }
 
@@ -34,7 +35,7 @@ public interface ExceptionHandledContext extends SemanticsConsts {
         Stream<Integer> stream = Stream.of(0);
         stream = safeFilter(
             stream,
-            __ -> EXCEPTION_REASON_VAR_NAME,
+            __ -> "exception",
             name
         );
         stream = safeFilter(

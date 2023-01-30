@@ -19,8 +19,9 @@ public interface BehaviourFailureHandledContext extends SemanticsConsts {
         IJadescriptType failureReasonType
     ) {
         return new ContextGeneratedReference(
-            FAILURE_REASON_VAR_NAME,
-            failureReasonType
+            "failureReason",
+            failureReasonType,
+            (__) -> FAILURE_REASON_VAR_NAME
         );
     }
 
@@ -29,8 +30,9 @@ public interface BehaviourFailureHandledContext extends SemanticsConsts {
         IJadescriptType failedBehaviourType
     ) {
         return new ContextGeneratedReference(
-            FAILED_BEHAVIOUR_VAR_NAME,
-            failedBehaviourType
+            "behaviour",
+            failedBehaviourType,
+            (__) -> FAILED_BEHAVIOUR_VAR_NAME
         );
     }
 
@@ -45,7 +47,6 @@ public interface BehaviourFailureHandledContext extends SemanticsConsts {
         Predicate<Boolean> canWrite
     ) {
         Stream<String> stream = Stream.of(
-            FAILURE_REASON_VAR_NAME,
             "failureReason"
         );
         stream = safeFilter(stream, it -> it, name);
@@ -63,7 +64,7 @@ public interface BehaviourFailureHandledContext extends SemanticsConsts {
         Predicate<Boolean> canWrite
     ) {
         Stream<Integer> stream = Stream.of(0);
-        stream = safeFilter(stream, __ -> FAILED_BEHAVIOUR_VAR_NAME, name);
+        stream = safeFilter(stream, __ -> "behaviour", name);
         stream = safeFilter(
             stream,
             __ -> getFailedBehaviourType(),

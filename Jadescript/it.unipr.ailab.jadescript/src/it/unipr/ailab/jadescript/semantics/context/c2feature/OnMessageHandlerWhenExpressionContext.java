@@ -80,22 +80,18 @@ public class OnMessageHandlerWhenExpressionContext
         Predicate<Boolean> canWrite
     ) {
 
-        final Stream<NamedSymbol> contentStream = getContentStream(
-            name,
-            readingType,
-            canWrite
-        );
-
-
-        final Stream<NamedSymbol> messageStream = getMessageStream(
-            name,
-            readingType,
-            canWrite
-        );
 
         return Streams.concat(
-            contentStream,
-            messageStream,
+            getContentStream(
+                name,
+                readingType,
+                canWrite
+            ),
+            getMessageStream(
+                name,
+                readingType,
+                canWrite
+            ),
             messageNamespace.get().searchName(name, readingType, canWrite)
                 .map(ne -> SymbolUtils.setDereferenceByVariable(
                     ne,

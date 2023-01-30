@@ -1,12 +1,16 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+
 public class OnBehaviourFailureHandlerContext
         extends HandlerWithWhenExpressionContext
-        implements BehaviourFailureHandledContext {
+        implements NamedSymbol.Searcher, BehaviourFailureHandledContext {
 
     private final IJadescriptType failedBehaviourType;
     private final IJadescriptType behaviourFailureReasonType;
@@ -31,6 +35,29 @@ public class OnBehaviourFailureHandlerContext
     public IJadescriptType getFailedBehaviourType() {
         return failedBehaviourType;
     }
+
+
+    @Override
+    public Stream<? extends NamedSymbol> searchName(
+        Predicate<String> name,
+        Predicate<IJadescriptType> readingType,
+        Predicate<Boolean> canWrite
+    ) {
+        return Stream.concat(
+            getFailureReasonStream(
+                name,
+                readingType,
+                canWrite
+            ),
+            getFailedBehaviourStream(
+                name,
+                readingType,
+                canWrite
+            )
+        );
+    }
+
+
 
     @Override
     public String getCurrentOperationLogName() {

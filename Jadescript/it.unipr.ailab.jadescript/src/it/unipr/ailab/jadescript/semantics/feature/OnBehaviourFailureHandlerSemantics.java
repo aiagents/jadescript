@@ -5,7 +5,6 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
-import it.unipr.ailab.jadescript.semantics.context.c2feature.BehaviourFailureHandledContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnBehaviourFailureHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnBehaviourFailureHandlerWhenExpressionContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
@@ -369,16 +368,8 @@ public class OnBehaviourFailureHandlerSemantics
             w.True
         ).writeSonnet(scb);
 
-        StaticState inBody = prepareBodyState.apply(
+        StaticState preparedState = prepareBodyState.apply(
             afterWhenExprReturnedTrue
-        ).assertNamedSymbol(BehaviourFailureHandledContext
-            .failureReasonContextGeneratedReference(
-                finalContentType
-            )
-        ).assertNamedSymbol(BehaviourFailureHandledContext
-            .behaviourContextGeneratedReference(
-                finalBehaviourType
-            )
         );
 
         module.get(ContextManager.class).enterProceduralFeature(
@@ -389,6 +380,9 @@ public class OnBehaviourFailureHandlerSemantics
                 finalContentType
             )
         );
+
+        StaticState inBody = StaticState.beginningOfOperation(module)
+            .copyInnermostContentFrom(preparedState);
 
         inBody = inBody.enterScope();
         PSR<SourceCodeBuilder> bodyPSR = module.get(CompilationHelper.class)
@@ -556,18 +550,8 @@ public class OnBehaviourFailureHandlerSemantics
 
         final IJadescriptType finalBehaviourType = wexpNarrowedBehaviourType;
 
-        StaticState inBody = prepareBodyState.apply(afterWhenExprReturnedTrue)
-            //TODO remove? also in exception and percept
-            .assertNamedSymbol(BehaviourFailureHandledContext
-                .failureReasonContextGeneratedReference(
-                    finalContentType
-                )
-            //TODO remove? also in exception and percept
-            ).assertNamedSymbol(BehaviourFailureHandledContext
-                .behaviourContextGeneratedReference(
-                    finalBehaviourType
-                )
-            );
+        StaticState preparedState =
+            prepareBodyState.apply(afterWhenExprReturnedTrue);
 
         module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
             new OnBehaviourFailureHandlerContext(
@@ -577,6 +561,9 @@ public class OnBehaviourFailureHandlerSemantics
                 finalContentType
             )
         );
+
+        StaticState inBody = StaticState.beginningOfOperation(module)
+            .copyInnermostContentFrom(preparedState);
 
         inBody = inBody.enterScope();
 

@@ -11,16 +11,13 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.OnMessageHandlerCon
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnMessageHandlerWhenExpressionContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.expression.SingleIdentifierExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.helpers.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseMessageType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -382,25 +379,21 @@ public class OnMessageHandlerSemantics
 
             messageTemplateExpressions.add(
                 TemplateCompilationHelper.customMessage("__templMsg", w.block()
-//                    .addStatement(w.ifStmnt(
-//                        w.expr("!jadescript.lang.acl.ContentMessageTemplate" +
-//                            ".MatchClass(" +
-//                            THE_AGENT + "().getContentManager(), " + //TODO is it actually needed?
-//                            contentTypeCompiled + ".class" +
-//                            ").match(__templMsg)"),
-//                        w.block().addStatement(w.returnStmnt(w.expr("false")))
-//                    ))
                         .addStatement(w.variable(
                             "jadescript.core.message.Message",
                             MESSAGE_VAR_NAME,
                             w.expr("jadescript.core.message.Message" +
                                 ".wrap(__templMsg)")
-                        )).addStatement(w.tryCatch(w.block()
-                            .addStatement(w.returnStmnt(w.expr(compiledExpression)))
-                        ).addCatchBranch("java.lang.Throwable", "_e", w.block()
-                            .addStatement(w.callStmnt("_e.printStackTrace"))
-                            .addStatement(w.returnStmnt(w.expr("false")))
-                        ))
+                        )).addStatement(
+                            w.tryCatch(
+                                w.block().addStatement(
+                                    w.returnStmnt(w.expr(compiledExpression))
+                                )
+                            ).addCatchBranch("java.lang.Throwable", "_e",
+                                w.block()
+                                .addStatement(w.callStmnt("_e.printStackTrace"))
+                                .addStatement(w.returnStmnt(w.expr("false")))
+                            ))
                 )
             );
         }

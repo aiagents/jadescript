@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -11,7 +12,6 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.OnExceptionHandlerW
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -143,6 +143,7 @@ public class OnExceptionHandlerSemantics
                             "__inputException",
                             typeHelper.typeRef(JadescriptException.class)
                         ));
+
                         itMethod.getParameters().add(jvmTB.toParameter(
                             inputSafe,
                             EXCEPTION_THROWER_NAME,
@@ -364,12 +365,9 @@ public class OnExceptionHandlerSemantics
             w.True
         ).writeSonnet(scb);
 
-        StaticState inBody = prepareBodyState.apply(
+
+        StaticState preparedState = prepareBodyState.apply(
             afterWhenExprReturnedTrue
-        ).assertNamedSymbol(
-            ExceptionHandledContext.reasonContextGeneratedReference(
-                finalContentType
-            )
         );
 
         module.get(ContextManager.class).enterProceduralFeature(
@@ -381,7 +379,11 @@ public class OnExceptionHandlerSemantics
                 )
         );
 
+        StaticState inBody = StaticState.beginningOfOperation(module)
+            .copyInnermostContentFrom(preparedState);
+
         inBody = inBody.enterScope();
+
         PSR<SourceCodeBuilder> bodyPSR = module.get(CompilationHelper.class)
             .compileBlockToNewSCB(inBody, body);
 
@@ -528,8 +530,8 @@ public class OnExceptionHandlerSemantics
             wexpNarrowedContentType
         );
 
-        StaticState inBody = prepareBodyState.apply(afterWhenExprReturnedTrue)
-            .assertNamedSymbol(
+        StaticState preparedState =
+            prepareBodyState.apply(afterWhenExprReturnedTrue).assertNamedSymbol(
                 ExceptionHandledContext.reasonContextGeneratedReference(
                     finalContentType
                 )
@@ -542,6 +544,9 @@ public class OnExceptionHandlerSemantics
                 finalContentType
             )
         );
+
+        StaticState inBody = StaticState.beginningOfOperation(module)
+            .copyInnermostContentFrom(preparedState);
 
         inBody = inBody.enterScope();
 

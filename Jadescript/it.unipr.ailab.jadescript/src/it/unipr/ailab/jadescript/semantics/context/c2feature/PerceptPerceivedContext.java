@@ -17,8 +17,9 @@ public interface PerceptPerceivedContext extends SemanticsConsts {
         IJadescriptType contentType
     ) {
         return new ContextGeneratedReference(
-            PERCEPT_CONTENT_VAR_NAME,
-            contentType
+            "percept",
+            contentType,
+            (__) -> PERCEPT_CONTENT_VAR_NAME
         );
     }
 
@@ -30,11 +31,12 @@ public interface PerceptPerceivedContext extends SemanticsConsts {
         Predicate<Boolean> canWrite
     ) {
         Stream<Integer> stream = Stream.of(0);
-        stream = safeFilter(stream, __ -> PERCEPT_CONTENT_VAR_NAME, name);
+        stream = safeFilter(stream, __ -> "percept", name);
         stream = safeFilter(stream, __ -> getPerceptContentType(), readingType);
         stream = safeFilter(stream, __ -> true, canWrite);
         return stream.map(__ ->
-            perceptContentContextGeneratedReference(getPerceptContentType()));
+            perceptContentContextGeneratedReference(getPerceptContentType())
+        );
     }
 
     default void debugDumpPerception(SourceCodeBuilder scb) {

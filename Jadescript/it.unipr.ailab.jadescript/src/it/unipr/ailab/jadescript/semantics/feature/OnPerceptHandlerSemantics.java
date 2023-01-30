@@ -276,7 +276,7 @@ public class OnPerceptHandlerSemantics
                 s
             );
 
-            part1 = matcher.rootInvocationText(PERCEPT_CONTENT_VAR_NAME + ".");
+            part1 = matcher.rootInvocationText(PERCEPT_CONTENT_VAR_NAME);
         } else {
             prepareBodyState = Function.identity();
             afterPatternDidMatch = beforePattern;
@@ -489,7 +489,7 @@ public class OnPerceptHandlerSemantics
 //                    .JadescriptException.wrap(__throwable));
 //                }
 //
-//                this.__receivedPercept = null;
+//                __receivedPercept = null;
 //            } catch (Exception _e) {
 //                _e.printStackTrace();
 //            }
@@ -516,10 +516,9 @@ public class OnPerceptHandlerSemantics
                 .addStatement(w.tryCatch(w.block()
                         .addStatement(declarePerceptContentVariable)
                         .addStatement(tryCatchWrappedBody)
-                        .addStatement(w.assign(
-                            "this." + PERCEPT_VAR_NAME,
-                            w.expr("null")
-                        ))
+                        .addStatement(
+                            w.assign(PERCEPT_VAR_NAME, w.expr("null"))
+                        )
                     ).addCatchBranch(
                         "Exception",
                         "_e",

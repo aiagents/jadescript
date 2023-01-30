@@ -1,12 +1,18 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
+import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.SymbolUtils;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+
 public class OnExceptionHandlerContext
     extends HandlerWithWhenExpressionContext
-    implements ExceptionHandledContext {
+    implements NamedSymbol.Searcher, ExceptionHandledContext {
 
     private final IJadescriptType exceptionReasonType;
 
@@ -24,6 +30,20 @@ public class OnExceptionHandlerContext
     @Override
     public String getCurrentOperationLogName() {
         return "on exception";
+    }
+
+
+    @Override
+    public Stream<? extends NamedSymbol> searchName(
+        Predicate<String> name,
+        Predicate<IJadescriptType> readingType,
+        Predicate<Boolean> canWrite
+    ) {
+        return getExceptionReasonStream(
+            name,
+            readingType,
+            canWrite
+        );
     }
 
 
