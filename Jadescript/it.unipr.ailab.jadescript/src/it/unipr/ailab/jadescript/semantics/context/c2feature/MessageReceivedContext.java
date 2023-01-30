@@ -23,8 +23,8 @@ public interface MessageReceivedContext extends SemanticsConsts {
         IJadescriptType messageType,
         IJadescriptType contentType
     ) {
-        return new ContextGeneratedReference(
-            CONTENT_VAR_NAME,
+        return new ContextGeneratedReference( //TODO: do not extract it everytime
+            "content",
             contentType,
             (__) -> "(" + messageType.compileAsJavaCast() + " "
                 + MESSAGE_VAR_NAME + ")" +
@@ -37,7 +37,7 @@ public interface MessageReceivedContext extends SemanticsConsts {
          IJadescriptType messageType
     ){
         return new ContextGeneratedReference(
-            MESSAGE_VAR_NAME,
+            "message",
             messageType,
             (__) -> "(" + messageType.compileAsJavaCast() +
                 " " + MESSAGE_VAR_NAME + ")"
@@ -57,16 +57,11 @@ public interface MessageReceivedContext extends SemanticsConsts {
         Predicate<Boolean> canWrite
     ) {
         Stream<Integer> mess = Stream.of(0);
-        mess = safeFilter(mess, __ -> MESSAGE_VAR_NAME, name);
+        mess = safeFilter(mess, __ -> "message", name);
         final IJadescriptType messageType = getMessageType();
         mess = safeFilter(mess, __ -> messageType, readingType);
         mess = safeFilter(mess, __ -> true, canWrite);
-        return mess.map(__ -> new ContextGeneratedReference(
-            MESSAGE_VAR_NAME,
-            messageType,
-            (___) -> "(" + messageType.compileAsJavaCast() + " "
-                + MESSAGE_VAR_NAME + ")"
-        ));
+        return mess.map(__ -> messageContextGeneratedReference(messageType));
     }
 
     default Stream<NamedSymbol> getContentStream(
@@ -75,11 +70,13 @@ public interface MessageReceivedContext extends SemanticsConsts {
         Predicate<Boolean> canWrite
     ) {
         Stream<Integer> cont = Stream.of(0);
-        cont = safeFilter(cont, __ -> CONTENT_VAR_NAME, name);
+        cont = safeFilter(cont, __ -> "content", name);
         cont = safeFilter(cont, __ -> getMessageContentType(), readingType);
         cont = safeFilter(cont, __ -> true, canWrite);
         return cont.map(__ -> messageContentContextGeneratedReference(
-            getMessageType(), getMessageContentType()));
+            getMessageType(),
+            getMessageContentType()
+        ));
     }
 
     default void debugDumpReceivedMessage(SourceCodeBuilder scb) {

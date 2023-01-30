@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.feature;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -12,7 +13,6 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescrip
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.SingleIdentifierExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
@@ -139,8 +139,6 @@ public class OnMessageHandlerSemantics
         ).writeSonnet(scb);
 
 
-
-
 //        [... message template auxiliary statements...]
 //        MessageTemplate _mt = [...]
         final Maybe<String> performativeString =
@@ -256,7 +254,7 @@ public class OnMessageHandlerSemantics
 
             part1 = matcher.rootInvocationText(
                 initialMsgType.namespace().getContentProperty()
-                    .compileRead(MESSAGE_VAR_NAME+".")
+                    .compileRead(MESSAGE_VAR_NAME + ".")
             );
         } else {
             prepareBodyState = Function.identity();
@@ -349,7 +347,6 @@ public class OnMessageHandlerSemantics
         }
 
 
-
         //Building the message template
         List<ExpressionWriter> messageTemplateExpressions =
             new ArrayList<>();
@@ -375,36 +372,36 @@ public class OnMessageHandlerSemantics
         }
 
 
-
         // if there is a when-exprssion or a pattern,then add
         // the corresponding constraint
         if (whenBody.isPresent() || contentPattern.isPresent()) {
-            final String contentTypeCompiled = module.get(TypeHelper.class)
-                .noGenericsTypeName(
-                    finalContentType.compileToJavaTypeReference()
-                );
+//            final String contentTypeCompiled = module.get(TypeHelper.class)
+//                .noGenericsTypeName(
+//                    finalContentType.compileToJavaTypeReference()
+//                );
 
             messageTemplateExpressions.add(
                 TemplateCompilationHelper.customMessage("__templMsg", w.block()
-                    .addStatement(w.ifStmnt(
-                        w.expr("!jadescript.lang.acl.ContentMessageTemplate" +
-                            ".MatchClass(" +
-                            THE_AGENT + "().getContentManager(), " + //TODO is it actually needed?
-                            contentTypeCompiled + ".class" +
-                            ").match(__templMsg)"),
-                        w.block().addStatement(w.returnStmnt(w.expr("false")))
-                    ))
-                    .addStatement(w.variable(
-                        "jadescript.core.message.Message",
-                        MESSAGE_VAR_NAME,
-                        w.expr("jadescript.core.message.Message" +
-                            ".wrap(__templMsg)")
-                    )).addStatement(w.tryCatch(w.block()
-                        .addStatement(w.returnStmnt(w.expr(compiledExpression)))
-                    ).addCatchBranch("java.lang.Throwable", "_e", w.block()
-                        .addStatement(w.callStmnt("_e.printStackTrace"))
-                        .addStatement(w.returnStmnt(w.expr("false")))
-                    ))
+//                    .addStatement(w.ifStmnt(
+//                        w.expr("!jadescript.lang.acl.ContentMessageTemplate" +
+//                            ".MatchClass(" +
+//                            THE_AGENT + "().getContentManager(), " + //TODO
+//                             is it actually needed?
+//                            contentTypeCompiled + ".class" +
+//                            ").match(__templMsg)"),
+//                        w.block().addStatement(w.returnStmnt(w.expr("false")))
+//                    ))
+                        .addStatement(w.variable(
+                            "jadescript.core.message.Message",
+                            MESSAGE_VAR_NAME,
+                            w.expr("jadescript.core.message.Message" +
+                                ".wrap(__templMsg)")
+                        )).addStatement(w.tryCatch(w.block()
+                            .addStatement(w.returnStmnt(w.expr(compiledExpression)))
+                        ).addCatchBranch("java.lang.Throwable", "_e", w.block()
+                            .addStatement(w.callStmnt("_e.printStackTrace"))
+                            .addStatement(w.returnStmnt(w.expr("false")))
+                        ))
                 )
             );
         }
@@ -457,10 +454,6 @@ public class OnMessageHandlerSemantics
             afterWhenExprRetunedTrue);
 
 
-        StaticState inBody = StaticState.beginningOfOperation(module)
-            .copyInnermostContentFrom(preparedState);
-
-
         module.get(ContextManager.class).enterProceduralFeature((
             mod,
             out
@@ -471,6 +464,9 @@ public class OnMessageHandlerSemantics
             finalMessageType,
             finalContentType
         ));
+
+        StaticState inBody = StaticState.beginningOfOperation(module)
+            .copyInnermostContentFrom(preparedState);
 
         inBody = inBody.enterScope();
 
@@ -850,18 +846,17 @@ public class OnMessageHandlerSemantics
         final StaticState preparedState = prepareBodyState.apply(
             afterWhenExprReturnedTrue);
 
+        module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
+            new OnMessageHandlerContext(
+                mod,
+                out,
+                input.__(OnMessageHandler::getPerformative),
+                finalMessageType,
+                finalContentType
+            ));
 
         StaticState inBody = StaticState.beginningOfOperation(module)
             .copyInnermostContentFrom(preparedState);
-
-        module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
-            new OnMessageHandlerContext(
-            mod,
-            out,
-            input.__(OnMessageHandler::getPerformative),
-            finalMessageType,
-            finalContentType
-        ));
 
         inBody = inBody.enterScope();
 

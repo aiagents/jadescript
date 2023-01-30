@@ -1,17 +1,16 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnPerceptHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnPerceptHandlerWhenExpressionContext;
-import it.unipr.ailab.jadescript.semantics.context.c2feature.PerceptPerceivedContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -41,7 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 public class OnPerceptHandlerSemantics
     extends FeatureSemantics<OnPerceptHandler> {
@@ -49,6 +48,7 @@ public class OnPerceptHandlerSemantics
     public OnPerceptHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
+
 
     @Override
     public void generateJvmMembers(
@@ -276,7 +276,7 @@ public class OnPerceptHandlerSemantics
                 s
             );
 
-            part1 = matcher.rootInvocationText(PERCEPT_CONTENT_VAR_NAME+".");
+            part1 = matcher.rootInvocationText(PERCEPT_CONTENT_VAR_NAME + ".");
         } else {
             prepareBodyState = Function.identity();
             afterPatternDidMatch = beforePattern;
@@ -435,12 +435,8 @@ public class OnPerceptHandlerSemantics
         ).writeSonnet(scb);
 
 
-        StaticState inBody = prepareBodyState.apply(
+        StaticState preparedState = prepareBodyState.apply(
             afterWhenExprRetunedTrue
-        ).assertNamedSymbol(
-            PerceptPerceivedContext.perceptContentContextGeneratedReference(
-                finalContentType
-            )
         );
 
         module.get(ContextManager.class).enterProceduralFeature(
@@ -451,7 +447,11 @@ public class OnPerceptHandlerSemantics
             )
         );
 
+        StaticState inBody = StaticState.beginningOfOperation(module)
+            .copyInnermostContentFrom(preparedState);
+
         inBody = inBody.enterScope();
+
         final PSR<SourceCodeBuilder> bodyPSR =
             module.get(CompilationHelper.class).compileBlockToNewSCB(
                 inBody,
@@ -674,13 +674,8 @@ public class OnPerceptHandlerSemantics
             wexpNarrowedContentType
         );
 
-        StaticState inBody = prepareBodyState.apply(afterWhenExprReturnedTrue)
-            .assertNamedSymbol(PerceptPerceivedContext
-                .perceptContentContextGeneratedReference(
-                    finalContentType
-                )
-            );
-
+        StaticState preparedState = prepareBodyState.apply(
+            afterWhenExprReturnedTrue);
         module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
             new OnPerceptHandlerContext(
                 mod,
@@ -689,6 +684,9 @@ public class OnPerceptHandlerSemantics
             )
         );
 
+
+        StaticState inBody = StaticState.beginningOfOperation(module)
+            .copyInnermostContentFrom(preparedState);
 
         inBody = inBody.enterScope();
         module.get(BlockSemantics.class).validate(

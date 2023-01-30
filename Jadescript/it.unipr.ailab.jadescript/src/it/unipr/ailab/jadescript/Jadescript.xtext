@@ -696,9 +696,9 @@ UnaryPrefix:
 		|
 		(debugScope?='__d_scope__' ofNotation=OfNotation)
 		|
-		(debugSearchName?='__d_searchname__' (searchName=Identifier|underscore?='_'))
+		(debugSearchName?='__d_searchname__' (searchName=VarIdentifier|underscore?='_'))
 		|
-		(debugSearchCall?='__d_searchcall__' (searchName=Identifier|underscore?='_'))
+		(debugSearchCall?='__d_searchcall__' (searchName=VarIdentifier|underscore?='_'))
 		| 
 		(performativeConst=PerformativeExpression)
 	);
@@ -745,7 +745,7 @@ Primary:
 	{Primary}( //level 0
 	('(' exprs+=RValueExpression (',' exprs+=RValueExpression)* ')')
 	| literal=Literal 
-	| identifier=(Identifier | 'aid' | 'this' | 'agent' | 'percept' | 'exception' | 'behaviour' | 'message') 
+	| identifier=VarIdentifier 
 	| placeholder?='_'
 	| invokeExpression=InvokeExpression)
 	;
@@ -759,6 +759,10 @@ InvokeExpression:
 ;
 
 
+
+VarIdentifier:
+	Identifier | 'aid' | 'this' | 'agent' | 'percept' | 'exception' | 'behaviour' | 'message'
+;
 
 
 EqualityOp:

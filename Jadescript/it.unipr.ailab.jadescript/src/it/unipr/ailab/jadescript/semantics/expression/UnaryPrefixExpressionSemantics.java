@@ -26,10 +26,8 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Optional;
-import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.*;
@@ -115,7 +113,6 @@ public class UnaryPrefixExpressionSemantics
 
         final String afterOp = ones.compile(ofNotation, newState, acceptor);
 
-        System.out.println("AAAAAAA");
         if (isIndexOfElemOperation) {
             if (firstOrLast.wrappedEquals("last")) {
                 return afterOp + ".lastIndexOf(" + indexCompiled + ")";
@@ -124,7 +121,6 @@ public class UnaryPrefixExpressionSemantics
             }
         }
 
-        System.out.println("BBBBBBB "+unaryPrefixOp);
         if (unaryPrefixOp.isPresent()) {
             return " " + unaryPrefixOp.__(op -> {
                 if (op.equals("not")) {
@@ -135,28 +131,26 @@ public class UnaryPrefixExpressionSemantics
             }) + " " + afterOp;
         }
 
-        System.out.println("CCCCCCC");
         if (performativeConst.isPresent()) {
             return "jadescript.lang.Performative."
                 + performativeConst.__(String::toUpperCase);
         }
-        System.out.println("DDDDDDD");
         if (isDebugSearchName) {
             final String searchNameMessage = getSearchNameMessage(
+                state,
                 input.__(UnaryPrefix::getSearchName)
             );
             System.out.println(searchNameMessage);
             return "/*" + searchNameMessage + "*/ null";
         }
-        System.out.println("EEEEEEE");
         if (isDebugSearchCall) {
             final String searchCallMessage = getSearchCallMessage(
+                state,
                 input.__(UnaryPrefix::getSearchName)
             );
             System.out.println(searchCallMessage);
             return "/*" + searchCallMessage + "*/ null";
         }
-        System.out.println("FFFFFFF");
         if (isDebugScope) {
             SourceCodeBuilder scb = new SourceCodeBuilder("");
             module.get(ContextManager.class).debugDump(scb);
@@ -204,12 +198,18 @@ public class UnaryPrefixExpressionSemantics
     }
 
 
-    private String getSearchNameMessage(Maybe<String> identifier) {
+    private String getSearchNameMessage(
+        StaticState state,
+        Maybe<String> identifier
+    ) {
+
         final String target = identifier.isNothing()
             ? "all names"
             : "name '" + identifier.orElse("") + "'";
+
+
         return "[DEBUG]Searching " + target + " in scope: \n\n" +
-            module.get(ContextManager.class).currentContext().searchAs(
+            state.searchAs(
                 NamedSymbol.Searcher.class,
                 s -> {
                     Stream<? extends NamedSymbol> result;
@@ -237,12 +237,16 @@ public class UnaryPrefixExpressionSemantics
     }
 
 
-    private String getSearchCallMessage(Maybe<String> identifier) {
+    private String getSearchCallMessage(
+        StaticState state,
+        Maybe<String> identifier
+    ) {
         final String target = identifier.isNothing()
             ? "all callables"
             : "callable with name '" + identifier.orElse("") + "'";
+
         return "[DEBUG]Searching " + target + " in scope: \n\n" +
-            module.get(ContextManager.class).currentContext().searchAs(
+            state.searchAs(
                 CallableSymbol.Searcher.class,
                 s -> {
                     Stream<? extends CallableSymbol> result;
@@ -543,6 +547,7 @@ public class UnaryPrefixExpressionSemantics
         if (isDebugSearchName) {
             input.safeDo(inputSafe -> {
                 acceptor.acceptInfo(getSearchNameMessage(
+                    state,
                     input.__(UnaryPrefix::getSearchName)
                 ), inputSafe, null, -1, "DEBUG");
             });
@@ -550,6 +555,7 @@ public class UnaryPrefixExpressionSemantics
         if (isDebugSearchCall) {
             input.safeDo(inputSafe -> {
                 acceptor.acceptInfo(getSearchCallMessage(
+                    state,
                     input.__(UnaryPrefix::getSearchName)
                 ), inputSafe, null, -1, "DEBUG");
             });
