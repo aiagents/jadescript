@@ -252,6 +252,10 @@ public class OnPerceptHandlerSemantics
                 patternMatcherClassName
             );
 
+            patternMatchClass.addMember(
+                patternMatchHelper.getSelfField(pattern)
+            );
+
             matcher.getAllWriters().forEach(patternMatchClass::addMember);
 
             patternMatchClass.writeSonnet(scb);

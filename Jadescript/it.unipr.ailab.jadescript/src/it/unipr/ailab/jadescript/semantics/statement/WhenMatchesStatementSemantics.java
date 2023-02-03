@@ -123,6 +123,10 @@ public class WhenMatchesStatementSemantics
             final LocalClassStatementWriter localClass =
                 PatternMatchHelper.w.localClass(localClassName);
 
+            localClass.addMember(
+                patternMatchHelper.getSelfField(pattern)
+            );
+
             output.getAllWriters().forEach(localClass::addMember);
 
             acceptor.accept(localClass);

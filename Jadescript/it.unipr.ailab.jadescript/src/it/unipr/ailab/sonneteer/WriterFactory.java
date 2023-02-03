@@ -84,21 +84,21 @@ public class WriterFactory {
 
 
     public FieldWriter field(
-        Visibility visibility, boolean isFinal, boolean isStatic,
+        Visibility visibility, boolean isStatic, boolean isFinal,
         String type, String name
     ) {
-        return new FieldWriter(visibility, isFinal, isStatic, type, name);
+        return new FieldWriter(visibility, isStatic, isFinal, type, name);
     }
 
 
     public FieldWriter field(
-        Visibility visibility, boolean isFinal, boolean isStatic,
+        Visibility visibility, boolean isStatic, boolean isFinal,
         String type, String name, ExpressionWriter initExpression
     ) {
         return new FieldWriter(
             visibility,
-            isFinal,
             isStatic,
+            isFinal,
             type,
             name,
             initExpression

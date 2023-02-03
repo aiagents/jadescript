@@ -220,6 +220,17 @@ public class PatternMatchHelper implements SemanticsConsts {
         return getPatternMatcherClassName(pattern) + "_obj";
     }
 
+    public FieldWriter getSelfField(Maybe<LValueExpression> pattern){
+        return w.field(
+            Visibility.PRIVATE,
+            false,
+            true,
+            getPatternMatcherClassName(pattern),
+            getPatternMatcherVariableName(pattern),
+            w.expr("this")
+        );
+    }
+
 
     public AssignmentDeconstruction<LValueExpression> assignmentDeconstruction(
         IJadescriptType rightType,

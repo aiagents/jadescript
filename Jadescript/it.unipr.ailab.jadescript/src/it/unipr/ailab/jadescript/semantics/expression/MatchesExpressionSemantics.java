@@ -238,6 +238,8 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
         final LocalClassStatementWriter localClass =
             PatternMatchHelper.w.localClass(localClassName);
 
+        localClass.addMember(patternMatchHelper.getSelfField(pattern));
+
         matcher.getAllWriters().forEach(localClass::addMember);
 
         acceptor.accept(localClass);

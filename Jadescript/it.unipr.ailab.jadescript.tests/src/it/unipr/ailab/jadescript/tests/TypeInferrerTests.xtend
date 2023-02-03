@@ -61,7 +61,7 @@ class TypeInferrerTests {
 	 			procedure proc2 with x as list of text do
 	 				do nothing
 	 			on create do
-	 				when catalogue matches [x|rest] do
+	 				when (catalogue) matches [x|rest] do
 	 					do proc with x
 	 					do proc2 with rest
 	 	'''.compile[
