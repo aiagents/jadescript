@@ -59,7 +59,8 @@ public class FileContext
             String name,
             Predicate<IJadescriptType> returnType,
             BiPredicate<Integer, Function<Integer, String>> parameterNames,
-            BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
+            BiPredicate<Integer, Function<Integer, IJadescriptType>>
+                parameterTypes
     ) {
         return getImportedJvmTypeDeclarations()
                 .flatMap(imported -> getCallableStreamFromDeclaredType(
@@ -74,10 +75,14 @@ public class FileContext
 
     public Stream<JvmDeclaredType> getImportedJvmTypeDeclarations() {
         return importDeclarations.stream()
-                .filter(j -> j.__(id -> !id.isWildcard() && !id.isStatic()).extract(nullAsFalse))
+                .filter(j -> j.__(id -> !id.isWildcard()
+                    && !id.isStatic()).extract(nullAsFalse))
                 .filter(Maybe::isPresent)
                 .map(Maybe::toNullable)
-                .flatMap(it -> it.getImportedType() != null ? Stream.of(it.getImportedType()) : Stream.empty());
+                .flatMap(it -> it.getImportedType() != null
+                    ? Stream.of(it.getImportedType())
+                    : Stream.empty()
+                );
     }
 
     @Override
@@ -85,7 +90,8 @@ public class FileContext
             Predicate<String> name,
             Predicate<IJadescriptType> returnType,
             BiPredicate<Integer, Function<Integer, String>> parameterNames,
-            BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
+            BiPredicate<Integer, Function<Integer, IJadescriptType>>
+                parameterTypes
     ) {
         return getImportedJvmTypeDeclarations()
                 .flatMap(imported -> getCallableStreamFromDeclaredType(
@@ -129,15 +135,17 @@ public class FileContext
     }
 
     @Override
-    public Stream<JvmTypeReference> rawResolveTypeReference(String typeRefIdentifier) {
+    public Stream<JvmTypeReference> rawResolveTypeReference(
+        String typeRefIdentifier
+    ) {
         //it firstly tries to solve it by finding in import declarations
         return getImportDeclarations().stream()
                 .filter(Maybe::isPresent)
                 .map(Maybe::toNullable)
                 .filter(xi -> !xi.isWildcard() && !xi.isExtension())
                 .filter(xi -> {
-                    final String importedName = xi.getImportedName().trim();
-                    final String[] splits = importedName.split(Pattern.quote("."));
+                    String importedName = xi.getImportedName().trim();
+                    String[] splits = importedName.split(Pattern.quote("."));
                     if(splits.length == 0){
                         return false;
                     }

@@ -96,7 +96,7 @@ public class TypeCastExpressionSemantics
 
     @Override
     protected boolean isLExpreableInternal(Maybe<TypeCast> input) {
-        //IDEA update: if the the sub-expression is a single identifier,
+        //IDEA update: if the sub-expression is a single identifier,
         // and the identifier does not resolve, this
         // could be a typed declaration of a local variable.
         return false;
@@ -122,7 +122,7 @@ public class TypeCastExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<TypeCast> input,
         StaticState state
     ) {
@@ -205,13 +205,17 @@ public class TypeCastExpressionSemantics
                 state
             );
         } else if (castsTypes.size() == 1) {
-            return awtes.assertDidMatch(
+            PatternMatchInput.SubPattern<AtomExpr, TypeCast> subPattern =
                 input.subPattern(
                     castsTypes.get(0),
                     TypeCast::getAtomExpr,
                     "_typecast0"
-                ), state
-            );
+                );
+
+            StaticState newState = awtes.advancePattern(subPattern, state);
+
+            return awtes.assertDidMatch(subPattern, newState);
+
         } else {
             final IJadescriptType castToType =
                 castsTypes.get(castsTypes.size() - 1);
@@ -333,14 +337,19 @@ public class TypeCastExpressionSemantics
                 acceptor
             );
         } else if (castsTypes.size() == 1) {
-            final PatternMatcher subResult = awtes.compilePatternMatch(
+            PatternMatchInput.SubPattern<AtomExpr, TypeCast> subPattern =
                 input.subPattern(
                     castsTypes.get(0),
                     TypeCast::getAtomExpr,
                     "_typecast0"
-                ), state,
+                );
+
+            final PatternMatcher subResult = awtes.compilePatternMatch(
+                subPattern,
+                state,
                 acceptor
             );
+
             return input.createCompositeMethodOutput(
                 castsTypes.get(0),
                 __ -> "__x",
@@ -628,7 +637,7 @@ public class TypeCastExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<TypeCast> input,
+        PatternMatchInput<TypeCast> input,
         StaticState state
     ) {
         return subExpressionsAnyHoled(input, state);
@@ -637,7 +646,7 @@ public class TypeCastExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<TypeCast> input,
+        PatternMatchInput<TypeCast> input,
         StaticState state
     ) {
         // The type is always determined by the last 'as'
@@ -647,7 +656,7 @@ public class TypeCastExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<TypeCast> input,
+        PatternMatchInput<TypeCast> input,
         StaticState state
     ) {
         return subExpressionsAnyUnbound(input, state);

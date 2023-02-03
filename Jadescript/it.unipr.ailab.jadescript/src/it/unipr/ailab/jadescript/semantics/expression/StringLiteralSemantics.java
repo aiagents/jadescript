@@ -200,7 +200,7 @@ public class StringLiteralSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<StringLiteralSimple> input,
         StaticState state
     ) {
@@ -282,7 +282,7 @@ public class StringLiteralSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<StringLiteralSimple> input,
+        PatternMatchInput<StringLiteralSimple> input,
         StaticState state
     ) {
         return false;
@@ -291,7 +291,7 @@ public class StringLiteralSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<StringLiteralSimple> input,
+        PatternMatchInput<StringLiteralSimple> input,
         StaticState state
     ) {
         return false;
@@ -300,7 +300,7 @@ public class StringLiteralSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<StringLiteralSimple> input,
+        PatternMatchInput<StringLiteralSimple> input,
         StaticState state
     ) {
         return false;

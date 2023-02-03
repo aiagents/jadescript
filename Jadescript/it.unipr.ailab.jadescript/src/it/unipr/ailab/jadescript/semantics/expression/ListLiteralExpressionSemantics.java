@@ -252,7 +252,7 @@ public class ListLiteralExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<ListLiteral> input,
         StaticState state
     ) {
@@ -334,6 +334,10 @@ public class ListLiteralExpressionSemantics
 
         StaticState runningState = state;
         for (var subPattern : subPatterns) {
+            runningState = rves.advancePattern(
+                subPattern,
+                runningState
+            );
             runningState = rves.assertDidMatch(
                 subPattern,
                 runningState
@@ -364,7 +368,7 @@ public class ListLiteralExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<ListLiteral> input,
+        PatternMatchInput<ListLiteral> input,
         StaticState state
     ) {
         return subExpressionsAnyHoled(input, state);
@@ -373,13 +377,14 @@ public class ListLiteralExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<ListLiteral> input,
+        PatternMatchInput<ListLiteral> input,
         StaticState state
     ) {
         Maybe<TypeExpression> typeParameter =
-            input.__(ListLiteral::getTypeParameter);
+            input.getPattern().__(ListLiteral::getTypeParameter);
         boolean hasTypeSpecifier =
-            input.__(ListLiteral::isWithTypeSpecifier).extract(nullAsFalse);
+            input.getPattern().__(ListLiteral::isWithTypeSpecifier)
+                .extract(nullAsFalse);
         if (hasTypeSpecifier && typeParameter.isPresent()) {
             return false;
         } else {
@@ -390,7 +395,7 @@ public class ListLiteralExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<ListLiteral> input,
+        PatternMatchInput<ListLiteral> input,
         StaticState state
     ) {
         return subExpressionsAnyUnbound(input, state);
@@ -496,7 +501,9 @@ public class ListLiteralExpressionSemantics
 
         }
 
-        return runningState.intersectAllAlternatives(shortCircuitedAlternatives);
+        return runningState.intersectAllAlternatives(
+            shortCircuitedAlternatives
+        );
     }
 
 
@@ -650,7 +657,7 @@ public class ListLiteralExpressionSemantics
         PatternMatchInput<ListLiteral> input,
         StaticState state
     ) {
-        if (isTypelyHoled(input.getPattern(), state)) {
+        if (isTypelyHoled(input, state)) {
             // Has no type specifier and it is typely holed.
             return PatternType.holed(inputType -> {
                 final TypeHelper typeHelper = module.get(TypeHelper.class);

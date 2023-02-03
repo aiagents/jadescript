@@ -297,7 +297,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<Additive> input,
         StaticState state
     ) {
@@ -334,7 +334,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<Additive> input,
+        PatternMatchInput<Additive> input,
         StaticState state
     ) {
         return subExpressionsAnyHoled(input, state);
@@ -343,7 +343,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<Additive> input,
+        PatternMatchInput<Additive> input,
         StaticState state
     ) {
         return subExpressionsAnyTypelyHoled(input, state);
@@ -352,7 +352,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<Additive> input,
+        PatternMatchInput<Additive> input,
         StaticState state
     ) {
         return subExpressionsAnyUnbound(input, state);

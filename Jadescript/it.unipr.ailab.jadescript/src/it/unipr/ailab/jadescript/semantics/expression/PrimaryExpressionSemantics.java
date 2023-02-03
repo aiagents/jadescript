@@ -387,7 +387,7 @@ public class PrimaryExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<Primary> input,
         StaticState state
     ) {
@@ -396,14 +396,17 @@ public class PrimaryExpressionSemantics
 
 
     @Override
-    protected boolean isHoledInternal(Maybe<Primary> input, StaticState state) {
+    protected boolean isHoledInternal(
+        PatternMatchInput<Primary> input,
+        StaticState state
+    ) {
         return subExpressionsAnyHoled(input, state);
     }
 
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<Primary> input,
+        PatternMatchInput<Primary> input,
         StaticState state
     ) {
         return subExpressionsAnyTypelyHoled(input, state);
@@ -412,7 +415,7 @@ public class PrimaryExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<Primary> input,
+        PatternMatchInput<Primary> input,
         StaticState state
     ) {
         return subExpressionsAnyUnbound(input, state);

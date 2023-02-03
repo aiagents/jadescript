@@ -284,9 +284,7 @@ public class SetLiteralExpressionSemantics
             );
 
 
-        return rves.advancePattern(restSubpattern, afterElements)
-            //short-circuted (when rest did not match):
-            .intersectAlternative(afterElements);
+        return rves.advancePattern(restSubpattern, afterElements);
     }
 
 
@@ -317,7 +315,9 @@ public class SetLiteralExpressionSemantics
                 "_setrest"
             );
 
-        return rves.assertDidMatch(restSubpattern, state);
+        StaticState afterRest = rves.advancePattern(restSubpattern, state);
+
+        return rves.assertDidMatch(restSubpattern, afterRest);
     }
 
 
@@ -353,7 +353,7 @@ public class SetLiteralExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<MapOrSetLiteral> input,
         StaticState state
     ) {
@@ -384,14 +384,17 @@ public class SetLiteralExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<MapOrSetLiteral> input,
+        PatternMatchInput<MapOrSetLiteral> input,
         StaticState state
     ) {
         //NOTE: set patterns cannot have holes before the pipe sign (enforced
         // by validator)
-        boolean isWithPipe = input.__(MapOrSetLiteral::isWithPipe)
+        boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe)
             .extract(nullAsFalse);
-        Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
+
+        Maybe<RValueExpression> rest = input.getPattern().
+            __(MapOrSetLiteral::getRest);
+
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
@@ -400,27 +403,35 @@ public class SetLiteralExpressionSemantics
         }
 
         final List<Maybe<RValueExpression>> elements =
-            toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
+            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
         StaticState afterElements =
             advanceAllExpressions(rves, elements.stream(), state);
-        return rves.isHoled(rest, afterElements);
+        final SubPattern<RValueExpression, MapOrSetLiteral> restTerm =
+            input.subPattern(
+            inferPatternType(input, state)
+                .solve(input.getProvidedInputType()),
+            (__) -> rest.toNullable(),
+            "_setrest"
+        );
+        return rves.isHoled(restTerm, afterElements);
     }
 
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<MapOrSetLiteral> input,
+        PatternMatchInput<MapOrSetLiteral> input,
         StaticState state
     ) {
         //NOTE: set patterns cannot have holes before the pipe sign (enforced
         // by validator)
-        boolean isWithPipe = input.__(MapOrSetLiteral::isWithPipe)
+        boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe)
             .extract(nullAsFalse);
-        Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
+        Maybe<RValueExpression> rest = input.getPattern()
+            .__(MapOrSetLiteral::getRest);
         final Maybe<TypeExpression> typeParameter =
-            input.__(MapOrSetLiteral::getKeyTypeParameter);
+            input.getPattern().__(MapOrSetLiteral::getKeyTypeParameter);
         boolean hasTypeSpecifier =
-            input.__(MapOrSetLiteral::isWithTypeSpecifiers)
+            input.getPattern().__(MapOrSetLiteral::isWithTypeSpecifiers)
                 .extract(nullAsFalse);
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -434,37 +445,54 @@ public class SetLiteralExpressionSemantics
         }
 
         final List<Maybe<RValueExpression>> elements =
-            toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
+            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
         StaticState afterElements =
             advanceAllExpressions(rves, elements.stream(), state);
-        return rves.isTypelyHoled(rest, afterElements);
+        final SubPattern<RValueExpression, MapOrSetLiteral> restTerm =
+            input.subPattern(
+            inferPatternType(input, state)
+                .solve(input.getProvidedInputType()),
+            (__) -> rest.toNullable(),
+            "_setrest"
+        );
+        return rves.isTypelyHoled(restTerm, afterElements);
 
     }
 
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<MapOrSetLiteral> input,
+        PatternMatchInput<MapOrSetLiteral> input,
         StaticState state
     ) {
         //NOTE: set patterns cannot have holes before the pipe sign (enforced
         // by validator)
-        boolean isWithPipe = input.__(MapOrSetLiteral::isWithPipe).extract(
-            nullAsFalse);
-        Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
-        final RValueExpressionSemantics rves = module.get(
-            RValueExpressionSemantics.class);
+        boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe)
+            .extract(nullAsFalse);
+
+        Maybe<RValueExpression> rest = input.getPattern()
+            .__(MapOrSetLiteral::getRest);
+
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
 
         if (!isWithPipe || !rest.isPresent()) {
             return false;
         }
 
         final List<Maybe<RValueExpression>> elements =
-            toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
+            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
         StaticState afterElements =
             advanceAllExpressions(rves, elements.stream(), state);
+        final SubPattern<RValueExpression, MapOrSetLiteral> restTerm =
+            input.subPattern(
+            inferPatternType(input, state)
+                .solve(input.getProvidedInputType()),
+            (__) -> rest.toNullable(),
+            "_setrest"
+        );
         return rves.isUnbound(
-            rest,
+            restTerm,
             afterElements
         );
     }
@@ -598,7 +626,7 @@ public class SetLiteralExpressionSemantics
         PatternMatchInput<MapOrSetLiteral> input,
         StaticState state
     ) {
-        if (isTypelyHoled(input.getPattern(), state)) {
+        if (isTypelyHoled(input, state)) {
             return PatternType.holed(inputType -> {
                 final TypeHelper typeHelper = module.get(TypeHelper.class);
                 if (inputType instanceof SetType) {

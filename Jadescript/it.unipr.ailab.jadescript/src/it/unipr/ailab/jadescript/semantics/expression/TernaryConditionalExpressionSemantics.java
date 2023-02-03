@@ -199,7 +199,7 @@ public class TernaryConditionalExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<TernaryConditional> input,
         StaticState state
     ) {
@@ -343,7 +343,7 @@ public class TernaryConditionalExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<TernaryConditional> input,
+        PatternMatchInput<TernaryConditional> input,
         StaticState state
     ) {
         return false;
@@ -352,7 +352,7 @@ public class TernaryConditionalExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<TernaryConditional> input,
+        PatternMatchInput<TernaryConditional> input,
         StaticState state
     ) {
         return false;
@@ -361,7 +361,7 @@ public class TernaryConditionalExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<TernaryConditional> input,
+        PatternMatchInput<TernaryConditional> input,
         StaticState state
     ) {
         return false;

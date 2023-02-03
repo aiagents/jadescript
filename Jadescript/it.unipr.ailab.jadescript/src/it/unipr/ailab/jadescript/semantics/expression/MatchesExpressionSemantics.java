@@ -31,8 +31,7 @@ import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
  * Created on 2019-08-18.
  */
 @Singleton
-public class MatchesExpressionSemantics
-    extends ExpressionSemantics<Matches> {
+public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
 
 
     public MatchesExpressionSemantics(SemanticsModule semanticsModule) {
@@ -312,7 +311,7 @@ public class MatchesExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<Matches> input,
         StaticState state
     ) {
@@ -457,7 +456,10 @@ public class MatchesExpressionSemantics
 
 
     @Override
-    protected boolean isHoledInternal(Maybe<Matches> input, StaticState state) {
+    protected boolean isHoledInternal(
+        PatternMatchInput<Matches> input,
+        StaticState state
+    ) {
         // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
         return false;
     }
@@ -465,7 +467,7 @@ public class MatchesExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<Matches> input,
+        PatternMatchInput<Matches> input,
         StaticState state
     ) {
         // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
@@ -475,9 +477,9 @@ public class MatchesExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<Matches> input,
+        PatternMatchInput<Matches> input,
         StaticState state
-    ) {
+    ){
         // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
         return false;
     }

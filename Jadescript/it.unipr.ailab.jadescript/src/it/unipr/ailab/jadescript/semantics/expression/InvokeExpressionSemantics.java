@@ -111,7 +111,7 @@ public class InvokeExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<InvokeExpression> input,
         StaticState state
     ) {
@@ -444,7 +444,7 @@ public class InvokeExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<InvokeExpression> input,
+        PatternMatchInput<InvokeExpression> input,
         StaticState state
     ) {
         // CANNOT BE HOLED
@@ -454,7 +454,7 @@ public class InvokeExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<InvokeExpression> input,
+        PatternMatchInput<InvokeExpression> input,
         StaticState state
     ) {
         // CANNOT BE HOLED
@@ -464,7 +464,7 @@ public class InvokeExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<InvokeExpression> input,
+        PatternMatchInput<InvokeExpression> input,
         StaticState state
     ) {
         // CANNOT BE HOLED

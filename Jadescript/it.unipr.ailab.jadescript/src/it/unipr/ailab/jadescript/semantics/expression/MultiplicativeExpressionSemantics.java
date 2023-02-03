@@ -362,7 +362,7 @@ public class MultiplicativeExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<Multiplicative> input,
         StaticState state
     ) {
@@ -579,7 +579,7 @@ public class MultiplicativeExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<Multiplicative> input,
+        PatternMatchInput<Multiplicative> input,
         StaticState state
     ) {
         return false;
@@ -588,7 +588,7 @@ public class MultiplicativeExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<Multiplicative> input,
+        PatternMatchInput<Multiplicative> input,
         StaticState state
     ) {
         return false;
@@ -597,7 +597,7 @@ public class MultiplicativeExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<Multiplicative> input,
+        PatternMatchInput<Multiplicative> input,
         StaticState state
     ) {
         return false;

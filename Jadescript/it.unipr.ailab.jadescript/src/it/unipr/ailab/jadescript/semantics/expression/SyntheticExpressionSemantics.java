@@ -133,7 +133,7 @@ public class SyntheticExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<SyntheticExpression> input,
         StaticState state
     ) {
@@ -242,7 +242,7 @@ public class SyntheticExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<SyntheticExpression> input,
+        PatternMatchInput<SyntheticExpression> input,
         StaticState state
     ) {
         return false;
@@ -251,7 +251,7 @@ public class SyntheticExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<SyntheticExpression> input,
+        PatternMatchInput<SyntheticExpression> input,
         StaticState state
     ) {
         return false;
@@ -260,7 +260,7 @@ public class SyntheticExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<SyntheticExpression> input,
+        PatternMatchInput<SyntheticExpression> input,
         StaticState state
     ) {
         return false;

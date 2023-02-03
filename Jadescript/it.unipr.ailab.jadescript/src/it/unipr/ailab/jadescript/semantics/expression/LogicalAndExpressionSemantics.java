@@ -232,9 +232,8 @@ public class LogicalAndExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
-        Maybe<LogicalAnd> input
-    ) {
+    protected Optional<? extends SemanticsBoundToExpression<?>>
+    traverseInternal(Maybe<LogicalAnd> input) {
         if (mustTraverse(input)) {
             List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(
                 input.__(LogicalAnd::getEqualityComparison)
@@ -249,7 +248,7 @@ public class LogicalAndExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<LogicalAnd> input,
         StaticState state
     ) {
@@ -356,7 +355,7 @@ public class LogicalAndExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<LogicalAnd> input,
+        PatternMatchInput<LogicalAnd> input,
         StaticState state
     ) {
         return false;
@@ -365,7 +364,7 @@ public class LogicalAndExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<LogicalAnd> input,
+        PatternMatchInput<LogicalAnd> input,
         StaticState state
     ) {
         return false;
@@ -374,7 +373,7 @@ public class LogicalAndExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<LogicalAnd> input,
+        PatternMatchInput<LogicalAnd> input,
         StaticState state
     ) {
         return false;

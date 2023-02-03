@@ -553,7 +553,7 @@ public class OfNotationExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<OfNotation> input,
         StaticState state
     ) {
@@ -692,7 +692,7 @@ public class OfNotationExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<OfNotation> input,
+        PatternMatchInput<OfNotation> input,
         StaticState state
     ) {
         return false;
@@ -701,7 +701,7 @@ public class OfNotationExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<OfNotation> input,
+        PatternMatchInput<OfNotation> input,
         StaticState state
     ) {
         return false;
@@ -710,7 +710,7 @@ public class OfNotationExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<OfNotation> input,
+        PatternMatchInput<OfNotation> input,
         StaticState state
     ) {
         return false;

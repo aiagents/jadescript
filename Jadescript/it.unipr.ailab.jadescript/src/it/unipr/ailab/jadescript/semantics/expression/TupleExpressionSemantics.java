@@ -181,7 +181,7 @@ public class TupleExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<TupledExpressions> input,
         StaticState state
     ) {
@@ -265,7 +265,7 @@ public class TupleExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<TupledExpressions> input,
+        PatternMatchInput<TupledExpressions> input,
         StaticState state
     ) {
         return subExpressionsAnyHoled(input, state);
@@ -274,7 +274,7 @@ public class TupleExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<TupledExpressions> input,
+        PatternMatchInput<TupledExpressions> input,
         StaticState state
     ) {
         return subExpressionsAnyTypelyHoled(input, state);
@@ -283,7 +283,7 @@ public class TupleExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<TupledExpressions> input,
+        PatternMatchInput<TupledExpressions> input,
         StaticState state
     ) {
         return subExpressionsAnyUnbound(input, state);
@@ -300,19 +300,24 @@ public class TupleExpressionSemantics
         List<Maybe<RValueExpression>> terms = input.getPattern().__(
                 TupledExpressions::getTuples)
             .extract(Maybe::nullAsEmptyList);
+
         PatternType patternType = inferPatternType(input, state);
+
         IJadescriptType solvedPatternType =
             patternType.solve(input.getProvidedInputType());
+
         int elementCount = terms.size();
 
         final RValueExpressionSemantics rves = module.get(
             RValueExpressionSemantics.class);
+
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         final List<PatternMatcher> subResults = new ArrayList<>(elementCount);
 
         StaticState runningState = state;
         for (int i = 0; i < elementCount; i++) {
             Maybe<RValueExpression> term = terms.get(i);
+
             IJadescriptType termType;
             if (solvedPatternType instanceof TupleType) {
                 final List<IJadescriptType> elementTypes =
@@ -348,11 +353,12 @@ public class TupleExpressionSemantics
                     runningState,
                     acceptor
                 );
+
             subResults.add(subResult);
-            runningState = rves.advancePattern(
-                termSubpattern,
-                runningState
-            );
+
+            runningState = rves.advancePattern(termSubpattern, runningState);
+
+            runningState = rves.assertDidMatch(termSubpattern, runningState);
         }
 
         Function<Integer, String> compiledSubInputs = (i) -> {
@@ -377,7 +383,7 @@ public class TupleExpressionSemantics
         PatternMatchInput<TupledExpressions> input,
         StaticState state
     ) {
-        if (!isTypelyHoled(input.getPattern(), state)) {
+        if (!isTypelyHoled(input, state)) {
             return PatternType.simple(inferType(input.getPattern(), state));
         }
 
@@ -437,17 +443,19 @@ public class TupleExpressionSemantics
         PatternMatchInput<TupledExpressions> input,
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        List<Maybe<RValueExpression>> terms = input.getPattern().__(
-                TupledExpressions::getTuples)
+        List<Maybe<RValueExpression>> terms = input.getPattern()
+            .__(TupledExpressions::getTuples)
             .extract(Maybe::nullAsEmptyList);
+
         IJadescriptType solvedPatternType = inferPatternType(input, state)
             .solve(input.getProvidedInputType());
+
         int elementCount = terms.size();
 
-        final RValueExpressionSemantics rves = module.get(
-            RValueExpressionSemantics.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
 
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
 
         boolean sizeCheck = validateTupleSize(
             input.getPattern(),
@@ -494,6 +502,7 @@ public class TupleExpressionSemantics
             );
             allElemsCheck = allElemsCheck && elemCheck;
             runningState = rves.advancePattern(termSubpattern, runningState);
+            runningState = rves.assertDidMatch(termSubpattern, runningState);
         }
 
         return sizeCheck && allElemsCheck;
@@ -549,6 +558,12 @@ public class TupleExpressionSemantics
                 "_tupleelem" + i
             );
             runningState = rves.advancePattern(termSubpattern, runningState);
+            if(i < terms.size() - 1){
+                runningState = rves.assertDidMatch(
+                    termSubpattern,
+                    runningState
+                );
+            }
         }
 
         return runningState;
@@ -603,6 +618,7 @@ public class TupleExpressionSemantics
                 __ -> term.toNullable(),
                 "_tupleelem" + i
             );
+            runningState = rves.advancePattern(termSubpattern, runningState);
             runningState = rves.assertDidMatch(termSubpattern, runningState);
         }
 
@@ -699,6 +715,7 @@ public class TupleExpressionSemantics
                 return false;
             }
 
+            runningState = rves.advancePattern(termSubpattern, runningState);
             runningState = rves.assertDidMatch(termSubpattern, runningState);
         }
 

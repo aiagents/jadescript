@@ -58,7 +58,10 @@ implements AgentAssociated {
 
     @Override
     public Stream<AgentAssociation> computeForClauseAgentAssociations() {
-        return Stream.of(new AgentAssociation(module.get(TypeHelper.class).AGENT, AgentAssociation.F_A.INSTANCE));
+        return Stream.of(new AgentAssociation(
+            module.get(TypeHelper.class).AGENT,
+            AgentAssociation.F_A.INSTANCE
+        ));
     }
 
     @Override
@@ -68,7 +71,10 @@ implements AgentAssociated {
 
     @Override
     public Stream<OntologyAssociation> computeForClauseOntologyAssociations() {
-        return Stream.of(new OntologyAssociation(module.get(TypeHelper.class).ONTOLOGY, OntologyAssociation.F_U_O.INSTANCE));
+        return Stream.of(new OntologyAssociation(
+            module.get(TypeHelper.class).ONTOLOGY,
+            OntologyAssociation.F_U_O.INSTANCE
+        ));
     }
 
     @Override

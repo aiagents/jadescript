@@ -13,7 +13,10 @@ public abstract class TopLevelDeclarationContext
         implements MightUseAgentReference {
     private final FileContext outer;
 
-    public TopLevelDeclarationContext(SemanticsModule module, FileContext outer) {
+    public TopLevelDeclarationContext(
+        SemanticsModule module,
+        FileContext outer
+    ) {
         super(module);
         this.outer = outer;
     }

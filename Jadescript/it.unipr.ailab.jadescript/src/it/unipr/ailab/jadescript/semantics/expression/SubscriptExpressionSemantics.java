@@ -580,7 +580,7 @@ public class SubscriptExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<Subscript> input,
         StaticState state
     ) {
@@ -617,7 +617,7 @@ public class SubscriptExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<Subscript> input,
+        PatternMatchInput<Subscript> input,
         StaticState state
     ) {
         // Subscript expressions cannot be holed by design.
@@ -627,7 +627,7 @@ public class SubscriptExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<Subscript> input,
+        PatternMatchInput<Subscript> input,
         StaticState state
     ) {
         // Subscript expressions cannot be holed by design.
@@ -637,7 +637,7 @@ public class SubscriptExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<Subscript> input,
+        PatternMatchInput<Subscript> input,
         StaticState state
     ) {
         // Subscript expressions cannot have unbound terms by design.

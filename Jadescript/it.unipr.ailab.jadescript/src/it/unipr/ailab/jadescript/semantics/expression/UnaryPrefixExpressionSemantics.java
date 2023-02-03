@@ -382,7 +382,7 @@ public class UnaryPrefixExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<UnaryPrefix> input,
         StaticState state
     ) {
@@ -716,7 +716,7 @@ public class UnaryPrefixExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<UnaryPrefix> input,
+        PatternMatchInput<UnaryPrefix> input,
         StaticState state
     ) {
         return false;
@@ -725,7 +725,7 @@ public class UnaryPrefixExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<UnaryPrefix> input,
+        PatternMatchInput<UnaryPrefix> input,
         StaticState state
     ) {
         return false;
@@ -734,7 +734,7 @@ public class UnaryPrefixExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<UnaryPrefix> input,
+        PatternMatchInput<UnaryPrefix> input,
         StaticState state
     ) {
         return false;

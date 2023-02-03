@@ -396,6 +396,7 @@ public class OnCreateHandlerSemantics
             new OnCreateHandlerContext(mod, out, extractedParameters));
 
         StaticState inBody = StaticState.beginningOfOperation(module);
+
         inBody = inBody.enterScope();
 
         module.get(BlockSemantics.class).validate(body, inBody, acceptor);

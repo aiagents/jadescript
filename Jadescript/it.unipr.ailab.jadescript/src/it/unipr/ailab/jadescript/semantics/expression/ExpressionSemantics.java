@@ -37,6 +37,10 @@ import java.util.stream.Stream;
 @Singleton
 public abstract class ExpressionSemantics<T> extends Semantics {
 
+    //TODO check all expressions semantics:
+    // isHoled/isUnbound/isTypelyHoled depend on a running state, and on
+    // invocations of assertDidMatch
+
     private final LazyValue<ExpressionSemantics<?>> EMPTY_EXPRESSION_SEMANTICS =
         new LazyValue<>(() -> new Adapter<>(this.module));
 
@@ -205,16 +209,30 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
 
     @SuppressWarnings("unchecked")
-    protected <R, S> R traversingSemanticsMap(
+    protected final <R, S> R traversingSemanticsMap(
         Maybe<T> input,
         BiFunction<? super ExpressionSemantics<S>, Maybe<S>, R> traversing,
         Supplier<R> actual
     ) {
-
         return traverse(input)
             .map(sbte -> traversing.apply(
                 (ExpressionSemantics<S>) sbte.getSemantics(),
                 (Maybe<S>) sbte.getInput()
+            )).orElseGet(actual);
+    }
+
+
+    @SuppressWarnings("unchecked")
+    protected final <R, S> R traversingSemanticsMap(
+        PatternMatchInput<T> input,
+        BiFunction<? super ExpressionSemantics<S>, PatternMatchInput<S>, R>
+            traversing,
+        Supplier<R> actual
+    ) {
+        return traverse(input.getPattern())
+            .map(sbte -> traversing.apply(
+                (ExpressionSemantics<S>) sbte.getSemantics(),
+                input.replacePattern((Maybe<S>) sbte.getInput())
             )).orElseGet(actual);
     }
 
@@ -699,7 +717,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
                 input.replacePattern(i),
                 state
             ),
-            () -> isPatternEvaluationPureInternal(input, state)
+            () -> isPatternEvaluationWithoutSideEffectsInternal(input, state)
         );
 
         //TODO introduce "prepare" -> checks if any of the subpatterns that
@@ -707,7 +725,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     }
 
 
-    protected abstract boolean isPatternEvaluationPureInternal(
+    protected abstract boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<T> input, StaticState state
     );
 
@@ -789,7 +807,10 @@ public abstract class ExpressionSemantics<T> extends Semantics {
      * expressions which can present holes (without
      * traversing).
      */
-    public final boolean isHoled(Maybe<T> input, StaticState state) {
+    public final boolean isHoled(
+        PatternMatchInput<T> input,
+        StaticState state
+    ) {
         return traversingSemanticsMap(
             input,
             (s, i) -> s.isHoled(i, state),
@@ -799,25 +820,27 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
 
     protected abstract boolean isHoledInternal(
-        Maybe<T> input,
+        PatternMatchInput<T> input,
         StaticState state
     );
 
 
     public final boolean subExpressionsAnyHoled(
-        Maybe<T> input,
+        PatternMatchInput<T> input,
         StaticState state
     ) {
-        return mapSubExpressionsWithState(
+        return mapSubPatternsWithState(
             input,
             state,
-            ExpressionSemantics::isHoled
+            ExpressionSemantics::isHoled,
+            (sem, pmi, __, st2) -> sem.assertDidMatch(pmi, st2)
         ).anyMatch(b -> b);
     }
 
 
     /**
-     * Similar to {@link ExpressionSemantics#isHoled(Maybe, StaticState)},
+     * Similar to {@link ExpressionSemantics#isHoled(
+     *PatternMatchInput, StaticState)},
      * but used only by the process of type inferring of patterns.
      * Being "typely holed" is a special case of being "holed".
      * In fact, some holed patterns can still provide complete information
@@ -832,7 +855,10 @@ public abstract class ExpressionSemantics<T> extends Semantics {
      * {@link PatternType.HoledPatternType}, otherwise a
      * {@link PatternType.SimplePatternType} is expected.
      */
-    public final boolean isTypelyHoled(Maybe<T> input, StaticState state) {
+    public final boolean isTypelyHoled(
+        PatternMatchInput<T> input,
+        StaticState state
+    ) {
         return traversingSemanticsMap(
             input,
             (s, i) -> s.isTypelyHoled(i, state),
@@ -842,19 +868,20 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
 
     protected abstract boolean isTypelyHoledInternal(
-        Maybe<T> input,
+        PatternMatchInput<T> input,
         StaticState state
     );
 
 
     public final boolean subExpressionsAnyTypelyHoled(
-        Maybe<T> input,
+        PatternMatchInput<T> input,
         StaticState state
     ) {
-        return mapSubExpressionsWithState(
+        return mapSubPatternsWithState(
             input,
             state,
-            ExpressionSemantics::isTypelyHoled
+            ExpressionSemantics::isTypelyHoled,
+            (sem, pmi, __, st2) -> sem.assertDidMatch(pmi, st2)
         ).anyMatch(b -> b);
     }
 
@@ -862,7 +889,10 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     /**
      * Returns true if this expression contains unbounded names in it.
      */
-    public final boolean isUnbound(Maybe<T> input, StaticState state) {
+    public final boolean isUnbound(
+        PatternMatchInput<T> input,
+        StaticState state
+    ) {
         return traversingSemanticsMap(
             input,
             (s, i) -> s.isUnbound(i, state),
@@ -872,19 +902,20 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
 
     protected abstract boolean isUnboundInternal(
-        Maybe<T> input,
+        PatternMatchInput<T> input,
         StaticState state
     );
 
 
     public final boolean subExpressionsAnyUnbound(
-        Maybe<T> input,
+        PatternMatchInput<T> input,
         StaticState state
     ) {
-        return mapSubExpressionsWithState(
+        return mapSubPatternsWithState(
             input,
             state,
-            ExpressionSemantics::isUnbound
+            ExpressionSemantics::isUnbound,
+            (sem, pmi, __, st2) -> sem.assertDidMatch(pmi, st2)
         ).anyMatch(b -> b);
     }
 
@@ -915,18 +946,20 @@ public abstract class ExpressionSemantics<T> extends Semantics {
      * <p></p>
      */
     public final boolean containsNotHoledAssignableParts(
-        Maybe<T> input,
+        PatternMatchInput<T> input,
         StaticState state
     ) {
         return traversingSemanticsMap(
             input,
             (s, i) -> s.containsNotHoledAssignableParts(i, state),
-            () -> isLExpreable(input)
-                ? (!canBeHoled(input) || !isHoled(input, state))
-                : subExpressionsAnyMatch(//TODO check if state runs
+            () -> isLExpreable(input.getPattern())
+                ? (!canBeHoled(input.getPattern()) || !isHoled(input, state))
+                : mapSubPatternsWithState(
                 input,
-                (s, i) -> s.containsNotHoledAssignableParts(i, state)
-            )
+                state,
+                ExpressionSemantics::containsNotHoledAssignableParts,
+                (sem, pmi, __, st2) -> sem.assertDidMatch(pmi, st2)
+            ).anyMatch(b -> b)
         );
     }
 
@@ -966,13 +999,12 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         PatternMatchInput<T> patternMatchInput,
         StaticState state
     ) {
-        Maybe<T> pattern = patternMatchInput.getPattern();
         PatternMatchMode mode = patternMatchInput.getMode();
         PatternMatchMode.PatternLocation location = mode.getPatternLocation();
 
 
         return location == PatternMatchMode.PatternLocation.SUB_PATTERN
-            && !isHoled(pattern, state);
+            && !isHoled(patternMatchInput, state);
     }
 
 
@@ -982,7 +1014,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     ) {
         return patternMatchInput.getMode().getPatternLocation()
             == PatternMatchMode.PatternLocation.SUB_PATTERN
-            && !isHoled(patternMatchInput.getPattern(), state)
+            && !isHoled(patternMatchInput, state)
             && isLExpreable(patternMatchInput.getPattern());
     }
 
@@ -1131,10 +1163,10 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
         final boolean patternGroundForEquality =
             isSubPatternGroundForEquality(input, state);
-        final boolean isHoled = isHoled(input.getPattern(), state);
-        final boolean isUnbound = isUnbound(input.getPattern(), state);
+        final boolean isHoled = isHoled(input, state);
+        final boolean isUnbound = isUnbound(input, state);
         final boolean containsNotHoledAssignableParts =
-            containsNotHoledAssignableParts(input.getPattern(), state);
+            containsNotHoledAssignableParts(input, state);
 
         String describedLocation =
             PatternMatchMode.PatternLocation.describeLocation(input);
@@ -1279,7 +1311,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
             boolean asPatternCheck = VALID;
             if (!canBeHoled(input.getPattern())) {
                 asPatternCheck = validationHelper.asserting(
-                    !isHoled(input.getPattern(), state),
+                    !isHoled(input, state),
                     "InvalidPattern",
                     "This kind of expression cannot contain holes to produce " +
                         "a pattern.",
@@ -1299,7 +1331,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
                 final String src =
                     CompilationHelper.sourceToTextAny(
-                    input.getPattern()).orElse("");
+                        input.getPattern()).orElse("");
                 final String sem = deepTraverse(input.getPattern())
                     .getSemantics().getClass().getSimpleName();
 
@@ -1350,9 +1382,9 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
         TypeRelationship actualRelationship =
             module.get(TypeHelper.class).getTypeRelationship(
-            solvedType,
-            input.getProvidedInputType()
-        );
+                solvedType,
+                input.getProvidedInputType()
+            );
 
         IJadescriptType providedInputType = input.getProvidedInputType();
         return module.get(ValidationHelper.class).asserting(
@@ -1536,7 +1568,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
 
         @Override
-        protected boolean isPatternEvaluationPureInternal(
+        protected boolean isPatternEvaluationWithoutSideEffectsInternal(
             PatternMatchInput<T> input,
             StaticState state
         ) {
@@ -1572,14 +1604,8 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
 
         @Override
-        protected boolean isHoledInternal(Maybe<T> input, StaticState state) {
-            return false;
-        }
-
-
-        @Override
-        protected boolean isTypelyHoledInternal(
-            Maybe<T> input,
+        protected boolean isHoledInternal(
+            PatternMatchInput<T> input,
             StaticState state
         ) {
             return false;
@@ -1587,7 +1613,19 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
 
         @Override
-        protected boolean isUnboundInternal(Maybe<T> input, StaticState state) {
+        protected boolean isTypelyHoledInternal(
+            PatternMatchInput<T> input,
+            StaticState state
+        ) {
+            return false;
+        }
+
+
+        @Override
+        protected boolean isUnboundInternal(
+            PatternMatchInput<T> input,
+            StaticState state
+        ) {
             return false;
         }
 

@@ -173,7 +173,7 @@ public class PlaceholderExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<Primary> input,
         StaticState state
     ) {
@@ -238,14 +238,17 @@ public class PlaceholderExpressionSemantics
 
 
     @Override
-    protected boolean isHoledInternal(Maybe<Primary> input, StaticState state) {
+    protected boolean isHoledInternal(
+        PatternMatchInput<Primary> input,
+        StaticState state
+    ) {
         return true;
     }
 
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<Primary> input,
+        PatternMatchInput<Primary> input,
         StaticState state
     ) {
         return true;
@@ -254,7 +257,7 @@ public class PlaceholderExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<Primary> input,
+        PatternMatchInput<Primary> input,
         StaticState state
     ) {
         return false;

@@ -204,7 +204,7 @@ public class TypeComparisonExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<TypeComparison> input,
         StaticState state
     ) {
@@ -283,7 +283,7 @@ public class TypeComparisonExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<TypeComparison> input,
+        PatternMatchInput<TypeComparison> input,
         StaticState state
     ) {
         return false;
@@ -292,7 +292,7 @@ public class TypeComparisonExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<TypeComparison> input,
+        PatternMatchInput<TypeComparison> input,
         StaticState state
     ) {
         return false;
@@ -301,7 +301,7 @@ public class TypeComparisonExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<TypeComparison> input,
+        PatternMatchInput<TypeComparison> input,
         StaticState state
     ) {
         return false;

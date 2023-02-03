@@ -20,39 +20,45 @@ import java.util.stream.Stream;
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
 public abstract class ForAgentDeclarationContext
-        extends UsingOntologyDeclarationContext
-        implements NamedSymbol.Searcher, AgentAssociated {
+    extends UsingOntologyDeclarationContext
+    implements NamedSymbol.Searcher, AgentAssociated {
 
     private final IJadescriptType agentType;
     private final LazyValue<TypeNamespace> agentNamespace;
     private final LazyValue<NamedSymbol> agentSymbol;
 
+
     public ForAgentDeclarationContext(
-            SemanticsModule module,
-            FileContext outer,
-            List<IJadescriptType> ontologyTypes,
-            IJadescriptType agentType
+        SemanticsModule module,
+        FileContext outer,
+        List<IJadescriptType> ontologyTypes,
+        IJadescriptType agentType
     ) {
         super(module, outer, ontologyTypes);
         this.agentType = agentType;
         this.agentNamespace = new LazyValue<>(agentType::namespace);
-        this.agentSymbol = new LazyValue<>(() -> new ContextGeneratedReference(
-                THE_AGENT,
-                agentType,
-                (__) -> THE_AGENT + "()"
-        ));
+        this.agentSymbol = new LazyValue<>(() ->
+            new ContextGeneratedReference(
+                "agent", agentType, (__) -> THE_AGENT + "()"
+            )
+        );
     }
+
 
     @Override
     public Stream<? extends NamedSymbol> searchName(
-            Predicate<String> name,
-            Predicate<IJadescriptType> readingType,
-            Predicate<Boolean> canWrite
+        Predicate<String> name,
+        Predicate<IJadescriptType> readingType,
+        Predicate<Boolean> canWrite
     ) {
 
         Stream<Integer> agentRefStream = Stream.of(0);
-        agentRefStream = safeFilter(agentRefStream, (__) -> THE_AGENT, name);
-        agentRefStream = safeFilter(agentRefStream, (__) -> agentType, readingType);
+        agentRefStream = safeFilter(agentRefStream, (__) -> "agent", name);
+        agentRefStream = safeFilter(
+            agentRefStream,
+            (__) -> agentType,
+            readingType
+        );
         agentRefStream = safeFilter(agentRefStream, (__) -> false, canWrite);
         return agentRefStream.map((__) -> agentSymbol.get());
     }
@@ -63,26 +69,33 @@ public abstract class ForAgentDeclarationContext
         return Stream.empty();
     }
 
+
     @Override
     public Stream<AgentAssociation> computeForClauseAgentAssociations() {
-        return Stream.of(new AgentAssociation(agentType, AgentAssociation.F_A.INSTANCE));
+        return Stream.of(new AgentAssociation(
+            agentType,
+            AgentAssociation.F_A.INSTANCE
+        ));
     }
+
 
     @Override
     public Stream<OntologyAssociation> computeCurrentOntologyAssociations() {
         return Stream.empty();
     }
 
+
     @Override
     public Stream<OntologyAssociation> computeForClauseOntologyAssociations() {
-        if(agentNamespace.get() instanceof OntologyAssociationComputer){
+        if (agentNamespace.get() instanceof OntologyAssociationComputer) {
             return ((OntologyAssociationComputer) agentNamespace.get())
-                    .computeAllOntologyAssociations()
-                    .map(OntologyAssociation::applyForClause);
+                .computeAllOntologyAssociations()
+                .map(OntologyAssociation::applyForClause);
         } else {
             return Stream.empty();
         }
     }
+
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {
@@ -95,4 +108,5 @@ public abstract class ForAgentDeclarationContext
         scb.close("}");
         debugDumpAgentAssociations(scb);
     }
+
 }

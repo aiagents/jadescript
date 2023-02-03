@@ -268,7 +268,7 @@ public class LiteralExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<Literal> input,
         StaticState state
     ) {
@@ -457,14 +457,17 @@ public class LiteralExpressionSemantics
 
 
     @Override
-    protected boolean isHoledInternal(Maybe<Literal> input, StaticState state) {
+    protected boolean isHoledInternal(
+        PatternMatchInput<Literal> input,
+        StaticState state
+    ) {
         return false;
     }
 
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<Literal> input,
+        PatternMatchInput<Literal> input,
         StaticState state
     ) {
         return false;
@@ -473,7 +476,7 @@ public class LiteralExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<Literal> input,
+        PatternMatchInput<Literal> input,
         StaticState state
     ) {
         return false;

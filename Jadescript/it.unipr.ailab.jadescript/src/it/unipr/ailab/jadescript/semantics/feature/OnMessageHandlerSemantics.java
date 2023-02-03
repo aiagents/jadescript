@@ -379,21 +379,21 @@ public class OnMessageHandlerSemantics
 
             messageTemplateExpressions.add(
                 TemplateCompilationHelper.customMessage("__templMsg", w.block()
-                        .addStatement(w.variable(
-                            "jadescript.core.message.Message",
-                            MESSAGE_VAR_NAME,
-                            w.expr("jadescript.core.message.Message" +
-                                ".wrap(__templMsg)")
-                        )).addStatement(
-                            w.tryCatch(
-                                w.block().addStatement(
-                                    w.returnStmnt(w.expr(compiledExpression))
-                                )
-                            ).addCatchBranch("java.lang.Throwable", "_e",
-                                w.block()
+                    .addStatement(w.variable(
+                        "jadescript.core.message.Message",
+                        MESSAGE_VAR_NAME,
+                        w.expr("jadescript.core.message.Message" +
+                            ".wrap(__templMsg)")
+                    )).addStatement(
+                        w.tryCatch(
+                            w.block().addStatement(
+                                w.returnStmnt(w.expr(compiledExpression))
+                            )
+                        ).addCatchBranch("java.lang.Throwable", "_e",
+                            w.block()
                                 .addStatement(w.callStmnt("_e.printStackTrace"))
                                 .addStatement(w.returnStmnt(w.expr("false")))
-                            ))
+                        ))
                 )
             );
         }
@@ -784,15 +784,18 @@ public class OnMessageHandlerSemantics
         }
 
 
-        module.get(ValidationHelper.class).advice(
-            finalContentType.isSendable(),
-            "UnexpectedContent",
-            "Suspicious content type; values of type '"
-                + finalContentType.getJadescriptName() +
-                "' cannot be received as part of messages.",
-            eitherGet(eitherGet(pattern, whenExpr), input),
-            acceptor
-        );
+        if (performativeCheck
+            && (pattern.isPresent() || whenExpr.isPresent())) {
+            module.get(ValidationHelper.class).advice(
+                finalContentType.isSendable(),
+                "UnexpectedContent",
+                "Suspicious content type; values of type '"
+                    + finalContentType.getJadescriptName() +
+                    "' cannot be received as part of messages.",
+                eitherGet(eitherGet(pattern, whenExpr), input),
+                acceptor
+            );
+        }
 
         if (pattern.isPresent() || whenExpr.isPresent()) {
             module.get(ValidationHelper.class).advice(

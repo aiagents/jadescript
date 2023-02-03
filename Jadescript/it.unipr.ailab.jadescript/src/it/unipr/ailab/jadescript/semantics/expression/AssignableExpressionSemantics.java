@@ -404,7 +404,7 @@ public abstract class AssignableExpressionSemantics<T>
 
 
         @Override
-        protected boolean isPatternEvaluationPureInternal(
+        protected boolean isPatternEvaluationWithoutSideEffectsInternal(
             PatternMatchInput<X> input,
             StaticState state
         ) {
@@ -441,7 +441,7 @@ public abstract class AssignableExpressionSemantics<T>
 
         @Override
         protected boolean isHoledInternal(
-            Maybe<X> input,
+            PatternMatchInput<X> input,
             StaticState state
         ) {
             return false;
@@ -450,7 +450,7 @@ public abstract class AssignableExpressionSemantics<T>
 
         @Override
         protected boolean isTypelyHoledInternal(
-            Maybe<X> input,
+            PatternMatchInput<X> input,
             StaticState state
         ) {
             return false;
@@ -459,7 +459,7 @@ public abstract class AssignableExpressionSemantics<T>
 
         @Override
         protected boolean isUnboundInternal(
-            Maybe<X> input,
+            PatternMatchInput<X> input,
             StaticState state
         ) {
             return false;

@@ -102,8 +102,7 @@ public class EqualityComparisonExpressionSemantics
         final TypeComparisonExpressionSemantics tces =
             module.get(TypeComparisonExpressionSemantics.class);
 
-        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
-            || !tces.isHoled(left, state)) {
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)) {
             return advance(input.getPattern(), state);
         } else {
 
@@ -122,6 +121,11 @@ public class EqualityComparisonExpressionSemantics
             StaticState afterRight = tces.advancePattern(
                 rightSubpattern,
                 state
+            );
+
+            afterRight = tces.assertDidMatch(
+                rightSubpattern,
+                afterRight
             );
 
 
@@ -242,62 +246,175 @@ public class EqualityComparisonExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<EqualityComparison> input,
+        PatternMatchInput<EqualityComparison> input,
         StaticState state
     ) {
-        Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
-        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
-        String equalityOp = input.__(EqualityComparison::getEqualityOp)
+        Maybe<TypeComparison> left = input.getPattern()
+            .__(EqualityComparison::getLeft);
+        Maybe<TypeComparison> right = input.getPattern()
+            .__(EqualityComparison::getRight);
+        String equalityOp = input.getPattern()
+            .__(EqualityComparison::getEqualityOp)
             .orElse("");
 
-        return equalityOp.equals(EQUALS_OPERATOR)
-            && (
-            module.get(TypeComparisonExpressionSemantics.class)
-                .isHoled(left, state)
-                || module.get(TypeComparisonExpressionSemantics.class)
-                .isHoled(right, state)
+        if (!equalityOp.equals(EQUALS_OPERATOR)) {
+            return false;
+        }
+
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
+
+        final SubPattern<TypeComparison, EqualityComparison>
+            rightSubpattern = input.subPattern(
+            input.getProvidedInputType(),
+            __ -> right.toNullable(),
+            "_eqright"
         );
 
+        if(tces.isHoled(rightSubpattern, state)){
+            return true;
+        }
+
+        final IJadescriptType rType = tces.inferPatternType(
+            rightSubpattern,
+            state
+        ).solve(input.getProvidedInputType());
+
+
+        StaticState afterRight = tces.advancePattern(
+            rightSubpattern, state
+        );
+
+        afterRight = tces.assertDidMatch(
+            rightSubpattern,
+            afterRight
+        );
+
+        final SubPattern<
+            TypeComparison,
+            EqualityComparison
+            > leftSubpattern = input.subPattern(
+            rType,
+            __ -> left.toNullable(),
+            "_eqleft"
+        );
+        return tces.isHoled(leftSubpattern, afterRight);
     }
 
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<EqualityComparison> input,
+        PatternMatchInput<EqualityComparison> input,
         StaticState state
     ) {
-        Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
-        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
-        String equalityOp = input.__(EqualityComparison::getEqualityOp)
+        Maybe<TypeComparison> left = input.getPattern()
+            .__(EqualityComparison::getLeft);
+        Maybe<TypeComparison> right = input.getPattern()
+            .__(EqualityComparison::getRight);
+        String equalityOp = input.getPattern()
+            .__(EqualityComparison::getEqualityOp)
             .orElse("");
 
-        return equalityOp.equals(EQUALS_OPERATOR)
-            && (
-            module.get(TypeComparisonExpressionSemantics.class)
-                .isTypelyHoled(left, state)
-                || module.get(TypeComparisonExpressionSemantics.class)
-                .isTypelyHoled(right, state)
+        if (!equalityOp.equals(EQUALS_OPERATOR)) {
+            return false;
+        }
+
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
+
+        final SubPattern<TypeComparison, EqualityComparison>
+            rightSubpattern = input.subPattern(
+            input.getProvidedInputType(),
+            __ -> right.toNullable(),
+            "_eqright"
         );
+
+        if(tces.isTypelyHoled(rightSubpattern, state)){
+            return true;
+        }
+
+        final IJadescriptType rType = tces.inferPatternType(
+            rightSubpattern,
+            state
+        ).solve(input.getProvidedInputType());
+
+
+        StaticState afterRight = tces.advancePattern(
+            rightSubpattern, state
+        );
+
+        afterRight = tces.assertDidMatch(
+            rightSubpattern,
+            afterRight
+        );
+
+        final SubPattern<
+            TypeComparison,
+            EqualityComparison
+            > leftSubpattern = input.subPattern(
+            rType,
+            __ -> left.toNullable(),
+            "_eqleft"
+        );
+        return tces.isTypelyHoled(leftSubpattern, afterRight);
     }
 
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<EqualityComparison> input,
+        PatternMatchInput<EqualityComparison> input,
         StaticState state
     ) {
-        Maybe<TypeComparison> left = input.__(EqualityComparison::getLeft);
-        Maybe<TypeComparison> right = input.__(EqualityComparison::getRight);
-        String equalityOp = input.__(EqualityComparison::getEqualityOp)
+        Maybe<TypeComparison> left = input.getPattern()
+            .__(EqualityComparison::getLeft);
+        Maybe<TypeComparison> right = input.getPattern()
+            .__(EqualityComparison::getRight);
+        String equalityOp = input.getPattern()
+            .__(EqualityComparison::getEqualityOp)
             .orElse("");
 
-        return equalityOp.equals(EQUALS_OPERATOR)
-            && (
-            module.get(TypeComparisonExpressionSemantics.class)
-                .isUnbound(left, state)
-                || module.get(TypeComparisonExpressionSemantics.class)
-                .isUnbound(right, state)
+        if (!equalityOp.equals(EQUALS_OPERATOR)) {
+            return false;
+        }
+
+        final TypeComparisonExpressionSemantics tces =
+            module.get(TypeComparisonExpressionSemantics.class);
+
+        final SubPattern<TypeComparison, EqualityComparison>
+            rightSubpattern = input.subPattern(
+            input.getProvidedInputType(),
+            __ -> right.toNullable(),
+            "_eqright"
         );
+
+        if(tces.isUnbound(rightSubpattern, state)){
+            return true;
+        }
+
+        final IJadescriptType rType = tces.inferPatternType(
+            rightSubpattern,
+            state
+        ).solve(input.getProvidedInputType());
+
+
+        StaticState afterRight = tces.advancePattern(
+            rightSubpattern, state
+        );
+
+        afterRight = tces.assertDidMatch(
+            rightSubpattern,
+            afterRight
+        );
+
+        final SubPattern<
+            TypeComparison,
+            EqualityComparison
+            > leftSubpattern = input.subPattern(
+            rType,
+            __ -> left.toNullable(),
+            "_eqleft"
+        );
+        return tces.isUnbound(leftSubpattern, afterRight);
     }
 
 
@@ -315,8 +432,7 @@ public class EqualityComparisonExpressionSemantics
             .__(EqualityComparison::getEqualityOp).orElse("");
         final TypeComparisonExpressionSemantics tces =
             module.get(TypeComparisonExpressionSemantics.class);
-        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
-            || !tces.isHoled(left, state)) {
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)) {
             return compileExpressionEqualityPatternMatch(
                 input,
                 state,
@@ -337,6 +453,11 @@ public class EqualityComparisonExpressionSemantics
                 rightSubpattern, state, acceptor);
             StaticState afterRight = tces.advancePattern(
                 rightSubpattern, state
+            );
+
+            afterRight = tces.assertDidMatch(
+                rightSubpattern,
+                afterRight
             );
 
             final SubPattern<
@@ -371,7 +492,7 @@ public class EqualityComparisonExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<EqualityComparison> input,
         StaticState state
     ) {
@@ -388,16 +509,51 @@ public class EqualityComparisonExpressionSemantics
         final TypeComparisonExpressionSemantics tces =
             module.get(TypeComparisonExpressionSemantics.class);
 
-        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
-            || !tces.isHoled(left, state)) {
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)) {
             return isWithoutSideEffects(input.getPattern(), state);
         } else {
-            final StaticState afterRight = tces.advance(right, state);
-            return tces.isPatternEvaluationWithoutSideEffects(
-                input.replacePattern(right),
+
+            final SubPattern<TypeComparison, EqualityComparison>
+                rightSubpattern = input.subPattern(
+                input.getProvidedInputType(),
+                __ -> right.toNullable(),
+                "_eqright"
+            );
+
+            final IJadescriptType rType = tces.inferPatternType(
+                rightSubpattern,
                 state
-            ) && tces.isPatternEvaluationWithoutSideEffects(
-                input.replacePattern(left),
+            ).solve(input.getProvidedInputType());
+
+            boolean rightResult = tces.isPatternEvaluationWithoutSideEffects(
+                rightSubpattern,
+                state
+            );
+
+            if (!rightResult) {
+                return false;
+            }
+
+            StaticState afterRight = tces.advancePattern(
+                rightSubpattern, state
+            );
+
+            afterRight = tces.assertDidMatch(
+                rightSubpattern,
+                afterRight
+            );
+
+            final SubPattern<
+                TypeComparison,
+                EqualityComparison
+                > leftSubpattern = input.subPattern(
+                rType,
+                __ -> left.toNullable(),
+                "_eqleft"
+            );
+
+            return tces.isPatternEvaluationWithoutSideEffects(
+                leftSubpattern,
                 afterRight
             );
         }
@@ -417,8 +573,7 @@ public class EqualityComparisonExpressionSemantics
             .__(EqualityComparison::getEqualityOp).orElse("");
         final TypeComparisonExpressionSemantics tces =
             module.get(TypeComparisonExpressionSemantics.class);
-        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
-            || !tces.isHoled(left, state)) {
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)) {
             return state;
         } else {
             SubPattern<TypeComparison, EqualityComparison>
@@ -431,8 +586,14 @@ public class EqualityComparisonExpressionSemantics
                 rightSubpattern,
                 state
             ).solve(input.getProvidedInputType());
-            StaticState afterRight = tces.assertDidMatch(
-                rightSubpattern, state
+
+            StaticState afterRight = tces.advancePattern(
+                rightSubpattern,
+                state
+            );
+
+            afterRight = tces.assertDidMatch(
+                rightSubpattern, afterRight
             );
 
             SubPattern<TypeComparison, EqualityComparison> leftSubpattern =
@@ -442,8 +603,12 @@ public class EqualityComparisonExpressionSemantics
                     "_eqleft"
                 );
 
-            return tces.assertDidMatch(
+            StaticState afterLeft = tces.advancePattern(
                 leftSubpattern, afterRight
+            );
+
+            return tces.assertDidMatch(
+                leftSubpattern, afterLeft
             );
         }
     }
@@ -515,16 +680,13 @@ public class EqualityComparisonExpressionSemantics
         PatternMatchInput<EqualityComparison> input,
         StaticState state
     ) {
-        Maybe<TypeComparison> left = input.getPattern()
-            .__(EqualityComparison::getLeft);
         Maybe<TypeComparison> right = input.getPattern()
             .__(EqualityComparison::getRight);
         String equalityOp = input.getPattern()
             .__(EqualityComparison::getEqualityOp).orElse("");
         final TypeComparisonExpressionSemantics tces =
             module.get(TypeComparisonExpressionSemantics.class);
-        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
-            || !tces.isTypelyHoled(left, state)) {
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)) {
             return PatternType.simple(module.get(TypeHelper.class).BOOLEAN);
         } else {
             return tces.inferPatternType(
@@ -554,8 +716,7 @@ public class EqualityComparisonExpressionSemantics
         final TypeComparisonExpressionSemantics tces =
             module.get(TypeComparisonExpressionSemantics.class);
 
-        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
-            || !tces.isHoled(left, state)) {
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)) {
             return validateExpressionEqualityPatternMatch(
                 input,
                 state,
@@ -583,6 +744,13 @@ public class EqualityComparisonExpressionSemantics
                 rightSubpattern,
                 state
             );
+
+
+            afterRight = tces.assertDidMatch(
+                rightSubpattern,
+                afterRight
+            );
+
 
             final SubPattern<
                 TypeComparison,
@@ -639,8 +807,7 @@ public class EqualityComparisonExpressionSemantics
             .__(EqualityComparison::getEqualityOp).orElse("");
         final TypeComparisonExpressionSemantics tces =
             module.get(TypeComparisonExpressionSemantics.class);
-        if (equalityOp.equals(NOT_EQUALS_OPERATOR)
-            || !tces.isHoled(left, state)) {
+        if (equalityOp.equals(NOT_EQUALS_OPERATOR)) {
             // Just an expression
             return false;
         } else {
@@ -657,7 +824,7 @@ public class EqualityComparisonExpressionSemantics
                 state
             );
 
-            if(!rightResult){
+            if (!rightResult) {
                 return false;
             }
 
@@ -668,6 +835,11 @@ public class EqualityComparisonExpressionSemantics
             StaticState afterRight = tces.advancePattern(
                 rightSubpattern,
                 state
+            );
+
+            afterRight = tces.assertDidMatch(
+                rightSubpattern,
+                afterRight
             );
 
             final SubPattern<

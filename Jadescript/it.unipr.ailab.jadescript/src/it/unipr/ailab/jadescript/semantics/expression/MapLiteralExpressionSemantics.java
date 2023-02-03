@@ -55,6 +55,9 @@ public class MapLiteralExpressionSemantics
     }
 
 
+
+
+
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<MapOrSetLiteral> input
     ) {
@@ -382,7 +385,7 @@ public class MapLiteralExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<MapOrSetLiteral> input,
         StaticState state
     ) {
@@ -392,96 +395,204 @@ public class MapLiteralExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<MapOrSetLiteral> input,
+        PatternMatchInput<MapOrSetLiteral> input,
         StaticState state
     ) {
         //NOTE: map patterns cannot have holes as keys (enforced by validator)
         boolean isWithPipe =
-            input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
-        Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
+            input.getPattern().__(MapOrSetLiteral::isWithPipe)
+                .extract(nullAsFalse);
+        Maybe<RValueExpression> rest = input.getPattern()
+            .__(MapOrSetLiteral::getRest);
+
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
+
         final List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.__(MapOrSetLiteral::getValues));
+            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
+
+        IJadescriptType solvedPatternType =
+            inferPatternType(input, state)
+                .solve(input.getProvidedInputType());
+
+
+        IJadescriptType valueType;
+        if (solvedPatternType instanceof MapType) {
+            valueType = ((MapType) solvedPatternType).getValueType();
+        } else {
+            valueType = module.get(TypeHelper.class).TOP.apply(
+                PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
+            );
+        }
+
         StaticState newState = state;
         boolean isHoled;
         for (Maybe<RValueExpression> value : values) {
-            isHoled = rves.isHoled(value, newState);
+            final SubPattern<RValueExpression, MapOrSetLiteral> valueTerm =
+                input.subPattern(
+                valueType,
+                (__) -> value.toNullable(),
+                "_mapval"
+            );
+
+            isHoled = rves.isHoled(valueTerm, newState);
+
             if (isHoled) {
                 return true;
             }
-            newState = rves.advance(value, newState);
+
+            newState = rves.advancePattern(valueTerm, newState);
+            newState = rves.assertDidMatch(valueTerm, newState);
         }
 
-        return isWithPipe && rest.isPresent() && rves.isHoled(rest, newState);
+
+        final SubPattern<RValueExpression, MapOrSetLiteral> restTerm =
+            input.subPattern(
+                solvedPatternType,
+                (__) -> rest.toNullable(),
+                "_maprest"
+            );
+
+        return isWithPipe && rest.isPresent() &&
+            rves.isHoled(restTerm, newState);
     }
 
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<MapOrSetLiteral> input,
+        PatternMatchInput<MapOrSetLiteral> input,
         StaticState state
     ) {
         //NOTE: map patterns cannot have holes as keys (enforced by validator)
         boolean isWithPipe =
-            input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
-        Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
+            input.getPattern().__(MapOrSetLiteral::isWithPipe)
+                .extract(nullAsFalse);
+        Maybe<RValueExpression> rest = input.getPattern()
+            .__(MapOrSetLiteral::getRest);
+
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
+
         final List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.__(MapOrSetLiteral::getValues));
+            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
+
         final Maybe<TypeExpression> valueTypeParameter =
-            input.__(MapOrSetLiteral::getValueTypeParameter);
+            input.getPattern().__(MapOrSetLiteral::getValueTypeParameter);
         boolean hasTypeSpecifiers =
-            input.__(MapOrSetLiteral::isWithTypeSpecifiers)
+            input.getPattern().__(MapOrSetLiteral::isWithTypeSpecifiers)
                 .extract(nullAsFalse);
 
         if (hasTypeSpecifiers && valueTypeParameter.isPresent()) {
             return false;
+        }
+
+        IJadescriptType solvedPatternType =
+            inferPatternType(input, state)
+                .solve(input.getProvidedInputType());
+
+        IJadescriptType valueType;
+        if (solvedPatternType instanceof MapType) {
+            valueType = ((MapType) solvedPatternType).getValueType();
         } else {
-            StaticState newState = state;
-            boolean isHoled;
-            for (Maybe<RValueExpression> value : values) {
-                isHoled = rves.isTypelyHoled(value, newState);
-                if (isHoled) {
-                    return true;
-                }
-                newState = rves.advance(value, newState);
+            valueType = module.get(TypeHelper.class).TOP.apply(
+                PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
+            );
+        }
+
+        StaticState newState = state;
+        boolean isHoled;
+        for (Maybe<RValueExpression> value : values) {
+            final SubPattern<RValueExpression, MapOrSetLiteral> valueTerm =
+                input.subPattern(
+                valueType,
+                (__) -> value.toNullable(),
+                "_mapval"
+            );
+
+            isHoled = rves.isTypelyHoled(valueTerm, newState);
+
+            if (isHoled) {
+                return true;
             }
 
-            return isWithPipe
-                && rest.isPresent()
-                && rves.isTypelyHoled(rest, newState);
+            newState = rves.advancePattern(valueTerm, newState);
+            newState = rves.assertDidMatch(valueTerm, newState);
         }
+
+        final SubPattern<RValueExpression, MapOrSetLiteral> restTerm =
+            input.subPattern(
+                solvedPatternType,
+                (__) -> rest.toNullable(),
+                "_maprest"
+            );
+
+        return isWithPipe && rest.isPresent()
+            && rves.isTypelyHoled(restTerm, newState);
     }
 
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<MapOrSetLiteral> input,
+        PatternMatchInput<MapOrSetLiteral> input,
         StaticState state
     ) {
         //NOTE: map patterns cannot have holes as keys (enforced by validator)
         boolean isWithPipe =
-            input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
-        Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
+            input.getPattern().__(MapOrSetLiteral::isWithPipe)
+                .extract(nullAsFalse);
+        Maybe<RValueExpression> rest = input.getPattern()
+            .__(MapOrSetLiteral::getRest);
+
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
+
         final List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.__(MapOrSetLiteral::getValues));
+            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
+
+        IJadescriptType solvedPatternType =
+            inferPatternType(input, state)
+                .solve(input.getProvidedInputType());
+
+
+        IJadescriptType valueType;
+        if (solvedPatternType instanceof MapType) {
+            valueType = ((MapType) solvedPatternType).getValueType();
+        } else {
+            valueType = module.get(TypeHelper.class).TOP.apply(
+                PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
+            );
+        }
+
         StaticState newState = state;
         boolean isUnbound;
         for (Maybe<RValueExpression> value : values) {
-            isUnbound = rves.isUnbound(value, newState);
+            final SubPattern<RValueExpression, MapOrSetLiteral> valueTerm =
+                input.subPattern(
+                valueType,
+                (__) -> value.toNullable(),
+                "_mapval"
+            );
+
+            isUnbound = rves.isUnbound(valueTerm, newState);
+
             if (isUnbound) {
                 return true;
             }
-            newState = rves.advance(value, newState);
+
+            newState = rves.advancePattern(valueTerm, newState);
+            newState = rves.assertDidMatch(valueTerm, newState);
         }
 
-        return isWithPipe
-            && rest.isPresent()
-            && rves.isUnbound(rest, newState);
+
+        final SubPattern<RValueExpression, MapOrSetLiteral> restTerm =
+            input.subPattern(
+                solvedPatternType,
+                (__) -> rest.toNullable(),
+                "_maprest"
+            );
+
+        return isWithPipe && rest.isPresent() &&
+            rves.isUnbound(restTerm, newState);
     }
 
 
@@ -685,7 +796,7 @@ public class MapLiteralExpressionSemantics
         PatternMatchInput<MapOrSetLiteral> input,
         StaticState state
     ) {
-        if (!isTypelyHoled(input.getPattern(), state)) {
+        if (!isTypelyHoled(input, state)) {
             return PatternType.simple(inferType(input.getPattern(), state));
         }
 

@@ -69,9 +69,8 @@ public class RValueExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
-        Maybe<RValueExpression> input
-    ) {
+    protected Optional<? extends SemanticsBoundToExpression<?>>
+    traverseInternal(Maybe<RValueExpression> input) {
         if (input.isInstanceOf(SyntheticExpression.class)) {
             return Optional.of(
                 new SemanticsBoundToExpression<>(
@@ -91,7 +90,7 @@ public class RValueExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<RValueExpression> input,
         StaticState state
     ) {
@@ -208,7 +207,7 @@ public class RValueExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<RValueExpression> input,
+        PatternMatchInput<RValueExpression> input,
         StaticState state
     ) {
         return false;
@@ -217,7 +216,7 @@ public class RValueExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<RValueExpression> input,
+        PatternMatchInput<RValueExpression> input,
         StaticState state
     ) {
         return false;
@@ -226,7 +225,7 @@ public class RValueExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<RValueExpression> input,
+        PatternMatchInput<RValueExpression> input,
         StaticState state
     ) {
         return false;

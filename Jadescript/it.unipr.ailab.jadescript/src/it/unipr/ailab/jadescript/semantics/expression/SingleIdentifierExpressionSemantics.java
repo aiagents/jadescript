@@ -3,14 +3,12 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.semantics.GenerationParameters;
-import it.unipr.ailab.jadescript.semantics.CallSemantics;
-import it.unipr.ailab.jadescript.semantics.PatternMatchUnifiedVariable;
-import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.*;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.PatternSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchMode;
@@ -22,21 +20,17 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Either;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 import static it.unipr.ailab.maybe.Maybe.some;
 
-//TODO fix all pattern semantics for this: they should check if resolve as
-// pattern (because of PatternSymbol)
 
 /**
  * Created on 26/08/18.
@@ -53,15 +47,13 @@ public class SingleIdentifierExpressionSemantics
     }
 
 
-
-
     @Override
     protected Maybe<ExpressionDescriptor> describeExpressionInternal(
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
         Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
-            resolve(input, state);
+            resolveAsExpression(input, state);
         final String ident = input.__(SingleIdentifier::getIdent)
             .extract(nullAsEmptyString);
         if (resolved.isNothing() || ident.isBlank()) {
@@ -83,7 +75,7 @@ public class SingleIdentifierExpressionSemantics
         StaticState state
     ) {
         Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
-            resolve(input, state);
+            resolveAsExpression(input, state);
         final String ident = input.__(SingleIdentifier::getIdent)
             .extract(nullAsEmptyString);
 
@@ -112,7 +104,7 @@ public class SingleIdentifierExpressionSemantics
     }
 
 
-    public Maybe<Either<NamedSymbol, CallableSymbol>> resolve(
+    public Maybe<Either<NamedSymbol, CallableSymbol>> resolveAsExpression(
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
@@ -130,9 +122,41 @@ public class SingleIdentifierExpressionSemantics
     }
 
 
-    public boolean resolves(Maybe<SingleIdentifier> input, StaticState state) {
-        return resolve(input, state).isPresent();
+    public Maybe<Either<NamedSymbol, PatternSymbol>> resolveAsPattern(
+        Maybe<SingleIdentifier> input,
+        StaticState state
+    ) {
+        Maybe<NamedSymbol> named = resolveAsNamedSymbol(
+            input, state
+        );
+        if (named.isPresent()) {
+            return some(new Either.Left<>(named.toNullable()));
+        }
+        final CallSemantics mcs = module.get(CallSemantics.class);
+        Maybe<? extends PatternSymbol> ps = mcs.resolvePattern(
+            Call.call(input),
+            state
+        );
+        return ps.__(Either.Right::new);
     }
+
+
+    public boolean resolvesAsExpression(
+        Maybe<SingleIdentifier> input,
+        StaticState state
+    ) {
+        return resolveAsExpression(input, state).isPresent();
+    }
+
+
+    public boolean resolvesAsPattern(
+        Maybe<SingleIdentifier> input,
+        StaticState state
+    ) {
+        return resolveAsPattern(input, state).isPresent();
+    }
+
+
 
 
     @Override
@@ -158,7 +182,7 @@ public class SingleIdentifierExpressionSemantics
         }
 
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
-            resolve(input, state);
+            resolveAsExpression(input, state);
 
         if (resolved.isNothing()) {
             return "/*UNRESOLVED NAME:*/" + ident.toNullable();
@@ -265,7 +289,7 @@ public class SingleIdentifierExpressionSemantics
         if (input == null) return module.get(TypeHelper.class).ANY;
         final Maybe<String> ident = input.__(SingleIdentifier::getIdent);
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
-            resolve(input, state);
+            resolveAsExpression(input, state);
         if (resolved.isNothing()) {
             return module.get(TypeHelper.class).BOTTOM.apply(
                 "Cannot infer the type of the expression. Reason: cannot " +
@@ -302,7 +326,7 @@ public class SingleIdentifierExpressionSemantics
         StaticState state
     ) {
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
-            resolve(input, state);
+            resolveAsExpression(input, state);
         //Considering it pure if it is not resolved and if it is a named
         // symbol (i.e. not a call to a function without
         // parentheses).
@@ -323,28 +347,29 @@ public class SingleIdentifierExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<SingleIdentifier> input,
+        PatternMatchInput<SingleIdentifier> input,
         StaticState state
     ) {
-        return !resolves(input, state);
+        return !resolvesAsExpression(input.getPattern(), state);
     }
 
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<SingleIdentifier> input,
+        PatternMatchInput<SingleIdentifier> input,
         StaticState state
     ) {
-        return !resolves(input, state);
+        return !resolvesAsExpression(input.getPattern(), state)
+            && !resolvesAsPattern(input.getPattern(), state);
     }
 
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<SingleIdentifier> input,
+        PatternMatchInput<SingleIdentifier> input,
         StaticState state
     ) {
-        return !resolves(input, state);
+        return !resolvesAsExpression(input.getPattern(), state);
     }
 
 
@@ -356,7 +381,7 @@ public class SingleIdentifierExpressionSemantics
     ) {
         final String identifier = input.getPattern()
             .__(SingleIdentifier::getIdent).orElse("");
-        if (isUnbound(input.getPattern(), state)) {
+        if (isUnbound(input, state)) {
             if (input.getMode().getUnification()
                 == PatternMatchMode.Unification.WITH_VAR_DECLARATION) {
                 IJadescriptType solvedPatternType =
@@ -364,7 +389,6 @@ public class SingleIdentifierExpressionSemantics
                         .solve(input.getProvidedInputType());
 
                 //update of state is omitted on purpose
-
                 return input.createFieldAssigningMethodOutput(
                     solvedPatternType,
                     identifier
@@ -375,15 +399,18 @@ public class SingleIdentifierExpressionSemantics
         } else {
             IJadescriptType solvedPatternType = inferPatternType(input, state)
                 .solve(input.getProvidedInputType());
+
             String tempCompile = compile(input.getPattern(), state, acceptor);
+
             String compiledFinal;
-            if (tempCompile.startsWith(
-                input.getRootPatternMatchVariableName()
-            )) {
+            if (
+                tempCompile.startsWith(input.getRootPatternMatchVariableName())
+            ) {
                 compiledFinal = identifier;
             } else {
                 compiledFinal = tempCompile;
             }
+
             return input.createSingleConditionMethodOutput(
                 solvedPatternType,
                 "java.util.Objects.equals(__x," + compiledFinal + ")"
@@ -409,7 +436,7 @@ public class SingleIdentifierExpressionSemantics
         final String identifier = input.getPattern()
             .__(SingleIdentifier::getIdent).orElse("");
 
-        if (isUnbound(input.getPattern(), state)) {
+        if (isUnbound(input, state)) {
             if (input.getMode().getUnification()
                 == PatternMatchMode.Unification.WITH_VAR_DECLARATION) {
                 IJadescriptType solvedPatternType =
@@ -420,7 +447,7 @@ public class SingleIdentifierExpressionSemantics
                     = new PatternMatchUnifiedVariable(
                     identifier,
                     solvedPatternType,
-                    input.getRootPatternMatchVariableName()+"."
+                    input.getRootPatternMatchVariableName() + "."
                 );
 
                 return state.assertNamedSymbol(deconstructedVariable);
@@ -428,13 +455,13 @@ public class SingleIdentifierExpressionSemantics
                 return state;
             }
         } else {
-            if(input.getMode().getReassignment()
-            == PatternMatchMode.Reassignment.REQUIRE_REASSIGN){
+            if (input.getMode().getReassignment()
+                == PatternMatchMode.Reassignment.REQUIRE_REASSIGN) {
                 final Maybe<ExpressionDescriptor> described =
                     describeExpression(input.getPattern(), state);
 
                 return state.assertAssigned(described);
-            }else{
+            } else {
                 return state;
             }
         }
@@ -464,7 +491,7 @@ public class SingleIdentifierExpressionSemantics
         PatternMatchInput<SingleIdentifier> input,
         StaticState state
     ) {
-        if (isTypelyHoled(input.getPattern(), state)) {
+        if (isTypelyHoled(input, state)) {
             return PatternType.holed(inputType -> inputType);
         } else {
             return PatternType.simple(inferType(input.getPattern(), state));
@@ -477,7 +504,7 @@ public class SingleIdentifierExpressionSemantics
         PatternMatchInput<SingleIdentifier> input,
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        if (isUnbound(input.getPattern(), state)) {
+        if (isUnbound(input, state)) {
             final String identifier = input.getPattern()
                 .__(SingleIdentifier::getIdent).orElse("");
             boolean resolutionCheck =
@@ -537,12 +564,12 @@ public class SingleIdentifierExpressionSemantics
             return VALID;
         }
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
-            resolve(input, state);
+            resolveAsExpression(input, state);
 
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
-        final boolean resolutionCheck =
-            validationHelper.asserting(
+
+        final boolean resolutionCheck = validationHelper.asserting(
             resolved.isPresent(),
             "UnresolvedSymbol",
             "Unresolved symbol: " + ident.orElse("[empty]"),
@@ -550,14 +577,14 @@ public class SingleIdentifierExpressionSemantics
             acceptor
         );
 
-        if(resolutionCheck == VALID
-        && resolved.toNullable() instanceof Either.Left
-        && ident.wrappedEquals("agent")){
+        if (resolutionCheck == VALID
+            && resolved.toNullable() instanceof Either.Left
+            && ident.wrappedEquals("agent")) {
+
             return validationHelper.assertCanUseAgentReference(
                 input,
                 acceptor
             );
-
         }
 
         return resolutionCheck;
@@ -585,7 +612,7 @@ public class SingleIdentifierExpressionSemantics
                 expression, state);
 
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolve =
-            resolve(input, afterRExpr);
+            resolveAsExpression(input, afterRExpr);
 
         if (resolve.isNothing()) {
             //validate inferred declaration
@@ -689,12 +716,12 @@ public class SingleIdentifierExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<SingleIdentifier> input,
         StaticState state
     ) {
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolve =
-            this.resolve(input.getPattern(), state);
+            this.resolveAsExpression(input.getPattern(), state);
         if (resolve.isNothing()) {
             //Yes: probably declaring a new local variable.
             return true;
@@ -724,7 +751,7 @@ public class SingleIdentifierExpressionSemantics
         ValidationMessageAcceptor acceptor
     ) {
         final Maybe<Either<NamedSymbol, CallableSymbol>> resolved
-            = resolve(input, state);
+            = resolveAsExpression(input, state);
         if (resolved.isPresent() &&
             resolved.toNullable() instanceof Either.Right) {
             // nullary function call: ok as statement, validate it
@@ -747,11 +774,7 @@ public class SingleIdentifierExpressionSemantics
         StaticState state
     ) {
 
-        if(resolves(input.getPattern(), state)){
-            return false;
-        }
-
-        return true;
+        return !resolvesAsExpression(input.getPattern(), state);
     }
 
 }

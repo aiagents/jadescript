@@ -274,6 +274,10 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                     __ -> term.toNullable(),
                     "_" + i
                 );
+            runningState = rves.advancePattern(
+                termSubpattern,
+                runningState
+            );
             runningState = rves.assertDidMatch(
                 termSubpattern,
                 runningState
@@ -371,6 +375,12 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                 termSubpattern,
                 runningState
             );
+            if(i < argExpressions.size() -1) {
+                runningState = rves.assertDidMatch(
+                    termSubpattern,
+                    runningState
+                );
+            }
         }
 
         return runningState;
@@ -979,7 +989,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<Call> input,
+        PatternMatchInput<Call> input,
         StaticState state
     ) {
         return subExpressionsAnyHoled(input, state);
@@ -988,7 +998,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<Call> input,
+        PatternMatchInput<Call> input,
         StaticState state
     ) {
         /*
@@ -1003,7 +1013,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<Call> input,
+        PatternMatchInput<Call> input,
         StaticState state
     ) {
         return subExpressionsAnyUnbound(input, state);
@@ -1077,6 +1087,14 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                     termSubpattern,
                     runningState
                 );
+
+                if(i < argExpressions.size() - 1) {
+                    runningState = rves.assertDidMatch(
+                        termSubpattern,
+                        runningState
+                    );
+                }
+
             }
 
             IJadescriptType solvedPatternType = inferPatternType(input, state)
@@ -1136,7 +1154,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
 
     @Override
-    public boolean isPatternEvaluationPureInternal(
+    public boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<Call> input,
         StaticState state
     ) {
@@ -1269,6 +1287,13 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                     termSubPattern,
                     runningState
                 );
+                if(i < argExpressions.size()-1){
+                    runningState = rves.assertDidMatch(
+                        termSubPattern,
+                        runningState
+                    );
+                }
+
             }
 
             return allArgsCheck;

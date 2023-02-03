@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import it.unipr.ailab.jadescript.jadescript.AidLiteral;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeCast;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -12,7 +13,6 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -22,7 +22,8 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.nullAsTrue;
 
 public class AidLiteralExpressionSemantics
     extends AssignableExpressionSemantics<AidLiteral> {
@@ -86,9 +87,6 @@ public class AidLiteralExpressionSemantics
     ) {
         return Maybe.nothing();
     }
-
-
-
 
 
     @Override
@@ -207,7 +205,7 @@ public class AidLiteralExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<AidLiteral> input, StaticState state
     ) {
         return subPatternEvaluationsAllPure(input, state);
@@ -287,7 +285,7 @@ public class AidLiteralExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<AidLiteral> input,
+        PatternMatchInput<AidLiteral> input,
         StaticState state
     ) {
         return subExpressionsAnyHoled(input, state);
@@ -296,7 +294,7 @@ public class AidLiteralExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<AidLiteral> input,
+        PatternMatchInput<AidLiteral> input,
         StaticState state
     ) {
         return subExpressionsAnyUnbound(input, state);
@@ -305,7 +303,7 @@ public class AidLiteralExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<AidLiteral> input,
+        PatternMatchInput<AidLiteral> input,
         StaticState state
     ) {
         return subExpressionsAnyHoled(input, state);
@@ -341,23 +339,26 @@ public class AidLiteralExpressionSemantics
             state,
             acceptor
         ));
-        StaticState newState = tces.advancePattern(
-            localNameSubpattern,
-            state
-        );
+
 
         Function<Integer, String> compiledSubinputs;
         if (hap.isPresent()) {
-            final PatternMatchInput.SubPattern<TypeCast, AidLiteral>
-                hapSubpattern = input.subPattern(
-                textType,
-                __ -> hap.toNullable(),
-                "_hap"
+
+            StaticState newState = tces.advancePattern(
+                localNameSubpattern,
+                state
             );
 
             newState = tces.assertDidMatch(
                 localNameSubpattern,
                 newState
+            );
+
+            final PatternMatchInput.SubPattern<TypeCast, AidLiteral>
+                hapSubpattern = input.subPattern(
+                textType,
+                __ -> hap.toNullable(),
+                "_hap"
             );
 
             subResults.add(tces.compilePatternMatch(
@@ -416,13 +417,14 @@ public class AidLiteralExpressionSemantics
             acceptor
         );
 
-        StaticState newState = tces.advancePattern(
-            localNameSubpattern,
-            state
-        );
 
         boolean hapCheck = VALID;
         if (hap.isPresent()) {
+            StaticState newState = tces.advancePattern(
+                localNameSubpattern,
+                state
+            );
+
             final PatternMatchInput.SubPattern<TypeCast, AidLiteral>
                 hapSubpattern = input.subPattern(
                 textType,

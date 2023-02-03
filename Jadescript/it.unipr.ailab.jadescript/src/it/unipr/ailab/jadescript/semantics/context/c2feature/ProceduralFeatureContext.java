@@ -6,8 +6,8 @@ import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
-public abstract class ProceduralFeatureContext
-    extends Context {
+public abstract class ProceduralFeatureContext extends Context {
+
     protected final ProceduralFeatureContainerContext outer;
 
     public ProceduralFeatureContext(

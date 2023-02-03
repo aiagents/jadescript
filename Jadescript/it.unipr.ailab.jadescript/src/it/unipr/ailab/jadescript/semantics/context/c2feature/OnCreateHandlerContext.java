@@ -9,7 +9,9 @@ import java.util.List;
 public class OnCreateHandlerContext
         extends EventHandlerContext
         implements ParameterizedContext {
+
     private final List<ActualParameter> parameters;
+
     public OnCreateHandlerContext(
             SemanticsModule module,
             ProceduralFeatureContainerContext outer,

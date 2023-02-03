@@ -218,9 +218,8 @@ public class ContainmentCheckExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
-        Maybe<ContainmentCheck> input
-    ) {
+    protected Optional<? extends SemanticsBoundToExpression<?>>
+    traverseInternal(Maybe<ContainmentCheck> input) {
         if (mustTraverse(input)) {
             return Optional.ofNullable(
                 input.__(ContainmentCheck::getCollection)
@@ -233,7 +232,7 @@ public class ContainmentCheckExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<ContainmentCheck> input,
         StaticState state
     ) {
@@ -271,7 +270,7 @@ public class ContainmentCheckExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<ContainmentCheck> input,
+        PatternMatchInput<ContainmentCheck> input,
         StaticState state
     ) {
         // CANNOT BE HOLED
@@ -281,7 +280,7 @@ public class ContainmentCheckExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<ContainmentCheck> input,
+        PatternMatchInput<ContainmentCheck> input,
         StaticState state
     ) {
         // CANNOT BE HOLED
@@ -291,7 +290,7 @@ public class ContainmentCheckExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<ContainmentCheck> input,
+        PatternMatchInput<ContainmentCheck> input,
         StaticState state
     ) {
         // CANNOT BE HOLED

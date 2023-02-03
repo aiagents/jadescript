@@ -24,7 +24,11 @@ public class ModuleContext
 
     private final Maybe<Model> sourceModule;
 
-    public ModuleContext(SemanticsModule module, String moduleName, Maybe<Model> sourceModule) {
+    public ModuleContext(
+        SemanticsModule module,
+        String moduleName,
+        Maybe<Model> sourceModule
+    ) {
         super(module);
         this.moduleName = moduleName;
         this.sourceModule = sourceModule;
@@ -46,10 +50,17 @@ public class ModuleContext
             String name,
             Predicate<IJadescriptType> returnType,
             BiPredicate<Integer, Function<Integer, String>> parameterNames,
-            BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
+            BiPredicate<Integer, Function<Integer, IJadescriptType>>
+                parameterTypes
     ) {
         final String fqName = getModuleNameAsPrefix() + name;
-        return getCallableStreamFromFQName(fqName, name, returnType, parameterNames, parameterTypes);
+        return getCallableStreamFromFQName(
+            fqName,
+            name,
+            returnType,
+            parameterNames,
+            parameterTypes
+        );
     }
 
     @NotNull
@@ -63,7 +74,8 @@ public class ModuleContext
             Predicate<String> name,
             Predicate<IJadescriptType> returnType,
             BiPredicate<Integer, Function<Integer, String>> parameterNames,
-            BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
+            BiPredicate<Integer, Function<Integer, IJadescriptType>>
+                parameterTypes
     ) {
         return Stream.empty();
     }
@@ -86,7 +98,9 @@ public class ModuleContext
 
 
     @Override
-    public Stream<JvmTypeReference> rawResolveTypeReference(String typeRefIdentifier) {
+    public Stream<JvmTypeReference> rawResolveTypeReference(
+        String typeRefIdentifier
+    ) {
 
         return Stream.of(module.get(TypeHelper.class).typeRef(
                 getModuleNameAsPrefix() + typeRefIdentifier

@@ -130,7 +130,7 @@ public class RelationalComparisonExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<RelationalComparison> input,
         StaticState state
     ) {
@@ -312,7 +312,7 @@ public class RelationalComparisonExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<RelationalComparison> input,
+        PatternMatchInput<RelationalComparison> input,
         StaticState state
     ) {
         return false;
@@ -321,7 +321,7 @@ public class RelationalComparisonExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<RelationalComparison> input,
+        PatternMatchInput<RelationalComparison> input,
         StaticState state
     ) {
         return false;
@@ -330,7 +330,7 @@ public class RelationalComparisonExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<RelationalComparison> input,
+        PatternMatchInput<RelationalComparison> input,
         StaticState state
     ) {
         return false;

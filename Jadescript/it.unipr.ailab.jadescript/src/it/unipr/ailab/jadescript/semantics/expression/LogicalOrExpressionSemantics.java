@@ -258,7 +258,7 @@ public class LogicalOrExpressionSemantics
 
 
     @Override
-    protected boolean isPatternEvaluationPureInternal(
+    protected boolean isPatternEvaluationWithoutSideEffectsInternal(
         PatternMatchInput<LogicalOr> input,
         StaticState state
     ) {
@@ -351,7 +351,7 @@ public class LogicalOrExpressionSemantics
 
     @Override
     protected boolean isHoledInternal(
-        Maybe<LogicalOr> input,
+        PatternMatchInput<LogicalOr> input,
         StaticState state
     ) {
         return false;
@@ -360,7 +360,7 @@ public class LogicalOrExpressionSemantics
 
     @Override
     protected boolean isTypelyHoledInternal(
-        Maybe<LogicalOr> input,
+        PatternMatchInput<LogicalOr> input,
         StaticState state
     ) {
         return false;
@@ -369,7 +369,7 @@ public class LogicalOrExpressionSemantics
 
     @Override
     protected boolean isUnboundInternal(
-        Maybe<LogicalOr> input,
+        PatternMatchInput<LogicalOr> input,
         StaticState state
     ) {
         return false;
