@@ -7,8 +7,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 
-import it.unipr.ailab.jadescript.javaapi.Jadescript;
-import it.unipr.ailab.jadescript.javaapi.JadescriptAgentController;
+import jadescript.java.Jadescript;
+import jadescript.java.JadescriptAgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 

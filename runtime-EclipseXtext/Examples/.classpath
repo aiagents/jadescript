@@ -2,11 +2,14 @@
 <classpath>
 	<classpathentry kind="src" path="src-gen"/>
 	<classpathentry kind="lib" path="libs/jadescript.jar"/>
-	<classpathentry kind="lib" path="libs/jadescriptjavaapi.jar"/>
 	<classpathentry kind="lib" path="libs/jade.jar"/>
 	<classpathentry kind="lib" path="libs/commons-codec-1.13.jar"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-11"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-11">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

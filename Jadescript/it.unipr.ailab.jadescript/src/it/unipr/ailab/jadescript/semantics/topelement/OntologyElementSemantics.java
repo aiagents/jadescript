@@ -3,7 +3,7 @@ package it.unipr.ailab.jadescript.semantics.topelement;
 import com.google.common.collect.HashMultimap;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.javaapi.NativeValueFactory;
+import jadescript.java.NativeValueFactory;
 import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;

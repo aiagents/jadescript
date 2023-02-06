@@ -44,7 +44,6 @@
             <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/libs/commons-codec-1.13.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/libs/jade.jar"/>
             <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/libs/jadescript.jar"/>
-            <zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/libs/jadescriptjavaapi.jar"/>
         	<zipfileset excludes="META-INF/*.SF" src="${dir.buildfile}/libs/annotations-23.0.0.jar"/>
         	<fileset dir="${dir.buildfile}/res"/>
         </jar>

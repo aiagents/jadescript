@@ -2,7 +2,6 @@
 <classpath>
 	<classpathentry kind="lib" path="libs/jade.jar" sourcepath="/Users/pj/jade"/>
 	<classpathentry kind="lib" path="libs/commons-codec-1.13.jar"/>
-	<classpathentry kind="lib" path="libs/jadescriptjavaapi.jar" sourcepath="/Users/pj/jadescript/Jadescript/it.unipr.ailab.jadescript.javaapi/src"/>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="lib" path="libs/jadescript.jar"/>

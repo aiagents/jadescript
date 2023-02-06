@@ -1,10 +1,9 @@
-package it.unipr.ailab.jadescript.javaapi;
+package jadescript.java;
 
 import jade.core.AID;
 import jade.core.Profile;
 import jade.core.ProfileImpl;
 import jade.core.Runtime;
-import jade.core.behaviours.Behaviour;
 import jade.wrapper.ContainerController;
 import jadescript.lang.Duration;
 import jadescript.lang.Performative;

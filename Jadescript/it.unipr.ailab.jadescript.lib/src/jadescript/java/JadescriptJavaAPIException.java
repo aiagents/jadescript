@@ -1,4 +1,4 @@
-package it.unipr.ailab.jadescript.javaapi;
+package jadescript.java;
 
 public class JadescriptJavaAPIException extends RuntimeException{
     public JadescriptJavaAPIException(Throwable cause) {

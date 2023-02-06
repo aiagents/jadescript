@@ -664,7 +664,7 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
 
         return "(" +
                 "(" + ontoElementFqName + "Factory) " +
-                "(it.unipr.ailab.jadescript.javaapi.Jadescript." +
+                "(jadescript.java.Jadescript." +
                 "getNativeFactory(" +
                 ontoElementFqName
                 + ".class)))";

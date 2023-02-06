@@ -106,11 +106,11 @@ In the following wizard, make sure that:
 Then click on _Finish_.
 
 ### Deploying the support JARs
-The projects `it.unipr.ailab.jadescript`, `it.unipr.ailab.jadescript.ui` and all the examples in `runtime-EclipseXtext` require the JARs `jadescript.jar` and `jadescriptjavaapi.jar`. 
-These are created by the Eclipse projects `it.unipr.ailab.jadescript.lib` and `it.unipr.ailab.jadescript.javaapi`, respectively.
+The project `it.unipr.ailab.jadescript`, `it.unipr.ailab.jadescript.ui` and all the examples in `runtime-EclipseXtext` require the JAR file `jadescript.jar` both in the build path and in the classpath for the plugin runtime. 
+The JAR file is created by the Eclipse project `it.unipr.ailab.jadescript.lib`.
 
-If any of these projects is modified, you need to export the corresponding JAR from the project. 
-When exporting with Eclipse, export the JAR file to the directory `outJar` in the project directory (e.g., `it.unipr.ailab.jadescript.lib/outJar/jadescript.jar`).
+If any of the contents of this project is modified, you need to export the corresponding JAR from the project. 
+When exporting with Eclipse, export the JAR file to the directory `outJar` in the project directory (i.e. `it.unipr.ailab.jadescript.lib/outJar/jadescript.jar`).
 Then navigate with the terminal to the root directory of the repository and run `./addLibJARs.sh`, which will copy the new JAR file to all the other project directories and to the directories of the example projects that require it.
 
 ## Repository Structure
@@ -122,7 +122,6 @@ Then navigate with the terminal to the root directory of the repository and run 
    │   ├ it.unipr.ailab.jadescript.ui/         - Eclipse UI project (editor, wizards, icons, run as...)
    │   ├ it.unipr.ailab.jadescript.ide/        - Required by .ui
    │   ├ it.unipr.ailab.jadescript.lib/        - Project for the jadescript.jar artifact
-   │   ├ it.unipr.ailab.jadescript.javaapi/    - Project for the jadescriptjavaapi.jar artifact
    │   ├ it.unipr.ailab.jadescript.tests/      - JUnit tests for the compiler
    │   ├ it.unipr.ailab.jadescript.stdlibgen/  - Project used to programmatically generate Jadescript builtin libraries (WIP)
    │   ├ it.unipr.ailab.jadescript.repository/ - Used to generate the plugin installation .zip

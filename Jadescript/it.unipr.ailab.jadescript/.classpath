@@ -12,7 +12,6 @@
 	<classpathentry kind="lib" path="libs/commons-codec-1.13.jar"/>
 	<classpathentry kind="lib" path="libs/jade.jar"/>
 	<classpathentry kind="lib" path="libs/jadescript.jar" sourcepath="/it.unipr.ailab.jadescript.lib"/>
-	<classpathentry kind="lib" path="libs/jadescriptjavaapi.jar"/>
 	<classpathentry exported="true" kind="lib" path="libs/annotations-23.0.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

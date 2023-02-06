@@ -107,6 +107,5 @@ Import-Package: org.apache.log4j
 Bundle-ClassPath: libs/jade.jar,
  libs/jadescript.jar,
  libs/commons-codec-1.13.jar,
- libs/jadescriptjavaapi.jar,
  libs/annotations-23.0.0.jar,
  .

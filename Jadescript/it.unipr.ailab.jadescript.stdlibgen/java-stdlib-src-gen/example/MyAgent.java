@@ -1,6 +1,5 @@
 package example;
 
-import it.unipr.ailab.jadescript.javaapi.JadescriptAgentController;
 import jade.content.ContentManager;
 import jade.content.lang.Codec;
 import jade.wrapper.ContainerController;
@@ -10,12 +9,18 @@ import jadescript.content.onto.Ontology;
 import jadescript.core.Agent;
 import jadescript.core.exception.ExceptionThrower;
 import jadescript.core.exception.JadescriptException;
+import jadescript.java.JadescriptAgentController;
 
 @SuppressWarnings("all")
 public class MyAgent extends Agent {
   public void onCreate() {
     super.onCreate();
     try {
+    	/* 
+    	 * Compiled from source statement at line 4
+    	 * log 'Hello'
+    	 */
+    	
     	jadescript.core.Agent.doLog(jade.util.Logger.INFO, MyAgent.this.getClass().getName(), MyAgent.this, "on create", java.lang.String.valueOf("Hello"));
     }
     catch(jadescript.core.exception.JadescriptException __throwable) {
@@ -70,6 +75,6 @@ public class MyAgent extends Agent {
   }
 
   public static JadescriptAgentController create(final ContainerController _container, final String _agentName) throws StaleProxyException {
-    return it.unipr.ailab.jadescript.javaapi.JadescriptAgentController.createRaw(_container, _agentName, example.MyAgent.class);
+    return jadescript.java.JadescriptAgentController.createRaw(_container, _agentName, example.MyAgent.class);
   }
 }

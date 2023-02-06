@@ -8,7 +8,6 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="java-stdlib-src-gen"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/it.unipr.ailab.jadescript"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/it.unipr.ailab.jadescript.javaapi"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/it.unipr.ailab.jadescript.lib"/>
 	<classpathentry kind="lib" path="/Users/pj/.p2/pool/plugins/com.google.inject_3.0.0.v201605172100.jar" sourcepath="/Users/pj/.p2/pool/plugins/com.google.inject_3.0.0.v201605172100.jar">
 		<accessrules>
@@ -145,6 +144,5 @@
 	<classpathentry kind="lib" path="libs/commons-codec-1.13.jar"/>
 	<classpathentry kind="lib" path="libs/jade.jar"/>
 	<classpathentry kind="lib" path="libs/jadescript.jar"/>
-	<classpathentry kind="lib" path="libs/jadescriptjavaapi.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

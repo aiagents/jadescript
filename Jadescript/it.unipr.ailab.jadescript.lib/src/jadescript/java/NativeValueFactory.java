@@ -1,4 +1,4 @@
-package it.unipr.ailab.jadescript.javaapi;
+package jadescript.java;
 
 public interface NativeValueFactory {
     Class<?> getImplementationClass();

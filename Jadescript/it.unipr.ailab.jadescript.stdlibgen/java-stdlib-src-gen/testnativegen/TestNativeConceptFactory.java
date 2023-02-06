@@ -1,6 +1,6 @@
 package testnativegen;
 
-import it.unipr.ailab.jadescript.javaapi.NativeValueFactory;
+import jadescript.java.NativeValueFactory;
 
 @SuppressWarnings("all")
 public interface TestNativeConceptFactory extends NativeValueFactory {

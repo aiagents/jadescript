@@ -12,6 +12,5 @@
 	<classpathentry kind="lib" path="libs/commons-codec-1.13.jar"/>
 	<classpathentry kind="lib" path="libs/jade.jar"/>
 	<classpathentry kind="lib" path="libs/jadescript.jar"/>
-	<classpathentry kind="lib" path="libs/jadescriptjavaapi.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

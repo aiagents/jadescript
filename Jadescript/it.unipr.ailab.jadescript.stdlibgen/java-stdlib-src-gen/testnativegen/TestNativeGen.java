@@ -27,7 +27,7 @@ public class TestNativeGen extends Ontology implements TestNativeGen_Vocabulary 
   }
 
   public static TestNativeConcept TestNativeConcept() {
-    return ((testnativegen.TestNativeConceptFactory) (it.unipr.ailab.jadescript.javaapi.Jadescript.getNativeFactory(testnativegen.TestNativeConcept.class))).create();
+    return ((testnativegen.TestNativeConceptFactory) (jadescript.java.Jadescript.getNativeFactory(testnativegen.TestNativeConcept.class))).create();
   }
 
   public TestNativeGen() {
@@ -35,7 +35,7 @@ public class TestNativeGen extends Ontology implements TestNativeGen_Vocabulary 
     try {
     	
     	
-    	add(new jade.content.schema.ConceptSchema(TestNativeConcept), ((testnativegen.TestNativeConceptFactory) (it.unipr.ailab.jadescript.javaapi.Jadescript.getNativeFactory(testnativegen.TestNativeConcept.class))).getImplementationClass());
+    	add(new jade.content.schema.ConceptSchema(TestNativeConcept), ((testnativegen.TestNativeConceptFactory) (jadescript.java.Jadescript.getNativeFactory(testnativegen.TestNativeConcept.class))).getImplementationClass());
     	
     	
     	

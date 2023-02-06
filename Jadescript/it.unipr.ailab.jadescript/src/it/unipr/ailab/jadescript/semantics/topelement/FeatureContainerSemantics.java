@@ -180,7 +180,7 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                             sem.describeExpression(i, inInitializer);
 
                         if (descriptorMaybe.isNothing()) {
-                            return List.of(); //from lambda
+                            return List.of(); //return from lambda
                         }
 
                         final ExpressionDescriptor descriptor =

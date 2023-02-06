@@ -119,7 +119,7 @@ public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
     @Override
     public String compileNewEmptyInstance() {
         //falls back to runtime resolution
-        return "it.unipr.ailab.jadescript.javaapi.Jadescript.<" +
+        return "jadescript.java.Jadescript.<" +
                 compileToJavaTypeReference() +
                 ">createEmptyValue(" +
                 compileToJavaTypeReference() + ".class)" +

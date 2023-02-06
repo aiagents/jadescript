@@ -137,7 +137,7 @@ public class AgentSemantics extends UsesOntologyEntitySemantics<Agent> {
         members.add(module.get(JvmTypesBuilder.class).toMethod(
                 inputSafe,
                 "create",
-                module.get(TypeHelper.class).typeRef(it.unipr.ailab.jadescript.javaapi.JadescriptAgentController.class),
+                module.get(TypeHelper.class).typeRef(jadescript.java.JadescriptAgentController.class),
                 itMethod -> {
                     itMethod.setVisibility(JvmVisibility.PUBLIC);
                     itMethod.setStatic(true);
@@ -195,7 +195,7 @@ public class AgentSemantics extends UsesOntologyEntitySemantics<Agent> {
 
                             module.get(CompilationHelper.class).createAndSetBody(itMethod, scb -> {
                                 w.returnStmnt(w.callExpr(
-                                        "it.unipr.ailab.jadescript.javaapi.JadescriptAgentController.createRaw",
+                                        "jadescript.java.JadescriptAgentController.createRaw",
                                         createArgs.toArray(new ExpressionWriter[0])
                                 )).writeSonnet(scb);
                             });
@@ -226,7 +226,7 @@ public class AgentSemantics extends UsesOntologyEntitySemantics<Agent> {
 
                         module.get(CompilationHelper.class).createAndSetBody(itMethod, scb -> {
                             w.returnStmnt(w.callExpr(
-                                    "it.unipr.ailab.jadescript.javaapi.JadescriptAgentController.createRaw",
+                                    "jadescript.java.JadescriptAgentController.createRaw",
                                     createArgs.toArray(new ExpressionWriter[0])
                             )).writeSonnet(scb);
                         });

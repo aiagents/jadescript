@@ -1,4 +1,4 @@
-package it.unipr.ailab.jadescript.javaapi;
+package jadescript.java;
 
 import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;

@@ -1,4 +1,4 @@
-package it.unipr.ailab.jadescript.javaapi;
+package jadescript.java;
 
 public class MissingBindingException extends RuntimeException {
     public MissingBindingException(String interfaceName) {

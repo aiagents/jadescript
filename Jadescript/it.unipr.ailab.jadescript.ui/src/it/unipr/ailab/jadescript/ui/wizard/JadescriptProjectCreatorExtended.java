@@ -23,11 +23,10 @@ public class JadescriptProjectCreatorExtended extends JadescriptProjectCreator {
 	protected static final String LIBS_ROOT = "libs";
 	protected static final String JADE_JAR = "jade.jar";
 	protected static final String JADESCRIPT_RUNTIME_LIB = "jadescript.jar";
-	protected static final String JADESCRIPT_JAVA_API = "jadescriptjavaapi.jar";
 	protected static final String COMMONS_CODEC = "commons-codec-1.13.jar";
 	
 	protected final List<String> LIBS_FOLDER_LIST = ImmutableList.of(LIBS_ROOT);
-	protected final List<String> LIBS_FILE_LIST = ImmutableList.of(JADE_JAR, JADESCRIPT_RUNTIME_LIB, JADESCRIPT_JAVA_API, COMMONS_CODEC);
+	protected final List<String> LIBS_FILE_LIST = ImmutableList.of(JADE_JAR, JADESCRIPT_RUNTIME_LIB, COMMONS_CODEC);
 	
 	protected final List<String> REQUIRED_BUNDLES = ImmutableList.of();
 //  Other required bundles:
