@@ -8,22 +8,22 @@ import java.util.function.Function;
 
 public interface PatternType {
 
-    public static HoledPatternType holed(Function<? super IJadescriptType, ?
+    static HoledPatternType holed(Function<? super IJadescriptType, ?
         extends IJadescriptType> solvingFunction) {
         return new HoledPatternType(solvingFunction);
     }
 
-    public static SimplePatternType simple(IJadescriptType type) {
+    static SimplePatternType simple(IJadescriptType type) {
         return new SimplePatternType(type);
     }
 
-    public static SimplePatternType empty(SemanticsModule module) {
+    static SimplePatternType empty(SemanticsModule module) {
         return new SimplePatternType(module.get(TypeHelper.class).NOTHING);
     }
 
     IJadescriptType solve(IJadescriptType providedInputType);
 
-    public static class SimplePatternType implements PatternType {
+    class SimplePatternType implements PatternType {
 
         private final IJadescriptType type;
 
@@ -51,7 +51,7 @@ public interface PatternType {
 
     }
 
-    public static class HoledPatternType implements PatternType {
+    class HoledPatternType implements PatternType {
 
         private final Function<? super IJadescriptType, ?
             extends IJadescriptType> solvingFunction;

@@ -81,8 +81,8 @@ public interface SemanticsConsts {
     String JAVA_TYPE_Object = "java.lang.Object";
 
 
-    public static final boolean VALID = true;
-    public static final boolean INVALID = false;
+    boolean VALID = true;
+    boolean INVALID = false;
 
     default String synthesizeReceiverListName(final SendMessageStatement send) {
         return numberedName(RECEIVER_LIST_VAR_NAME, send);

@@ -37,9 +37,9 @@ public final class StaticState
     FlowSensitiveInferrer,
     SemanticsConsts {
 
-    //TODO change: introduce 'descriptor coreferent' semantics
-    // - several expressions could be referring to the same value
-    //   - e.g., 'X' and 'X of this' where X is a property of the behaviour
+    //TODO change: introduce 'trivially co-referent' semantics
+    // - several expressions could be trivially referring to the same value
+    //   - e.g., 'X' and 'X of this'
 
     private final SemanticsModule module;
     private final Searcheable outer;

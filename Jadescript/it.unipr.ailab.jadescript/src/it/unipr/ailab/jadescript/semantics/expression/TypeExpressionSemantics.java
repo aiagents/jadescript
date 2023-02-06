@@ -316,7 +316,9 @@ public final class TypeExpressionSemantics extends Semantics {
     public IJadescriptType toJadescriptType(Maybe<TypeExpression> input) {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         if (input == null) {
-            return typeHelper.NOTHING;
+            return typeHelper.BOTTOM.apply(
+                "Input type expression was empty."
+            );
         }
         final Maybe<BuiltinHierarchicType> hierarchicType = input.__(
             TypeExpression::getBuiltinHiearchic);

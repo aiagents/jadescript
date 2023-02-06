@@ -4,6 +4,7 @@ import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.MapOrSetLiteral;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -15,7 +16,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
@@ -31,7 +31,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.google.common.collect.Streams.zip;
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
 public class MapLiteralExpressionSemantics
     extends AssignableExpressionSemantics<MapOrSetLiteral> {
@@ -77,8 +78,8 @@ public class MapLiteralExpressionSemantics
                 )
             ).flatMap(x -> x),
             Stream.of(
-                input.__(MapOrSetLiteral::getRest)
-            ).filter(Maybe::isPresent)
+                    input.__(MapOrSetLiteral::getRest)
+                ).filter(Maybe::isPresent)
                 .map(i -> new SemanticsBoundToExpression<>(rves, i))
         );
     }
@@ -227,8 +228,12 @@ public class MapLiteralExpressionSemantics
         int assumedSize = Math.min(keys.size(), values.size());
 
         StaticState newState = state;
-        IJadescriptType keysLub = module.get(TypeHelper.class).NOTHING;
-        IJadescriptType valuesLub = module.get(TypeHelper.class).NOTHING;
+        IJadescriptType keysLub = module.get(TypeHelper.class).BOTTOM.apply(
+            "Cannot infer the type of the keys of the map."
+        );
+        IJadescriptType valuesLub = module.get(TypeHelper.class).BOTTOM.apply(
+            "Cannot infer the type of the values of the map."
+        );
         for (int i = 0; i < assumedSize; i++) {
             final Maybe<RValueExpression> key = keys.get(i);
             final Maybe<RValueExpression> value = values.get(i);
@@ -287,7 +292,7 @@ public class MapLiteralExpressionSemantics
 
             keysValidation = keysValidation
                 && module.get(TypeExpressionSemantics.class)
-                    .validate(keysTypeParameter, acceptor);
+                .validate(keysTypeParameter, acceptor);
 
             if (keysValidation == VALID && hasTypeSpecifiers) {
                 keysValidation =
@@ -345,9 +350,6 @@ public class MapLiteralExpressionSemantics
     ) {
         return Maybe.nothing();
     }
-
-
-
 
 
     @Override
@@ -430,10 +432,10 @@ public class MapLiteralExpressionSemantics
         for (Maybe<RValueExpression> value : values) {
             final SubPattern<RValueExpression, MapOrSetLiteral> valueTerm =
                 input.subPattern(
-                valueType,
-                (__) -> value.toNullable(),
-                "_mapval"
-            );
+                    valueType,
+                    (__) -> value.toNullable(),
+                    "_mapval"
+                );
 
             isHoled = rves.isHoled(valueTerm, newState);
 
@@ -504,10 +506,10 @@ public class MapLiteralExpressionSemantics
         for (Maybe<RValueExpression> value : values) {
             final SubPattern<RValueExpression, MapOrSetLiteral> valueTerm =
                 input.subPattern(
-                valueType,
-                (__) -> value.toNullable(),
-                "_mapval"
-            );
+                    valueType,
+                    (__) -> value.toNullable(),
+                    "_mapval"
+                );
 
             isHoled = rves.isTypelyHoled(valueTerm, newState);
 
@@ -568,10 +570,10 @@ public class MapLiteralExpressionSemantics
         for (Maybe<RValueExpression> value : values) {
             final SubPattern<RValueExpression, MapOrSetLiteral> valueTerm =
                 input.subPattern(
-                valueType,
-                (__) -> value.toNullable(),
-                "_mapval"
-            );
+                    valueType,
+                    (__) -> value.toNullable(),
+                    "_mapval"
+                );
 
             isUnbound = rves.isUnbound(valueTerm, newState);
 
@@ -729,10 +731,6 @@ public class MapLiteralExpressionSemantics
                     acceptor
                 );
                 // Not needed:
-//                runningState = rves.advancePattern(
-//                    restSubpattern,
-//                    runningState
-//                );
                 subResults.add(restOutput);
             }
 
@@ -934,10 +932,6 @@ public class MapLiteralExpressionSemantics
                 acceptor
             );
             // Not needed:
-//            runningState = rves.advancePattern(
-//                restSubpattern,
-//                runningState
-//            );
         }
 
         return pipeCheck && allEntriesCheck;

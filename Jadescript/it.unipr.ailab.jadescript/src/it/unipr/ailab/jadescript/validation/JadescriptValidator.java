@@ -33,7 +33,8 @@ import java.util.*;
 /**
  * This class contains custom validation rules.
  * <p>
- * See https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation
+ * See
+ * <a href="https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#validation">...</a>
  */
 
 public class JadescriptValidator extends AbstractJadescriptValidator {
@@ -212,7 +213,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
                 final RuntimeException ex = (RuntimeException) _t;
                 ex.printStackTrace();
             } else {
-                //noinspection ConstantConditions
+                //noinspection DataFlowIssue
                 throw Exceptions.sneakyThrow(_t);
             }
         }

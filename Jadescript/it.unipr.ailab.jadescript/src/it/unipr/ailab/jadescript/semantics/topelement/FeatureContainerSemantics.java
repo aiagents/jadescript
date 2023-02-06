@@ -173,7 +173,7 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                 StaticState inInitializer =
                     StaticState.beginningOfOperation(module);
 
-                //TODO change: use 'descriptor coreferent' semantics
+                //TODO change: use 'trivially co-referent' semantics
                 List<? extends List<String>> listOfLists =
                     rves.collectFromAllNodes(right, (i, sem) -> {
                         final Maybe<ExpressionDescriptor> descriptorMaybe =
@@ -208,14 +208,14 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                             || propChain.size() == 1)
                             // where XXX is a declared field
                             && allFields.contains(propChain.get(0))
-                            // and XXX is not yet declared up to this point
+                            // but XXX is not yet declared up to this point
                             //  (so it is declared later),
                             && !previousFields.contains(propChain.get(0))) {
                         //then the init expr refers to a field not yet declared
                         validationHelper.emitError(
                             "FieldForwardDeclaration",
-                            "Illegal forward reference '" + propChain.get(0) +
-                                "'",
+                            "Illegal forward reference '" +
+                                propChain.get(0) + "'",
                             right,
                             acceptor
                         );

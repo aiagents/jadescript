@@ -103,5 +103,4 @@ public class Call extends ProxyEObject {
         return isProcedure;
     }
 
-
 }

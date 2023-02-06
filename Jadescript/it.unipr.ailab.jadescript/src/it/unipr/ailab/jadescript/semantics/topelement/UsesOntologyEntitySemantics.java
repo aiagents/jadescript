@@ -1,7 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.topelement;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.Agent;
 import it.unipr.ailab.jadescript.jadescript.GlobalFunctionOrProcedure;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.UsesOntologyElement;
@@ -13,7 +12,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import jade.content.ContentManager;
-import jadescript.lang.JadescriptExecutableContainer;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmMember;

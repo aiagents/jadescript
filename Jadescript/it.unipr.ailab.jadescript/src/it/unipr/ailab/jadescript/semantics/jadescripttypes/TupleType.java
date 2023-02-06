@@ -10,7 +10,6 @@ import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
-import it.unipr.ailab.sonneteer.statement.LocalVarBindingProvider;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmMember;
@@ -179,10 +178,10 @@ public class TupleType extends ParametricType
     }
 
     @Override
-    public boolean haveProperties() {
+    public boolean hasProperties() {
         return getTypeArguments().stream()
                 .map(TypeArgument::ignoreBound)
-                .allMatch(IJadescriptType::haveProperties);
+                .allMatch(IJadescriptType::hasProperties);
     }
 
     @Override

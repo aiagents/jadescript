@@ -100,7 +100,7 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
 
 
     @Override
-    public boolean haveProperties() {
+    public boolean hasProperties() {
         return true;
     }
 

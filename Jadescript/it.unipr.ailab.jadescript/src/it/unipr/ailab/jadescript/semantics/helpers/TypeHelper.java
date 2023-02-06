@@ -52,8 +52,7 @@ public class TypeHelper implements SemanticsConsts {
     public static final String builtinPrefix = "BUILTIN#";
     public static final String VOID_TYPEID = builtinPrefix + "JAVAVOID";
     // Top and bottom
-    //TODO use new TOP/BOTTOM system when possible
-    //TODO check if messages are correctly shown in validator markers
+    //TODO use new TOP when possible
     public final Function<String, UtilityType> TOP;
     public final Function<String, UtilityType> BOTTOM;
     public final UtilityType ANY;
@@ -2662,8 +2661,7 @@ public class TypeHelper implements SemanticsConsts {
             Maybe<? extends EObject> input,
             ValidationMessageAcceptor acceptor
         ) {
-            return module.get(ValidationHelper.class).asserting(
-                false,
+            return module.get(ValidationHelper.class).emitError(
                 "InvalidType",
                 description,
                 input,

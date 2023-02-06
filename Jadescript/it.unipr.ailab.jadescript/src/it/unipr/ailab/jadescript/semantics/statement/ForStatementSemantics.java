@@ -7,12 +7,12 @@ import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.GenerationParameters;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -37,6 +37,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
     public ForStatementSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
+
 
     //TODO new var assignment semantics
     @Override
@@ -71,7 +72,10 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         } else if (collectionType instanceof SetType) {
             firstVarType = ((SetType) collectionType).getElementType();
         } else {
-            firstVarType = module.get(TypeHelper.class).ANY;
+            firstVarType = module.get(TypeHelper.class).TOP.apply(
+                "Unexpected collection type: " +
+                    collectionType.getJadescriptName()
+            );
         }
 
         final String compiledCollection = rves.compile(

@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
@@ -240,6 +241,7 @@ public abstract class AssignableExpressionSemantics<T>
      * expression is not a valid expression to be put
      * at the left of the '=' in a declaration/assignment operation.
      */
+    @SuppressWarnings("SameReturnValue")
     protected final boolean errorNotLvalue(
         Maybe<T> input,
         String customMessage,
@@ -262,6 +264,7 @@ public abstract class AssignableExpressionSemantics<T>
      * Produces an error validator message that notifies that the input
      * expression cannot be used as statement.
      */
+    @SuppressWarnings("SameReturnValue")
     protected final boolean errorNotStatement(
         Maybe<T> input,
         ValidationMessageAcceptor acceptor
@@ -294,12 +297,6 @@ public abstract class AssignableExpressionSemantics<T>
         @Override
         public AssignableExpressionSemantics<T> getSemantics() {
             return (AssignableExpressionSemantics<T>) super.getSemantics();
-        }
-
-
-        @Override
-        public Maybe<T> getInput() {
-            return super.getInput();
         }
 
     }
@@ -347,7 +344,11 @@ public abstract class AssignableExpressionSemantics<T>
             Maybe<X> input,
             StaticState state
         ) {
-            return module.get(TypeHelper.class).NOTHING;
+            return module.get(TypeHelper.class).BOTTOM.apply(
+                "Internal error: the expression '" +
+                    CompilationHelper.sourceToTextAny(input) +
+                    "' was associated to the semantics of the empty expression."
+            );
         }
 
 

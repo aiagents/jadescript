@@ -51,7 +51,7 @@ public interface IJadescriptType extends TypeArgument {
     /**
      * Whether Jadescript user code can access the properties of the values of this type
      */
-    boolean haveProperties();
+    boolean hasProperties();
 
     /**
      * Whether this is the type of value resulting from a compilation error

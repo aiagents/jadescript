@@ -49,7 +49,6 @@ public class OfNotationExpressionSemantics
         IJadescriptType prevType,
         boolean isAssignment
     ) {
-        //TODO use properties in type with special compile methods
         if (propName.equals("size") || propName.equals("length")) {
             if (module.get(TypeHelper.class).TEXT.isSupEqualTo(prevType)) {
                 return "length";
@@ -295,7 +294,6 @@ public class OfNotationExpressionSemantics
         Maybe<OfNotation> input,
         StaticState state
     ) {
-        if (input == null) return module.get(TypeHelper.class).ANY;
         final List<Maybe<String>> properties = Maybe.toListOfMaybes(
             input.__(OfNotation::getProperties)
         );

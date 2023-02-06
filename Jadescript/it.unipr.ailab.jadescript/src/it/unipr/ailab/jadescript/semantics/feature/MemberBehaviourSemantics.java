@@ -4,8 +4,6 @@ import it.unipr.ailab.jadescript.jadescript.FeatureContainer;
 import it.unipr.ailab.jadescript.jadescript.ForElement;
 import it.unipr.ailab.jadescript.jadescript.MemberBehaviour;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.c1toplevel.AgentDeclarationContext;
-import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDefinition;
@@ -18,8 +16,6 @@ import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.IJvmDeclaredTypeAcceptor;
-
-import java.util.stream.Stream;
 
 public class MemberBehaviourSemantics extends FeatureSemantics<MemberBehaviour> {
     public MemberBehaviourSemantics(SemanticsModule semanticsModule) {

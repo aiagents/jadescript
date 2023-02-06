@@ -141,6 +141,7 @@ public class SingleIdentifierExpressionSemantics
     }
 
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean resolvesAsExpression(
         Maybe<SingleIdentifier> input,
         StaticState state

@@ -87,24 +87,6 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
         return false;
     }
 
-    class X0{}
-    class X1 extends X0{
-
-    }
-    class X2 extends X1{}
-
-    class A{
-        public X1 method(X1 helo){
-            return null;
-        }
-    }
-
-    class B extends A{
-        @Override
-        public X1 method(X1 helo) {
-            return null;
-        }
-    }
 
     static boolean isSignatureCompatibleForOverriding(CallableSymbol alreadyPresent, CallableSymbol toBeAdded) {
         if (alreadyPresent.arity() != toBeAdded.arity()) {

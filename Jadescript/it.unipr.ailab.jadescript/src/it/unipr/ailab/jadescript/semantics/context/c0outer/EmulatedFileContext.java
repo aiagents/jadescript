@@ -5,7 +5,7 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.ProceduralFeatureCo
 
 /**
  * A context redirects to the outer file context.
- *
+ * <p>
  * For now, used for member behaviours.
  */
 public class EmulatedFileContext extends FileContext{

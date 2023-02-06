@@ -158,7 +158,6 @@ public class UnaryPrefixExpressionSemantics
                 "\n" + getAgentsMessage();
             System.out.println(dumpedScope);
         }
-        //TODO add staticstate debugging
         return afterOp;
 
     }

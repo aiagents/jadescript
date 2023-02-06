@@ -5,7 +5,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 
 public interface AgentAssociated extends AgentAssociationComputer, Associated {
-    public static ContextGeneratedReference contextGeneratedAgentReference(
+    static ContextGeneratedReference contextGeneratedAgentReference(
         IJadescriptType agentType
     ) {
         return new ContextGeneratedReference(

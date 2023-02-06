@@ -25,6 +25,7 @@ public interface PatternSymbol extends Symbol {
 
     List<IJadescriptType> termTypes();
 
+    @SuppressWarnings("SameReturnValue")
     boolean isWithoutSideEffects();
 
     default int termCount() {

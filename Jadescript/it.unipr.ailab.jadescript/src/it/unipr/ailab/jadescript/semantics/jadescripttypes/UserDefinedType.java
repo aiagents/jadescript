@@ -64,7 +64,7 @@ public abstract class UserDefinedType<T extends JadescriptType>
     }
 
     @Override
-    public boolean haveProperties() {
+    public boolean hasProperties() {
         return true;
     }
 

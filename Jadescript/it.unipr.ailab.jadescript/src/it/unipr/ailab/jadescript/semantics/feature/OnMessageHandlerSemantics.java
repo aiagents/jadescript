@@ -120,10 +120,10 @@ public class OnMessageHandlerSemantics
         SavedContext savedContext,
         SourceCodeBuilder scb
     ) {
-//        if ([OUTERCLASS].this.__ignoreMessageHandlers) {
-//            this.__eventFired = false;
-//            return;
-//        }
+//generating => if ([OUTERCLASS].this.__ignoreMessageHandlers) {
+//generating =>     this.__eventFired = false;
+//generating =>     return;
+//generating => }
         w.ifStmnt(
             w.expr(Util.getOuterClassThisReference(input)
                 + "." + IGNORE_MSG_HANDLERS_VAR_NAME),
@@ -136,8 +136,8 @@ public class OnMessageHandlerSemantics
         ).writeSonnet(scb);
 
 
-//        [... message template auxiliary statements...]
-//        MessageTemplate _mt = [...]
+//generating => [... message template auxiliary statements...]
+//generating => MessageTemplate _mt = [...]
         final Maybe<String> performativeString =
             input.__(OnMessageHandler::getPerformative);
         Maybe<Performative> performative = performativeString
@@ -376,11 +376,6 @@ public class OnMessageHandlerSemantics
         // if there is a when-exprssion or a pattern,then add
         // the corresponding constraint
         if (whenBody.isPresent() || contentPattern.isPresent()) {
-//            final String contentTypeCompiled = module.get(TypeHelper.class)
-//                .noGenericsTypeName(
-//                    finalContentType.compileToJavaTypeReference()
-//                );
-
             messageTemplateExpressions.add(
                 TemplateCompilationHelper.customMessage("__templMsg", w.block()
                     .addStatement(w.variable(
@@ -417,14 +412,14 @@ public class OnMessageHandlerSemantics
             composedMT
         ).writeSonnet(scb);
 
-//        Message __receivedMessage = null;
+// generating => Message __receivedMessage = null;
         w.variable("jadescript.core.message.Message", MESSAGE_VAR_NAME, w.Null)
             .writeSonnet(scb);
 
-//        if(myAgent!=null) {
-//            __receivedMessage = jadescript.core.message.Message.wrap
-//                (myAgent.receive(__mt));
-//        }
+// generating => if(myAgent!=null) {
+// generating =>     __receivedMessage = jadescript.core.message.Message.wrap
+// generating =>         (myAgent.receive(__mt));
+// generating => }
         w.ifStmnt(w.expr("myAgent!=null"), w.block()
             .addStatement(w.assign(
                 MESSAGE_VAR_NAME,
@@ -481,35 +476,31 @@ public class OnMessageHandlerSemantics
         module.get(ContextManager.class).exit();
 
 
-//        if (__receivedMessage != null) {
-//            [OUTERCLASS].this.__ignoreMessageHandlers = true;
-//
-//            __theAgent().__cleanIgnoredFlagForMessage(__receivedMessage);
-//
-//            this.__eventFired = true;
-//
-//            try {
-
-//                try {
-
-//                  [...USERCODE...]
-
-//                } catch (jadescript.core.exception.JadescriptException
-//                    __throwable) {
-//                    __handleJadescriptException(__throwable);
-//                } catch (java.lang.Throwable __throwable) {
-//                    __handleJadescriptException(jadescript.core.exception
-//                    .JadescriptException.wrap(__throwable));
-//                }
-
-//
-//                this.__receivedMessage = null;
-//            } catch (Exception _e) {
-//                _e.printStackTrace();
-//            }
-//        } else {
-//            this.__eventFired = false;
-//        }
+//generating => if (__receivedMessage != null) {
+//generating =>     [OUTERCLASS].this.__ignoreMessageHandlers = true;
+//generating =>
+//generating =>     __theAgent().__cleanIgnoredFlagForMessage(__receivedMessage);
+//generating =>
+//generating =>     this.__eventFired = true;
+//generating =>
+//generating =>     try {
+//generating =>         try {
+//generating =>           [...USERCODE...]
+//generating =>         } catch (jadescript.core.exception.JadescriptException
+//generating =>             __throwable) {
+//generating =>             __handleJadescriptException(__throwable);
+//generating =>         } catch (java.lang.Throwable __throwable) {
+//generating =>             __handleJadescriptException(jadescript.core.exception
+//generating =>             .JadescriptException.wrap(__throwable));
+//generating =>         }
+//generating =>
+//generating =>         this.__receivedMessage = null;
+//generating =>     } catch (Exception _e) {
+//generating =>         _e.printStackTrace();
+//generating =>     }
+//generating => } else {
+//generating =>     this.__eventFired = false;
+//generating => }
         w.ifStmnt(
             w.expr(MESSAGE_VAR_NAME + " != null"),
             w.block().addStatement(

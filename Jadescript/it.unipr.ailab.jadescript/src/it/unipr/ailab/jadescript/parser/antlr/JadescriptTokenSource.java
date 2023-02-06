@@ -16,7 +16,7 @@ import java.util.Stack;
 
 /**
  * JadescriptTokenSource class.
- *
+ * <p>
  * 
  * <p>
  * This class is used to insert into the token stream some synthetic tokens

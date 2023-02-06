@@ -114,7 +114,8 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         List<Maybe<String>> operators,
         StaticState state
     ) {
-        if (operands.isEmpty()) return module.get(TypeHelper.class).NOTHING;
+        if (operands.isEmpty()) return module.get(TypeHelper.class).BOTTOM
+            .apply("No operands found.");
         IJadescriptType t = module.get(MultiplicativeExpressionSemantics.class)
             .inferType(operands.get(0), state);
         for (int i = 1; i < operands.size() && i - 1 < operators.size(); i++) {
@@ -225,7 +226,9 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
                 return t1;
             }
         }
-        return typeHelper.ANY;
+        return typeHelper.TOP.apply(
+            "One or more operands of the + operation has invalid types."
+        );
     }
 
 

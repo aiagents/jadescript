@@ -9,7 +9,8 @@ import it.unipr.ailab.sonneteer.type.IClassDeclarationWriter;
 
 import java.util.List;
 
-public class LocalClassStatementWriter extends StatementWriter implements IClassDeclarationWriter{
+public class LocalClassStatementWriter extends StatementWriter
+    implements IClassDeclarationWriter{
 
     private final IClassDeclarationWriter delegate;
 

@@ -3,12 +3,10 @@ package it.unipr.ailab.sonneteer.statement.controlflow;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
-import it.unipr.ailab.sonneteer.statement.LocalVarBindingProvider;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class TryCatchWriter extends StatementWriter {
 

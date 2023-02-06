@@ -182,7 +182,6 @@ public class ListLiteralExpressionSemantics
         Maybe<ListLiteral> input,
         StaticState state
     ) {
-        //TODO pipe-literal
         Maybe<EList<RValueExpression>> values =
             input.__(ListLiteral::getValues);
         if (values.__(List::isEmpty).extract(Maybe.nullAsTrue)) {
@@ -779,7 +778,6 @@ public class ListLiteralExpressionSemantics
         boolean hasTypeSpecifier =
             input.__(ListLiteral::isWithTypeSpecifier).extract(nullAsFalse);
 
-        //TODO pipe-literal
         boolean stage1 = VALID;
         StaticState newState = state;
         final RValueExpressionSemantics rves =

@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 public class FQNameLocation extends SearchLocation {
     private final String fullyQualifiedName;
 
-    public FQNameLocation(@NotNull String fullyQualifiedName) {
+    public FQNameLocation(String fullyQualifiedName) {
         this.fullyQualifiedName = fullyQualifiedName;
     }
 
@@ -22,10 +22,12 @@ public class FQNameLocation extends SearchLocation {
     }
 
     public IJadescriptType extractType(SemanticsModule module){
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
         if(fullyQualifiedName!=null) {
-            return module.get(TypeHelper.class).jtFromFullyQualifiedName(fullyQualifiedName);
+            return typeHelper
+                .jtFromFullyQualifiedName(fullyQualifiedName);
         }else{
-            return module.get(TypeHelper.class).ANY;
+            return typeHelper.ANY;
         }
     }
 

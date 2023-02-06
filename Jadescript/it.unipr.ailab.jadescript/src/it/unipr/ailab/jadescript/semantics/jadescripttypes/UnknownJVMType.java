@@ -65,7 +65,7 @@ public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
     }
 
     @Override
-    public boolean haveProperties() {
+    public boolean hasProperties() {
         return false;
     }
 

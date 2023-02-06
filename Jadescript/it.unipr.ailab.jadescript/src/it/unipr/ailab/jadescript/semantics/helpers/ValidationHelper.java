@@ -200,7 +200,7 @@ public class ValidationHelper implements SemanticsConsts {
         ValidationMessageAcceptor acceptor
     ) {
         return asserting(
-            x.haveProperties(),
+            x.hasProperties(),
             "InvalidType",
             message,
             input,
@@ -294,6 +294,7 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
+    @SuppressWarnings("UnusedReturnValue")
     public boolean validateMethodCompatibility(
         CallableSymbol toBeAdded,
         Maybe<? extends EObject> refEObject,
@@ -542,6 +543,7 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
+    @SuppressWarnings("UnusedReturnValue")
     public boolean assertExpectedType(
         Class<?> expected,
         IJadescriptType actual,
@@ -658,6 +660,7 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
+    @SuppressWarnings("UnusedReturnValue")
     public boolean emitError(
         String issueCode,
         String description,
@@ -907,6 +910,7 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
+    @SuppressWarnings("UnusedReturnValue")
     public boolean advice(
         boolean isTrue,
         String issueCode,
@@ -951,6 +955,7 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
+    @SuppressWarnings("UnusedReturnValue")
     public boolean advice(
         Maybe<Boolean> isTrue,
         String issueCode,

@@ -210,19 +210,19 @@ public class PatternMatchMode {
          * Please note that this case concerns both content-patterns and
          * 'matches' operators in when-expressions of event handlers.
          */
-        public static final FeatureHeader FEATURE_HEADER = new FeatureHeader() {
+        FeatureHeader FEATURE_HEADER = new FeatureHeader() {
         };
         /**
          * This pattern matching is part of a statement guard (i.e.,
          * when-matches statement).
          */
-        public static final StatementGuard STATEMENT_GUARD =
+        StatementGuard STATEMENT_GUARD =
             new StatementGuard() {
             };
         /**
          * This pattern matching is a generic boolean expression.
          */
-        public static final BooleanExpression BOOLEAN_EXPRESSION =
+        BooleanExpression BOOLEAN_EXPRESSION =
             new BooleanExpression() {
             };
         /**
@@ -230,13 +230,13 @@ public class PatternMatchMode {
          * expression at the left of the '=' operator in a
          * declaration/assignment statement.
          */
-        public static final RootOfAssignedExpression
+        RootOfAssignedExpression
             ROOT_OF_ASSIGNED_EXPRESSION = new RootOfAssignedExpression() {
         };
         /**
          * This pattern is part of another pattern.
          */
-        public static final SubPattern SUB_PATTERN = new SubPattern() {
+        SubPattern SUB_PATTERN = new SubPattern() {
         };
 
         static String describeLocation(PatternMatchInput<?> input) {
@@ -261,28 +261,28 @@ public class PatternMatchMode {
             }
         }
 
-        public interface FeatureHeader extends PatternLocation {
+        interface FeatureHeader extends PatternLocation {
 
         }
 
-        public interface StatementGuard extends PatternLocation {
+        interface StatementGuard extends PatternLocation {
 
         }
 
 
-        public interface Expression extends PatternLocation {
+        interface Expression extends PatternLocation {
 
         }
 
-        public interface BooleanExpression extends Expression {
+        interface BooleanExpression extends Expression {
 
         }
 
-        public interface RootOfAssignedExpression extends Expression {
+        interface RootOfAssignedExpression extends Expression {
 
         }
 
-        public interface SubPattern extends Expression {
+        interface SubPattern extends Expression {
 
         }
 

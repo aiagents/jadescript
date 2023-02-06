@@ -43,35 +43,44 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
     ) {
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
+
         final Maybe<RValueExpression> element =
             input.__(AddStatement::getElement);
+
         String elementCompiled = rves.compile(
             element,
             state,
             acceptor
         );
+
         final StaticState afterElement = rves.advance(
             element,
             state
         );
+
         final Maybe<RValueExpression> collection =
             input.__(AddStatement::getCollection);
+
         String collectionCompiled = rves.compile(
             collection,
             afterElement,
             acceptor
         );
+
         final StaticState afterCollection = rves.advance(
             collection,
             afterElement
         );
+
+
         String putOrAdd = input.__(AddStatement::getPutOrAdd)
             .extract(Maybe.nullAsEmptyString);
-        final IJadescriptType colellectionType = rves.inferType(
+        final IJadescriptType collectionType = rves.inferType(
             collection,
             state
         );
-        boolean isSetCollection = colellectionType instanceof SetType;
+
+        boolean isSetCollection = collectionType instanceof SetType;
         if (isSetCollection) {
             putOrAdd = "add"; //overrides "put" if it's a set
         }
@@ -179,8 +188,6 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
                 afterElement
             );
 
-            //TODO instead of checking the type,
-            // check the availability of the operation
             module.get(ValidationHelper.class).asserting(
                 collectionType instanceof ListType
                     || collectionType instanceof MapType
@@ -194,8 +201,11 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
 
 
             IJadescriptType expectedElementType =
-                collectionType.getElementTypeIfCollection()
-                    .orElse(module.get(TypeHelper.class).NOTHING);
+                collectionType.getElementTypeIfCollection().orElse(
+                    module.get(TypeHelper.class).BOTTOM
+                        .apply("Unexpected collection type (" +
+                            collectionType.getJadescriptName() + ")")
+                );
 
             final IJadescriptType elementType = rves.inferType(element, state);
 

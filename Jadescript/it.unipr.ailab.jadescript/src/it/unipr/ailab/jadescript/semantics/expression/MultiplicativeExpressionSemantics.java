@@ -152,8 +152,7 @@ public class MultiplicativeExpressionSemantics
         StaticState op1s,
         Maybe<Matches> op2
     ) {
-        return module.get(MatchesExpressionSemantics.class)
-            .advance(op2, op1s);
+        return module.get(MatchesExpressionSemantics.class).advance(op2, op1s);
     }
 
 
@@ -162,7 +161,11 @@ public class MultiplicativeExpressionSemantics
         List<Maybe<String>> operators,
         StaticState state
     ) {
-        if (operands.isEmpty()) return module.get(TypeHelper.class).NOTHING;
+        if (operands.isEmpty()) {
+            return module.get(TypeHelper.class).BOTTOM.apply(
+                "No operands found."
+            );
+        }
         IJadescriptType t = module.get(MatchesExpressionSemantics.class)
             .inferType(operands.get(0), state);
         StaticState runningState = module.get(MatchesExpressionSemantics.class)
@@ -324,7 +327,6 @@ public class MultiplicativeExpressionSemantics
         Maybe<Multiplicative> input,
         StaticState state
     ) {
-        if (input == null) return module.get(TypeHelper.class).ANY;
         final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(
             input.__(Multiplicative::getMatches)
         );

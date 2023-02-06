@@ -21,7 +21,7 @@ public class BaseOntoContentType extends JadescriptType implements OntoContentTy
 
 
     public enum Kind {
-        Concept, Action, Predicate, Proposition, AtomicProposition;
+        Concept, Action, Predicate, Proposition, AtomicProposition
     }
     public BaseOntoContentType(
             SemanticsModule module,
@@ -84,7 +84,7 @@ public class BaseOntoContentType extends JadescriptType implements OntoContentTy
     }
 
     @Override
-    public boolean haveProperties() {
+    public boolean hasProperties() {
         return true;
     }
 

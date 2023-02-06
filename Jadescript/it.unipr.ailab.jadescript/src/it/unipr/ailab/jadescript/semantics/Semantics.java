@@ -1,9 +1,7 @@
 package it.unipr.ailab.jadescript.semantics;
 
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;
-import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 /**
  * Created on 26/04/18.

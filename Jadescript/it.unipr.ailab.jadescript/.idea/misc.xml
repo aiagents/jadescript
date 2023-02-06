@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="EntryPointsManager">
+    <pattern value="it.unipr.ailab.jadescript.semantics.expression.AidLiteralExpressionSemantics" method="validateAssignmentInternal" />
+    <pattern value="it.unipr.ailab.jadescript.semantics.expression.AidLiteralExpressionSemantics" method="syntacticValidateLValueInternal" />
     <writeAnnotations>
       <writeAnnotation name="com.google.inject.Inject" />
     </writeAnnotations>

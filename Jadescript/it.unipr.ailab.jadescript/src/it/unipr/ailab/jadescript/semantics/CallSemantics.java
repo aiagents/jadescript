@@ -375,7 +375,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                 termSubpattern,
                 runningState
             );
-            if(i < argExpressions.size() -1) {
+            if (i < argExpressions.size() - 1) {
                 runningState = rves.assertDidMatch(
                     termSubpattern,
                     runningState
@@ -628,7 +628,9 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         ).__(
             CallableSymbol::returnType
         ).orElseGet(
-            () -> module.get(TypeHelper.class).ANY
+            () -> module.get(TypeHelper.class).TOP.apply(
+                "Unresolved callable symbol."
+            )
         );
     }
 
@@ -1088,7 +1090,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                     runningState
                 );
 
-                if(i < argExpressions.size() - 1) {
+                if (i < argExpressions.size() - 1) {
                     runningState = rves.assertDidMatch(
                         termSubpattern,
                         runningState
@@ -1287,7 +1289,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                     termSubPattern,
                     runningState
                 );
-                if(i < argExpressions.size()-1){
+                if (i < argExpressions.size() - 1) {
                     runningState = rves.assertDidMatch(
                         termSubPattern,
                         runningState

@@ -145,7 +145,6 @@ public class LiteralExpressionSemantics
         Maybe<Literal> input,
         StaticState state
     ) {
-        if (input == null) return module.get(TypeHelper.class).ANY;
         final Maybe<String> number = input.__(Literal::getNumber);
         final Maybe<String> bool = input.__(Literal::getBool);
         final Maybe<String> timestamp = input.__(Literal::getTimestamp);

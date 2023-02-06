@@ -68,8 +68,10 @@ public class FieldSemantics extends FeatureSemantics<Field> {
 
             module.get(ContextManager.class).exit();
         } else {
-            // Something's wrong.
-            finalType = module.get(TypeHelper.class).ANY;
+            finalType = module.get(TypeHelper.class).TOP.apply(
+                "Cannot infer type of field without initializer expression " +
+                    "or type specifier."
+            );
         }
         Maybe<String> name = input.__(Field::getName);
 

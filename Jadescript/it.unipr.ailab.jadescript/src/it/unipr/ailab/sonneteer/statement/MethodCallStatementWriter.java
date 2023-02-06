@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static it.unipr.ailab.sonneteer.expression.SimpleExpressionWriter.replacePlaceholderInString;
-
 public class MethodCallStatementWriter extends StatementWriter {
 
     private final String methodName;

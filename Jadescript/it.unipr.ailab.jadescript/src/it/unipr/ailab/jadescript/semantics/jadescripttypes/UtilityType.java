@@ -46,7 +46,7 @@ public abstract class UtilityType extends JadescriptType{
     }
 
     @Override
-    public boolean haveProperties() {
+    public boolean hasProperties() {
         return false;
     }
 

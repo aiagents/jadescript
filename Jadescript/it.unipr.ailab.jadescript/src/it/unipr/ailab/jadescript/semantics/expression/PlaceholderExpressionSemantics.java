@@ -31,6 +31,7 @@ public class PlaceholderExpressionSemantics
      * Produces an error validator message that notifies that the placeholder
      * cannot be used as normal expression.
      */
+    @SuppressWarnings("SameReturnValue")
     protected boolean errorNotRExpression(
         Maybe<Primary> input,
         ValidationMessageAcceptor acceptor

@@ -37,10 +37,6 @@ import java.util.stream.Stream;
 @Singleton
 public abstract class ExpressionSemantics<T> extends Semantics {
 
-    //TODO check all expressions semantics:
-    // isHoled/isUnbound/isTypelyHoled depend on a running state, and on
-    // invocations of assertDidMatch
-
     private final LazyValue<ExpressionSemantics<?>> EMPTY_EXPRESSION_SEMANTICS =
         new LazyValue<>(() -> new Adapter<>(this.module));
 
@@ -173,14 +169,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         }
 
         return traverseInternal(input);
-//        if (input.isNothing()) {
-//            return Optional.of(new SemanticsBoundToExpression<>(
-//                emptySemantics(),
-//                input
-//            ));
-//        }
-//
-//        return traverseInternal(input);
     }
 
 
@@ -719,9 +707,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
             ),
             () -> isPatternEvaluationWithoutSideEffectsInternal(input, state)
         );
-
-        //TODO introduce "prepare" -> checks if any of the subpatterns that
-        // can be directly evaluated is without side effects
     }
 
 
@@ -1520,7 +1505,11 @@ public abstract class ExpressionSemantics<T> extends Semantics {
             Maybe<T> input,
             StaticState state
         ) {
-            return this.module.get(TypeHelper.class).NOTHING;
+            return module.get(TypeHelper.class).BOTTOM.apply(
+                "Internal error: the expression '" +
+                    CompilationHelper.sourceToTextAny(input) +
+                    "' was associated to the semantics of the empty expression."
+            );
         }
 
 

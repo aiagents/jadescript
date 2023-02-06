@@ -49,50 +49,6 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
         final LValueExpressionSemantics lves =
             module.get(LValueExpressionSemantics.class);
 
-        //TODO re-enable after fixes
-
-//        if (lves.canBeHoled(left) && lves.isHoled(left, afterRight)) {
-//            final PatternMatchHelper patternMatchHelper =
-//                module.get(PatternMatchHelper.class);
-//            final PatternMatchInput<LValueExpression> pmi =
-//                patternMatchHelper.assignmentDeconstruction(
-//                    rightType, left
-//                );
-//
-//            final PatternMatcher patternMatcher = lves.compilePatternMatch(
-//                pmi,
-//                afterRight,
-//                acceptor
-//            );
-//            final String localClassName =
-//                patternMatchHelper.getPatternMatcherClassName(left);
-//            final LocalClassStatementWriter localClass =
-//                w.localClass(localClassName);
-//
-//            patternMatcher.getDirectWriters().forEach(localClass::addMember);
-//
-//            final String matcherVariableName =
-//                patternMatchHelper.getPatternMatcherVariableName(left);
-//
-//            acceptor.accept(localClass);
-//            acceptor.accept(w.variable(
-//                localClassName,
-//                matcherVariableName,
-//                w.expr("new " + localClassName + "()")
-//            ));
-//
-//            acceptor.accept(w.simpleStmt(
-//                patternMatcher.rootInvocationText(
-//                    rightCompiled
-//                )
-//            ));
-//
-//            return lves.advancePattern(
-//                pmi,
-//                afterRight
-//            );
-//        }
-
         if (lves.isLExpreable(left)) {
             lves.compileAssignment(
                 left,
@@ -102,6 +58,55 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
                 acceptor
             );
             return lves.advanceAssignment(left, rightType, afterRight);
+        }
+
+        if (lves.canBeHoled(left)) {
+            final PatternMatchHelper patternMatchHelper =
+                module.get(PatternMatchHelper.class);
+            final PatternMatchInput<LValueExpression> pmi =
+                patternMatchHelper.assignmentDeconstruction(
+                    rightType, left
+                );
+            if (lves.isHoled(pmi, afterRight)) {
+                final PatternMatcher patternMatcher = lves.compilePatternMatch(
+                    pmi,
+                    afterRight,
+                    acceptor
+                );
+
+                final String localClassName =
+                    patternMatchHelper.getPatternMatcherClassName(left);
+                final LocalClassStatementWriter localClass =
+                    w.localClass(localClassName);
+
+                localClass.addMember(
+                    patternMatchHelper.getSelfField(left)
+                );
+
+                patternMatcher.getDirectWriters()
+                    .forEach(localClass::addMember);
+
+                final String matcherVariableName =
+                    patternMatchHelper.getPatternMatcherVariableName(left);
+
+                acceptor.accept(localClass);
+                acceptor.accept(w.variable(
+                    localClassName,
+                    matcherVariableName,
+                    w.expr("new " + localClassName + "()")
+                ));
+
+                acceptor.accept(w.simpleStmt(
+                    patternMatcher.rootInvocationText(
+                        rightCompiled
+                    )
+                ));
+
+                return lves.advancePattern(
+                    pmi,
+                    afterRight
+                );
+            }
         }
 
         acceptor.accept(w.commentStmt(
@@ -137,47 +142,79 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
         final LValueExpressionSemantics lves =
             module.get(LValueExpressionSemantics.class);
 
-//        if (lves.canBeHoled(left) && lves.isHoled(left, afterRight)) {
-//            final PatternMatchHelper patternMatchHelper =
-//                module.get(PatternMatchHelper.class);
-//
-//            PatternMatchInput.AssignmentDeconstruction<LValueExpression> pmi =
-//                patternMatchHelper.assignmentDeconstruction(
-//                    rightType,
-//                    left
-//                );
-//
-//            final boolean patternCheck = lves.validatePatternMatch(
-//                pmi,
-//                afterRight,
-//                acceptor
-//            );
-//
-//            if(patternCheck) {
-//                return lves.advancePattern(pmi, afterRight);
-//            }else{
-//                return afterRight;
-//            }
-//        }
-
-        boolean syntacticSubValidation = lves.syntacticValidateLValue(
-            input.__(Assignment::getLexpr),
-            acceptor
-        );
-        if (syntacticSubValidation == INVALID) {
-            return afterRight;
-        }
-
         if (lves.isLExpreable(left)) {
-
+            boolean syntacticSubValidation = lves.syntacticValidateLValue(
+                input.__(Assignment::getLexpr),
+                acceptor
+            );
+            if (syntacticSubValidation == INVALID) {
+                return afterRight;
+            }
             lves.validateAssignment(
                 left,
                 right,
                 afterRight,
                 acceptor
             );
-            return lves.advanceAssignment(left, rightType, afterRight);
+            return lves.advanceAssignment(
+                left,
+                rightType,
+                afterRight
+            );
         }
+
+        if (lves.canBeHoled(left)) {
+            final PatternMatchHelper patternMatchHelper =
+                module.get(PatternMatchHelper.class);
+
+            PatternMatchInput.AssignmentDeconstruction<LValueExpression> pmi =
+                patternMatchHelper.assignmentDeconstruction(
+                    rightType,
+                    left
+                );
+
+            if (lves.isHoled(pmi, afterRight)) {
+                final boolean patternCheck = lves.validatePatternMatch(
+                    pmi,
+                    afterRight,
+                    acceptor
+                );
+
+                if (patternCheck) {
+                    return lves.advancePattern(pmi, afterRight);
+                } else {
+                    return afterRight;
+                }
+            } else {
+
+                boolean syntacticSubValidation = lves.syntacticValidateLValue(
+                    input.__(Assignment::getLexpr),
+                    acceptor
+                );
+                if (syntacticSubValidation == INVALID) {
+                    return afterRight;
+                }
+
+                if (lves.isLExpreable(left)) {
+
+                    lves.validateAssignment(
+                        left,
+                        right,
+                        afterRight,
+                        acceptor
+                    );
+                    return lves.advanceAssignment(
+                        left,
+                        rightType,
+                        afterRight
+                    );
+                }
+
+            }
+        }
+
+
+
 
 
         return afterRight;

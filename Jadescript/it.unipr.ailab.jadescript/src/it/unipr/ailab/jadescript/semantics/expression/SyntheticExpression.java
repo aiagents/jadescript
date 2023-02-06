@@ -3,7 +3,6 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.notify.Adapter;
 import org.eclipse.emf.common.notify.Notification;
 import org.eclipse.emf.common.util.EList;
@@ -34,6 +33,7 @@ public class SyntheticExpression implements RValueExpression {
             return Collections.emptyList();
         }
 
+        @SuppressWarnings("SameReturnValue")
         public String compile() {
             // Override if needed
             return "";
@@ -55,12 +55,13 @@ public class SyntheticExpression implements RValueExpression {
             return Optional.empty();
         }
 
-        @SuppressWarnings("EmptyMethod")
+        @SuppressWarnings({"EmptyMethod", "SameReturnValue"})
         public boolean validate(ValidationMessageAcceptor acceptor) {
             // Override if needed
             return VALID;
         }
 
+        @SuppressWarnings("SameReturnValue")
         public boolean isPatternEvaluationPure() {
             // Override if needed
             return true;

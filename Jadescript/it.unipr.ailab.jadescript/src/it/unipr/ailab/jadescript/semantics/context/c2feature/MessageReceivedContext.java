@@ -23,7 +23,7 @@ public interface MessageReceivedContext extends SemanticsConsts {
         IJadescriptType messageType,
         IJadescriptType contentType
     ) {
-        return new ContextGeneratedReference( //TODO: do not extract it everytime
+        return new ContextGeneratedReference(
             "content",
             contentType,
             (__) -> "(" + messageType.compileAsJavaCast() + " "

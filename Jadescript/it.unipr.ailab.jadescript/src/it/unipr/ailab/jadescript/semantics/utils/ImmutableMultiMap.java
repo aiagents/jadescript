@@ -1,13 +1,10 @@
 package it.unipr.ailab.jadescript.semantics.utils;
 
-import it.unipr.ailab.jadescript.semantics.context.staticstate.EvaluationResult;
-import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.BinaryOperator;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 

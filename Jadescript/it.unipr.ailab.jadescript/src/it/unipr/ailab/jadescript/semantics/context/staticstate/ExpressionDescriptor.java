@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 
 public interface ExpressionDescriptor {
 
-    public static class PropertyChain implements ExpressionDescriptor {
+    class PropertyChain implements ExpressionDescriptor {
 
         private final ImmutableList<String> properties;
 

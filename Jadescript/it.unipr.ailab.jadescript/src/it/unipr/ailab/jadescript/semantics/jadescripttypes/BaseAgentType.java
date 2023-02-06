@@ -71,7 +71,7 @@ public class BaseAgentType extends JadescriptType implements AgentType {
     }
 
     @Override
-    public boolean haveProperties() {
+    public boolean hasProperties() {
         return true;
     }
 

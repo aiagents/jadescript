@@ -1,7 +1,6 @@
 package it.unipr.ailab.sonneteer.statement;
 
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
-import it.unipr.ailab.sonneteer.expression.SimpleExpressionWriter;
 
 public class SimpleStatementWriter extends StatementWriter {
 

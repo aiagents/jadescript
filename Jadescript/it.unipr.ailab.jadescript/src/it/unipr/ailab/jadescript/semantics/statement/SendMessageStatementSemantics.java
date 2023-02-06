@@ -376,7 +376,7 @@ public class SendMessageStatementSemantics
         ));
 
 
-        // _msg1.setOntology(Onto.getInstance().getName());
+//generating => _msg1.setOntology(Onto.getInstance().getName());
         acceptor.accept(w.simpleStmt(setOntology(
             input,
             contentVarName,
@@ -384,11 +384,11 @@ public class SendMessageStatementSemantics
             messageName
         )));
 
-        // _msg1.setLanguage(_codec1);
+//generating => _msg1.setLanguage(_codec1);
         acceptor.accept(w.simpleStmt(setLanguage(messageName)));
 
-        // _receiversList = ...
-        // for (AID r : _receiversList) _msg1.addReceiver(r);
+//generating => _receiversList = ...
+//generating => for (AID r : _receiversList) _msg1.addReceiver(r);
         StaticState afterReceivers = addReceivers(
             input,
             receivers,
@@ -398,8 +398,8 @@ public class SendMessageStatementSemantics
         );
 
 
-        //this.myAgent.getContentManager().fillContent(_msg1, Onto.received
-        // (counter));
+//generating => this.myAgent.getContentManager()
+//generating =>     .fillContent(_msg1, Onto.received(counter));
         fillContent(
             input,
             adaptedContentType,
@@ -410,7 +410,7 @@ public class SendMessageStatementSemantics
         );
 
 
-        //this.myAgent.send(_msg1);
+//generating => this.myAgent.send(_msg1);
         acceptor.accept(w.callStmnt(
             THE_AGENT + "().send",
             w.expr(messageName)

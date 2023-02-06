@@ -127,7 +127,7 @@ public class BaseBehaviourType extends ParametricType implements EmptyCreatable,
     }
 
     @Override
-    public boolean haveProperties() {
+    public boolean hasProperties() {
         return true;
     }
 

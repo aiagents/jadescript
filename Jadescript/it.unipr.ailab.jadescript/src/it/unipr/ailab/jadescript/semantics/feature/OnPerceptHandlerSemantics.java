@@ -165,10 +165,10 @@ public class OnPerceptHandlerSemantics
         SavedContext savedContext,
         SourceCodeBuilder scb
     ) {
-//        if ([OUTERCLASS].this.__ignoreMessageHandlers) {
-//            this.__eventFired = false;
-//            return;
-//        }
+//generating => if ([OUTERCLASS].this.__ignoreMessageHandlers) {
+//generating =>     this.__eventFired = false;
+//generating =>     return;
+//generating => }
         w.ifStmnt(
             w.expr(Util.getOuterClassThisReference(input) +
                 "." + IGNORE_MSG_HANDLERS_VAR_NAME),
@@ -181,8 +181,8 @@ public class OnPerceptHandlerSemantics
         ).writeSonnet(scb);
 
 
-//        [... message template auxiliary statements...]
-//        MessageTemplate _mt = [...]
+//generating => [... message template auxiliary statements...]
+//generating => MessageTemplate _mt = [...]
 
         final Maybe<WhenExpression> whenBody =
             input.__(OnPerceptHandler::getWhenBody);
@@ -414,14 +414,14 @@ public class OnPerceptHandlerSemantics
             composedMT
         ).writeSonnet(scb);
 
-        //        Message __receivedPercept = null;
+//generating => Message __receivedPercept = null;
         w.variable("jadescript.core.message.Message", PERCEPT_VAR_NAME, w.Null)
             .writeSonnet(scb);
 
-//        if(myAgent!=null) {
-//            __receivedPercept = jadescript.core.message.Message.wrap
-//                (myAgent.receive(__mt));
-//        }
+//generating => if(myAgent!=null) {
+//generating =>     __receivedPercept = jadescript.core.message.Message.wrap
+//generating =>         (myAgent.receive(__mt));
+//generating => }
         w.ifStmnt(
             w.expr("myAgent!=null"),
             w.block().addStatement(
@@ -468,38 +468,36 @@ public class OnPerceptHandlerSemantics
 
         module.get(ContextManager.class).exit();
 
-//        if (__receivedPercept != null) {
-//            [OUTERCLASS].this.__ignoreMessageHandlers = true;
-//
-//            __theAgent().__cleanIgnoredFlagForMessage(__receivedPercept);
-
-//            this.__eventFired = true;
-//
-//            try {
-//                [CONTENT_TYPE] __perceptContent = ([CONTENT_TYPE])
-//                    ((jadescript.core.percept.Percept)__theAgent()
-//                        .getContentManager()
-//                        .extractContent(__receivedPercept)
-//                    ).getContent();
-//                try {
-//
-//                    [...USERCODE...]
-
-//                } catch (jadescript.core.exception.JadescriptException
-//                    __throwable) {
-//                    __handleJadescriptException(__throwable);
-//                } catch (java.lang.Throwable __throwable) {
-//                    __handleJadescriptException(jadescript.core.exception
-//                    .JadescriptException.wrap(__throwable));
-//                }
-//
-//                __receivedPercept = null;
-//            } catch (Exception _e) {
-//                _e.printStackTrace();
-//            }
-//        } else {
-//            this.__eventFired = false;
-//        }
+//generating => if (__receivedPercept != null) {
+//generating =>     [OUTERCLASS].this.__ignoreMessageHandlers = true;
+//generating =>
+//generating =>     __theAgent().__cleanIgnoredFlagForMessage(__receivedPercept);
+//generating =>     this.__eventFired = true;
+//generating =>
+//generating =>     try {
+//generating =>         [CONTENT_TYPE] __perceptContent = ([CONTENT_TYPE])
+//generating =>             ((jadescript.core.percept.Percept)__theAgent()
+//generating =>                 .getContentManager()
+//generating =>                 .extractContent(__receivedPercept)
+//generating =>             ).getContent();
+//generating =>         try {
+//generating =>
+//generating =>             [...USERCODE...]
+//generating =>         } catch (jadescript.core.exception.JadescriptException
+//generating =>             __throwable) {
+//generating =>             __handleJadescriptException(__throwable);
+//generating =>         } catch (java.lang.Throwable __throwable) {
+//generating =>             __handleJadescriptException(jadescript.core.exception
+//generating =>             .JadescriptException.wrap(__throwable));
+//generating =>         }
+//generating =>
+//generating =>         __receivedPercept = null;
+//generating =>     } catch (Exception _e) {
+//generating =>         _e.printStackTrace();
+//generating =>     }
+//generating => } else {
+//generating =>     this.__eventFired = false;
+//generating => }
 
         w.ifStmnt(
             w.expr(PERCEPT_VAR_NAME + " != null"),

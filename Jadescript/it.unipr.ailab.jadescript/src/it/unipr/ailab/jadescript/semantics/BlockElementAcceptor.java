@@ -8,7 +8,7 @@ import org.eclipse.emf.ecore.EObject;
 
 public interface BlockElementAcceptor {
 
-    static final WriterFactory w = WriterFactory.getInstance();
+    WriterFactory w = WriterFactory.getInstance();
 
     void accept(BlockWriterElement element);
 

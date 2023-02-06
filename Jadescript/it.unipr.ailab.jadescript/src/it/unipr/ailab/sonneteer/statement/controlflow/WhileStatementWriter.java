@@ -2,7 +2,6 @@ package it.unipr.ailab.sonneteer.statement.controlflow;
 
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
-import it.unipr.ailab.sonneteer.statement.LocalVarBindingProvider;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 
 public class WhileStatementWriter extends StatementWriter implements LoopWriter{

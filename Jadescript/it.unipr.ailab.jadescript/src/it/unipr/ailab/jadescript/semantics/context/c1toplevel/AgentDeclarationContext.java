@@ -29,7 +29,6 @@ public class AgentDeclarationContext extends UsingOntologyDeclarationContext
     NamedSymbol.Searcher {
 
     private final JvmDeclaredType agentJvmType;
-    private final LazyValue<JvmTypeReference> agentJvmTypeRef;
     private final LazyValue<IJadescriptType> agentType;
     private final LazyValue<TypeNamespace> agentTypeNamespace;
     private final LazyValue<ContextGeneratedReference> agentReference;
@@ -47,9 +46,6 @@ public class AgentDeclarationContext extends UsingOntologyDeclarationContext
         this.agentType = new LazyValue<>(() ->
             typeHelper.jtFromJvmType(agentJvmType)
         );
-        this.agentJvmTypeRef = new LazyValue<>(() ->
-            typeHelper.typeRef(agentJvmType)
-        );
         this.agentTypeNamespace = new LazyValue<>(() ->
             this.agentType.get().namespace()
         );
@@ -58,15 +54,6 @@ public class AgentDeclarationContext extends UsingOntologyDeclarationContext
         );
     }
 
-
-    public JvmDeclaredType getAgentJvmType() {
-        return agentJvmType;
-    }
-
-
-    public JvmTypeReference getAgentJvmTypeRef() {
-        return agentJvmTypeRef.get();
-    }
 
 
     public IJadescriptType getAgentType() {

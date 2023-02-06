@@ -1,14 +1,11 @@
 package it.unipr.ailab.sonneteer.statement;
 
-import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
 
 public class BlockWriter extends StatementWriter {
 

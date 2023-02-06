@@ -3,13 +3,13 @@ package it.unipr.ailab.jadescript.semantics.utils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class ImmutableList<E> implements Iterable<E> {
 
     private static final ImmutableList<?> EMPTY = new ImmutableList<>();
 
-    //TODO optimize
     private final LinkedList<E> inner = new LinkedList<>();
 
 
@@ -38,33 +38,14 @@ public class ImmutableList<E> implements Iterable<E> {
 
 
     public ImmutableList<E> add(E e) {
-        final ImmutableList<E> result = new ImmutableList<>();
-        result.inner.addAll(this.inner);
-        result.inner.add(e);
-        return result;
+        return change(l -> l.add(e));
     }
 
 
     @NotNull
     @Override
     public Iterator<E> iterator() {
-        return new Iterator<>() {
-            private int i = 0;
-
-
-            @Override
-            public boolean hasNext() {
-                return i < inner.size();
-            }
-
-
-            @Override
-            public E next() {
-                final E e = inner.get(i);
-                i++;
-                return e;
-            }
-        };
+        return this.inner.iterator();
     }
 
 
@@ -77,12 +58,8 @@ public class ImmutableList<E> implements Iterable<E> {
         return inner.isEmpty();
     }
 
-
     public ImmutableList<E> concat(ImmutableList<E> l2) {
-        final ImmutableList<E> result = new ImmutableList<>();
-        result.inner.addAll(this.inner);
-        result.inner.addAll(l2.inner);
-        return result;
+        return change(l1 -> l1.addAll(l2.inner));
     }
 
 
@@ -105,6 +82,13 @@ public class ImmutableList<E> implements Iterable<E> {
 
     public List<E> toMutable() {
         return new LinkedList<>(inner);
+    }
+
+    public ImmutableList<E> change(Consumer<List<E>> change){
+        final ImmutableList<E> result = new ImmutableList<>();
+        result.inner.addAll(this.inner);
+        change.accept(result.inner);
+        return result;
     }
 
 }

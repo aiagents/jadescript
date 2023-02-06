@@ -19,15 +19,18 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class JvmTypeNamespace extends JvmModelBasedNamespace {
+
     private final JvmDeclaredType jvmDeclaredType;
     private final boolean isGeneric;
-    private final LazyValue<Map<String, IJadescriptType>> typeParameterAssignments;
+    private final LazyValue<Map<String, IJadescriptType>>
+        typeParameterAssignments;
     private final Supplier<JvmTypeLocation> locationSupplier;
 
+
     public JvmTypeNamespace(
-            SemanticsModule module,
-            JvmDeclaredType jvmDeclaredType,
-            JvmTypeReference... typeParameters
+        SemanticsModule module,
+        JvmDeclaredType jvmDeclaredType,
+        JvmTypeReference... typeParameters
     ) {
         super(module);
         this.jvmDeclaredType = jvmDeclaredType;
@@ -38,8 +41,9 @@ public class JvmTypeNamespace extends JvmModelBasedNamespace {
                 JvmGenericType genericType = (JvmGenericType) jvmDeclaredType;
                 for (int i = 0; i < typeParameters.length; i++) {
                     result.put(
-                            genericType.getTypeParameters().get(i).getIdentifier(),
-                            super.module.get(TypeHelper.class).jtFromJvmTypeRef(typeParameters[i])
+                        genericType.getTypeParameters().get(i).getIdentifier(),
+                        super.module.get(TypeHelper.class).jtFromJvmTypeRef(
+                            typeParameters[i])
                     );
                 }
             }
@@ -49,9 +53,10 @@ public class JvmTypeNamespace extends JvmModelBasedNamespace {
 
     }
 
+
     private JvmTypeNamespace(
-            SemanticsModule module,
-            JvmTypeReference reference
+        SemanticsModule module,
+        JvmTypeReference reference
     ) {
         super(module);
         isGeneric = false;
@@ -60,7 +65,11 @@ public class JvmTypeNamespace extends JvmModelBasedNamespace {
         locationSupplier = () -> new JvmTypeLocation(reference);
     }
 
-    public static JvmTypeNamespace unresolved(SemanticsModule module, JvmTypeReference reference) {
+
+    public static JvmTypeNamespace unresolved(
+        SemanticsModule module,
+        JvmTypeReference reference
+    ) {
         return new JvmTypeNamespace(module, reference);
     }
 
@@ -70,6 +79,7 @@ public class JvmTypeNamespace extends JvmModelBasedNamespace {
         return Maybe.some(jvmDeclaredType);
     }
 
+
     @Override
     public Maybe<? extends JvmModelBasedNamespace> superJvmNamespace() {
         if (jvmDeclaredType == null) {
@@ -77,37 +87,43 @@ public class JvmTypeNamespace extends JvmModelBasedNamespace {
         }
 
         //this recursively resolves eventual type parameters of superclasses
-        if (jvmDeclaredType.getExtendedClass() instanceof JvmParameterizedTypeReference
-                && jvmDeclaredType.getExtendedClass().getType() instanceof JvmDeclaredType) {
+        if (jvmDeclaredType.getExtendedClass()
+            instanceof JvmParameterizedTypeReference
+            && jvmDeclaredType.getExtendedClass().getType()
+            instanceof JvmDeclaredType) {
             List<IJadescriptType> parentArguments = new ArrayList<>();
-            for (JvmTypeReference argument : ((JvmParameterizedTypeReference) jvmDeclaredType.getExtendedClass()).getArguments()) {
-                //if the current type reference is a parameter (for example, 'T')
-                //  use the mapped reference
-                //  otherwise just use the current type reference
+            final JvmParameterizedTypeReference jvmPTR =
+                (JvmParameterizedTypeReference) jvmDeclaredType
+                    .getExtendedClass();
+            for (JvmTypeReference argument : jvmPTR.getArguments()) {
+                //if the current type reference is a parameter (for example,
+                // 'T') use the mapped reference, otherwise just use the
+                // current type reference
                 parentArguments.add(typeParameterAssignments.get().getOrDefault(
-                        argument.getIdentifier(),
-                        module.get(TypeHelper.class).jtFromJvmTypeRef(argument)
+                    argument.getIdentifier(),
+                    module.get(TypeHelper.class).jtFromJvmTypeRef(argument)
                 ));
             }
             return Maybe.some(fromTypeReference(
-                    module,
-                    module.get(TypeHelper.class).typeRef(
-                            jvmDeclaredType.getExtendedClass().getType(),
-                            parentArguments.stream()
-                                    .map(IJadescriptType::asJvmTypeReference)
-                                    .collect(Collectors.toList())
-                    )
+                module,
+                module.get(TypeHelper.class).typeRef(
+                    jvmDeclaredType.getExtendedClass().getType(),
+                    parentArguments.stream()
+                        .map(IJadescriptType::asJvmTypeReference)
+                        .collect(Collectors.toList())
+                )
             ));
 
         } else if (jvmDeclaredType.getExtendedClass() != null) {
             return Maybe.some(new JvmTypeNamespace(
-                    module,
-                    (JvmDeclaredType) jvmDeclaredType.getExtendedClass().getType()
+                module,
+                (JvmDeclaredType) jvmDeclaredType.getExtendedClass().getType()
             ));
         } else {
             return Maybe.nothing();
         }
     }
+
 
     @Override
     protected Stream<JvmField> streamOfJvmFields() {
@@ -117,6 +133,7 @@ public class JvmTypeNamespace extends JvmModelBasedNamespace {
         return Streams.stream(jvmDeclaredType.getDeclaredFields());
     }
 
+
     @Override
     protected Stream<JvmOperation> streamOfJvmOperations() {
         if (jvmDeclaredType == null) {
@@ -124,6 +141,7 @@ public class JvmTypeNamespace extends JvmModelBasedNamespace {
         }
         return Streams.stream(jvmDeclaredType.getDeclaredOperations());
     }
+
 
     @Override
     protected Stream<JvmConstructor> streamOfJvmConstructors() {
@@ -133,27 +151,34 @@ public class JvmTypeNamespace extends JvmModelBasedNamespace {
         return Streams.stream(jvmDeclaredType.getDeclaredConstructors());
     }
 
+
     @Override
     protected IJadescriptType resolveType(JvmTypeReference ref) {
         if (ref == null) {
             return module.get(TypeHelper.class).ANY;
         } else {
-            if (isGeneric && typeParameterAssignments.get().containsKey(ref.getIdentifier())) {
-                return typeParameterAssignments.get().get(ref.getIdentifier());
+            if (isGeneric && typeParameterAssignments.get()
+                .containsKey(ref.getIdentifier())) {
+                return typeParameterAssignments.get()
+                    .get(ref.getIdentifier());
             } else {
                 return module.get(TypeHelper.class).jtFromJvmTypeRef(ref);
             }
         }
     }
 
+
     @Override
     public JvmTypeLocation currentLocation() {
         return locationSupplier.get();
     }
 
+
     @Override
     public void debugDump(SourceCodeBuilder scb) {
-        scb.line("--> is JvmTypeNamespace (for type " + currentLocation().getFullyQualifiedName() + ")");
+        scb.line("--> is JvmTypeNamespace (for type " +
+            currentLocation().getFullyQualifiedName() + ")");
         super.debugDump(scb);
     }
+
 }

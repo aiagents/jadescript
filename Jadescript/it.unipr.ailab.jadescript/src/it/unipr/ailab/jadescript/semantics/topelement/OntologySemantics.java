@@ -62,11 +62,15 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void validate(Maybe<Ontology> input, ValidationMessageAcceptor acceptor) {
+    public void validate(
+        Maybe<Ontology> input,
+        ValidationMessageAcceptor acceptor
+    ) {
         super.validate(input, acceptor);
         if (input == null) return;
 
-        Maybe<EList<JvmParameterizedTypeReference>> superTypes = input.__(FeatureContainer::getSuperTypes);//TODO multiple ontologies
+        Maybe<EList<JvmParameterizedTypeReference>> superTypes =
+            input.__(FeatureContainer::getSuperTypes);//TODO multiple ontologies
 
         if (!superTypes
                 .__(List::isEmpty)
@@ -658,13 +662,12 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
                 .getFullyQualifiedName(ontologyElementSafe)
                 .toString(".");
 
-        final String methodNamePrefix = "(" +
+        return "(" +
                 "(" + ontoElementFqName + "Factory) " +
                 "(it.unipr.ailab.jadescript.javaapi.Jadescript." +
                 "getNativeFactory(" +
                 ontoElementFqName
                 + ".class)))";
-        return methodNamePrefix;
     }
 
 
