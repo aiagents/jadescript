@@ -81,7 +81,7 @@ To learn how to set up, develop, and run this example (and others), refer to the
 ## Build
 ### Clone and setup Eclipse Workspace
 
-1. `git clone https://gitlab.com/aiagents/jadescript.git` (GitLab account needed);
+1. `git clone https://github.com/aiagents/jadescript.git`;
 2. Open Eclipse and select/create a workspace;
 3. Select _File_ > _Import ..._ > _General_ > _Existing Projects into Workspace_  and click _Next_;
 4. Choose _Select root directory_ and fill in the blank with the location of the directory `[...clone directory...]/jadescript/Jadescript`;
