@@ -6,7 +6,7 @@ import it.unipr.ailab.jadescript.jadescript.ContainmentCheck;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
@@ -399,9 +399,9 @@ public class ContainmentCheckExpressionSemantics
                 methodName = operationName = "contains";
             }
 
-            final List<? extends CallableSymbol> matches = collectionType
+            final List<? extends CallableMember> matches = collectionType
                 .namespace().searchAs(
-                    CallableSymbol.Searcher.class,
+                    CallableMember.Namespace.class,
                     s -> s.searchCallable(
                         methodName,
                         t -> t.typeEquals(module.get(TypeHelper.class).BOOLEAN),

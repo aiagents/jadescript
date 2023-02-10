@@ -90,22 +90,20 @@ public class SetType extends ParametricType implements EmptyCreatable,
             return;
         }
         this.addProperty(
-            new Property(
+            Property.readonlyProperty(
                 "size",
                 module.get(TypeHelper.class).INTEGER,
-                true,
-                getLocation()
-            ).setCompileByCustomJVMMethod("size", "size")
+                getLocation(),
+                Property.compileGetWithCustomMethod("size")
+            )
         );
-        operations.add(new Operation(
-            false,
-            "__add",
+        operations.add(Operation.operation(
             module.get(TypeHelper.class).VOID,
-            List.of(new Tuple2<>("element", getElementType())),
+            "__add",
+            Map.of("element", getElementType()),
+            List.of("element"),
             getLocation(),
-            (receiver, namedArgs) -> {
-                return receiver + ".add(" + namedArgs.get("element") + ")";
-            },
+            false,
             (receiver, args) -> {
                 final String s;
                 if (args.size() >= 1) {
@@ -114,58 +112,68 @@ public class SetType extends ParametricType implements EmptyCreatable,
                     s = "/*internal error: missing arguments*/";
                 }
                 return receiver + ".add(" + s + ")";
+            },
+            (receiver, namedArgs) -> {
+                return receiver + ".add(" + namedArgs.get("element") + ")";
             }
         ));
 
-        operations.add(new Operation(
-            true,
+        operations.add(Operation.operation(
+            module.get(TypeHelper.class).BOOLEAN,
             "contains",
-            module.get(TypeHelper.class).BOOLEAN,
-            List.of(new Tuple2<>("o", getElementType())),
-            getLocation()
+            Map.of("o", getElementType()),
+            List.of("o"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
-            "containsAll",
+        operations.add(Operation.operation(
             module.get(TypeHelper.class).BOOLEAN,
-            List.of(new Tuple2<>("o", this)),
-            getLocation()
+            "containsAll",
+            Map.of("o", this),
+            List.of("o"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
-            "containsAll",
+        operations.add(Operation.operation(
             module.get(TypeHelper.class).BOOLEAN,
-            List.of(new Tuple2<>(
+            "containsAll",
+            Map.of(
                 "o",
                 module.get(TypeHelper.class).LIST.apply(Arrays.asList(
                     getElementType()))
-            )),
-            getLocation()
+            ),
+            List.of("o"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
-            "containsAny",
+        operations.add(Operation.operation(
             module.get(TypeHelper.class).BOOLEAN,
-            List.of(new Tuple2<>("o", this)),
-            getLocation()
+            "containsAny",
+            Map.of("o", this),
+            List.of("o"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
-            "containsAny",
+        operations.add(Operation.operation(
             module.get(TypeHelper.class).BOOLEAN,
-            List.of(new Tuple2<>(
+            "containsAny",
+            Map.of(
                 "o",
-                module.get(TypeHelper.class).LIST.apply(Arrays.asList(
-                    getElementType()))
-            )),
-            getLocation()
+                module.get(TypeHelper.class).LIST.apply(
+                    Arrays.asList(getElementType())
+                )
+            ),
+            List.of("o"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            false,
-            "clear",
+        operations.add(Operation.operation(
             module.get(TypeHelper.class).VOID,
+            "clear",
+            Map.of(),
             List.of(),
-            getLocation()
+            getLocation(),
+            false
         ));
         this.initializedProperties = true;
     }
@@ -262,7 +270,9 @@ public class SetType extends ParametricType implements EmptyCreatable,
             IJadescriptType elementType = this.getElementType();
             String className = getAdHocSetClassName(elementType);
             if (!generatedSpecificClasses.containsKey(className)) {
-                members.add(module.get(JvmTypesBuilder.class).toClass(
+                final JvmTypesBuilder jvmTB =
+                    module.get(JvmTypesBuilder.class);
+                members.add(jvmTB.toClass(
                     featureSafe,
                     className,
                     itClass -> {
@@ -273,24 +283,25 @@ public class SetType extends ParametricType implements EmptyCreatable,
                                 jadescript.util.JadescriptSet.class,
                                 elementType.asJvmTypeReference()
                             ));
-                        itClass.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(
+                        itClass.getMembers().add(jvmTB.toMethod(
                             featureSafe,
                             "__fromSet",
                             module.get(TypeHelper.class).typeRef(className),
                             itMeth -> {
                                 itMeth.setVisibility(JvmVisibility.PUBLIC);
                                 itMeth.setStatic(true);
-                                itMeth.getParameters().add(module.get(
-                                    JvmTypesBuilder.class).toParameter(featureSafe,
+                                itMeth.getParameters().add(jvmTB.toParameter(
+                                    featureSafe,
                                     "set",
                                     module.get(TypeHelper.class).typeRef(
                                         java.util.Set.class,
                                         elementType.asJvmTypeReference()
                                     )
                                 ));
-                                module.get(JvmTypesBuilder.class).setBody(
+                                jvmTB.setBody(
                                     itMeth,
-                                    new StringConcatenationClient() {//TODO use scb
+                                    new StringConcatenationClient() {//TODO
+                                        // use scb
                                         @Override
                                         protected void appendTo(
                                             TargetStringConcatenation target
@@ -323,7 +334,7 @@ public class SetType extends ParametricType implements EmptyCreatable,
                     public void writeSonnet(SourceCodeBuilder scb) {
                         EList<TypeExpression> typeParameters =
                             slotTypeExpression
-                            .getCollectionTypeExpression().getTypeParameters();
+                                .getCollectionTypeExpression().getTypeParameters();
                         if (typeParameters != null && typeParameters.size() == 1) {
 
                             scb.add(
@@ -333,7 +344,8 @@ public class SetType extends ParametricType implements EmptyCreatable,
                                     "getSchema(" +
                                     schemaNameForSlotProvider.apply(
                                         typeParameters.get(0)) + "), " +
-                                    "(jade.content.schema.ConceptSchema) getSchema(\"" + className + "\"));");
+                                    "(jade.content.schema.ConceptSchema) " +
+                                    "getSchema(\"" + className + "\"));");
                         }
 
                     }

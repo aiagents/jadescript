@@ -6,7 +6,6 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.Util.Tuple2;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
@@ -51,26 +50,29 @@ public class ListType extends ParametricType implements EmptyCreatable {
         }
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         this.addProperty(
-            new Property(
+            Property.readonlyProperty(
                 "length",
                 typeHelper.INTEGER,
-                true,
-                getLocation()
-            ).setCompileByCustomJVMMethod("size", "size")
-        );
-        this.addProperty(
-            new Property(
-                "head",
-                getElementType(),
-                false,
-                getLocation()
-            ).setCustomCompile(
-                (e) -> e + ".get(0)",
-                (e, re) -> e + ".set(0, " + re + ")"
+                getLocation(),
+                Property.compileGetWithCustomMethod("size")
             )
         );
         this.addProperty(
-            new Property("tail", this, true, getLocation()).setCustomCompile(
+            new Property(
+                true,
+                "head",
+                getElementType(),
+                getLocation(),
+                o -> o + ".get(0)",
+                (o, r) -> o + ".set(0, " + r + ")"
+            )
+        );
+        this.addProperty(
+            new Property(
+                false,
+                "tail",
+                this,
+                getLocation(),
                 (e) -> "jadescript.util.JadescriptCollections" +
                     ".getRest(" + e + ", 1)",
                 (e, re) -> "jadescript.util.JadescriptCollections" +
@@ -78,22 +80,22 @@ public class ListType extends ParametricType implements EmptyCreatable {
             )
         );
         this.addProperty(
-            new Property("last", this, true, getLocation()).setCustomCompile(
+            new Property(
+                true,
+                "last",
+                this,
+                getLocation(),
                 (e) -> e + ".get(" + e + ".size()-1)",
                 (e, re) -> e + ".set(" + e + ".size()-1, " + re + ")"
             )
         );
-        operations.add(new Operation(
-            false,
-            "__add",
+        operations.add(Operation.operation(
             typeHelper.VOID,
-            List.of(
-                new Tuple2<>("element", getElementType())
-            ),
+            "__add",
+            Map.of("element", getElementType()),
+            List.of("element"),
             getLocation(),
-            (receiver, namedArgs) -> {
-                return receiver + ".add(" + namedArgs.get("element") + ")";
-            },
+            false,
             (receiver, args) -> {
                 final String s;
                 if (args.size() >= 1) {
@@ -102,21 +104,21 @@ public class ListType extends ParametricType implements EmptyCreatable {
                     s = "/*internal error: missing arguments*/";
                 }
                 return receiver + ".add(" + s + ")";
+            },
+            (receiver, namedArgs) -> {
+                return receiver + ".add(" + namedArgs.get("element") + ")";
             }
         ));
-        operations.add(new Operation(
-            false,
-            "__addAt",
+        operations.add(Operation.operation(
             typeHelper.VOID,
-            List.of(
-                new Tuple2<>("index", typeHelper.INTEGER),
-                new Tuple2<>("element", getElementType())
+            "__addAt",
+            Map.of(
+                "index", typeHelper.INTEGER,
+                "element", getElementType()
             ),
+            List.of("index", "element"),
             getLocation(),
-            (receiver, namedArgs) -> {
-                return receiver + ".add(" + namedArgs.get("index") + ", " +
-                    namedArgs.get("element") + ")";
-            },
+            false,
             (receiver, args) -> {
                 final String e;
                 final String i;
@@ -128,17 +130,19 @@ public class ListType extends ParametricType implements EmptyCreatable {
                     e = "/*internal error: missing arguments*/";
                 }
                 return receiver + ".add(" + i + ", " + e + ")";
+            },
+            (receiver, namedArgs) -> {
+                return receiver + ".add(" + namedArgs.get("index") + ", " +
+                    namedArgs.get("element") + ")";
             }
         ));
-        operations.add(new Operation(
-            false,
-            "__addAll",
+        operations.add(Operation.operation(
             typeHelper.VOID,
-            List.of(new Tuple2<>("elements", this)),
+            "__addAll",
+            Map.of("elements", this),
+            List.of("elements"),
             getLocation(),
-            (receiver, namedArgs) -> {
-                return receiver + ".addAll(" + namedArgs.get("elements") + ")";
-            },
+            false,
             (receiver, args) -> {
                 final String e;
                 if (args.size() >= 1) {
@@ -147,21 +151,21 @@ public class ListType extends ParametricType implements EmptyCreatable {
                     e = "/*internal error: missing arguments*/";
                 }
                 return receiver + ".addAll(" + e + ")";
+            },
+            (receiver, namedArgs) -> {
+                return receiver + ".addAll(" + namedArgs.get("elements") + ")";
             }
         ));
-        operations.add(new Operation(
-            false,
-            "__addAllAt",
+        operations.add(Operation.operation(
             typeHelper.VOID,
-            List.of(
-                new Tuple2<>("index", typeHelper.INTEGER),
-                new Tuple2<>("elements", this)
+            "__addAllAt",
+            Map.of(
+                "index", typeHelper.INTEGER,
+                "elements", this
             ),
+            List.of("index", "elements"),
             getLocation(),
-            (receiver, namedArgs) -> {
-                return receiver + ".addAll(" + namedArgs.get("index") + ", " +
-                    namedArgs.get("elements") + ")";
-            },
+            false,
             (receiver, args) -> {
                 final String e;
                 final String i;
@@ -173,74 +177,83 @@ public class ListType extends ParametricType implements EmptyCreatable {
                     e = "/*internal error: missing arguments*/";
                 }
                 return receiver + ".addAll(" + i + ", " + e + ")";
+            },
+            (receiver, namedArgs) -> {
+                return receiver + ".addAll(" + namedArgs.get("index") + ", " +
+                    namedArgs.get("elements") + ")";
             }
         ));
-        operations.add(new Operation(
-            true,
-            "get",
+        operations.add(Operation.operation(
             getElementType(),
-            List.of(
-                new Tuple2<>("index", typeHelper.INTEGER)
-            ),
-            getLocation()
+            "get",
+            Map.of("index", typeHelper.INTEGER),
+            List.of("index"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            false,
+        operations.add(Operation.operation(
+            typeHelper.VOID,
             "set",
-            typeHelper.VOID,
-            List.of(
-                new Tuple2<>("index", typeHelper.INTEGER),
-                new Tuple2<>("element", getElementType())
+            Map.of(
+                "index", typeHelper.INTEGER,
+                "element", getElementType()
             ),
-            getLocation()
+            List.of("index", "element"),
+            getLocation(),
+            false
         ));
-        operations.add(new Operation(
-            true,
+        operations.add(Operation.operation(
+            typeHelper.BOOLEAN,
             "contains",
-            typeHelper.BOOLEAN,
-            List.of(new Tuple2<>("o", getElementType())),
-            getLocation()
+            Map.of("o", getElementType()),
+            List.of("o"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
-            "containsAll",
+        operations.add(Operation.operation(
             typeHelper.BOOLEAN,
-            List.of(new Tuple2<>("o", this)),
-            getLocation()
+            "containsAll",
+            Map.of("o", this),
+            List.of("o"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
-            "containsAll",
+        operations.add(Operation.operation(
             typeHelper.BOOLEAN,
-            List.of(new Tuple2<>(
+            "containsAll",
+            Map.of(
+                "o", typeHelper.SET.apply(Arrays.asList(getElementType()))
+            ),
+            List.of("o"),
+            getLocation(),
+            true
+        ));
+        operations.add(Operation.operation(
+            typeHelper.BOOLEAN,
+            "containsAny",
+            Map.of("o", this),
+            List.of("o"),
+            getLocation(),
+            true
+        ));
+        operations.add(Operation.operation(
+            typeHelper.BOOLEAN,
+            "containsAny",
+            Map.of(
                 "o",
                 typeHelper.SET.apply(Arrays.asList(getElementType()))
-            )),
-            getLocation()
+            ),
+            List.of("o"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
-            "containsAny",
-            typeHelper.BOOLEAN,
-            List.of(new Tuple2<>("o", this)),
-            getLocation()
-        ));
-        operations.add(new Operation(
-            true,
-            "containsAny",
-            typeHelper.BOOLEAN,
-            List.of(new Tuple2<>(
-                "o",
-                typeHelper.SET.apply(Arrays.asList(getElementType()))
-            )),
-            getLocation()
-        ));
-        operations.add(new Operation(
-            false,
-            "clear",
+        operations.add(Operation.operation(
             typeHelper.VOID,
+            "clear",
+            Map.of(),
             List.of(),
-            getLocation()
+            getLocation(),
+            false
         ));
         this.initializedProperties = true;
     }

@@ -2,13 +2,13 @@ package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
 import it.unipr.ailab.jadescript.semantics.context.symbol.SymbolUtils;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
-import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithSymbols;
+import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithMembers;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -23,12 +23,12 @@ import java.util.stream.Stream;
 
 public class OnMessageHandlerWhenExpressionContext
     extends HandlerWhenExpressionContext
-    implements NamedSymbol.Searcher, CallableSymbol.Searcher,
+    implements NameMember.Namespace, CallableMember.Namespace,
     MessageReceivedContext {
 
 
     private final Maybe<Performative> performative;
-    private final LazyValue<NamespaceWithSymbols> messageNamespace;
+    private final LazyValue<NamespaceWithMembers> messageNamespace;
 
 
     public OnMessageHandlerWhenExpressionContext(
@@ -73,7 +73,7 @@ public class OnMessageHandlerWhenExpressionContext
 
 
     @Override
-    public Stream<? extends NamedSymbol> searchName(
+    public Stream<? extends NameMember> searchName(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite
@@ -101,7 +101,7 @@ public class OnMessageHandlerWhenExpressionContext
 
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(
+    public Stream<? extends CallableMember> searchCallable(
         String name,
         Predicate<IJadescriptType> returnType,
         BiPredicate<Integer, Function<Integer, String>> parameterNames,
@@ -120,7 +120,7 @@ public class OnMessageHandlerWhenExpressionContext
 
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(
+    public Stream<? extends CallableMember> searchCallable(
         Predicate<String> name,
         Predicate<IJadescriptType> returnType,
         BiPredicate<Integer, Function<Integer, String>> parameterNames,

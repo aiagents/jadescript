@@ -7,8 +7,9 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.search.WithSupertype;
-import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedReference;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedName;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableNamedCell;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.LocalNamedCell;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
@@ -17,21 +18,19 @@ import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
-import org.eclipse.xtext.common.types.JvmTypeReference;
 
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class AgentDeclarationContext extends UsingOntologyDeclarationContext
     implements AgentAssociated,
     WithSupertype,
-    NamedSymbol.Searcher {
+    LocalNamedCell.Namespace {
 
     private final JvmDeclaredType agentJvmType;
     private final LazyValue<IJadescriptType> agentType;
     private final LazyValue<TypeNamespace> agentTypeNamespace;
-    private final LazyValue<ContextGeneratedReference> agentReference;
+    private final LazyValue<ContextGeneratedName> agentReference;
 
 
     public AgentDeclarationContext(
@@ -111,16 +110,14 @@ public class AgentDeclarationContext extends UsingOntologyDeclarationContext
 
 
     @Override
-    public Stream<? extends NamedSymbol> searchName(
-        Predicate<String> name,
-        Predicate<IJadescriptType> readingType,
-        Predicate<Boolean> canWrite
-    ) {
-        Stream<? extends NamedSymbol> stream = Stream.of(agentReference.get());
-        stream = Util.safeFilter(stream, NamedSymbol::name, name);
-        stream = Util.safeFilter(stream, NamedSymbol::readingType, readingType);
-        stream = Util.safeFilter(stream, NamedSymbol::canWrite, canWrite);
-        return stream;
+    public Stream<? extends LocalNamedCell> localNamedCells() {
+        return Util.buildStream(agentReference);
+    }
+
+
+    @Override
+    public Stream<? extends CompilableNamedCell> compilableNamedCells() {
+        return localNamedCells();
     }
 
 

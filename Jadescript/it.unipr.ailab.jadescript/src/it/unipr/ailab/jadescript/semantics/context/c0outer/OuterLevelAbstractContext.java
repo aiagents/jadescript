@@ -3,12 +3,11 @@ package it.unipr.ailab.jadescript.semantics.context.c0outer;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.Context;
 import it.unipr.ailab.jadescript.semantics.context.search.ModuleGlobalLocation;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedOperation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.SymbolUtils;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import jadescript.lang.JadescriptGlobalFunction;
 import jadescript.lang.JadescriptGlobalProcedure;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -20,7 +19,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace.CTOR_INTERNAL_NAME;
+import static it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace.CTOR_INTERNAL_NAME;
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
 /**
@@ -34,7 +33,7 @@ public abstract class OuterLevelAbstractContext extends Context
     }
 
 
-    protected Stream<? extends CallableSymbol>
+    protected Stream<? extends CallableMember>
     getCallableStreamFromDeclaredType(
         JvmTypeReference methodJVMClassRef,
         JvmDeclaredType type,
@@ -48,7 +47,7 @@ public abstract class OuterLevelAbstractContext extends Context
         IJadescriptType jadescriptType = typeHelper.jtFromJvmTypeRef(
             methodJVMClassRef
         );
-        Stream<? extends CallableSymbol> result;
+        Stream<? extends CallableMember> result;
         if (typeHelper.isAssignable(
             jade.core.behaviours.Behaviour.class,
             methodJVMClassRef
@@ -121,7 +120,7 @@ public abstract class OuterLevelAbstractContext extends Context
     }
 
 
-    protected Stream<? extends CallableSymbol>
+    protected Stream<? extends CallableMember>
     getCallableStreamFromDeclaredType(
         JvmTypeReference methodJVMClassRef,
         JvmDeclaredType type,
@@ -133,7 +132,7 @@ public abstract class OuterLevelAbstractContext extends Context
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         IJadescriptType jadescriptType =
             typeHelper.jtFromJvmTypeRef(methodJVMClassRef);
-        Stream<? extends CallableSymbol> result;
+        Stream<? extends CallableMember> result;
         if (typeHelper.isAssignable(
             jade.core.behaviours.Behaviour.class,
             methodJVMClassRef
@@ -180,12 +179,10 @@ public abstract class OuterLevelAbstractContext extends Context
         } else if (typeHelper.isAssignable(
             JadescriptGlobalFunction.class,
             methodJVMClassRef
-        )
-            || typeHelper.isAssignable(
+        ) || typeHelper.isAssignable(
             JadescriptGlobalProcedure.class,
             methodJVMClassRef
-        )
-        ) {
+        )) {
             JvmTypeNamespace namespace = new JvmTypeNamespace(module, type);
             result = namespace.searchCallable(
                 name,
@@ -205,7 +202,7 @@ public abstract class OuterLevelAbstractContext extends Context
     }
 
 
-    protected Stream<? extends CallableSymbol> getCallableStreamFromFQName(
+    protected Stream<? extends CallableMember> getCallableStreamFromFQName(
         String fqName,
         String name,
         Predicate<IJadescriptType> returnType,
@@ -231,7 +228,7 @@ public abstract class OuterLevelAbstractContext extends Context
     }
 
 
-    private CallableSymbol ontoInstanceAsCallable(
+    private CallableMember ontoInstanceAsCallable(
         String name,
         IJadescriptType ontoType
     ) {
@@ -249,8 +246,8 @@ public abstract class OuterLevelAbstractContext extends Context
     }
 
 
-    private Stream<? extends CallableSymbol> searchBehaviourCtorFunction(
-        CallableSymbol.Searcher namespace,
+    private Stream<? extends CallableMember> searchBehaviourCtorFunction(
+        CallableMember.Namespace namespace,
         String name,
         Predicate<IJadescriptType> returnType,
         BiPredicate<Integer, Function<Integer, String>> parameterNames,
@@ -266,8 +263,8 @@ public abstract class OuterLevelAbstractContext extends Context
     }
 
 
-    private Stream<? extends CallableSymbol> searchBehaviourCtorFunction(
-        CallableSymbol.Searcher namespace,
+    private Stream<? extends CallableMember> searchBehaviourCtorFunction(
+        CallableMember.Namespace namespace,
         Predicate<String> name,
         Predicate<IJadescriptType> returnType,
         BiPredicate<Integer, Function<Integer, String>> parameterNames,

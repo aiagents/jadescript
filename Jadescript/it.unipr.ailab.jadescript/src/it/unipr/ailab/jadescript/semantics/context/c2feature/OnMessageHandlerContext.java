@@ -2,11 +2,11 @@ package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
 import it.unipr.ailab.jadescript.semantics.context.symbol.SymbolUtils;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithSymbols;
+import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithMembers;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -19,14 +19,14 @@ import java.util.stream.Stream;
 
 public class OnMessageHandlerContext
     extends HandlerWithWhenExpressionContext
-    implements NamedSymbol.Searcher,
-    CallableSymbol.Searcher,
+    implements NameMember.Namespace,
+    CallableMember.Namespace,
     MessageReceivedContext {
 
     private final Maybe<String> performative;
     private final IJadescriptType messageContentType;
     private final IJadescriptType messageType;
-    private final LazyValue<NamespaceWithSymbols> messageNamespace;
+    private final LazyValue<NamespaceWithMembers> messageNamespace;
 
 
     public OnMessageHandlerContext(
@@ -64,19 +64,19 @@ public class OnMessageHandlerContext
 
 
     @Override
-    public Stream<? extends NamedSymbol> searchName(
+    public Stream<? extends NameMember> searchName(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite
     ) {
 
-        final Stream<NamedSymbol> contentStream = getContentStream(
+        final Stream<NameMember> contentStream = getContentStream(
             name,
             readingType,
             canWrite
         );
 
-        final Stream<NamedSymbol> messageStream = getMessageStream(
+        final Stream<NameMember> messageStream = getMessageStream(
             name,
             readingType,
             canWrite
@@ -95,7 +95,7 @@ public class OnMessageHandlerContext
 
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(
+    public Stream<? extends CallableMember> searchCallable(
         String name,
         Predicate<IJadescriptType> returnType,
         BiPredicate<Integer, Function<Integer, String>> parameterNames,
@@ -114,7 +114,7 @@ public class OnMessageHandlerContext
 
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(
+    public Stream<? extends CallableMember> searchCallable(
         Predicate<String> name,
         Predicate<IJadescriptType> returnType,
         BiPredicate<Integer, Function<Integer, String>> parameterNames,

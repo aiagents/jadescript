@@ -27,7 +27,7 @@ public class UserDefinedAgentType
 
     @Override
     public AgentTypeNamespace namespace() {
-        return new AgentTypeNamespace(module, this, Collections.emptyMap());
+        return new AgentTypeNamespace(module, this, Collections.emptyList());
     }
 
     public AgentType getSuperAgentType() {

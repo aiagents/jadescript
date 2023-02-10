@@ -6,7 +6,7 @@ import it.unipr.ailab.jadescript.semantics.context.ScopeType;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.search.UserLocalDefinition;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
 import it.unipr.ailab.jadescript.semantics.context.symbol.SymbolUtils;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -33,7 +33,7 @@ import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
  */
 public final class StaticState
     implements Searcheable,
-    NamedSymbol.Searcher,
+    NameMember.Namespace,
     FlowSensitiveInferrer,
     SemanticsConsts {
 
@@ -43,7 +43,7 @@ public final class StaticState
 
     private final SemanticsModule module;
     private final Searcheable outer;
-    private final ImmutableMap<String, NamedSymbol> variables;
+    private final ImmutableMap<String, NameMember> variables;
     private final
     ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds;
     private final boolean valid;
@@ -77,7 +77,7 @@ public final class StaticState
         SemanticsModule module,
         Searcheable outer,
         ScopeType scopeType,
-        ImmutableMap<String, NamedSymbol> variables,
+        ImmutableMap<String, NameMember> variables,
         ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds
     ) {
         this.module = module;
@@ -122,16 +122,16 @@ public final class StaticState
 
     @Override
     @Contract(pure = true)
-    public Stream<? extends NamedSymbol> searchName(
+    public Stream<? extends NameMember> searchName(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite
     ) {
-        Stream<? extends NamedSymbol> result = variables.streamValues();
+        Stream<? extends NameMember> result = variables.streamValues();
 
-        result = safeFilter(result, NamedSymbol::name, name);
-        result = safeFilter(result, NamedSymbol::readingType, readingType);
-        result = safeFilter(result, NamedSymbol::canWrite, canWrite);
+        result = safeFilter(result, NameMember::name, name);
+        result = safeFilter(result, NameMember::readingType, readingType);
+        result = safeFilter(result, NameMember::canWrite, canWrite);
 
         return result;
     }
@@ -158,7 +158,7 @@ public final class StaticState
 
 
     @Contract(pure = true)
-    public ImmutableMap<String, NamedSymbol> getLocalScopeNamedSymbols() {
+    public ImmutableMap<String, NameMember> getLocalScopeNamedSymbols() {
         return variables;
     }
 
@@ -384,8 +384,8 @@ public final class StaticState
 
 
     @Contract(pure = true)
-    public StaticState assertNamedSymbol(NamedSymbol ns) {
-        final ImmutableMap<String, NamedSymbol> namedSymbols =
+    public StaticState assertNamedSymbol(NameMember ns) {
+        final ImmutableMap<String, NameMember> namedSymbols =
             this.getLocalScopeNamedSymbols();
 
         if (namedSymbols.containsKey(ns.name()) &&
@@ -409,7 +409,7 @@ public final class StaticState
     }
 
     public StaticState assertAllNamedSymbols(
-        Collection<? extends NamedSymbol> nss
+        Collection<? extends NameMember> nss
     ){
 
         return new StaticState(
@@ -419,7 +419,7 @@ public final class StaticState
             scopeType,
             getLocalScopeNamedSymbols().mergeAddAll(
                 nss,
-                NamedSymbol::name,
+                NameMember::name,
                 (__, n2) -> n2 // Force redeclaration
             ),
             this.getLocalScopeFlowTypingUpperBounds()
@@ -511,17 +511,17 @@ public final class StaticState
     }
 
 
-    private ImmutableMap<String, NamedSymbol> intersectSymbols(
+    private ImmutableMap<String, NameMember> intersectSymbols(
         StaticState other
     ) {
-        ImmutableMap<String, NamedSymbol> a = this.getLocalScopeNamedSymbols();
-        ImmutableMap<String, NamedSymbol> b = other.getLocalScopeNamedSymbols();
+        ImmutableMap<String, NameMember> a = this.getLocalScopeNamedSymbols();
+        ImmutableMap<String, NameMember> b = other.getLocalScopeNamedSymbols();
 
         ImmutableSet<String> keys = a.getKeys().intersection(b.getKeys());
 
 
         return keys.associateOpt(key -> {
-            Set<NamedSymbol> nss = new HashSet<>();
+            Set<NameMember> nss = new HashSet<>();
             nss.add(a.getUnsafe(key));
             nss.add(b.getUnsafe(key));
             return SymbolUtils.intersectNamedSymbols(nss, module);
@@ -607,7 +607,7 @@ public final class StaticState
 
     @Contract(pure = true)
     public StaticState copyInnermostContentFrom(StaticState other){
-        final List<? extends NamedSymbol> namedSymbols =
+        final List<? extends NameMember> namedSymbols =
             other.getLocalScopeNamedSymbols().streamValues()
             .collect(Collectors.toList());
 
@@ -627,7 +627,7 @@ public final class StaticState
             scb.open("Variables = [");
             for (String key : this.getLocalScopeNamedSymbols().getKeys()) {
                 this.getLocalScopeNamedSymbols().getUnsafe(key)
-                    .debugDumpNamedSymbol(scb);
+                    .debugDumpNamedMember(scb);
             }
             scb.close("]");
             scb.open("UpperBounds = [");

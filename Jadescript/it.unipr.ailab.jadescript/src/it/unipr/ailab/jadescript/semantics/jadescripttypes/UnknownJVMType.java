@@ -1,24 +1,33 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.EmptyTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import jadescript.content.JadescriptOntoElement;
+import org.eclipse.xtext.common.types.JvmOperation;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
 import java.util.Optional;
 
-import static it.unipr.ailab.maybe.Maybe.some;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
     private final JvmTypeReference typeReference;
 
-    public UnknownJVMType(SemanticsModule module, JvmTypeReference typeReference) {
-        super(module, typeReference.getQualifiedName('.'), typeReference.getQualifiedName('.'), "OTHER");
+    public UnknownJVMType(
+        SemanticsModule module,
+        JvmTypeReference typeReference
+    ) {
+        super(
+            module,
+            typeReference.getQualifiedName('.'),
+            typeReference.getQualifiedName('.'),
+            "OTHER"
+        );
         this.typeReference = typeReference;
     }
 
@@ -82,7 +91,7 @@ public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
 
     @Override
     public TypeNamespace namespace() {
-        return JvmTypeNamespace.fromTypeReference(module, asJvmTypeReference());
+        return module.get(EmptyTypeNamespace.class);
     }
 
     @Override
@@ -97,15 +106,17 @@ public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
                 asJvmTypeReference()
         )) {
 
-            final Optional<IJadescriptType> metadata = this.namespace()
-                    //local search:
-                    .searchCallable(
-                            name -> name.startsWith("__metadata"),
-                            null,
-                            null,
-                            null
-                    ).findFirst()
-                    .map(CallableSymbol::returnType);
+            final JvmTypeNamespace jvmTypeNamespace = this.jvmNamespace();
+            if(jvmTypeNamespace==null){
+                return nothing();
+            }
+
+            final Optional<IJadescriptType> metadata = jvmTypeNamespace
+                //local search:
+                .getMetadataMethod()
+                .map(JvmOperation::getReturnType)
+                .map(jvmTypeNamespace::resolveType);
+
             if (metadata.isPresent()) {
                 if (metadata.get() instanceof OntologyType) {
                     return some(((OntologyType) metadata.get()));
@@ -123,7 +134,8 @@ public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
                 compileToJavaTypeReference() +
                 ">createEmptyValue(" +
                 compileToJavaTypeReference() + ".class)" +
-                "/*<- runtime resolution - a cyclic type reference was probably detected*/";
+                "/*<- runtime resolution - a cyclic type " +
+            "reference was probably detected*/";
 
     }
 }

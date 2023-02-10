@@ -7,6 +7,9 @@ import it.unipr.ailab.jadescript.semantics.context.associations.*;
 import it.unipr.ailab.jadescript.semantics.context.c1toplevel.TopLevelDeclarationContext;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.*;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.PatternMember;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
@@ -26,15 +29,15 @@ import static it.unipr.ailab.maybe.Maybe.some;
 public class ProceduralFeatureContainerContext
     extends Context
     implements SelfAssociated,
-    CallableSymbol.Searcher,
-    NamedSymbol.Searcher,
-    PatternSymbol.Searcher {
+    CallableMember.Namespace,
+    NameMember.Namespace,
+    PatternMember.Searcher {
 
     private final TopLevelDeclarationContext outer;
     private final Maybe<IJadescriptType> thisReferenceType;
     private final Maybe<? extends EObject> featureContainer;
     private final LazyValue<Maybe<TypeNamespace>> thisReferenceNamespace;
-    private final LazyValue<Maybe<NamedSymbol>> thisReferenceElement;
+    private final LazyValue<Maybe<NameMember>> thisReferenceElement;
 
 
     public ProceduralFeatureContainerContext(
@@ -83,9 +86,9 @@ public class ProceduralFeatureContainerContext
     }
 
 
-    private Stream<CallableSymbol> dereference(
+    private Stream<CallableMember> dereference(
         Association a,
-        CallableSymbol c
+        CallableMember c
     ) {
         if (a instanceof SelfAssociation || a instanceof BehaviourAssociation) {
             return Stream.of(SymbolUtils.setDereferenceByVariable(
@@ -109,9 +112,9 @@ public class ProceduralFeatureContainerContext
     }
 
 
-    private Stream<NamedSymbol> dereference(
+    private Stream<NameMember> dereference(
         Association a,
-        NamedSymbol c
+        NameMember c
     ) {
         if (a instanceof SelfAssociation || a instanceof BehaviourAssociation) {
             return Stream.of(SymbolUtils.setDereferenceByVariable(
@@ -131,7 +134,7 @@ public class ProceduralFeatureContainerContext
 
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(
+    public Stream<? extends CallableMember> searchCallable(
         String name,
         Predicate<IJadescriptType> returnType,
         BiPredicate<Integer, Function<Integer, String>> parameterNames,
@@ -154,7 +157,7 @@ public class ProceduralFeatureContainerContext
 
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(
+    public Stream<? extends CallableMember> searchCallable(
         Predicate<String> name,
         Predicate<IJadescriptType> returnType,
         BiPredicate<Integer, Function<Integer, String>> parameterNames,
@@ -177,7 +180,7 @@ public class ProceduralFeatureContainerContext
 
 
     @Override
-    public Stream<? extends PatternSymbol> searchPattern(
+    public Stream<? extends PatternMember> searchPattern(
         String name,
         Predicate<IJadescriptType> inputType,
         BiPredicate<Integer, Function<Integer, String>> termNames,
@@ -189,8 +192,8 @@ public class ProceduralFeatureContainerContext
                 .flatMap(a -> {
                     final TypeNamespace associatedNamespace =
                         a.getAssociatedType().namespace();
-                    if (associatedNamespace instanceof PatternSymbol.Searcher) {
-                        return ((PatternSymbol.Searcher) associatedNamespace)
+                    if (associatedNamespace instanceof PatternMember.Searcher) {
+                        return ((PatternMember.Searcher) associatedNamespace)
                             .searchPattern(
                                 name,
                                 inputType,
@@ -208,7 +211,7 @@ public class ProceduralFeatureContainerContext
     //TODO: new generation of procedural contexts
     // - produce a scope by mixing in the contexts
     @Override
-    public Stream<? extends PatternSymbol> searchPattern(
+    public Stream<? extends PatternMember> searchPattern(
         Predicate<String> name,
         Predicate<IJadescriptType> inputType,
         BiPredicate<Integer, Function<Integer, String>> termNames,
@@ -220,8 +223,8 @@ public class ProceduralFeatureContainerContext
                 .flatMap(a -> {
                     final TypeNamespace associatedNamespace =
                         a.getAssociatedType().namespace();
-                    if (associatedNamespace instanceof PatternSymbol.Searcher) {
-                        return ((PatternSymbol.Searcher) associatedNamespace)
+                    if (associatedNamespace instanceof PatternMember.Searcher) {
+                        return ((PatternMember.Searcher) associatedNamespace)
                             .searchPattern(
                                 name,
                                 inputType,
@@ -237,14 +240,14 @@ public class ProceduralFeatureContainerContext
 
 
     @Override
-    public Stream<? extends NamedSymbol> searchName(
+    public Stream<? extends NameMember> searchName(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite
     ) {
         IJadescriptType thisReferenceType;
-        NamedSymbol thisElement;
-        final Stream<? extends NamedSymbol> thisStream;
+        NameMember thisElement;
+        final Stream<? extends NameMember> thisStream;
         if (this.thisReferenceType.isNothing()) {
             thisStream = Stream.empty();
         } else if (this.thisReferenceElement.get().isNothing()) {
@@ -264,7 +267,7 @@ public class ProceduralFeatureContainerContext
                 return thisStream2.map((__) -> thisElement);
             }).orElseGet(Stream::empty);
         }
-        final Stream<? extends NamedSymbol> associationsStream
+        final Stream<? extends NameMember> associationsStream
             = searchAs(
             Associated.class,
             x -> AnyAssociationComputer.computeAllAssociations(x)

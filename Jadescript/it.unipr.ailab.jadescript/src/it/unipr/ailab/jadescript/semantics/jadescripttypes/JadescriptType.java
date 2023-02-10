@@ -7,10 +7,11 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
@@ -152,8 +153,8 @@ public abstract class JadescriptType implements SemanticsConsts,
 
     @Override
     @Nullable
-    public JvmModelBasedNamespace jvmNamespace() {
-        return JvmModelBasedNamespace.fromTypeReference(
+    public JvmTypeNamespace jvmNamespace() {
+        return JvmTypeNamespace.resolve(
             module,
             asJvmTypeReference()
         );

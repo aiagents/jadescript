@@ -3,7 +3,7 @@ package it.unipr.ailab.jadescript.semantics.context.c0outer;
 import it.unipr.ailab.jadescript.jadescript.Model;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 
 public class ModuleContext
         extends OuterLevelAbstractContext
-        implements CallableSymbol.Searcher {
+        implements CallableMember.Namespace {
     private final String moduleName;
 
     private final Maybe<Model> sourceModule;
@@ -46,7 +46,7 @@ public class ModuleContext
 
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(
+    public Stream<? extends CallableMember> searchCallable(
             String name,
             Predicate<IJadescriptType> returnType,
             BiPredicate<Integer, Function<Integer, String>> parameterNames,
@@ -70,7 +70,7 @@ public class ModuleContext
 
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(
+    public Stream<? extends CallableMember> searchCallable(
             Predicate<String> name,
             Predicate<IJadescriptType> returnType,
             BiPredicate<Integer, Function<Integer, String>> parameterNames,

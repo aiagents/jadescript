@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<jardesc>
+    <jar path="it.unipr.ailab.jadescript.lib/outJar/jadescript.jar"/>
+    <options buildIfNeeded="true" compress="true" descriptionLocation="/it.unipr.ailab.jadescript.lib/jadescriptjar.jardesc" exportErrors="true" exportWarnings="true" includeDirectoryEntries="false" overwrite="false" saveDescription="true" storeRefactorings="false" useSourceFolders="false"/>
+    <storedRefactorings deprecationInfo="true" structuralOnly="false"/>
+    <selectedProjects/>
+    <manifest generateManifest="true" manifestLocation="" manifestVersion="1.0" reuseManifest="false" saveManifest="false" usesManifest="true">
+        <sealing sealJar="false">
+            <packagesToSeal/>
+            <packagesToUnSeal/>
+        </sealing>
+    </manifest>
+    <selectedElements exportClassFiles="true" exportJavaFiles="false" exportOutputFolder="false">
+        <javaElement handleIdentifier="=it.unipr.ailab.jadescript.lib/src"/>
+        <file path="/it.unipr.ailab.jadescript.lib/.classpath"/>
+        <file path="/it.unipr.ailab.jadescript.lib/.project"/>
+        <folder path="/it.unipr.ailab.jadescript.lib/libs"/>
+    </selectedElements>
+</jardesc>

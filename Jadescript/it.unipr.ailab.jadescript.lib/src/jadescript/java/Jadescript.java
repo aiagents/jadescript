@@ -21,12 +21,13 @@ import java.util.*;
 /**
  * Entry point for the Java-Jadescript interoperability API.
  * It acts as factory to create instances of values of the Jadescript Typesystem
- * and as builder for the creation of new JADE containers and the launching of
+ * and as builder for the creation of new JADE containers and the launch of
  * Jadescript agents.
  */
 public class Jadescript {
 
-    private static RuntimeBindingsManager bindingsManager = new RuntimeBindingsManager();
+    private static final RuntimeBindingsManager bindingsManager =
+        new RuntimeBindingsManager();
 
     private Jadescript() {
     } // Do not instantiate.

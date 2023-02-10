@@ -2,7 +2,7 @@ package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 
@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 
 public class OnBehaviourFailureHandlerWhenExpressionContext
     extends HandlerWhenExpressionContext
-    implements NamedSymbol.Searcher, BehaviourFailureHandledContext {
+    implements NameMember.Namespace, BehaviourFailureHandledContext {
 
 
 
@@ -42,7 +42,7 @@ public class OnBehaviourFailureHandlerWhenExpressionContext
 
 
     @Override
-    public Stream<? extends NamedSymbol> searchName(
+    public Stream<? extends NameMember> searchName(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite

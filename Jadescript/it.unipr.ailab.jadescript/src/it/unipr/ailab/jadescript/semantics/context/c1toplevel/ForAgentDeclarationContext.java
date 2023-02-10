@@ -7,7 +7,7 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedReference;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
@@ -21,11 +21,11 @@ import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
 public abstract class ForAgentDeclarationContext
     extends UsingOntologyDeclarationContext
-    implements NamedSymbol.Searcher, AgentAssociated {
+    implements NameMember.Namespace, AgentAssociated {
 
     private final IJadescriptType agentType;
     private final LazyValue<TypeNamespace> agentNamespace;
-    private final LazyValue<NamedSymbol> agentSymbol;
+    private final LazyValue<NameMember> agentSymbol;
 
 
     public ForAgentDeclarationContext(
@@ -46,7 +46,7 @@ public abstract class ForAgentDeclarationContext
 
 
     @Override
-    public Stream<? extends NamedSymbol> searchName(
+    public Stream<? extends NameMember> searchName(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite

@@ -6,10 +6,9 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.*;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.PatternSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableNamedCell;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchMode;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -52,7 +51,7 @@ public class SingleIdentifierExpressionSemantics
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
-        Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
+        Maybe<Either<CompilableNamedCell, CompilableCallable>> resolved =
             resolveAsExpression(input, state);
         final String ident = input.__(SingleIdentifier::getIdent)
             .extract(nullAsEmptyString);
@@ -74,8 +73,8 @@ public class SingleIdentifierExpressionSemantics
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
-        Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
-            resolveAsExpression(input, state);
+        Maybe<Either<CompilableNamedCell, CompilableCallable>>
+            resolved = resolveAsExpression(input, state);
         final String ident = input.__(SingleIdentifier::getIdent)
             .extract(nullAsEmptyString);
 
@@ -91,49 +90,46 @@ public class SingleIdentifierExpressionSemantics
     }
 
 
-    public Maybe<NamedSymbol> resolveAsNamedSymbol(
+    public Maybe<CompilableNamedCell> resolveAsNamedSymbol(
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
         return input.__(SingleIdentifier::getIdent).__(
             identSafe -> state.searchAs(
-                NamedSymbol.Searcher.class,
-                s -> s.searchName(identSafe, null, null)
-            ).findAny().orElse(null)
+                    CompilableNamedCell.Namespace.class,
+                    s -> s.compilableNamedCells()
+                        .filter(cnc -> cnc.name().equals(identSafe))
+                ).findAny()
+                .orElse(null)//<- wrapped in Maybe
         );
     }
 
 
-    public Maybe<Either<NamedSymbol, CallableSymbol>> resolveAsExpression(
-        Maybe<SingleIdentifier> input,
-        StaticState state
-    ) {
-        Maybe<NamedSymbol> named = resolveAsNamedSymbol(input, state);
+    public Maybe<Either<CompilableNamedCell, CompilableCallable>>
+    resolveAsExpression(Maybe<SingleIdentifier> input, StaticState state) {
+        Maybe<CompilableNamedCell> named = resolveAsNamedSymbol(input, state);
         if (named.isPresent()) {
             return some(new Either.Left<>(named.toNullable()));
         }
         final CallSemantics mcs = module.get(CallSemantics.class);
-        Maybe<? extends CallableSymbol> callable = mcs.resolve(
-            Call.call(input),
-            state,
-            true
-        );
+        Maybe<? extends CompilableCallable> callable =
+            mcs.resolve(Call.call(input), state, true);
         return callable.__(Either.Right::new);
     }
 
 
-    public Maybe<Either<NamedSymbol, PatternSymbol>> resolveAsPattern(
+    public Maybe<Either<CompilableNamedCell, GlobalPattern>> resolveAsPattern(
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
-        Maybe<NamedSymbol> named = resolveAsNamedSymbol(
+        Maybe<CompilableNamedCell> named = resolveAsNamedSymbol(
             input, state
         );
         if (named.isPresent()) {
             return some(new Either.Left<>(named.toNullable()));
         }
         final CallSemantics mcs = module.get(CallSemantics.class);
-        Maybe<? extends PatternSymbol> ps = mcs.resolvePattern(
+        Maybe<? extends GlobalPattern> ps = mcs.resolvePattern(
             Call.call(input),
             state
         );
@@ -158,8 +154,6 @@ public class SingleIdentifierExpressionSemantics
     }
 
 
-
-
     @Override
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<SingleIdentifier> input
@@ -182,15 +176,16 @@ public class SingleIdentifierExpressionSemantics
             ).orElse("");
         }
 
-        final Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
+        final Maybe<Either<CompilableNamedCell, CompilableCallable>> resolved =
             resolveAsExpression(input, state);
 
         if (resolved.isNothing()) {
             return "/*UNRESOLVED NAME:*/" + ident.toNullable();
         } else if (resolved.toNullable() instanceof Either.Left) {
-            final NamedSymbol variable = ((Either.Left<NamedSymbol,
-                CallableSymbol>) resolved.toNullable()).getLeft();
-            return variable.compileRead("");
+            final CompilableNamedCell variable = ((Either.Left<
+                CompilableNamedCell, CompilableCallable>) resolved.toNullable())
+                .getLeft();
+            return variable.compileRead();
         } else /*if (resolved.toNullable() instanceof Either.Right)*/ {
             return module.get(CallSemantics.class)
                 .compile(Call.call(input), state, acceptor);
@@ -208,10 +203,8 @@ public class SingleIdentifierExpressionSemantics
         if (input == null) return;
         final Maybe<String> ident = input.__(SingleIdentifier::getIdent);
 
-        final Maybe<NamedSymbol> variable = resolveAsNamedSymbol(
-            input,
-            state
-        );
+        final Maybe<CompilableNamedCell> variable =
+            resolveAsNamedSymbol(input, state);
 
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
@@ -230,9 +223,9 @@ public class SingleIdentifierExpressionSemantics
             }
 
             acceptor.accept(
-                w.simpleStmt(variable.toNullable().compileWrite(
-                    "", adaptedExpression
-                ))
+                w.simpleStmt(variable.toNullable()
+                    .compileWrite(adaptedExpression)
+                )
             );
         } else {
             // Inferred declaration
@@ -258,10 +251,8 @@ public class SingleIdentifierExpressionSemantics
         if (input == null) return state;
         final Maybe<String> ident = input.__(SingleIdentifier::getIdent);
 
-        final Maybe<NamedSymbol> variable = resolveAsNamedSymbol(
-            input,
-            state
-        );
+        final Maybe<CompilableNamedCell> variable =
+            resolveAsNamedSymbol(input, state);
         if (variable.isPresent()) {
 
             final Maybe<ExpressionDescriptor> descr =
@@ -289,8 +280,9 @@ public class SingleIdentifierExpressionSemantics
     ) {
         if (input == null) return module.get(TypeHelper.class).ANY;
         final Maybe<String> ident = input.__(SingleIdentifier::getIdent);
-        final Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
-            resolveAsExpression(input, state);
+        final Maybe<Either<CompilableNamedCell, CompilableCallable>>
+            resolved = resolveAsExpression(input, state);
+
         if (resolved.isNothing()) {
             return module.get(TypeHelper.class).BOTTOM.apply(
                 "Cannot infer the type of the expression. Reason: cannot " +
@@ -298,7 +290,8 @@ public class SingleIdentifierExpressionSemantics
             );
         } else if (resolved.toNullable() instanceof Either.Left) {
             return (
-                (Either.Left<NamedSymbol, CallableSymbol>) resolved.toNullable()
+                (Either.Left<CompilableNamedCell, CompilableCallable>)
+                    resolved.toNullable()
             ).getLeft().readingType();
         } else /*if(resolved.toNullable() instanceof Either.Right)*/ {
             return module.get(CallSemantics.class).inferType(
@@ -326,7 +319,7 @@ public class SingleIdentifierExpressionSemantics
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
-        final Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
+        final Maybe<Either<CompilableNamedCell, CompilableCallable>> resolved =
             resolveAsExpression(input, state);
         //Considering it pure if it is not resolved and if it is a named
         // symbol (i.e. not a call to a function without
@@ -340,7 +333,8 @@ public class SingleIdentifierExpressionSemantics
         }
 
         return (
-            (Either.Right<NamedSymbol, CallableSymbol>) resolved.toNullable()
+            (Either.Right<CompilableNamedCell, CompilableCallable>)
+                resolved.toNullable()
         ).getRight().isWithoutSideEffects();
 
     }
@@ -564,7 +558,7 @@ public class SingleIdentifierExpressionSemantics
         if (ident.isNothing()) {
             return VALID;
         }
-        final Maybe<Either<NamedSymbol, CallableSymbol>> resolved =
+        final Maybe<Either<CompilableNamedCell, CompilableCallable>> resolved =
             resolveAsExpression(input, state);
 
         final ValidationHelper validationHelper =
@@ -612,7 +606,7 @@ public class SingleIdentifierExpressionSemantics
             module.get(RValueExpressionSemantics.class).inferType(
                 expression, state);
 
-        final Maybe<Either<NamedSymbol, CallableSymbol>> resolve =
+        final Maybe<Either<CompilableNamedCell, CompilableCallable>> resolve =
             resolveAsExpression(input, afterRExpr);
 
         if (resolve.isNothing()) {
@@ -651,8 +645,9 @@ public class SingleIdentifierExpressionSemantics
             return VALID;
 
         } else if (resolve.toNullable() instanceof Either.Left) {
-            NamedSymbol variable = (
-                (Either.Left<NamedSymbol, CallableSymbol>) resolve.toNullable()
+            CompilableNamedCell variable = (
+                (Either.Left<CompilableNamedCell, CompilableCallable>)
+                    resolve.toNullable()
             ).getLeft();
 
             boolean canWrite = module.get(ValidationHelper.class).asserting(
@@ -721,14 +716,15 @@ public class SingleIdentifierExpressionSemantics
         PatternMatchInput<SingleIdentifier> input,
         StaticState state
     ) {
-        final Maybe<Either<NamedSymbol, CallableSymbol>> resolve =
+        final Maybe<Either<CompilableNamedCell, CompilableCallable>> resolve =
             this.resolveAsExpression(input.getPattern(), state);
         if (resolve.isNothing()) {
             //Yes: probably declaring a new local variable.
             return true;
         }
 
-        final Either<NamedSymbol, CallableSymbol> either = resolve.toNullable();
+        final Either<CompilableNamedCell, CompilableCallable> either =
+            resolve.toNullable();
         if (either instanceof Either.Left) {
             //Resolves to a variable/property
             return true;
@@ -751,8 +747,8 @@ public class SingleIdentifierExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        final Maybe<Either<NamedSymbol, CallableSymbol>> resolved
-            = resolveAsExpression(input, state);
+        final Maybe<Either<CompilableNamedCell, CompilableCallable>> resolved =
+            resolveAsExpression(input, state);
         if (resolved.isPresent() &&
             resolved.toNullable() instanceof Either.Right) {
             // nullary function call: ok as statement, validate it

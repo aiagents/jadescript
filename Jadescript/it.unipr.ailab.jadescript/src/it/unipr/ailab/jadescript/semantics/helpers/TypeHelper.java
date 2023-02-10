@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.EmptyTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.JvmTypeQualifiedNameParser;
 import it.unipr.ailab.jadescript.semantics.utils.JvmTypeReferenceSet;
@@ -18,6 +19,8 @@ import jadescript.content.*;
 import jadescript.core.Agent;
 import jadescript.core.behaviours.*;
 import jadescript.core.message.*;
+import jadescript.java.AgentEnv;
+import jadescript.java.SideEffectsFlag;
 import jadescript.lang.Performative;
 import jadescript.lang.Tuple;
 import jadescript.util.JadescriptMap;
@@ -41,8 +44,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.some;
+import static it.unipr.ailab.maybe.Maybe.*;
 import static jadescript.lang.Performative.*;
 
 
@@ -62,6 +64,8 @@ public class TypeHelper implements SemanticsConsts {
     public final UtilityType NUMBER;
     public final UtilityType SERIALIZABLE;
     public final UtilityType ANYMESSAGE;
+    public final AgentEnvType ANYAGENTENV;
+    public final Function<List<TypeArgument>, AgentEnvType> AGENTENV;
     // Jadescript basic types
     public final BasicType INTEGER;
     public final BasicType BOOLEAN;
@@ -287,6 +291,9 @@ public class TypeHelper implements SemanticsConsts {
         defineJVMToDescriptor(Void.TYPE, VOID);
 
 
+
+
+
         INTEGER = new BasicType(
             this.module,
             builtinPrefix + "integer",
@@ -316,13 +323,12 @@ public class TypeHelper implements SemanticsConsts {
             "\"\""
         );
         defineJVMToDescriptor(String.class, TEXT);
-        TEXT.addProperty(new Property(
+        TEXT.addProperty(Property.readonlyProperty(
             "length",
             INTEGER,
-            true,
-            new JadescriptTypeLocation(TEXT)
-        )
-            .setCompileByCustomJVMMethod("length", "length"));
+            new JadescriptTypeLocation(TEXT),
+            Property.compileGetWithCustomMethod("length")
+        ));
         REAL = new BasicType(
             this.module,
             builtinPrefix + "real",
@@ -353,10 +359,18 @@ public class TypeHelper implements SemanticsConsts {
             "new jade.core.AID()"
         );
         final SearchLocation aidLocation = new JadescriptTypeLocation(AID);
-        AID.addProperty(new Property("name", TEXT, true, aidLocation)
-            .setCompileByJVMAccessors());
-        AID.addProperty(new Property("platform", TEXT, true, aidLocation)
-            .setCompileByCustomJVMMethod("getPlatformID", "setPlatformID"));
+        AID.addProperty(Property.readonlyProperty(
+                "name",
+                TEXT,
+                aidLocation,
+                Property.compileWithJVMGetter("name")
+            ));
+        AID.addProperty(Property.readonlyProperty(
+            "platform",
+            TEXT,
+            aidLocation,
+            Property.compileGetWithCustomMethod("getPlatformID")
+        ));
         defineJVMToDescriptor(jade.core.AID.class, AID);
         DURATION = new BasicType(
             this.module,
@@ -487,6 +501,23 @@ public class TypeHelper implements SemanticsConsts {
 
         AGENT = new BaseAgentType(module);
         defineJVMToDescriptor(jadescript.core.Agent.class, AGENT);
+
+        AGENTENV = (args) -> new AgentEnvType(
+            module,
+            args.get(0),
+            args.get(1)
+        );
+
+        defineJVMToGenericDescriptor(AgentEnv.class, AGENTENV, 2);
+
+        UnknownJVMType anySEMode = new UnknownJVMType(
+            module,
+            typeRef(SideEffectsFlag.AnySideEffectFlag.class)
+        );
+
+        ANYAGENTENV = AGENTENV.apply(
+            List.of(covariant(AGENT), covariant(anySEMode))
+        );
 
         MESSAGE = (arguments) -> new BaseMessageType(module, arguments.get(0));
         defineJVMToGenericDescriptor(

@@ -2,7 +2,7 @@ package it.unipr.ailab.jadescript.semantics.context.c0outer;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -22,7 +22,7 @@ import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 public class FileContext
         extends OuterLevelAbstractContext
-        implements CallableSymbol.Searcher{
+        implements CallableMember.Namespace {
 
 
     private final String fileName;
@@ -55,7 +55,7 @@ public class FileContext
     }
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(
+    public Stream<? extends CallableMember> searchCallable(
             String name,
             Predicate<IJadescriptType> returnType,
             BiPredicate<Integer, Function<Integer, String>> parameterNames,
@@ -86,7 +86,7 @@ public class FileContext
     }
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(
+    public Stream<? extends CallableMember> searchCallable(
             Predicate<String> name,
             Predicate<IJadescriptType> returnType,
             BiPredicate<Integer, Function<Integer, String>> parameterNames,

@@ -1,7 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 
 public class OnExceptionHandlerContext
     extends HandlerWithWhenExpressionContext
-    implements NamedSymbol.Searcher, ExceptionHandledContext {
+    implements NameMember.Namespace, ExceptionHandledContext {
 
     private final IJadescriptType exceptionReasonType;
 
@@ -32,7 +32,7 @@ public class OnExceptionHandlerContext
 
 
     @Override
-    public Stream<? extends NamedSymbol> searchName(
+    public Stream<? extends NameMember> searchName(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite

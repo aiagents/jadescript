@@ -37,6 +37,10 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
         setSchema.add(ELEMENTS, elementSchema, 0, ObjectSchema.UNLIMITED);
     }
 
+    public static void __populateListSchema(TermSchema elementSchema, ConceptSchema listSchema) {
+        listSchema.add(ELEMENTS, elementSchema, 0, ObjectSchema.UNLIMITED);
+    }
+
 
     public static JadescriptConcept emptyConcept() {
         return new Nothing();
@@ -96,6 +100,7 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
             //Support types for Jadescript collections
             add(new ConceptSchema(MAP_ENTRY), JadescriptMapEntry.class);
             add(new ConceptSchema(SET_ENTRY), JadescriptSetEntry.class);
+            add(new ConceptSchema(LIST_ENTRY), JadescriptListEntry.class);
 
             //Jadescript basic types
             add(new AgentActionSchema(PERFORMATIVE), Performative.class);
@@ -211,8 +216,6 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
         } catch (OntologyException e) {
             e.printStackTrace();
         }
-
-
     }
 
     public static Ontology getInstance() {

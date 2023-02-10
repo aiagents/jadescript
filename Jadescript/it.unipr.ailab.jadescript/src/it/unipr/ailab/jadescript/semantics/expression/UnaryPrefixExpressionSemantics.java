@@ -11,8 +11,8 @@ import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
@@ -209,9 +209,9 @@ public class UnaryPrefixExpressionSemantics
 
         return "[DEBUG]Searching " + target + " in scope: \n\n" +
             state.searchAs(
-                NamedSymbol.Searcher.class,
+                NameMember.Namespace.class,
                 s -> {
-                    Stream<? extends NamedSymbol> result;
+                    Stream<? extends NameMember> result;
                     if (identifier.isPresent()) {
                         result = s.searchName(
                             identifier.orElse(""),
@@ -229,7 +229,7 @@ public class UnaryPrefixExpressionSemantics
                 }
             ).map(ns -> {
                 SourceCodeBuilder scb = new SourceCodeBuilder("");
-                ns.debugDumpNamedSymbol(scb);
+                ns.debugDumpNamedMember(scb);
                 return " - " + scb;
             }).collect(Collectors.joining(";\n")) +
             "\n\n****** End Searching " + target + " in scope ******";
@@ -246,9 +246,9 @@ public class UnaryPrefixExpressionSemantics
 
         return "[DEBUG]Searching " + target + " in scope: \n\n" +
             state.searchAs(
-                CallableSymbol.Searcher.class,
+                CallableMember.Namespace.class,
                 s -> {
-                    Stream<? extends CallableSymbol> result;
+                    Stream<? extends CallableMember> result;
                     if (identifier.isPresent()) {
                         result = s.searchCallable(
                             identifier.orElse(""),
@@ -268,7 +268,7 @@ public class UnaryPrefixExpressionSemantics
                 }
             ).map(ns -> {
                 SourceCodeBuilder scb = new SourceCodeBuilder("");
-                ns.debugDumpCallableSymbol(scb);
+                ns.debugDumpCallableMember(scb);
                 return " - " + scb;
             }).collect(Collectors.joining(";\n")) +
             "\n\n****** End Searching " + target + " in scope ******";

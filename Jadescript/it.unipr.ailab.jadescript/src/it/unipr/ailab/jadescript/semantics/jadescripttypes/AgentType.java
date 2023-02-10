@@ -7,18 +7,17 @@ import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociated;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociation;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberNamedCell;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 
+import java.util.List;
 import java.util.Map;
-import java.util.function.BiPredicate;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -38,14 +37,14 @@ public interface AgentType extends IJadescriptType, UsingOntologyType {
 
         private final AgentType agentType;
         private final boolean useJvm;
-        private final Map<String, Property> builtinProperties;
-        private final LazyValue<JvmModelBasedNamespace> jvmNamespace;
+        private final List<Property> builtinProperties;
+        private final LazyValue<JvmTypeNamespace> jvmNamespace;
 
 
         public AgentTypeNamespace(
                 SemanticsModule module,
                 AgentType agentType,
-                Map<String, Property> builtinProperties
+                List<Property> builtinProperties
         ) {
             super(module);
             this.agentType = agentType;
@@ -56,69 +55,32 @@ public interface AgentType extends IJadescriptType, UsingOntologyType {
 
 
         @Override
-        public Stream<? extends CallableSymbol> searchCallable(
-                String name,
-                Predicate<IJadescriptType> returnType,
-                BiPredicate<Integer, Function<Integer, String>> parameterNames,
-                BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
-        ) {
-            Stream<? extends CallableSymbol> jvmStream;
-            if (useJvm) {
-                jvmStream = computeUserDefinedSymbols(jvmNamespace.get()).searchCallable(
-                        name, returnType, parameterNames, parameterTypes
-                );
-            } else {
-                jvmStream = Stream.empty();
+        public Stream<? extends MemberCallable> memberCallables() {
+            if(useJvm){
+                return callablesFromJvm(jvmNamespace.get())
+                    .memberCallables();
+            }else{
+                return Stream.empty();
             }
-            return jvmStream;
         }
+
 
         @Override
-        public Stream<? extends CallableSymbol> searchCallable(
-                Predicate<String> name,
-                Predicate<IJadescriptType> returnType,
-                BiPredicate<Integer, Function<Integer, String>> parameterNames,
-                BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
-        ) {
-            Stream<? extends CallableSymbol> jvmStream;
+        public Stream<? extends MemberNamedCell> memberNamedCells() {
             if (useJvm) {
-                jvmStream = computeUserDefinedSymbols(jvmNamespace.get()).searchCallable(
-                        name, returnType, parameterNames, parameterTypes
-                );
+                return namedCellsFromJvm(jvmNamespace.get())
+                    .memberNamedCells();
             } else {
-                jvmStream = Stream.empty();
+                return builtinProperties.stream();
             }
-            return jvmStream;
         }
 
-        @Override
-        public Stream<? extends NamedSymbol> searchName(
-                Predicate<String> name,
-                Predicate<IJadescriptType> readingType,
-                Predicate<Boolean> canWrite
-        ) {
-            Stream<Map.Entry<String, Property>> stream = builtinProperties.entrySet().stream();
-            stream = safeFilter(stream, Map.Entry::getKey, name);
-            stream = safeFilter(stream, x -> x.getValue().readingType(), readingType);
-            stream = safeFilter(stream, x -> x.getValue().canWrite(), canWrite);
-
-            Stream<? extends NamedSymbol> jvmStream;
-            if (useJvm) {
-
-                jvmStream = computeUserDefinedSymbols(jvmNamespace.get()).searchName(
-                        name, readingType, canWrite
-                );
-            } else {
-                jvmStream = Stream.empty();
-            }
-
-            return Streams.concat(stream.map(Map.Entry::getValue), jvmStream);
-        }
 
         @Override
         public Maybe<? extends TypeNamespace> getSuperTypeNamespace() {
             if (agentType instanceof UserDefinedAgentType) {
-                return some(((UserDefinedAgentType) agentType).getSuperAgentType().namespace());
+                return some(((UserDefinedAgentType) agentType)
+                    .getSuperAgentType().namespace());
             }
             return nothing();
         }
@@ -150,7 +112,10 @@ public interface AgentType extends IJadescriptType, UsingOntologyType {
 
         @Override
         public Stream<AgentAssociation> computeCurrentAgentAssociations() {
-            return Stream.of(new AgentAssociation(agentType, AgentAssociation.A.INSTANCE));
+            return Stream.of(new AgentAssociation(
+                agentType,
+                AgentAssociation.A.INSTANCE
+            ));
         }
 
         @Override

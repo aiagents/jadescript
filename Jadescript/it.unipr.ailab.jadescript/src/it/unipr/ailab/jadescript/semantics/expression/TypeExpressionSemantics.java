@@ -8,7 +8,7 @@ import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseBehaviourType;
@@ -167,7 +167,7 @@ public final class TypeExpressionSemantics extends Semantics {
                         null,
                         null
                     ).findFirst()
-                    .map(CallableSymbol::returnType);
+                    .map(CallableMember::returnType);
 
             if (declaringOntology.isPresent()) {
                 IJadescriptType jadescriptType = declaringOntology.get();

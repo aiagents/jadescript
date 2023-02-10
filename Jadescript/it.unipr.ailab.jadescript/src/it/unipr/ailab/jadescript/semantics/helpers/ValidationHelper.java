@@ -14,7 +14,7 @@ import it.unipr.ailab.jadescript.semantics.context.clashing.DefinitionClash;
 import it.unipr.ailab.jadescript.semantics.context.clashing.NameClashValidator;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -296,7 +296,7 @@ public class ValidationHelper implements SemanticsConsts {
 
     @SuppressWarnings("UnusedReturnValue")
     public boolean validateMethodCompatibility(
-        CallableSymbol toBeAdded,
+        CallableMember toBeAdded,
         Maybe<? extends EObject> refEObject,
         ValidationMessageAcceptor acceptor
     ) {

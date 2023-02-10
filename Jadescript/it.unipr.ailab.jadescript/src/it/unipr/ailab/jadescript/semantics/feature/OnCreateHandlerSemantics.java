@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace.symbolFromJvmParameter;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 public class OnCreateHandlerSemantics
@@ -307,11 +306,15 @@ public class OnCreateHandlerSemantics
                                 mod,
                                 out,
                                 pars.stream().map(jvmPar ->
-                                    symbolFromJvmParameter(
-                                        mod,
-                                        UserLocalDefinition.getInstance(),
-                                        jvmPar
-                                    )
+                                    {
+                                        UserLocalDefinition.getInstance();
+
+                                        final TypeHelper typeHelper = mod.get(TypeHelper.class);
+                                        return new ActualParameter(
+                                            jvmPar.getName(),
+                                            typeHelper.jtFromJvmTypeRef(jvmPar.getParameterType())
+                                        );
+                                    }
                                 ).collect(Collectors.toList())
                             )
                         );

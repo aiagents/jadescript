@@ -3,7 +3,6 @@ package it.unipr.ailab.jadescript.semantics.topelement;
 import com.google.common.collect.HashMultimap;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import jadescript.java.NativeValueFactory;
 import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -22,6 +21,7 @@ import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
+import jadescript.java.NativeValueFactory;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.naming.QualifiedName;
@@ -273,7 +273,7 @@ public class OntologyElementSemantics extends Semantics {
         }
 
 
-        JvmTypeNamespace superNamespace = new JvmTypeNamespace(
+        JvmTypeNamespace superNamespace = JvmTypeNamespace.resolved(
             module,
             (JvmDeclaredType) superTypeDeclaredSafe
         );
@@ -481,7 +481,7 @@ public class OntologyElementSemantics extends Semantics {
             acceptor
         );
 
-        if(slotTypeExprCheck == INVALID){
+        if (slotTypeExprCheck == INVALID) {
             return INVALID;
         }
 
@@ -511,7 +511,7 @@ public class OntologyElementSemantics extends Semantics {
             inputWithSlots.__(FeatureWithSlots::getSlots);
         for (Maybe<SlotDeclaration> slot : iterate(slots)) {
             final Maybe<String> slotName = slot.__(SlotDeclaration::getName);
-            if(slot.isNothing()||slotName.isNothing()){
+            if (slot.isNothing() || slotName.isNothing()) {
                 continue;
             }
 
@@ -953,7 +953,7 @@ public class OntologyElementSemantics extends Semantics {
             }
         }
 
-        final JvmTypeNamespace superTypeNamespace = new JvmTypeNamespace(
+        final JvmTypeNamespace superTypeNamespace = JvmTypeNamespace.resolved(
             module,
             superTypeDeclaredSafe
         );
@@ -1057,13 +1057,22 @@ public class OntologyElementSemantics extends Semantics {
         });
 
 
-        superTypeNamespace.getBiggestCtor().ifPresent(c -> {
-            compiledSuperArguments.addAll(CallSemantics
-                .sortToMatchParamNames(
-                    superArgs,
-                    ctorArgNames,
-                    c.parameterNames()
-                ));
+        superTypeNamespace.getBiggestCtor().ifPresent((JvmConstructor c) -> {
+            final EList<JvmFormalParameter> parameters = c.getParameters();
+            if (parameters == null) {
+                return;
+            }
+
+
+
+            compiledSuperArguments.addAll(CallSemantics.sortToMatchParamNames(
+                superArgs,
+                ctorArgNames,
+                parameters.stream()
+                    .map(JvmFormalParameter::getName)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList())
+            ));
         });
 
     }

@@ -5,7 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
@@ -229,9 +229,9 @@ public class SubscriptExpressionSemantics
                 methodName = "put";
             }
 
-            final List<? extends CallableSymbol> matchesFound =
+            final List<? extends CallableMember> matchesFound =
                 restType.namespace().searchAs(
-                    CallableSymbol.Searcher.class,
+                    CallableMember.Namespace.class,
                     searcher -> searcher.searchCallable(
                         methodName,
                         null,
@@ -500,9 +500,9 @@ public class SubscriptExpressionSemantics
             );
         } else if (restType instanceof MapType
             || restType instanceof ListType) {
-            final List<? extends CallableSymbol> matchesFound =
+            final List<? extends CallableMember> matchesFound =
                 restType.namespace().searchAs(
-                    CallableSymbol.Searcher.class,
+                    CallableMember.Namespace.class,
                     searcher -> searcher.searchCallable(
                         "get",
                         null,

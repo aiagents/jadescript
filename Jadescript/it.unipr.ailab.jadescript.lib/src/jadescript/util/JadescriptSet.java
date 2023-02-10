@@ -10,7 +10,7 @@ public class JadescriptSet<T> implements Set<T>, Concept {
     private boolean converted = false;
 
     public JadescriptSet() {
-        //empty ctor for jade
+        //empty ctor for JADE
     }
 
 
@@ -19,10 +19,6 @@ public class JadescriptSet<T> implements Set<T>, Concept {
         return elements;
     }
 
-    /**
-     * NOTE: this should be used only in conjunction with setValues by the
-     * ContentManager extractor.
-     */
     public void setElements(List<T> elements) {
         unzipIfNeeded();
         this.elements.clear();

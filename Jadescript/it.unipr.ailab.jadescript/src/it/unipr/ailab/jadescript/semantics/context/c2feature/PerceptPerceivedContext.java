@@ -1,7 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedReference;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -25,7 +25,7 @@ public interface PerceptPerceivedContext extends SemanticsConsts {
 
     IJadescriptType getPerceptContentType();
 
-    default Stream<NamedSymbol> getPerceptContentStream(
+    default Stream<NameMember> getPerceptContentStream(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite

@@ -4,8 +4,8 @@ import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.c1toplevel.TopLevelDeclarationContext;
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementConstructorSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
+import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementConstructorMember;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -19,29 +19,34 @@ import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
-public class OntologyDeclarationSupportContext extends TopLevelDeclarationContext
-        implements CallableSymbol.Searcher {
+public class OntologyDeclarationSupportContext
+    extends TopLevelDeclarationContext
+    implements CallableMember.Namespace {
     private final Maybe<Ontology> input;
 
-    public OntologyDeclarationSupportContext(SemanticsModule module, FileContext outer, Maybe<Ontology> input) {
+    public OntologyDeclarationSupportContext(
+        SemanticsModule module,
+        FileContext outer,
+        Maybe<Ontology> input
+    ) {
         super(module, outer);
         this.input = input;
     }
 
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(
+    public Stream<? extends CallableMember> searchCallable(
             String name,
             Predicate<IJadescriptType> returnType,
             BiPredicate<Integer, Function<Integer, String>> parameterNames,
             BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
     ) {
-        Stream<? extends CallableSymbol> stream = Maybe.toListOfMaybes(input.__(Ontology::getFeatures)).stream()
+        Stream<? extends CallableMember> stream = Maybe.toListOfMaybes(input.__(Ontology::getFeatures)).stream()
                 .filter(f -> f.__(ff -> ff instanceof ExtendingFeature).extract(nullAsFalse))
                 .map(f -> f.__(ff -> (ExtendingFeature) ff))
                 .filter(f -> f.__(ff -> ff.getName().equals(name)).extract(nullAsFalse))
-                .map(f -> new OntologyElementConstructorSymbol(module, f, currentLocation()));
-        stream = safeFilter(stream, CallableSymbol::returnType, returnType);
+                .map(f -> new OntologyElementConstructorMember(module, f, currentLocation()));
+        stream = safeFilter(stream, CallableMember::returnType, returnType);
         stream = safeFilter(
                 stream,
                 c -> c.parameterNames().size(),
@@ -58,13 +63,18 @@ public class OntologyDeclarationSupportContext extends TopLevelDeclarationContex
     }
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(Predicate<String> name, Predicate<IJadescriptType> returnType, BiPredicate<Integer, Function<Integer, String>> parameterNames, BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes) {
-        Stream<? extends CallableSymbol> stream = Maybe.toListOfMaybes(input.__(Ontology::getFeatures)).stream()
+    public Stream<? extends CallableMember> searchCallable(
+        Predicate<String> name,
+        Predicate<IJadescriptType> returnType,
+        BiPredicate<Integer, Function<Integer, String>> parameterNames,
+        BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
+    ) {
+        Stream<? extends CallableMember> stream = Maybe.toListOfMaybes(input.__(Ontology::getFeatures)).stream()
                 .filter(f -> f.__(ff -> ff instanceof ExtendingFeature).extract(nullAsFalse))
                 .map(f -> f.__(ff -> (ExtendingFeature) ff))
-                .map(f -> new OntologyElementConstructorSymbol(module, f, currentLocation()));
-        stream = safeFilter(stream, CallableSymbol::name, name);
-        stream = safeFilter(stream, CallableSymbol::returnType, returnType);
+                .map(f -> new OntologyElementConstructorMember(module, f, currentLocation()));
+        stream = safeFilter(stream, CallableMember::name, name);
+        stream = safeFilter(stream, CallableMember::returnType, returnType);
         stream = safeFilter(
                 stream,
                 c -> c.parameterNames().size(),

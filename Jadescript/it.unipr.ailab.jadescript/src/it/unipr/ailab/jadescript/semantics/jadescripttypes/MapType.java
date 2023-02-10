@@ -113,45 +113,45 @@ public class MapType extends ParametricType implements EmptyCreatable,
         }
 
         this.addProperty(
-            new Property(
+            Property.readonlyProperty(
                 "size",
                 module.get(TypeHelper.class).INTEGER,
-                true,
-                getLocation()
-            ).setCompileByCustomJVMMethod("size", "size")
+                getLocation(),
+                Property.compileGetWithCustomMethod("size")
+            )
         );
         this.addProperty(
-            new Property(
+            Property.readonlyProperty(
                 "values",
-                module.get(TypeHelper.class).SET.apply(Arrays.asList(
-                    getValueType())),
-                true,
-                getLocation()
-            ).setCompileByCustomJVMMethod("values", "values")
+                module.get(TypeHelper.class).SET.apply(
+                    Arrays.asList(getValueType())
+                ),
+                getLocation(),
+                Property.compileGetWithCustomMethod("values")
+            )
         );
         this.addProperty(
-            new Property(
+            Property.readonlyProperty(
                 "keys",
-                module.get(TypeHelper.class).SET.apply(Arrays.asList(
-                    getKeyType())),
-                true,
-                getLocation()
-            ).setCompileByCustomJVMMethod("keySet", "keySet")
+                module.get(TypeHelper.class).SET.apply(
+                    Arrays.asList(getKeyType())
+                ),
+                getLocation(),
+                Property.compileGetWithCustomMethod("keySet")
+            )
         );
 
-        operations.add(new Operation(
-            false,
-            "__addAt",
+        operations.add(Operation.operation(
             module.get(TypeHelper.class).VOID,
-            List.of(
-                new Tuple2<>("index", getKeyType()),
-                new Tuple2<>("element", getValueType())
+            "__addAt",
+
+            Map.of(
+                "index", getKeyType(),
+                "element", getValueType()
             ),
+            List.of("index", "element"),
             getLocation(),
-            (receiver, namedArgs) -> {
-                return receiver + ".put(" + namedArgs.get("index") + "," +
-                    namedArgs.get("element") + ")";
-            },
+            false,
             (receiver, args) -> {
                 final String e;
                 final String i;
@@ -163,59 +163,70 @@ public class MapType extends ParametricType implements EmptyCreatable,
                     e = "/*internal error: missing arguments*/";
                 }
                 return receiver + ".put(" + i + ", " + e + ")";
+            },
+            (receiver, namedArgs) -> {
+                return receiver + ".put(" + namedArgs.get("index") + "," +
+                    namedArgs.get("element") + ")";
             }
         ));
-        operations.add(new Operation(
-            true, // assuming no exceptions are thrown
+        operations.add(Operation.operation(
+            getValueType(),
             "get",
-            getValueType(),
-            List.of(new Tuple2<>("key", getKeyType())),
-            getLocation()
+            Map.of("key", getKeyType()),
+            List.of("key"),
+            getLocation(),
+            true // assuming no exceptions are thrown
         ));
-        operations.add(new Operation(
-            false,
+        operations.add(Operation.operation(
+            getValueType(),
             "put",
-            getValueType(),
-            List.of(
-                new Tuple2<>("key", getKeyType()),
-                new Tuple2<>("value", getValueType())
+            Map.of(
+                "key", getKeyType(),
+                "value", getValueType()
             ),
-            getLocation()
+            List.of("key", "value"),
+            getLocation(),
+            false
         ));
-        operations.add(new Operation(
-            true,
+        operations.add(Operation.operation(
+            module.get(TypeHelper.class).BOOLEAN,
             "containsKey",
-            module.get(TypeHelper.class).BOOLEAN,
-            List.of(new Tuple2<>("k", getKeyType())),
-            getLocation()
+            Map.of("k", getKeyType()),
+            List.of("k"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
+        operations.add(Operation.operation(
+            module.get(TypeHelper.class).BOOLEAN,
             "containsValue",
-            module.get(TypeHelper.class).BOOLEAN,
-            List.of(new Tuple2<>("v", getValueType())),
-            getLocation()
+            Map.of("v", getValueType()),
+            List.of("v"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
+        operations.add(Operation.operation(
+            module.get(TypeHelper.class).BOOLEAN,
             "containsAll",
-            module.get(TypeHelper.class).BOOLEAN,
-            List.of(new Tuple2<>("m", this)),
-            getLocation()
+            Map.of("m", this),
+            List.of("m"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
+        operations.add(Operation.operation(
+            module.get(TypeHelper.class).BOOLEAN,
             "containsAny",
-            module.get(TypeHelper.class).BOOLEAN,
-            List.of(new Tuple2<>("m", this)),
-            getLocation()
+            Map.of("m", this),
+            List.of("m"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            false,
-            "clear",
+        operations.add(Operation.operation(
             module.get(TypeHelper.class).VOID,
+            "clear",
+            Map.of(),
             List.of(),
-            getLocation()
+            getLocation(),
+            false
         ));
         this.initializedProperties = true;
     }

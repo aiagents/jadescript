@@ -1,8 +1,8 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.common.types.JvmTypeReference;
@@ -90,7 +90,7 @@ public interface IJadescriptType extends TypeArgument {
 
     TypeNamespace namespace();
 
-    JvmModelBasedNamespace jvmNamespace();
+    JvmTypeNamespace jvmNamespace();
 
     String getDebugPrint();
     //overridden by VOID type in TypeHelper

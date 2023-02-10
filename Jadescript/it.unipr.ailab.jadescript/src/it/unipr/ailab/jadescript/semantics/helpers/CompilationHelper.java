@@ -5,10 +5,10 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.Statement;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.jvmmodel.JadescriptCompilerUtils;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
@@ -35,8 +35,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.some;
@@ -95,15 +99,16 @@ public class CompilationHelper implements IQualifiedNameProvider {
         });
     }
 
-    public static Maybe<String> sourceToTextAny(Maybe<?> input){
-        if(input.isNothing()){
+
+    public static Maybe<String> sourceToTextAny(Maybe<?> input) {
+        if (input.isNothing()) {
             return nothing();
         }
 
         final Object o = input.toNullable();
-        if(o instanceof EObject){
+        if (o instanceof EObject) {
             return sourceToText(some(((EObject) o)));
-        }else{
+        } else {
             return nothing();
         }
     }
@@ -130,6 +135,60 @@ public class CompilationHelper implements IQualifiedNameProvider {
             multiComment.addLine(line);
         }
         return multiComment;
+    }
+
+
+    public static BiFunction<String, Map<String, String>, String>
+    addEnvParameterByName(
+        BiFunction<String, Map<String, String>, String> callByNames
+    ) {
+        return (rec, argsByNames) -> {
+            Map<String, String> m = new HashMap<>(argsByNames);
+            m.put(
+                SemanticsConsts.AGENT_ENV_PARAMETER,
+                SemanticsConsts.AGENT_ENV_PARAMETER
+            );
+            return callByNames.apply(rec, m);
+        };
+    }
+
+
+    public static BiFunction<String, List<String>, String>
+    addEnvParameterByArity(
+        BiFunction<String, List<String>, String> callByArity
+    ) {
+        return (rec, argsByArity) -> {
+            List<String> l = new ArrayList<>(argsByArity);
+            l.add(0, SemanticsConsts.AGENT_ENV_PARAMETER);
+            return callByArity.apply(rec, l);
+        };
+    }
+
+
+    public static Function<Map<String, String>, String>
+    addEnvParameterByName(
+        Function<Map<String, String>, String> callByNames
+    ) {
+        return (argsByNames) -> {
+            Map<String, String> m = new HashMap<>(argsByNames);
+            m.put(
+                SemanticsConsts.AGENT_ENV_PARAMETER,
+                SemanticsConsts.AGENT_ENV_PARAMETER
+            );
+            return callByNames.apply(m);
+        };
+    }
+
+
+    public static Function<List<String>, String>
+    addEnvParameterByArity(
+        Function<List<String>, String> callByArity
+    ) {
+        return (argsByArity) -> {
+            List<String> l = new ArrayList<>(argsByArity);
+            l.add(0, SemanticsConsts.AGENT_ENV_PARAMETER);
+            return callByArity.apply(l);
+        };
     }
 
 

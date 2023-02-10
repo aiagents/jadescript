@@ -3,64 +3,104 @@ package jadescript.util;
 import java.util.Iterator;
 
 
-public class IntegerRange implements Iterable<Integer>{
+public class IntegerRange implements Iterable<Integer> {
+
     private Integer start;
     private Integer end;
     private boolean descending;
 
-    public IntegerRange(Integer start, Integer end, boolean startIncluded, boolean endIncluded) {
-        descending = start>end;
-        this.start = startIncluded ? start : (!descending ? start+1 : start-1);
-        this.end = endIncluded ? end : (!descending ? end-1 : end+1);
+
+    public IntegerRange(
+        Integer start,
+        Integer end,
+        boolean startIncluded,
+        boolean endIncluded
+    ) {
+        descending = start > end;
+        if (startIncluded) {
+            this.start = start;
+        } else {
+            if (descending) {
+                this.start = start - 1;
+            } else {
+                this.start = start + 1;
+            }
+        }
+        if (endIncluded) {
+            this.end = end;
+        } else {
+            if (descending) {
+                this.end = end + 1;
+            } else {
+                this.end = end - 1;
+            }
+        }
     }
+
 
     public Integer getStart() {
         return start;
     }
 
+
+    public void setStart(Integer start) {
+        this.start = start;
+        descending = start > end;
+    }
+
+
     public Integer getEnd() {
         return end;
     }
 
-    public void setStart(Integer start) {
-        this.start = start;
-        descending = start>end;
-    }
 
     public void setEnd(Integer end) {
         this.end = end;
-        descending = start>end;
+        descending = start > end;
     }
+
 
     public boolean isDescending() {
         return descending;
     }
+
 
     @Override
     public Iterator<Integer> iterator() {
         return new IntegerRangeIterator(start, end, descending);
     }
 
-    public static class IntegerRangeIterator implements Iterator<Integer>{
+
+    public static class IntegerRangeIterator implements Iterator<Integer> {
 
         private final Integer end;
         private final boolean descending;
         private int index;
 
-        public IntegerRangeIterator(Integer start, Integer end, boolean descending) {
+
+        public IntegerRangeIterator(
+            Integer start,
+            Integer end,
+            boolean descending
+        ) {
             this.end = end;
             this.descending = descending;
             index = start;
         }
 
+
         @Override
         public boolean hasNext() {
-            return (!descending) ? (index<=end) : (index>=end);
+            if (descending) {
+                return index >= end;
+            }
+            return index <= end;
         }
+
 
         @Override
         public Integer next() {
-            return (descending?index--:index++);
+            return (descending ? index-- : index++);
         }
 
     }

@@ -3,7 +3,7 @@ package it.unipr.ailab.jadescript.semantics.context.c2feature;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.Context;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
 import it.unipr.ailab.jadescript.semantics.context.symbol.SuperProperty;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
 public class SuperSlotInitializerContext extends Context
-    implements NamedSymbol.Searcher {
+    implements NameMember.Namespace {
 
     private final OntologyElementDeclarationContext outer;
     private final Map<String, IJadescriptType> superSlotsInitPairs;
@@ -42,7 +42,7 @@ public class SuperSlotInitializerContext extends Context
 
 
     @Override
-    public Stream<? extends NamedSymbol> searchName(
+    public Stream<? extends NameMember> searchName(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite

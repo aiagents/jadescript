@@ -1,13 +1,14 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol;
 
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class OntologyElementStructuralPattern implements PatternSymbol {
+public class OntologyElementStructuralPattern implements GlobalPattern {
 
     private final String name;
     private final IJadescriptType inputType;
@@ -28,6 +29,12 @@ public class OntologyElementStructuralPattern implements PatternSymbol {
         this.termNames = termNames;
         this.termTypesByName = termTypesByName;
         this.location = location;
+    }
+
+
+    @Override
+    public SearchLocation sourceLocation() {
+        return location;
     }
 
 
@@ -57,23 +64,17 @@ public class OntologyElementStructuralPattern implements PatternSymbol {
 
     @Override
     public List<IJadescriptType> termTypes() {
-        final Map<String, IJadescriptType> ttbn = this.termTypesByName();
+        final Map<String, IJadescriptType> map = termTypesByName();
         return termNames().stream()
-            .filter(ttbn::containsKey)
-            .map(ttbn::get)
+            .filter(map::containsKey)
+            .map(map::get)
             .collect(Collectors.toList());
     }
 
 
     @Override
     public boolean isWithoutSideEffects() {
-        return true;
-    }
-
-
-    @Override
-    public SearchLocation sourceLocation() {
-        return location;
+        return false;
     }
 
 }

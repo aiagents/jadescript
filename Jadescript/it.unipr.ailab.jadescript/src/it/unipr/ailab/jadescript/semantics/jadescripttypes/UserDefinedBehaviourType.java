@@ -51,7 +51,11 @@ public class UserDefinedBehaviourType
 
     @Override
     public BehaviourTypeNamespace namespace() {
-        return new BehaviourTypeNamespace(module, this, Collections.emptyMap());
+        return new BehaviourTypeNamespace(
+            module,
+            this,
+            Collections.emptyList()
+        );
     }
 
     public BehaviourType getSuperBehaviourType() {

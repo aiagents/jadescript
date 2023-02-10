@@ -6,14 +6,12 @@ import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmOperationSymbol;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import jade.wrapper.ContainerController;
@@ -106,7 +104,7 @@ public class CreateAgentStatementSemantics
             acceptor
         );
 
-        Optional<? extends CallableSymbol> createMethodOpt =
+        Optional<? extends CallableMember> createMethodOpt =
             getCreateMethod(agentType);
 
         module.get(ValidationHelper.class).asserting(
@@ -130,7 +128,7 @@ public class CreateAgentStatementSemantics
                 return afterNickName;
             }
 
-            final CallableSymbol createMethod = createMethodOpt.get();
+            final CallableMember createMethod = createMethodOpt.get();
             final List<IJadescriptType> expectedMethodTypes =
                 createMethod.parameterTypes();
             module.get(ValidationHelper.class).asserting(
@@ -160,7 +158,7 @@ public class CreateAgentStatementSemantics
 
 
             if (createMethodOpt.isPresent()) {
-                final CallableSymbol createMethod = createMethodOpt.get();
+                final CallableMember createMethod = createMethodOpt.get();
                 final List<IJadescriptType> expectedMethodTypes =
                     createMethod.parameterTypes();
                 module.get(ValidationHelper.class).asserting(
@@ -200,7 +198,7 @@ public class CreateAgentStatementSemantics
         }
 
         if (createMethodOpt.isPresent()) {
-            final CallableSymbol createMethod = createMethodOpt.get();
+            final CallableMember createMethod = createMethodOpt.get();
             final List<IJadescriptType> expectedMethodTypes =
                 createMethod.parameterTypes();
             final List<String> expectedMethodNames =
@@ -229,7 +227,7 @@ public class CreateAgentStatementSemantics
     }
 
 
-    private Optional<? extends CallableSymbol> getCreateMethod(
+    private Optional<? extends CallableMember> getCreateMethod(
         IJadescriptType agentType
     ) {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
@@ -237,7 +235,7 @@ public class CreateAgentStatementSemantics
             module,
             agentType.asJvmTypeReference()
         ).searchAs(
-            CallableSymbol.Searcher.class,
+            CallableMember.Namespace.class,
             searcher -> searcher.searchCallable(
                 "create",
                 null,
@@ -493,7 +491,7 @@ public class CreateAgentStatementSemantics
             .extract(module.get(TypeExpressionSemantics.class)
                 ::toJadescriptType);
 
-        final Optional<? extends CallableSymbol> createMethodOpt =
+        final Optional<? extends CallableMember> createMethodOpt =
             getCreateMethod(agentType);
 
         if (

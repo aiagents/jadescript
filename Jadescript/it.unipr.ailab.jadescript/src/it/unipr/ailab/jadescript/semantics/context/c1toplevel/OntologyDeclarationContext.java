@@ -30,8 +30,10 @@ public class OntologyDeclarationContext
     ) {
         super(module, outer);
         this.ontology = ontology;
-        this.ontoType = new LazyValue<>(() -> module.get(TypeHelper.class).jtFromJvmType(this.ontology));
-        this.ontoNamespace = new LazyValue<>(() -> this.ontoType.get().namespace());
+        this.ontoType = new LazyValue<>(() ->
+            module.get(TypeHelper.class).jtFromJvmType(this.ontology));
+        this.ontoNamespace = new LazyValue<>(() ->
+            this.ontoType.get().namespace());
     }
 
 
@@ -47,7 +49,8 @@ public class OntologyDeclarationContext
 
     @Override
     public Stream<OntologyAssociation> computeCurrentOntologyAssociations() {
-        return Stream.of(new OntologyAssociation(ontoType.get(), OntologyAssociation.O.INSTANCE));
+        return Stream.of(new OntologyAssociation(ontoType.get(),
+            OntologyAssociation.O.INSTANCE));
     }
 
     @Override

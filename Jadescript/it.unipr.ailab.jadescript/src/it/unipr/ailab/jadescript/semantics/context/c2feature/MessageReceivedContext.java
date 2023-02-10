@@ -1,7 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedReference;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -51,7 +51,7 @@ public interface MessageReceivedContext extends SemanticsConsts {
 
     IJadescriptType getMessageType();
 
-    default Stream<NamedSymbol> getMessageStream(
+    default Stream<NameMember> getMessageStream(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite
@@ -64,7 +64,7 @@ public interface MessageReceivedContext extends SemanticsConsts {
         return mess.map(__ -> messageContextGeneratedReference(messageType));
     }
 
-    default Stream<NamedSymbol> getContentStream(
+    default Stream<NameMember> getContentStream(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite

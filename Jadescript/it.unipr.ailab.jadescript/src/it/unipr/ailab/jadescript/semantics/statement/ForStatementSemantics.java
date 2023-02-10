@@ -11,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
 import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -105,7 +105,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                     varName.extract(nullAsEmptyString),
                     firstVarType,
                     true
-                ) //TODO specific NamedSymbol for for-variables
+                ) //TODO specific NameMember for for-variables
             );
 
 
@@ -320,8 +320,8 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         if (varName.isPresent()) {
             validationHelper.asserting(
                 state.searchAs(
-                    NamedSymbol.Searcher.class,
-                    (NamedSymbol.Searcher s) -> s.searchName(
+                    NameMember.Namespace.class,
+                    (NameMember.Namespace s) -> s.searchName(
                         varName.extract(nullAsEmptyString),
                         null,
                         null
@@ -384,8 +384,8 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                 if (var2Name.isPresent()) {
                     validationHelper.asserting(
                         state.searchAs(
-                            NamedSymbol.Searcher.class,
-                            (NamedSymbol.Searcher s) -> s.searchName(
+                            NameMember.Namespace.class,
+                            (NameMember.Namespace s) -> s.searchName(
                                 var2Name.orElse(""),
                                 null,
                                 null

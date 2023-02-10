@@ -1,7 +1,5 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
-import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedReference;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -41,7 +39,7 @@ public interface BehaviourFailureHandledContext extends SemanticsConsts {
     IJadescriptType getFailedBehaviourType();
 
 
-    default Stream<NamedSymbol> getFailureReasonStream(
+    default Stream<NameMember> getFailureReasonStream(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite
@@ -58,7 +56,7 @@ public interface BehaviourFailureHandledContext extends SemanticsConsts {
     }
 
 
-    default Stream<NamedSymbol> getFailedBehaviourStream(
+    default Stream<NameMember> getFailedBehaviourStream(
         Predicate<String> name,
         Predicate<IJadescriptType> readingType,
         Predicate<Boolean> canWrite

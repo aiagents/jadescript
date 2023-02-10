@@ -8,7 +8,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
@@ -159,9 +159,9 @@ public class OfNotationExpressionSemantics
 //        StaticState afterSubExpr = ales.advance(aidLiteral, state);
         for (int i = properties.size() - 1; i >= 0; i--) {
             String propName = properties.get(i).extract(nullAsEmptyString);
-            Optional<? extends NamedSymbol> property =
+            Optional<? extends NameMember> property =
                 prev.namespace().searchAs(
-                    NamedSymbol.Searcher.class,
+                    NameMember.Namespace.class,
                     s -> s.searchName(propName, null, null)
                 ).findFirst();
             if (property.isPresent()) {
@@ -221,9 +221,9 @@ public class OfNotationExpressionSemantics
                 prevType
             );
 
-            Optional<? extends NamedSymbol> property =
+            Optional<? extends NameMember> property =
                 prevType.namespace().searchAs(
-                    NamedSymbol.Searcher.class,
+                    NameMember.Namespace.class,
                     s -> s.searchName(propName, null, null)
                 ).findFirst();
 
@@ -343,10 +343,10 @@ public class OfNotationExpressionSemantics
     ) {
         String propSafe = prop.extract(nullAsEmptyString);
         return prevType.namespace().searchAs(
-                NamedSymbol.Searcher.class,
+                NameMember.Namespace.class,
                 s -> s.searchName(propSafe, null, null)
             ).findFirst()
-            .map(NamedSymbol::readingType)
+            .map(NameMember::readingType)
             .orElseGet(() ->
                 module.get(TypeHelper.class).BOTTOM.apply(
                     "Could not resolve property '" + propSafe + "' of value " +
@@ -455,7 +455,7 @@ public class OfNotationExpressionSemantics
 
         return module.get(ValidationHelper.class).asserting(
             prevType.namespace().searchAs(
-                NamedSymbol.Searcher.class,
+                NameMember.Namespace.class,
                 s -> s.searchName(prop, null, null)
             ).findFirst().isPresent(),
             "InvalidOfNotation",
@@ -484,9 +484,9 @@ public class OfNotationExpressionSemantics
 
         String prop = propmaybe.toNullable();
 
-        Optional<? extends NamedSymbol> foundProperty =
+        Optional<? extends NameMember> foundProperty =
             prevType.namespace().searchAs(
-                NamedSymbol.Searcher.class,
+                NameMember.Namespace.class,
                 s -> s.searchName(prop, null, null)
             ).findFirst();
 

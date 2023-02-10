@@ -83,6 +83,8 @@ public interface SemanticsConsts {
 
     boolean VALID = true;
     boolean INVALID = false;
+    //TODO move out
+    String AGENT_ENV_PARAMETER = "_agentEnv";
 
     default String synthesizeReceiverListName(final SendMessageStatement send) {
         return numberedName(RECEIVER_LIST_VAR_NAME, send);

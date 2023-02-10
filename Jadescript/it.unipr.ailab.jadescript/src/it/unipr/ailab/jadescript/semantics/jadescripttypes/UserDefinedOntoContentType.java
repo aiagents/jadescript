@@ -2,23 +2,18 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberNamedCell;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
-import org.eclipse.xtext.common.types.JvmDeclaredType;
-import org.eclipse.xtext.common.types.JvmType;
-import org.eclipse.xtext.common.types.JvmTypeReference;
+import org.eclipse.xtext.common.types.*;
 
+import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiPredicate;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
@@ -45,41 +40,42 @@ public class UserDefinedOntoContentType
 
     @Override
     public boolean isSendable() {
-        final Optional<? extends CallableSymbol> metadata =
-            JvmTypeNamespace.fromTypeReference(
-            module,
-            asJvmTypeReference()
-        ).searchCallable(
-            name -> name.startsWith("__metadata"),
-            null,
-            null,
-            null
-        ).findAny();
+        final JvmTypeNamespace jvmTypeNamespace = jvmNamespace();
+        if (jvmTypeNamespace == null) {
+            return true;
+        }
 
-        return metadata.map(callableSymbol -> callableSymbol.parameterTypes()
-                .stream().allMatch(IJadescriptType::isSendable))
-        //when empty, assume true; sometimes the metatadata method is
-        // generated/visible later in the process
+        final Optional<? extends JvmOperation> metadata =
+            jvmTypeNamespace.getMetadataMethod();
+
+        return metadata.map(op -> op.getParameters()
+                .stream()
+                .filter(Objects::nonNull)
+                .map(JvmFormalParameter::getParameterType)
+                .map(jvmTypeNamespace::resolveType)
+                .allMatch(IJadescriptType::isSendable))
+            //when empty, assume true; sometimes the metatadata method is
+            // generated/visible later in the process
             .orElse(true);
     }
 
 
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
-        final JvmModelBasedNamespace jvmNamespace = jvmNamespace();
-        final Optional<? extends CallableSymbol> meta;
-        if (jvmNamespace == null) {
-            meta = Optional.empty();
+        final JvmTypeNamespace jvmNamespace = jvmNamespace();
+
+        final Optional<? extends JvmOperation> meta;
+
+        if (jvmNamespace != null) {
+            meta = jvmNamespace.getMetadataMethod();
         } else {
-            meta = jvmNamespace.searchCallable(
-                name -> name.startsWith("__metadata"),
-                null,
-                null,
-                null
-            ).findAny();
+            meta = Optional.empty();
         }
+
         if (meta.isPresent()) {
-            final IJadescriptType returnType = meta.get().returnType();
+            final IJadescriptType returnType =
+                jvmNamespace.resolveType(meta.get().getReturnType());
+
             if (returnType instanceof OntologyType) {
                 return some(((OntologyType) returnType));
             }
@@ -116,7 +112,7 @@ public class UserDefinedOntoContentType
         final JvmType type = jvmTypeReference.getType();
         if (type instanceof JvmDeclaredType) {
             JvmDeclaredType jvmDeclaredType = (JvmDeclaredType) type;
-            return new UserDefinedOntologyNamespace(
+            return new UserDefinedOntoContentNamespace(
                 jvmTypeReference,
                 jvmDeclaredType
             );
@@ -129,35 +125,49 @@ public class UserDefinedOntoContentType
 
     @Override
     public boolean isNativeOntoContentType() {
-        final JvmModelBasedNamespace jvmNamespace = jvmNamespace();
+        final JvmTypeNamespace jvmNamespace = jvmNamespace();
         if (jvmNamespace == null) {
             return false;
         }
-        return jvmNamespace
-            .searchCallable("__isNative", null, null, null)
-            .findAny().isPresent();
+        return jvmNamespace.searchJvmOperation()
+            .filter(Objects::nonNull)
+            .map(JvmOperation::getSimpleName)
+            .anyMatch("__isNative"::equals);
     }
 
 
-    public class UserDefinedOntologyNamespace extends JadescriptTypeNamespace {
+    public class UserDefinedOntoContentNamespace
+        extends JadescriptTypeNamespace {
 
         private final LazyValue<JvmTypeNamespace> jvmNamespace;
         private final JvmDeclaredType jvmDeclaredType;
 
 
-        public UserDefinedOntologyNamespace(
+        public UserDefinedOntoContentNamespace(
             JvmTypeReference jvmTypeReference,
             JvmDeclaredType jvmDeclaredType
         ) {
             super(UserDefinedOntoContentType.this.module);
             this.jvmDeclaredType = jvmDeclaredType;
             jvmNamespace = new LazyValue<>(
-                () ->
-                    JvmTypeNamespace.fromTypeReference(
-                        module,
-                        jvmTypeReference
-                    )
+                () -> JvmTypeNamespace.resolve(
+                    module,
+                    jvmTypeReference
+                )
             );
+        }
+
+
+        @Override
+        public Stream<? extends MemberCallable> memberCallables() {
+            return Stream.empty();
+        }
+
+
+        @Override
+        public Stream<? extends MemberNamedCell> memberNamedCells() {
+            return namedCellsFromJvm(jvmNamespace.get())
+                .memberNamedCells();
         }
 
 
@@ -174,68 +184,6 @@ public class UserDefinedOntoContentType
                     module.get(TypeHelper.class)
                         .jtFromJvmTypeRef(extendedClass)
                         .namespace()
-            );
-        }
-
-
-        @Override
-        public Stream<? extends CallableSymbol> searchCallable(
-            String name,
-            Predicate<IJadescriptType> returnType,
-            BiPredicate<Integer, Function<Integer, String>> paramNames,
-            BiPredicate<Integer, Function<Integer, IJadescriptType>> paramTypes
-        ) {
-            return computeUserDefinedSymbols(jvmNamespace.get()).searchCallable(
-                n -> n.startsWith("get") && n.equals(name),
-                returnType,
-                (s, n) -> s == 0
-                    && (paramNames == null || paramNames.test(s, n)),
-                (s, t) -> s == 0
-                    && (paramTypes == null || paramTypes.test(s, t))
-            ).filter(ce -> //only those which are effectively getters
-                computeUserDefinedSymbols(jvmNamespace.get()).searchName(
-                    n -> ce.name().substring(3)/*<- removing "get"*/.equals(n),
-                    returnType,
-                    null
-                ).findAny().isPresent()
-            );
-        }
-
-
-        @Override
-        public Stream<? extends CallableSymbol> searchCallable(
-            Predicate<String> name,
-            Predicate<IJadescriptType> returnType,
-            BiPredicate<Integer, Function<Integer, String>> parameterNames,
-            BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
-        ) {
-            return computeUserDefinedSymbols(jvmNamespace.get()).searchCallable(
-                n -> n.startsWith("get") && (name == null || name.test(n)),
-                returnType,
-                (s, n) -> s == 0
-                    && (parameterNames == null || parameterNames.test(s, n)),
-                (s, t) -> s == 0
-                    && (parameterTypes == null || parameterTypes.test(s, t))
-            ).filter(ce -> //only those who are effectively getters
-                computeUserDefinedSymbols(jvmNamespace.get()).searchName(
-                    n -> ce.name().substring(3)/*<- removing "get"*/.equals(n),
-                    returnType,
-                    null
-                ).findAny().isPresent()
-            );
-        }
-
-
-        @Override
-        public Stream<? extends NamedSymbol> searchName(
-            Predicate<String> name,
-            Predicate<IJadescriptType> readingType,
-            Predicate<Boolean> canWrite
-        ) {
-            return computeUserDefinedSymbols(jvmNamespace.get()).searchName(
-                name,
-                readingType,
-                canWrite
             );
         }
 

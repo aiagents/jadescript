@@ -13,9 +13,11 @@ import java.util.List;
 import java.util.Optional;
 
 
-public abstract class Behaviour<A extends jadescript.core.Agent> extends SimpleBehaviour implements Base {
+public abstract class Behaviour<A extends jadescript.core.Agent>
+    extends SimpleBehaviour implements Base {
 
-    //Fixed period -> the next wake-up time is obtained as __startTime + (a multiple of period)
+    //Fixed period -> the next wake-up time is obtained as
+    // __startTime + (a multiple of period)
     //Not fixed period -> just wait period ms from the last execution
     private static final boolean __fixedPeriod = false;
 
@@ -23,24 +25,29 @@ public abstract class Behaviour<A extends jadescript.core.Agent> extends SimpleB
     //Constant parameters.
     //State
 
-    //Set of requests to wait for something (an event, a time instant to be elapsed).
+    //Set of requests to wait for something
+    // (an event, a time instant to be elapsed).
     private final List<Waiting> __waitings = new ArrayList<>();
-    //Behaviour property
+
+    //Behaviour property:
     private long period = 0;
+
     private MacroState macroState;
     private long __JADEstartTime;
     private long __startTime;
     private long __expirationTime = 0;
-    private int __effectiveExecutions = 0; //not counting state adjustments & on activate
+
+    //not counting state adjustments & on activate:
+    private int __effectiveExecutions = 0;
 
     private Waiting __ensureWait = Waiting.doNotWait();
 
 
     public Behaviour() {
-        //Here's the thing: in JADE, the agent reference is setted when the behaviour is
-        // activated and un-setted when the behaviour is deactivated; since we do not need
-        // to have the agent reference active in the 'on create' event handler, here we
-        // pass null.
+        //Here's the thing: in JADE, the agent reference is setted when the
+        // behaviour is activated and un-setted when the behaviour is
+        // deactivated; since we do not need to have the agent reference active
+        // in the 'on create' event handler, here we pass null.
         super(null);
         this.macroState = MacroState.NOT_ACTIVE;
     }
@@ -157,14 +164,21 @@ public abstract class Behaviour<A extends jadescript.core.Agent> extends SimpleB
 
     @Override
     public final void action() {
-        // ActivateNow, ActivateDelayed, DeactivateDelayed, FailDelayed and Destroy can ONLY be issued manually.
-        // DeactivateNow and FailNow can be issued manually, but also can be automatically issued by the system (e.g.,
-        // one-shot behaviours deactivate when they are done, or behaviours deactivated with a delay, or behaviours
-        // failing for an escalated exception).
+        // ActivateNow, ActivateDelayed, DeactivateDelayed, FailDelayed
+        // and Destroy can ONLY be issued manually.
+        // DeactivateNow and FailNow can be issued manually, but also can be
+        // automatically issued by the system (e.g., one-shot behaviours
+        // deactivate when they are done, or behaviours deactivated with a
+        // delay, or behaviours failing for an escalated exception).
         // Execute can only be issued by the system.
-        // Why action() has been invoked?
-        // This block of code infers the type of event from the state and provides one input of type (DeactivateNow | Execute).
-        // It may even choose to reblock the behaviour automatically if the behaviour was woken up early.
+
+        // Now we need to answer the question:
+        // "Why action() has been invoked here?"
+
+        // This block of code infers the type of event from the state and
+        // provides one input of type (DeactivateNow | Execute).
+        // It may even choose to reblock the behaviour automatically if the
+        // behaviour was woken up early.
         final long now = System.currentTimeMillis();
         if (__executionType() == ExecutionType.OneShot && __effectiveExecutions >= 1) {
             //If it is oneshot, and it is done, deactivate.

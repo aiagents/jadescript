@@ -195,32 +195,36 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
             final TypeHelper typeHelper = module.get(TypeHelper.class);
             return new MessageTypeNamespace(
                 module,
-                new Property("sender", typeHelper.AID, true, location)
-                    .setCompileByJVMAccessors(),
-
-                new Property(
+                Property.readonlyProperty(
+                    "sender",
+                    typeHelper.AID,
+                    location,
+                    Property.compileWithJVMGetter("sender")
+                ),
+                Property.readonlyProperty(
                     "performative",
                     typeHelper.PERFORMATIVE,
-                    true,
-                    location
-                ).setCompileByCustomJVMMethod(
-                    "getJadescriptPerformative",
-                    "setJadescriptPerformative"
+                    location,
+                    Property.compileGetWithCustomMethod(
+                        "getJadescriptPerformative"
+                    )
                 ),
 
-                new Property(
+                Property.readonlyProperty(
                     "content",
                     contentType.ignoreBound(),
-                    true,
-                    location
-                ).setCustomCompile(
-                    (e) -> e + "getContent(" + THE_AGENT +
-                        "().getContentManager())",
-                    (e, re) -> e + "/*Error trying to set content*/ =" + re
+                    location,
+                    o -> o + "." + "getContent(" + THE_AGENT + "()" +
+                        ".getContentManager())"
                 ),
 
-                new Property("ontology", typeHelper.ONTOLOGY, true, location)
-                    .setCompileByJVMAccessors(),
+                Property.readonlyProperty(
+                    "ontology",
+                    typeHelper.ONTOLOGY,
+                    location,
+                    Property.compileWithJVMGetter("ontology")
+                ),
+
                 location
             );
         }
