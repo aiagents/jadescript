@@ -25,18 +25,17 @@ cyclic behaviour ParticipateToAuction for agent Bidder
             log "Not enough money..."
             
     on message accept_proposal do
-        log "I am the best bidder!"
+        log "My bid has been accepted."
         
     on message reject_proposal (_, _, reason) do
-        log "I am NOT the best bidder, reason: " + reason
+        log "My bid was rejected, reason: " + reason
         
+    on message inform ItemSold(item, aid of agent, bid) do
+        log "I bought "+item+" for "+bid+"!"
             
-    on message inform ItemSold(item, buyer, finalPrice) do
-        if buyer=aid of agent do
-            log "I bought "+item+" for "+finalPrice+"!"
-        else do
-            log buyer+" bought "+item+" for "+finalPrice+"."
-    
+    on message inform ItemSold(item, otherBidder, bid) do
+        log otherBidder+" bought "+item+" for "+bid+"."
+            
     on message inform ItemNotSold(item) do
         log "Not sold: "+item+"." 
     
