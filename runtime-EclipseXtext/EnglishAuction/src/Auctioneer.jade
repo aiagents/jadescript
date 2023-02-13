@@ -9,16 +9,16 @@ agent Auctioneer uses ontology EnglishAuction
     # The auctioneer awaits this interval for new bids:
     property waitingForBidsTime = "PT30S" as duration 
     # Initial price:
-    property startPrice = 80
+    property startBid = 80
     # If the auction never reaches this price, the item is not sold:
-    property reservePrice = 120
+    property reserve = 120
     # Each bid has to outbid the current price by this amount:
     property bidMinimumIncrement = 2
     # The item to be sold:
     property item = Painting("Leonardo", "Mona Lisa")
     
     # --Auctioneer state variables--
-    property currentPrice = startPrice
+    property currentBid = startBid
     property candidateBuyer as aid
     property thereIsCandidate = false
     property participants as set of aid 
@@ -39,7 +39,7 @@ cyclic behaviour AwaitParticipants for agent Auctioneer
     on activate do
         do logStatus
 
-    on message inform ImAlive do
+    on message inform Participating do
         add sender of message to participants
         do logStatus
         if size of participants ≥ minimumParticipants do
@@ -49,7 +49,7 @@ cyclic behaviour AwaitParticipants for agent Auctioneer
             deactivate this
             
 
-    on message inform ImDying do
+    on message inform Leaving do
         remove sender of message from participants
         do logStatus
 
@@ -59,35 +59,34 @@ cyclic behaviour DoAuction for agent Auctioneer
     property nextTimeout as timestamp
 
     on activate do
-        log "Selling " + item + ", starting from price " + currentPrice + 
-            "(minimum bid increment: " + bidMinimumIncrement + ", reserve price: " + reservePrice + ")"
+        log "Selling " + item + ", starting from bid " + currentBid + 
+            "(minimum bid increment: " + bidMinimumIncrement + ", reserve: " + reserve + ")"
         do callForBids
 
+    procedure callForBids do
+        nextTimeout = now + waitingForBidsTime
+        log "Calling for proposals, new price: " + currentBid + ", next timeout: " + nextTimeout
+        send message cfp SubmitBid(
+            item,
+            currentBid,
+            bidMinimumIncrement,
+            nextTimeout,
+            getCurrentWinnerName()
+        ) to participants
+        activate endAuction at nextTimeout
 
     function getCurrentWinnerName() as text do
         currentlyWinning = ""
         if thereIsCandidate do
             currentlyWinning = name of candidateBuyer
         return currentlyWinning
-
-    procedure callForBids do
-        nextTimeout = now + waitingForBidsTime
-        log "Calling for proposals, new price: " + currentPrice +", next timeout: " + nextTimeout
-        send message cfp SubmitBid(
-            item,
-            currentPrice,
-            bidMinimumIncrement,
-            nextTimeout,
-            getCurrentWinnerName()
-        ) to participants
-        activate endAuction at nextTimeout
         
-    on message inform ImAlive do
+    on message inform Participating do
         add sender of message to participants
-        send message cfp SubmitBid(item, currentPrice, bidMinimumIncrement, nextTimeout, getCurrentWinnerName()) to sender of message
+        send message cfp SubmitBid(item, currentBid, bidMinimumIncrement, nextTimeout, getCurrentWinnerName()) to sender of message
     
     
-    on message inform ImDying do
+    on message inform Leaving do
         remove sender of message from participants
         if size of participants < minimumParticipants do
             activate endAuction
@@ -97,17 +96,17 @@ cyclic behaviour DoAuction for agent Auctioneer
         Priced(proposedItem, proposedPrice)
     ) do
         log "Received bid of "+proposedPrice
-        minExpectedPrice = currentPrice+bidMinimumIncrement
+        minExpectedPrice = currentBid+bidMinimumIncrement
         # This branch (and its ItemNotForSale) could be removed to simplify
         if proposedItem ≠ item do
-            log "Rejecting proposal, item not for sale: "+proposedItem
+            log "Rejecting proposal, item not for sale: " + proposedItem
             send message reject_proposal (
             	Buy(proposedItem), 
             	Priced(proposedItem, proposedPrice), 
             	BidRejected(ItemNotForSale)
             ) to sender of message
         else if proposedPrice < minExpectedPrice do
-            log "Rejecting proposal, bid too low ("+proposedPrice+" < "+minExpectedPrice+")"
+            log "Rejecting proposal, bid too low (" + proposedPrice + " < " + minExpectedPrice + ")"
             send message reject_proposal (
             	Buy(proposedItem),
             	Priced(proposedItem, proposedPrice),
@@ -119,7 +118,7 @@ cyclic behaviour DoAuction for agent Auctioneer
             	Buy(proposedItem),
             	Priced(proposedItem, proposedPrice)
             ) to sender of message
-            currentPrice = proposedPrice
+            currentBid = proposedPrice
             thereIsCandidate = true
             candidateBuyer = sender of message
             do callForBids
@@ -133,10 +132,10 @@ one shot behaviour EndAuction for agent Auctioneer
     
     on execute do
         deactivate doAuction
-        if not thereIsCandidate or currentPrice < reservePrice do
+        if not thereIsCandidate or currentBid < reserve do
             log "No valid bid submitted. Not selling item."
             send message inform ItemNotSold(item) to participants
         else do
             log "Selling item "+item+" to "+candidateBuyer
-            send message inform ItemSold(item, candidateBuyer, currentPrice) to participants
+            send message inform ItemSold(item, candidateBuyer, currentBid) to participants
     

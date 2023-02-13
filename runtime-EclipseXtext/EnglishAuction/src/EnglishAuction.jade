@@ -4,8 +4,8 @@ ontology EnglishAuction
     
     # Used by bidders to register/deregister to the auctioneer
     # Note: the example assumes that the only reason for an agent to be alive is to partecipate to the auction
-    proposition ImAlive
-    proposition ImDying
+    proposition Participating
+    proposition Leaving
 
     # An Item that can be sold
     concept Item(name as text)
@@ -15,9 +15,9 @@ ontology EnglishAuction
     # Used as CFP content from the auctioneer
     action SubmitBid(
         item as Item,
-        currentPrice as integer, 
+        currentBid as integer, 
         bidMinimumIncrement as integer, 
-        nextTimeout as timestamp, 
+        deadline as timestamp, 
         currentlyWinning as text
     )
     
