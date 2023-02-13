@@ -3,7 +3,7 @@ package jadescript.examples.musicshop.start;
 import java.util.Arrays;
 import java.util.Scanner;
 
-import it.unipr.ailab.jadescript.javaapi.Jadescript;
+import jadescript.java.Jadescript;
 import jade.wrapper.ContainerController;
 import jadescript.examples.musicshop.agents.BuyerAgent;
 import jadescript.examples.musicshop.agents.SellerAgent;
