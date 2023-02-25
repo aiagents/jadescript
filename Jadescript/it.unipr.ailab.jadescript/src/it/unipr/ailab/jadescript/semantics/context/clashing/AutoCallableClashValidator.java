@@ -5,7 +5,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.FQNameLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableNamedCell;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import org.eclipse.xtext.util.Strings;
 
@@ -77,8 +77,7 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
         Stream<DefinitionClash> fromCallables;
         if (this instanceof CompilableCallable.Namespace) {
             fromCallables = ((CompilableCallable.Namespace) this)
-                .compilableCallables()
-                .filter(mc -> mc.name().equals(toBeAdded.name()))
+                .compilableCallables(toBeAdded.name())
                 .filter(mc -> mc.arity() == toBeAdded.arity())
                 .filter(alreadyPresent -> !isOverriding(
                     module,
@@ -93,10 +92,9 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
                 fromCallables = Streams.concat(
                     fromCallables,
                     ((CompilableCallable.Namespace) this)
-                        .compilableCallables()
-                        .filter(mc ->
-                            ("get" + Strings.toFirstUpper(toBeAdded.name()))
-                                .equals(mc.name()))
+                        .compilableCallables(
+                            "get" + Strings.toFirstUpper(toBeAdded.name())
+                        )
                         .filter(mc -> mc.arity() == 0)
                         .map(alreadyPresent -> new DefinitionClash(
                             toBeAdded,
@@ -108,10 +106,8 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
                 fromCallables = Streams.concat(
                     fromCallables,
                     ((CompilableCallable.Namespace) this)
-                        .compilableCallables()
-                        .filter(mc ->
-                            ("set" + Strings.toFirstUpper(toBeAdded.name()))
-                                .equals(mc.name()))
+                        .compilableCallables("set" +
+                            Strings.toFirstUpper(toBeAdded.name()))
                         .filter(mc -> mc.arity() == 1)
                         .map(alreadyPresent -> new DefinitionClash(
                             toBeAdded,
@@ -124,11 +120,10 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
         }
 
         Stream<DefinitionClash> fromNameds;
-        if (this instanceof CompilableNamedCell.Namespace
+        if (this instanceof CompilableName.Namespace
             && toBeAdded.parameterNames().size() == 0) {
-            fromNameds = ((CompilableNamedCell.Namespace) this)
-                .compilableNamedCells()
-                .filter(nc -> nc.name().equals(toBeAdded.name()))
+            fromNameds = ((CompilableName.Namespace) this)
+                .compilableNames(toBeAdded.name())
                 .map(alreadyPresent -> new DefinitionClash(
                     toBeAdded,
                     alreadyPresent

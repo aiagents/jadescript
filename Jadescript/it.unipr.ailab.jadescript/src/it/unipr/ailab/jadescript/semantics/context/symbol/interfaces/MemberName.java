@@ -5,22 +5,22 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.stream.Stream;
 
-public interface MemberCallable extends Dereferenceable, Callable {
+public interface MemberName extends Dereferenceable, Name {
 
     @Override
-    DereferencedCallable dereference(String compiledOwner);
+    DereferencedName dereference(String compiledOwner);
 
     @Override
     default Signature getSignature() {
-        return Callable.super.getSignature();
+        return Name.super.getSignature();
     }
 
-    default void debugDumpMemberCallable(SourceCodeBuilder scb){
-        dereference("<owner>").debugDumpDereferencedCallable(scb);
+    default void debugDumpMemberName(SourceCodeBuilder scb){
+        dereference("<owner>").debugDumpDereferencedName(scb);
     }
 
     public interface Namespace{
-        Stream<? extends MemberCallable> memberCallables(
+        Stream<? extends MemberName> memberNames(
             @Nullable String name
         );
     }

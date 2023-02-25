@@ -535,7 +535,7 @@ public class OnExceptionHandlerSemantics
         );
 
         StaticState preparedState =
-            prepareBodyState.apply(afterWhenExprReturnedTrue).assertNamedSymbol(
+            prepareBodyState.apply(afterWhenExprReturnedTrue).declareName(
                 ExceptionHandledContext.reasonContextGeneratedReference(
                     finalContentType
                 )

@@ -2,13 +2,14 @@ package it.unipr.ailab.jadescript.semantics.namespace;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberNamedCell;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.stream.Stream;
 
 public abstract class NamespaceWithMembers extends BaseNamespace
-    implements MemberCallable.Namespace, MemberNamedCell.Namespace {
+    implements MemberCallable.Namespace, MemberName.Namespace {
 
     public NamespaceWithMembers(SemanticsModule module) {
         super(module);
@@ -16,21 +17,25 @@ public abstract class NamespaceWithMembers extends BaseNamespace
 
 
     @Override
-    public abstract Stream<? extends MemberCallable> memberCallables();
+    public abstract Stream<? extends MemberCallable> memberCallables(
+        @Nullable String name
+    );
 
 
     @Override
-    public abstract Stream<? extends MemberNamedCell> memberNamedCells();
+    public abstract Stream<? extends MemberName> memberNames(
+        @Nullable String name
+    );
 
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {
         scb.open("--> is NamespaceWithMembers {");
         scb.open("names     = [");
-        memberCallables().forEach(ns -> ns.debugDumpNamedMember(scb));
+        memberCallables(null).forEach(ns -> ns.debugDumpMemberCallable(scb));
         scb.close("]");
         scb.open("callables = [");
-        memberNamedCells().forEach(ns -> ns.debugDumpCallableMember(scb));
+        memberNames(null).forEach(ns -> ns.debugDumpMemberName(scb));
         scb.close("]");
         scb.close("}");
     }

@@ -1,53 +1,57 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol;
 
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
-import it.unipr.ailab.jadescript.semantics.context.location.ContextGenerated;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.LocalName;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.DereferencedName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 
-import java.util.function.Supplier;
-
-public class ContextGeneratedName implements LocalName {
+public class SuperProperty implements DereferencedName {
 
     private final String name;
     private final IJadescriptType type;
-    private final Supplier<String> customCompileRead;
+    private final SearchLocation location;
 
 
-    public ContextGeneratedName(
+    public SuperProperty(
         String name,
         IJadescriptType type,
-        Supplier<String> customCompileRead
+        SearchLocation location
     ) {
         this.name = name;
         this.type = type;
-        this.customCompileRead = customCompileRead;
+        this.location = location;
     }
 
 
     @Override
     public String compileRead(BlockElementAcceptor acceptor) {
-        return customCompileRead.get();
+        return name;
     }
 
 
     @Override
     public void compileWrite(String rexpr, BlockElementAcceptor acceptor) {
         acceptor.accept(
-            w.assign(
-                "/*Error:" +
-            " attempted to write on context-generated name '"+name+"' */" +
-            name,
-                w.expr(rexpr)
-            )
+            w.assign(name, w.expr(rexpr))
         );
     }
 
 
     @Override
+    public String getCompiledOwner() {
+        return "super";
+    }
+
+
+    @Override
     public SearchLocation sourceLocation() {
-        return ContextGenerated.getInstance();
+        return location;
+    }
+
+
+    @Override
+    public DereferencedName dereference(String compiledOwner) {
+        return new SuperProperty(name, type, location);
     }
 
 
@@ -65,7 +69,7 @@ public class ContextGeneratedName implements LocalName {
 
     @Override
     public boolean canWrite() {
-        return false;
+        return true;
     }
 
 }

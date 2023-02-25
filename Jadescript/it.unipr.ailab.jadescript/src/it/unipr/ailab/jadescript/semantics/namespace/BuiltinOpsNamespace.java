@@ -3,7 +3,7 @@ package it.unipr.ailab.jadescript.semantics.namespace;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberNamedCell;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.maybe.Maybe;
 
 import java.util.List;
@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 
 public class BuiltinOpsNamespace extends JadescriptTypeNamespace {
     private final Maybe<? extends TypeNamespace> superTypeNamespace;
-    private final List<MemberNamedCell> properties;
+    private final List<MemberName> properties;
     private final List<? extends MemberCallable> callables;
     private final SearchLocation location;
 
@@ -20,7 +20,7 @@ public class BuiltinOpsNamespace extends JadescriptTypeNamespace {
     public BuiltinOpsNamespace(
             SemanticsModule module,
             Maybe<? extends TypeNamespace> superTypeNamespace,
-            List<MemberNamedCell> properties,
+            List<MemberName> properties,
             List<? extends MemberCallable> callables,
             SearchLocation location
     ) {
@@ -39,7 +39,7 @@ public class BuiltinOpsNamespace extends JadescriptTypeNamespace {
 
 
     @Override
-    public Stream<? extends MemberNamedCell> memberNamedCells() {
+    public Stream<? extends MemberName> memberNamedCells() {
         return properties.stream();
     }
 

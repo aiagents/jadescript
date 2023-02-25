@@ -10,7 +10,6 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.ParameterizedContex
 import it.unipr.ailab.jadescript.semantics.context.c2feature.ProcedureContext;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.ActualParameter;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;

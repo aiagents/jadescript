@@ -3,7 +3,7 @@ package it.unipr.ailab.jadescript.semantics.context.symbol.interfaces;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 
 
-public interface NamedCell extends Located {
+public interface Name extends Located {
 
     String name();
 
@@ -16,7 +16,7 @@ public interface NamedCell extends Located {
     boolean canWrite();
 
     default Signature getSignature(){
-        return new NamedCell.Signature(
+        return new Name.Signature(
             name(), readingType(), canWrite()
         );
     }

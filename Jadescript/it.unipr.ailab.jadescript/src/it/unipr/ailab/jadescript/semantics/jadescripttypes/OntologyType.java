@@ -8,13 +8,14 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementStructu
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberNamedCell;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.stream.Stream;
 
@@ -52,9 +53,11 @@ public interface OntologyType
 
 
         @Override
-        public Stream<? extends GlobalPattern> globalPatterns() {
+        public Stream<? extends GlobalPattern> globalPatterns(
+            @Nullable String name
+        ) {
             return staticCallablesFromJvm(jvmNamespace.get())
-                .compilableCallables()
+                .compilableCallables(name)
                 .map(cs -> new OntologyElementStructuralPattern(
                     cs.name(),
                     cs.returnType(),
@@ -66,22 +69,14 @@ public interface OntologyType
 
 
         @Override
-        public Stream<? extends CompilableCallable> compilableCallables() {
+        public Stream<? extends CompilableCallable> compilableCallables(
+            @Nullable String name
+        ) {
             return staticCallablesFromJvm(jvmNamespace.get())
-                .compilableCallables();
+                .compilableCallables(name);
         }
 
 
-        @Override
-        public Stream<? extends MemberCallable> memberCallables() {
-            return Stream.empty();
-        }
-
-
-        @Override
-        public Stream<? extends MemberNamedCell> memberNamedCells() {
-            return Stream.empty();
-        }
 
 
 
@@ -132,6 +127,22 @@ public interface OntologyType
         @Override
         public Stream<OntologyAssociation>
         computeForClauseOntologyAssociations() {
+            return Stream.empty();
+        }
+
+
+        @Override
+        public Stream<? extends MemberCallable> memberCallables(
+            @Nullable String name
+        ) {
+            return Stream.empty();
+        }
+
+
+        @Override
+        public Stream<? extends MemberName> memberNames(
+            @Nullable String name
+        ) {
             return Stream.empty();
         }
 

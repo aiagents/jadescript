@@ -100,7 +100,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                     ", " + compiledEndIndex + ", true, true)"
             );
 
-            StaticState withVar = afterEndIndex.assertNamedSymbol(
+            StaticState withVar = afterEndIndex.declareName(
                 new UserVariable(
                     varName.extract(nullAsEmptyString),
                     firstVarType,
@@ -150,13 +150,13 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
 
             StaticState withVars = afterCollection
-                .assertNamedSymbol(
+                .declareName(
                     new UserVariable(
                         varName.extract(nullAsEmptyString),
                         firstVarType,
                         true
                     )
-                ).assertNamedSymbol(
+                ).declareName(
                     new UserVariable(
                         var2Name.extract(nullAsEmptyString),
                         secondVarType,
@@ -200,7 +200,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             // Something's wrong: best-effort compiling
 
             StaticState withVar = afterCollection
-                .assertNamedSymbol(
+                .declareName(
                     new UserVariable(
                         varName.extract(nullAsEmptyString),
                         firstVarType,
@@ -508,7 +508,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
         StaticState withVars = afterForHeader;
         if (varName.isPresent()) {
-            withVars = withVars.assertNamedSymbol(new UserVariable(
+            withVars = withVars.declareName(new UserVariable(
                 varName.orElse(""),
                 var1Type,
                 true
@@ -528,7 +528,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
         if (var2Type.isPresent()) {
             if (var2Name.isPresent()) {
-                withVars = withVars.assertNamedSymbol(new UserVariable(
+                withVars = withVars.declareName(new UserVariable(
                     var2Name.orElse(""),
                     var2Type.toNullable(),
                     true

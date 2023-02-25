@@ -10,10 +10,10 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import org.eclipse.xtext.common.types.JvmConstructor;
+import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
-import org.eclipse.xtext.common.types.JvmOperation;
 import org.eclipse.xtext.common.types.JvmTypeReference;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class GlobalFunctionOrProcedure implements GlobalCallable {
+public class BehaviourConstructor implements GlobalCallable {
 
 
     protected final Function<List<String>, String>
@@ -37,7 +37,7 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
     private final boolean withoutSideEffects;
 
 
-    public GlobalFunctionOrProcedure(
+    public BehaviourConstructor(
         IJadescriptType returnType,
         String name,
         Map<String, IJadescriptType> parameterNamesToTypes,
@@ -58,22 +58,13 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
     }
 
 
-    public static GlobalFunctionOrProcedure fromJvmStaticOperation(
+    public static BehaviourConstructor fromJvmConstructor(
         SemanticsModule module,
         JvmTypeNamespace namespace,
-        JvmOperation operation
+        JvmConstructor constructor,
+        JvmDeclaredType type
     ) {
-        return fromJvmStaticOperation(module, namespace, operation, null);
-    }
-
-
-    public static GlobalFunctionOrProcedure fromJvmStaticOperation(
-        SemanticsModule module,
-        JvmTypeNamespace namespace,
-        JvmOperation operation,
-        @Nullable SearchLocation location
-    ) {
-        List<JvmFormalParameter> parameters = operation.getParameters();
+        List<JvmFormalParameter> parameters = constructor.getParameters();
         if (parameters == null) {
             parameters = List.of();
         }
@@ -81,7 +72,8 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
         List<String> paramNames = new ArrayList<>();
         Map<String, IJadescriptType> paramNamesToTypes = new HashMap<>();
 
-        final IJadescriptType anyAE = module.get(TypeHelper.class).ANYAGENTENV;
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final IJadescriptType anyAE = typeHelper.ANYAGENTENV;
 
         boolean withoutSideEffects = false;
 
@@ -123,46 +115,28 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
         }
 
 
-        return new GlobalFunctionOrProcedure(
-            namespace.resolveType(operation.getReturnType()),
-            operation.getSimpleName(),
+        String fqn = constructor.getSimpleName();
+        return new BehaviourConstructor(
+            namespace.resolveType(typeHelper.typeRef(type)),
+            type.getSimpleName(),
             paramNamesToTypes,
             paramNames,
             namespace.currentLocation(),
             withoutSideEffects,
-            CompilationHelper.addEnvParameterByArity(defaultInvokeByArity(
-                operation.getSimpleName()
-            )),
-            CompilationHelper.addEnvParameterByName(defaultInvokeByName(
-                operation.getSimpleName(),
-                paramNames
-            ))
+            //TODO don't use lambda fields, integrate all in the corr. methods
+            CompilationHelper.addEnvParameterByArity((args) -> "new " + fqn +
+                "(" +
+                String.join(" ,", args) +
+                ")"),
+            CompilationHelper.addEnvParameterByName((args) -> "new " + fqn +
+                "(" +
+                String.join(" ,", CallSemantics.sortToMatchParamNames(
+                    args,
+                    paramNames
+                )) +
+                ")")
         );
     }
-
-
-    public static Function<List<String>, String> defaultInvokeByArity(
-        String fullyQualifiedName
-    ) {
-        return (args) -> fullyQualifiedName + "(" +
-            String.join(" ,", args) +
-            ")";
-    }
-
-
-    public static Function<Map<String, String>, String> defaultInvokeByName(
-        String fullyQualifiedName,
-        List<String> paramNames
-    ) {
-        return (args) -> fullyQualifiedName + "(" + String.join(
-            " ,",
-            CallSemantics.sortToMatchParamNames(
-                args,
-                paramNames
-            )
-        ) + ")";
-    }
-
 
 
     @Override

@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.helpers;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.sonneteer.WriterFactory;
 import org.eclipse.emf.ecore.EObject;
 
 import java.util.HashMap;
@@ -9,6 +10,9 @@ import java.util.HashMap;
  * Created on 05/11/2018.
  */
 public interface SemanticsConsts {
+
+    WriterFactory w = WriterFactory.getInstance();
+
     HashMap<String, Long> uniqueNameCounterMap = new HashMap<>();
 
     String ISSUE_CODE_PREFIX = "it.unipr.ailab.jadescript.";

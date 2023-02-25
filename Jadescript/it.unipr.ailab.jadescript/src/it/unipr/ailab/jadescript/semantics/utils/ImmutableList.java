@@ -91,4 +91,9 @@ public class ImmutableList<E> implements Iterable<E> {
         return result;
     }
 
+
+    public ImmutableList<E> insert(int i, E e) {
+        return change(l -> l.add(i, e));
+    }
+
 }

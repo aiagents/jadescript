@@ -1,5 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol.interfaces;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -12,7 +14,9 @@ public interface CompilableCallable extends Compilable, Callable {
 
     public interface Namespace {
 
-        Stream<? extends CompilableCallable> compilableCallables();
+        Stream<? extends CompilableCallable> compilableCallables(
+            @Nullable String name
+        );
 
     }
 

@@ -4,7 +4,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.UnknownLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberNamedCell;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.maybe.Maybe;
 
 import java.util.stream.Stream;
@@ -29,7 +29,7 @@ public class EmptyTypeNamespace extends TypeNamespace {
 
 
     @Override
-    public Stream<? extends MemberNamedCell> memberNamedCells() {
+    public Stream<? extends MemberName> memberNamedCells() {
         return Stream.empty();
     }
 

@@ -1,12 +1,11 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
-import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.associations.*;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberNamedCell;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
@@ -14,10 +13,6 @@ import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 
 import java.util.List;
-import java.util.Map;
-import java.util.function.BiPredicate;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
@@ -67,10 +62,10 @@ public interface BehaviourType extends IJadescriptType, UsingOntologyType,
         }
 
         @Override
-        public Stream<? extends MemberNamedCell> memberNamedCells() {
+        public Stream<? extends MemberName> memberNamedCells() {
             if (useJvm) {
-                return namedCellsFromJvm(jvmNamespace.get())
-                    .memberNamedCells();
+                return namesFromJvm(jvmNamespace.get())
+                    .memberNames();
             } else {
                 return Stream.empty();
             }

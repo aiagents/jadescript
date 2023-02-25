@@ -1,5 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol.interfaces;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.stream.Stream;
 
 public interface GlobalCallable extends Global, CompilableCallable {
@@ -10,11 +12,15 @@ public interface GlobalCallable extends Global, CompilableCallable {
     }
 
     public interface Namespace extends CompilableCallable.Namespace {
-        Stream<? extends GlobalCallable> globalCallables();
+        Stream<? extends GlobalCallable> globalCallables(
+            @Nullable String name
+        );
 
         @Override
-        default Stream<? extends CompilableCallable> compilableCallables(){
-            return globalCallables();
+        default Stream<? extends CompilableCallable> compilableCallables(
+            @Nullable String name
+        ){
+            return globalCallables(name);
         }
 
     }

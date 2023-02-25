@@ -3,7 +3,7 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberNamedCell;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
@@ -165,9 +165,9 @@ public class UserDefinedOntoContentType
 
 
         @Override
-        public Stream<? extends MemberNamedCell> memberNamedCells() {
-            return namedCellsFromJvm(jvmNamespace.get())
-                .memberNamedCells();
+        public Stream<? extends MemberName> memberNamedCells() {
+            return namesFromJvm(jvmNamespace.get())
+                .memberNames();
         }
 
 

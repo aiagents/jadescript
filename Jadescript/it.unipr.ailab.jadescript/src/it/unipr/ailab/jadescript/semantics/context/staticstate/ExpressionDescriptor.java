@@ -1,11 +1,14 @@
 package it.unipr.ailab.jadescript.semantics.context.staticstate;
 
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
+import it.unipr.ailab.maybe.Maybe;
 
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 public interface ExpressionDescriptor {
+
+    Maybe<ExpressionDescriptor> descriptorOfMemberProperty(String propertyName);
 
     class PropertyChain implements ExpressionDescriptor {
 
@@ -30,6 +33,8 @@ public interface ExpressionDescriptor {
             }
             this.properties = ImmutableList.of(properties);
         }
+
+
 
 
         public ImmutableList<String> getProperties() {
@@ -60,6 +65,16 @@ public interface ExpressionDescriptor {
                 + properties.stream()
                 .collect(Collectors.joining(", "))
                 + "]";
+        }
+
+
+        @Override
+        public Maybe<ExpressionDescriptor> descriptorOfMemberProperty(
+            String propertyName
+        ) {
+            return Maybe.some(
+                new PropertyChain(this.properties.insert(0, propertyName))
+            );
         }
 
     }

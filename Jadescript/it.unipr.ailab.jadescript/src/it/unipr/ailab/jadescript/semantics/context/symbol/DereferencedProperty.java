@@ -1,10 +1,11 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol;
 
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.DereferencedNamedCell;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.DereferencedName;
 
 public class DereferencedProperty
     extends Property
-    implements DereferencedNamedCell {
+    implements DereferencedName {
 
     private final String compiledOwner;
 
@@ -19,22 +20,22 @@ public class DereferencedProperty
             property.name(),
             property.readingType(),
             property.sourceLocation(),
-            property.readCompile,
-            property.writeCompile
+            property.read,
+            property.write
         );
         this.compiledOwner = compiledOwner;
     }
 
 
     @Override
-    public String compileRead() {
-        return this.readCompile.apply(getCompiledOwner());
+    public String compileRead(BlockElementAcceptor acceptor) {
+        return this.read.apply(getCompiledOwner(), acceptor);
     }
 
 
     @Override
-    public String compileWrite(String rexpr) {
-        return this.writeCompile.apply(getCompiledOwner(), rexpr);
+    public void compileWrite(String rexpr, BlockElementAcceptor acceptor) {
+        this.write.accept(getCompiledOwner(), rexpr, acceptor);
     }
 
 

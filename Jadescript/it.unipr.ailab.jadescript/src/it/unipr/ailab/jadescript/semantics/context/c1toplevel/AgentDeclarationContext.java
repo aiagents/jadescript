@@ -8,8 +8,8 @@ import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.search.WithSupertype;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedName;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableNamedCell;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.LocalNamedCell;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.LocalName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
@@ -18,6 +18,7 @@ import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -25,7 +26,7 @@ import java.util.stream.Stream;
 public class AgentDeclarationContext extends UsingOntologyDeclarationContext
     implements AgentAssociated,
     WithSupertype,
-    LocalNamedCell.Namespace {
+    LocalName.Namespace {
 
     private final JvmDeclaredType agentJvmType;
     private final LazyValue<IJadescriptType> agentType;
@@ -110,14 +111,19 @@ public class AgentDeclarationContext extends UsingOntologyDeclarationContext
 
 
     @Override
-    public Stream<? extends LocalNamedCell> localNamedCells() {
-        return Util.buildStream(agentReference);
+    public Stream<? extends LocalName> localNames(
+        @Nullable String name
+    ) {
+        return Util.buildStream(agentReference)
+            .filter((__) -> name == null || name.equals("agent"));
     }
 
 
     @Override
-    public Stream<? extends CompilableNamedCell> compilableNamedCells() {
-        return localNamedCells();
+    public Stream<? extends CompilableName> compilableNames(
+        @Nullable String name
+    ) {
+        return localNames(name);
     }
 
 

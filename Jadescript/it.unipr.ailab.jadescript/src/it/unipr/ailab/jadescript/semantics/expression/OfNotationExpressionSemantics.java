@@ -5,17 +5,17 @@ import it.unipr.ailab.jadescript.jadescript.AidLiteral;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.OfNotation;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.util.Strings;
@@ -159,13 +159,17 @@ public class OfNotationExpressionSemantics
 //        StaticState afterSubExpr = ales.advance(aidLiteral, state);
         for (int i = properties.size() - 1; i >= 0; i--) {
             String propName = properties.get(i).extract(nullAsEmptyString);
-            Optional<? extends NameMember> property =
+            Optional<? extends MemberName> property =
                 prev.namespace().searchAs(
-                    NameMember.Namespace.class,
-                    s -> s.searchName(propName, null, null)
+                    MemberName.Namespace.class,
+                    s -> s.memberNames(propName)
                 ).findFirst();
             if (property.isPresent()) {
-                r = new StringBuilder(property.get().compileRead(r + "."));
+                r = new StringBuilder(
+                    property.get()
+                        .dereference(r.toString())
+                        .compileRead(acceptor)
+                );
             } else {
                 r.append(".").append(generateMethodName(
                     propName,
@@ -221,10 +225,10 @@ public class OfNotationExpressionSemantics
                 prevType
             );
 
-            Optional<? extends NameMember> property =
+            Optional<? extends MemberName> property =
                 prevType.namespace().searchAs(
-                    NameMember.Namespace.class,
-                    s -> s.searchName(propName, null, null)
+                    MemberName.Namespace.class,
+                    s -> s.memberNames(propName)
                 ).findFirst();
 
             final String rExprConverted = module.get(TypeHelper.class)
@@ -235,14 +239,15 @@ public class OfNotationExpressionSemantics
                 );
             if (property.isPresent()) {
                 if (i == 0) {
-                    sb = new StringBuilder(property.get().compileWrite(
-                        sb + ".",
-                        rExprConverted
-                    ));
+                    property.get().dereference(
+                        sb.toString()
+                    ).compileWrite(rExprConverted, acceptor);
                 } else {
-                    sb = new StringBuilder(property.get().compileRead(
-                        sb + "."
-                    ));
+                    sb = new StringBuilder(
+                        property.get()
+                            .dereference(sb.toString())
+                            .compileRead(acceptor)
+                    );
                 }
             } else {
                 if (i == 0) {
@@ -343,10 +348,10 @@ public class OfNotationExpressionSemantics
     ) {
         String propSafe = prop.extract(nullAsEmptyString);
         return prevType.namespace().searchAs(
-                NameMember.Namespace.class,
-                s -> s.searchName(propSafe, null, null)
+                MemberName.Namespace.class,
+                s -> s.memberNames(propSafe)
             ).findFirst()
-            .map(NameMember::readingType)
+            .map(MemberName::readingType)
             .orElseGet(() ->
                 module.get(TypeHelper.class).BOTTOM.apply(
                     "Could not resolve property '" + propSafe + "' of value " +
@@ -455,8 +460,8 @@ public class OfNotationExpressionSemantics
 
         return module.get(ValidationHelper.class).asserting(
             prevType.namespace().searchAs(
-                NameMember.Namespace.class,
-                s -> s.searchName(prop, null, null)
+                MemberName.Namespace.class,
+                s -> s.memberNames(prop)
             ).findFirst().isPresent(),
             "InvalidOfNotation",
             "Cannot resolve property '" + prop + "' in value of type " +
@@ -484,10 +489,10 @@ public class OfNotationExpressionSemantics
 
         String prop = propmaybe.toNullable();
 
-        Optional<? extends NameMember> foundProperty =
+        Optional<? extends MemberName> foundProperty =
             prevType.namespace().searchAs(
-                NameMember.Namespace.class,
-                s -> s.searchName(prop, null, null)
+                MemberName.Namespace.class,
+                s -> s.memberNames(prop)
             ).findFirst();
 
 

@@ -2,27 +2,25 @@ package it.unipr.ailab.jadescript.semantics.context.c0outer;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.xtype.XImportDeclaration;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.function.BiPredicate;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 public class FileContext
-        extends OuterLevelAbstractContext
-        implements CallableMember.Namespace {
+    extends OuterLevelAbstractContext
+    implements GlobalCallable.Namespace, GlobalName.Namespace {
 
 
     private final String fileName;
@@ -31,12 +29,13 @@ public class FileContext
 
     private final List<Maybe<XImportDeclaration>> importDeclarations;
 
+
     public FileContext(
-            SemanticsModule module,
-            ModuleContext outer,
-            String fileName,
-            String fileURI,
-            List<Maybe<XImportDeclaration>> importDeclarations
+        SemanticsModule module,
+        ModuleContext outer,
+        String fileName,
+        String fileURI,
+        List<Maybe<XImportDeclaration>> importDeclarations
     ) {
         super(module);
         this.outer = outer;
@@ -45,72 +44,67 @@ public class FileContext
         this.importDeclarations = importDeclarations;
     }
 
+
     @Override
     public Maybe<? extends Searcheable> superSearcheable() {
         return Maybe.some(outer);
     }
 
-    public ModuleContext getOuterContextModule(){
+
+    public ModuleContext getOuterContextModule() {
         return outer;
     }
 
+
     @Override
-    public Stream<? extends CallableMember> searchCallable(
-            String name,
-            Predicate<IJadescriptType> returnType,
-            BiPredicate<Integer, Function<Integer, String>> parameterNames,
-            BiPredicate<Integer, Function<Integer, IJadescriptType>>
-                parameterTypes
+    public Stream<? extends GlobalCallable> globalCallables(
+        @Nullable String name
     ) {
         return getImportedJvmTypeDeclarations()
-                .flatMap(imported -> getCallableStreamFromDeclaredType(
-                        module.get(TypeHelper.class).typeRef(imported),
-                        imported,
-                        name,
-                        returnType,
-                        parameterNames,
-                        parameterTypes
-                ));
+            .flatMap(imported -> getCallableStreamFromDeclaredType(
+                module.get(TypeHelper.class).typeRef(imported),
+                imported
+            ))
+            //TODO put filter before
+            .filter(c -> name == null || c.name().equals(name));
     }
+
+
+    @Override
+    public Stream<? extends GlobalName> globalNames(
+        @Nullable String name
+    ) {
+        return getImportedJvmTypeDeclarations()
+            .flatMap(imported -> getNamedReferencesFromDeclaredType(
+                module.get(TypeHelper.class).typeRef(imported),
+                imported
+            ))
+            .filter(n -> name == null || n.name().equals(name));
+    }
+
 
     public Stream<JvmDeclaredType> getImportedJvmTypeDeclarations() {
-        return importDeclarations.stream()
-                .filter(j -> j.__(id -> !id.isWildcard()
-                    && !id.isStatic()).extract(nullAsFalse))
-                .filter(Maybe::isPresent)
-                .map(Maybe::toNullable)
-                .flatMap(it -> it.getImportedType() != null
-                    ? Stream.of(it.getImportedType())
-                    : Stream.empty()
-                );
+        return getImportDeclarations().stream()
+            .filter(j -> j.__(id -> !id.isWildcard()
+                && !id.isStatic()).extract(nullAsFalse))
+            .filter(Maybe::isPresent)
+            .map(Maybe::toNullable)
+            .flatMap(it -> it.getImportedType() != null
+                ? Stream.of(it.getImportedType())
+                : Stream.empty()
+            );
     }
 
-    @Override
-    public Stream<? extends CallableMember> searchCallable(
-            Predicate<String> name,
-            Predicate<IJadescriptType> returnType,
-            BiPredicate<Integer, Function<Integer, String>> parameterNames,
-            BiPredicate<Integer, Function<Integer, IJadescriptType>>
-                parameterTypes
-    ) {
-        return getImportedJvmTypeDeclarations()
-                .flatMap(imported -> getCallableStreamFromDeclaredType(
-                        module.get(TypeHelper.class).typeRef(imported),
-                        imported,
-                        name,
-                        returnType,
-                        parameterNames,
-                        parameterTypes
-                ));
-    }
 
     public List<Maybe<XImportDeclaration>> getImportDeclarations() {
         return importDeclarations;
     }
 
+
     public String getFileName() {
         return fileName;
     }
+
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {
@@ -119,20 +113,23 @@ public class FileContext
         scb.line("fileURI = " + getFileURI());
         scb.open("importedJvmTypeDeclarations = [");
         getImportedJvmTypeDeclarations().forEach(gfopDecl ->
-                scb.line(gfopDecl.getQualifiedName('.'))
+            scb.line(gfopDecl.getQualifiedName('.'))
         );
         scb.close("]");
         scb.close("}");
     }
 
+
     @Override
     public String getCurrentOperationLogName() {
-        return "<executing "+fileName+">";
+        return "<executing code in " + fileName + ">";
     }
+
 
     public String getFileURI() {
         return fileURI;
     }
+
 
     @Override
     public Stream<JvmTypeReference> rawResolveTypeReference(
@@ -140,18 +137,19 @@ public class FileContext
     ) {
         //it firstly tries to solve it by finding in import declarations
         return getImportDeclarations().stream()
-                .filter(Maybe::isPresent)
-                .map(Maybe::toNullable)
-                .filter(xi -> !xi.isWildcard() && !xi.isExtension())
-                .filter(xi -> {
-                    String importedName = xi.getImportedName().trim();
-                    String[] splits = importedName.split(Pattern.quote("."));
-                    if(splits.length == 0){
-                        return false;
-                    }
-                    return splits[splits.length - 1].equals(typeRefIdentifier);
-                })
-                .map(XImportDeclaration::getImportedName)
-                .map(module.get(TypeHelper.class)::typeRef);
+            .filter(Maybe::isPresent)
+            .map(Maybe::toNullable)
+            .filter(xi -> !xi.isWildcard() && !xi.isExtension())
+            .filter(xi -> {
+                String importedName = xi.getImportedName().trim();
+                String[] splits = importedName.split(Pattern.quote("."));
+                if (splits.length == 0) {
+                    return false;
+                }
+                return splits[splits.length - 1].equals(typeRefIdentifier);
+            })
+            .map(XImportDeclaration::getImportedName)
+            .map(module.get(TypeHelper.class)::typeRef);
     }
+
 }

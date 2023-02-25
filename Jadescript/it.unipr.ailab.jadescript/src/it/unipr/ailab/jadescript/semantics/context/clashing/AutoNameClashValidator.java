@@ -2,7 +2,7 @@ package it.unipr.ailab.jadescript.semantics.context.clashing;
 
 import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableNamedCell;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Located;
 import org.eclipse.xtext.util.Strings;
 
@@ -20,16 +20,14 @@ public interface AutoNameClashValidator extends NameClashValidator {
         if (this instanceof CompilableCallable.Namespace) {
             fromCallables = Streams.concat(
                 ((CompilableCallable.Namespace) this).
-                    compilableCallables()
-                    .filter(c -> c.name().equals(name))
+                    compilableCallables(name)
                     .filter(c -> c.arity() == 0),
-                ((CompilableCallable.Namespace) this).compilableCallables()
-                    .filter(c -> c.name().equals(
-                        "get" + Strings.toFirstUpper(name)))
+                ((CompilableCallable.Namespace) this).compilableCallables(
+                        "get" + Strings.toFirstUpper(name)
+                    )
                     .filter(c -> c.arity() == 0),
-                ((CompilableCallable.Namespace) this).compilableCallables()
-                    .filter(c -> c.name().equals(
-                        "set" + Strings.toFirstUpper(name)))
+                ((CompilableCallable.Namespace) this).compilableCallables(
+                    "set" + Strings.toFirstUpper(name))
                     .filter(c -> c.arity() == 1)
             ).map(alreadyPresent -> new DefinitionClash(
                 toBeAdded,
@@ -40,14 +38,12 @@ public interface AutoNameClashValidator extends NameClashValidator {
         }
 
         Stream<DefinitionClash> fromNameds;
-        if (this instanceof CompilableNamedCell.Namespace) {
-            fromNameds = ((CompilableNamedCell.Namespace) this)
-                .compilableNamedCells()
-                .filter(nc -> nc.name().equals(name))
-            .map(alreadyPresent -> new DefinitionClash(
-                toBeAdded,
-                alreadyPresent
-            ));
+        if (this instanceof CompilableName.Namespace) {
+            fromNameds = ((CompilableName.Namespace) this).compilableNames(name)
+                .map(alreadyPresent -> new DefinitionClash(
+                    toBeAdded,
+                    alreadyPresent
+                ));
         } else {
             fromNameds = Stream.empty();
         }

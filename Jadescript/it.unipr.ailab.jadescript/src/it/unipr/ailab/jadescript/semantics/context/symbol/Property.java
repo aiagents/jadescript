@@ -1,22 +1,23 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol;
 
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.DereferencedNamedCell;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberNamedCell;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.DereferencedName;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.maybe.Functional.TriConsumer;
 import org.eclipse.xtext.util.Strings;
 
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
-public class Property implements MemberNamedCell {
+public class Property implements MemberName {
 
-    protected final Function<String, String> readCompile;
+    protected final BiFunction<String, BlockElementAcceptor, String> read;
+    protected final TriConsumer<String, String, BlockElementAcceptor> write;
     private final boolean canWrite;
     private final String name;
     private final IJadescriptType type;
     private final SearchLocation location;
-    protected BiFunction<String, String, String> writeCompile;
 
 
     public Property(
@@ -24,15 +25,15 @@ public class Property implements MemberNamedCell {
         String name,
         IJadescriptType type,
         SearchLocation location,
-        Function<String, String> readCompile,
-        BiFunction<String, String, String> writeCompile
+        BiFunction<String, BlockElementAcceptor, String> read,
+        TriConsumer<String, String, BlockElementAcceptor> write
     ) {
         this.canWrite = canWrite;
         this.name = name;
         this.type = type;
         this.location = location;
-        this.readCompile = readCompile;
-        this.writeCompile = writeCompile;
+        this.read = read;
+        this.write = write;
     }
 
 
@@ -40,7 +41,7 @@ public class Property implements MemberNamedCell {
         String name,
         IJadescriptType type,
         SearchLocation location,
-        Function<String, String> readCompile
+        BiFunction<String, BlockElementAcceptor, String> readCompile
     ) {
         return new Property(
             false,
@@ -48,41 +49,54 @@ public class Property implements MemberNamedCell {
             type,
             location,
             readCompile,
-            (ow, rx) -> ow + "./* Error: readonly property */" +
-                name + " = " + rx
+            (ow, rx, acc) -> acc.accept(
+                w.assign(ow + "./* Error: readonly property */" +
+                    name, w.expr(rx))
+            )
         );
     }
 
 
-    public static BiFunction<String, String, String> compileWithJVMSetter(
+    public static TriConsumer<String, String, BlockElementAcceptor>
+    compileWithJVMSetter(
         String name
     ) {
-        return (owner, rexpr) -> owner + ".set" + Strings.toFirstUpper(name) +
-            "(" + rexpr + ")";
+        return (o, r, a) -> a.accept(
+            w.callStmnt(o + ".set" + Strings.toFirstUpper(name),
+                w.expr(r))
+        );
     }
 
 
-    public static Function<String, String> compileWithJVMGetter(String name) {
-        return (owner) -> owner + ".get" + Strings.toFirstUpper(name) + "()";
-    }
-
-
-    public static Function<String, String> compileGetWithCustomMethod(
+    public static TriConsumer<String, String, BlockElementAcceptor>
+    compileSetWithCustomMethod(
         String methodName
     ) {
-        return o -> o + "." + methodName + "()";
+        return (o, r, a) -> a.accept(
+            w.callStmnt(
+                o + "." + methodName,
+                w.expr(r)
+            )
+        );
     }
 
 
-    public static BiFunction<String, String, String> compileSetWithCustomMethod(
+    public static BiFunction<String, BlockElementAcceptor, String>
+    compileWithJVMGetter(String name) {
+        return (o,a) -> o + ".get" + Strings.toFirstUpper(name) + "()";
+    }
+
+
+    public static BiFunction<String, BlockElementAcceptor, String>
+    compileGetWithCustomMethod(
         String methodName
     ) {
-        return (o, r) -> o + "." + methodName + "(" + r + ")";
+        return (o, a) -> o + "." + methodName + "()";
     }
 
 
     @Override
-    public DereferencedNamedCell dereference(String compiledOwner) {
+    public DereferencedName dereference(String compiledOwner) {
         return new DereferencedProperty(
             compiledOwner,
             this
