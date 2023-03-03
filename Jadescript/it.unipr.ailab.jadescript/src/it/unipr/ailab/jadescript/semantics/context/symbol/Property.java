@@ -9,6 +9,7 @@ import it.unipr.ailab.maybe.Functional.TriConsumer;
 import org.eclipse.xtext.util.Strings;
 
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public class Property implements MemberName {
 
@@ -73,10 +74,7 @@ public class Property implements MemberName {
         String methodName
     ) {
         return (o, r, a) -> a.accept(
-            w.callStmnt(
-                o + "." + methodName,
-                w.expr(r)
-            )
+            w.callStmnt(o + "." + methodName, w.expr(r))
         );
     }
 
@@ -95,10 +93,13 @@ public class Property implements MemberName {
     }
 
 
+
+
     @Override
-    public DereferencedName dereference(String compiledOwner) {
+    public DereferencedName dereference(Function<BlockElementAcceptor,
+        String> ownerCompiler) {
         return new DereferencedProperty(
-            compiledOwner,
+            ownerCompiler,
             this
         );
     }

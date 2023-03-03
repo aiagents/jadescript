@@ -3,10 +3,11 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.Additive;
 import it.unipr.ailab.jadescript.jadescript.ContainmentCheck;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
@@ -16,7 +17,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -399,16 +399,16 @@ public class ContainmentCheckExpressionSemantics
                 methodName = operationName = "contains";
             }
 
-            final List<? extends CallableMember> matches = collectionType
+            final TypeHelper typeHelper = module.get(TypeHelper.class);
+            final List<? extends MemberCallable> matches = collectionType
                 .namespace().searchAs(
-                    CallableMember.Namespace.class,
-                    s -> s.searchCallable(
-                        methodName,
-                        t -> t.typeEquals(module.get(TypeHelper.class).BOOLEAN),
-                        (size, n) -> size == 1,
-                        (size, t) -> size == 1
-                            && t.apply(0).isSupEqualTo(elementType)
-                    )
+                    MemberCallable.Namespace.class,
+                    s -> s.memberCallables(methodName)
+                        .filter(mc -> mc.returnType()
+                            .typeEquals(typeHelper.BOOLEAN))
+                        .filter(mc -> mc.arity() == 1)
+                        .filter(mc -> mc.parameterTypes().get(0)
+                            .isSupEqualTo(elementType))
                 ).collect(Collectors.toList());
 
 

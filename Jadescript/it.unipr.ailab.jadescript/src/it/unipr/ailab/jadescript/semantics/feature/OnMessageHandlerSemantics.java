@@ -38,8 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import static it.unipr.ailab.maybe.Maybe.eitherGet;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
  * Created on 26/10/2018.
@@ -194,7 +193,8 @@ public class OnMessageHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 contentUpperBound,
-                pattern
+                pattern,
+                some(ExpressionDescriptor.contentOfMessageReference)
             );
 
             LValueExpressionSemantics lves =
@@ -255,7 +255,8 @@ public class OnMessageHandlerSemantics
 
             part1 = matcher.rootInvocationText(
                 initialMsgType.namespace().getContentProperty()
-                    .compileRead(MESSAGE_VAR_NAME + ".")
+                    .dereference((__) -> MESSAGE_VAR_NAME)
+                    .compileRead((member) -> member.writeSonnet(scb))
             );
         } else {
             prepareBodyState = Function.identity();
@@ -288,9 +289,7 @@ public class OnMessageHandlerSemantics
 
             wexpNarrowedContentType = afterWhenExprRetunedTrue.inferUpperBound(
                     ed -> ed.equals(
-                        new ExpressionDescriptor.PropertyChain(
-                            "content", "message"
-                        )
+                        ExpressionDescriptor.contentOfMessageReference
                     ),
                     null
                 ).findFirst()
@@ -298,9 +297,7 @@ public class OnMessageHandlerSemantics
 
             wexpNarrowedMessageType = afterWhenExprRetunedTrue.inferUpperBound(
                     ed -> ed.equals(
-                        new ExpressionDescriptor.PropertyChain(
-                            "message"
-                        )
+                        ExpressionDescriptor.messageReference
                     ),
                     null
                 ).findFirst()
@@ -479,7 +476,7 @@ public class OnMessageHandlerSemantics
 //generating => if (__receivedMessage != null) {
 //generating =>     [OUTERCLASS].this.__ignoreMessageHandlers = true;
 //generating =>
-//generating =>     __theAgent().__cleanIgnoredFlagForMessage(__receivedMessage);
+//generating =>    __theAgent().__cleanIgnoredFlagForMessage(__receivedMessage);
 //generating =>
 //generating =>     this.__eventFired = true;
 //generating =>
@@ -490,7 +487,7 @@ public class OnMessageHandlerSemantics
 //generating =>             __throwable) {
 //generating =>             __handleJadescriptException(__throwable);
 //generating =>         } catch (java.lang.Throwable __throwable) {
-//generating =>             __handleJadescriptException(jadescript.core.exception
+//generating =>            __handleJadescriptException(jadescript.core.exception
 //generating =>             .JadescriptException.wrap(__throwable));
 //generating =>         }
 //generating =>
@@ -662,7 +659,8 @@ public class OnMessageHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 contentUpperBound,
-                pattern
+                pattern,
+                some(ExpressionDescriptor.contentOfMessageReference)
             );
 
             LValueExpressionSemantics lves =
@@ -733,9 +731,7 @@ public class OnMessageHandlerSemantics
                 wexpNarrowedContentType = afterWhenExprReturnedTrue
                     .inferUpperBound(
                         ed -> ed.equals(
-                            new ExpressionDescriptor.PropertyChain(
-                                "content", "message"
-                            )
+                            ExpressionDescriptor.contentOfMessageReference
                         ),
                         null
                     ).findFirst()
@@ -744,9 +740,7 @@ public class OnMessageHandlerSemantics
                 wexpNarrowedMessageType = afterWhenExprReturnedTrue
                     .inferUpperBound(
                         ed -> ed.equals(
-                            new ExpressionDescriptor.PropertyChain(
-                                "message"
-                            )
+                            ExpressionDescriptor.messageReference
                         ),
                         null
                     ).findFirst()

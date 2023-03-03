@@ -1,6 +1,8 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol.interfaces;
 
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 
 public interface Name extends Located {
@@ -19,6 +21,19 @@ public interface Name extends Located {
         return new Name.Signature(
             name(), readingType(), canWrite()
         );
+    }
+
+    default void debugDumpName(SourceCodeBuilder scb) {
+        scb.open("Name(concrete class=" +
+            this.getClass().getName() + ") {");
+        {
+            scb.line("sourceLocation = " + sourceLocation());
+            scb.line("name =" + name());
+            scb.line("readingType = " + readingType().getDebugPrint());
+            scb.line("writingType = " + writingType().getDebugPrint());
+            scb.line("canWrite = " + canWrite());
+        }
+        scb.close("}");
     }
 
     public static class Signature implements BaseSignature{

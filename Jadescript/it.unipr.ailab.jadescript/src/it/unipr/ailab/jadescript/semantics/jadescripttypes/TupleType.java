@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
@@ -23,67 +24,97 @@ import java.util.stream.Collectors;
 
 public class TupleType extends ParametricType
     implements EmptyCreatable, DeclaresOntologyAdHocClass {
+
     private final List<TypeArgument> elementTypes;
 
     private final Map<String, Property> properties = new HashMap<>();
     private boolean initializedProperties = false;
 
+
     public TupleType(SemanticsModule module, List<TypeArgument> elementTypes) {
         super(
-                module,
-                TypeHelper.builtinPrefix + "Tuple" + elementTypes.size(),
-                "tuple",
-                "TUPLE",
-                "of",
-                "(",
-                ")",
-                ",",
-                elementTypes,
-                null
+            module,
+            TypeHelper.builtinPrefix + "Tuple" + elementTypes.size(),
+            "tuple",
+            "TUPLE",
+            "of",
+            "(",
+            ")",
+            ",",
+            elementTypes,
+            null
         );
         this.elementTypes = elementTypes;
     }
+
 
     public TupleType(SemanticsModule module, IJadescriptType... elementTypes) {
         this(module, Arrays.asList(elementTypes));
     }
 
-    public List<IJadescriptType> getElementTypes() {
-        return elementTypes.stream()
-                .map(TypeArgument::ignoreBound)
-                .collect(Collectors.toList());
-    }
-
 
     public static String compileNewInstance(
-            List<String> listOfCompiledExpressions,
-            List<TypeArgument> listOfTypes
+        List<String> listOfCompiledExpressions,
+        List<TypeArgument> listOfTypes
     ) {
         if (listOfTypes.size() != listOfCompiledExpressions.size()) {
             return "";
         }
 
-        return "new " + "jadescript.lang.Tuple.Tuple" + listOfCompiledExpressions.size() + "<" + listOfTypes.stream()
+        return "new " + "jadescript.lang.Tuple.Tuple" +
+            listOfCompiledExpressions.size() + "<" +
+            listOfTypes.stream()
                 .map(TypeArgument::compileToJavaTypeReference)
                 .collect(Collectors.joining(", ")) +
-                ">(" + String.join(", ", listOfCompiledExpressions) + ")";
+            ">(" + String.join(", ", listOfCompiledExpressions) + ")";
     }
 
+
     public static String compileAddToTuple(
-            String originalTuple,
-            String compiledArgument,
-            TypeArgument argumentType
+        String originalTuple,
+        String compiledArgument,
+        TypeArgument argumentType
     ) {
-        return originalTuple + ".<" + argumentType.compileToJavaTypeReference() + ">add(" + compiledArgument + ")";
+        return originalTuple + ".<" +
+            argumentType.compileToJavaTypeReference() +
+            ">add(" + compiledArgument + ")";
+    }
+
+
+    public static String compileStandardGet(
+        String tupleExpressionCompiled,
+        int elemNumber
+    ) {
+        return tupleExpressionCompiled + ".getElement" + elemNumber + "()";
+    }
+
+
+    public static String getAdHocTupleClassName(
+        List<IJadescriptType> elementTypes
+    ) {
+        return "__TupleClass__" + elementTypes.stream()
+            .map(IJadescriptType::compileToJavaTypeReference)
+            .map(s -> s.replace(".", "_"))
+            .collect(Collectors.joining("__"));
+    }
+
+
+    public List<IJadescriptType> getElementTypes() {
+        return elementTypes.stream()
+            .map(TypeArgument::ignoreBound)
+            .collect(Collectors.toList());
     }
 
 
     @Override
     public boolean typeEquals(IJadescriptType other) {
         if (other instanceof TupleType) {
-            if (this.getElementTypes().size() == ((TupleType) other).getElementTypes().size()) {
+            final List<IJadescriptType> elementTypes =
+                ((TupleType) other).getElementTypes();
+            if (this.getElementTypes().size() == elementTypes.size()) {
                 for (int i = 0; i < this.getElementTypes().size(); i++) {
-                    if (!this.getElementTypes().get(i).typeEquals(((TupleType) other).getElementTypes().get(i))) {
+                    if (!this.getElementTypes().get(i)
+                        .typeEquals(elementTypes.get(i))) {
                         return false;
                     }
                 }
@@ -96,60 +127,68 @@ public class TupleType extends ParametricType
         return super.typeEquals(other);
     }
 
-    public static String compileStandardGet(String tupleExpressionCompiled, int elemNumber) {
-        return tupleExpressionCompiled + ".getElement" + elemNumber + "()";
-    }
 
     public String compileGet(String tupleExpressionCompiled, int elemNumber) {
         return compileStandardGet(tupleExpressionCompiled, elemNumber);
     }
 
+
     private void initBuiltinProperties() {
         if (!initializedProperties) {
-            this.addProperty(new Property("length", module.get(TypeHelper.class).INTEGER, true, getLocation())
-                    .setCustomCompile((__) -> "" + elementTypes.size(), (__, ___) -> "")
+            this.addProperty(Property.readonlyProperty(
+                    "length",
+                    module.get(TypeHelper.class).INTEGER,
+                    getLocation(),
+                    (o, a) -> "" + elementTypes.size()
+                )
             );
 
             if (getElementTypes().size() > 0) {
-                this.addProperty(new Property("head", getElementTypes().get(0), true, getLocation())
-                        .setCustomCompile(
-                                (e) -> compileGet(e, 0),
-                                (e, re) -> "/* readOnlyProperty */"
-                        ));
-                this.addProperty(new Property("tail", new TupleType(module, elementTypes.subList(1, elementTypes.size())), true, getLocation())
-                        .setCustomCompile(
-                                (e) -> {
-                                    List<TypeArgument> tailTypes = new ArrayList<>();
-                                    List<String> tailCompiles = new ArrayList<>();
-                                    for (int i = 1; i < elementTypes.size(); i++) {
-                                        tailTypes.add(elementTypes.get(i).ignoreBound());
-                                        tailCompiles.add(compileGet(e, i));
-                                    }
-                                    return compileNewInstance(tailCompiles, tailTypes);
-                                },
-                                (e, re) -> "/* readOnlyProperty */"
-                        )
-                );
-                this.addProperty(new Property("last", getElementTypes().get(elementTypes.size() - 1), true, getLocation())
-                        .setCustomCompile(
-                                (e) -> compileGet(e, elementTypes.size() - 1),
-                                (e, re) -> "/* readOnlyProperty */"
-                        )
-                );
+                this.addProperty(Property.readonlyProperty(
+                    "head",
+                    getElementTypes().get(0),
+                    getLocation(),
+                    (o, a) -> compileGet(o, 0)
+                ));
+                this.addProperty(Property.readonlyProperty(
+                    "tail",
+                    new TupleType(
+                        module,
+                        elementTypes.subList(1, elementTypes.size())
+                    ),
+                    getLocation(),
+                    (o, a) -> {
+                        List<TypeArgument> tailTypes = new ArrayList<>();
+                        List<String> tailCompiles = new ArrayList<>();
+                        for (int i = 1; i < elementTypes.size(); i++) {
+                            tailTypes.add(elementTypes.get(i).ignoreBound());
+                            tailCompiles.add(compileGet(o, i));
+                        }
+                        return compileNewInstance(tailCompiles, tailTypes);
+                    }
+                ));
+                this.addProperty(Property.readonlyProperty(
+                    "last",
+                    getElementTypes().get(elementTypes.size() - 1),
+                    getLocation(),
+                    (o, a) -> compileGet(o, elementTypes.size() - 1)
+                ));
             }
         }
         this.initializedProperties = true;
     }
 
+
     @Override
     public JvmTypeReference asJvmTypeReference() {
         return module.get(TypeHelper.class).typeRef(
-                "jadescript.lang.Tuple$Tuple" + elementTypes.size(),
-                elementTypes.stream()
-                        .map(TypeArgument::asJvmTypeReference)
-                        .toArray(JvmTypeReference[]::new)
+            "jadescript.lang.Tuple$Tuple" + elementTypes.size(),
+            elementTypes.stream()
+                .map(TypeArgument::asJvmTypeReference)
+                .toArray(JvmTypeReference[]::new)
         );
     }
+
 
     @Override
     public void addProperty(Property prop) {
@@ -160,29 +199,34 @@ public class TupleType extends ParametricType
     @Override
     public boolean isSlottable() {
         return getTypeArguments().stream()
-                .map(TypeArgument::ignoreBound)
-                .allMatch(IJadescriptType::isSlottable);
+            .map(TypeArgument::ignoreBound)
+            .allMatch(IJadescriptType::isSlottable);
     }
+
 
     @Override
     public boolean isSendable() {
-        return getTypeArguments().stream().map(TypeArgument::ignoreBound).allMatch(IJadescriptType::isSendable);
+        return getTypeArguments().stream()
+            .map(TypeArgument::ignoreBound)
+            .allMatch(IJadescriptType::isSendable);
     }
 
 
     @Override
     public boolean isReferrable() {
         return getTypeArguments().stream()
-                .map(TypeArgument::ignoreBound)
-                .allMatch(IJadescriptType::isSlottable);
+            .map(TypeArgument::ignoreBound)
+            .allMatch(IJadescriptType::isSlottable);
     }
+
 
     @Override
     public boolean hasProperties() {
         return getTypeArguments().stream()
-                .map(TypeArgument::ignoreBound)
-                .allMatch(IJadescriptType::hasProperties);
+            .map(TypeArgument::ignoreBound)
+            .allMatch(IJadescriptType::hasProperties);
     }
+
 
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
@@ -193,11 +237,11 @@ public class TupleType extends ParametricType
             return getElementTypes().get(0).getDeclaringOntology();
         } else {
             return module.get(TypeHelper.class).getOntologyGLB(
-                    getElementTypes().get(0).getDeclaringOntology(),
-                    getElementTypes().get(1).getDeclaringOntology(),
-                    getElementTypes().subList(1, size).stream()
-                            .map(IJadescriptType::getDeclaringOntology)
-                            .collect(Collectors.toList())
+                getElementTypes().get(0).getDeclaringOntology(),
+                getElementTypes().get(1).getDeclaringOntology(),
+                getElementTypes().subList(1, size).stream()
+                    .map(IJadescriptType::getDeclaringOntology)
+                    .collect(Collectors.toList())
             );
         }
     }
@@ -208,103 +252,128 @@ public class TupleType extends ParametricType
         return false;
     }
 
+
     @Override
     public String getSlotSchemaName() {
-        return "\"" + TupleType.getAdHocTupleClassName(this.getElementTypes()) + "\"";
+        return "\"" + TupleType.getAdHocTupleClassName(this.getElementTypes()) +
+            "\"";
     }
+
 
     @Override
     public String compileNewEmptyInstance() {
         List<String> newEmptyInstances = new ArrayList<>();
         for (TypeArgument typeArgument : elementTypes) {
             IJadescriptType elementType = typeArgument.ignoreBound();
-            newEmptyInstances.add(CompilationHelper.compileDefaultValueForType(elementType));
+            newEmptyInstances.add(CompilationHelper.compileDefaultValueForType(
+                elementType));
         }
         return compileNewInstance(newEmptyInstances, elementTypes);
     }
 
+
     @Override
-    public void declareSpecificOntologyClass(
-            EList<JvmMember> members,
-            Maybe<ExtendingFeature> feature,
-            HashMap<String, String> generatedSpecificClasses,
-            List<StatementWriter> addSchemaWriters,
-            List<StatementWriter> describeSchemaWriters,
-            TypeExpression slotTypeExpression,
-            Function<TypeExpression, String> schemaNameForSlotProvider,
-            SemanticsModule module
+    public void declareAdHocClass(
+        EList<JvmMember> members,
+        Maybe<ExtendingFeature> feature,
+        HashMap<String, String> generatedSpecificClasses,
+        List<StatementWriter> addSchemaWriters,
+        List<StatementWriter> describeSchemaWriters,
+        TypeExpression slotTypeExpression,
+        Function<TypeExpression, String> schemaNameForSlotProvider,
+        SemanticsModule module
     ) {
-        feature.safeDo(featureSafe -> {
-            List<IJadescriptType> elementTypes = this.getElementTypes();
-            String className = getAdHocTupleClassName(elementTypes);
-            if (!generatedSpecificClasses.containsKey(className)) {
-                members.add(module.get(JvmTypesBuilder.class).toClass(featureSafe, className, itClass -> {
-                    itClass.setStatic(true);
-                    itClass.setVisibility(JvmVisibility.PUBLIC);
-                    final JvmTypeReference asJvmTypeReference = asJvmTypeReference();
-                    itClass.getSuperTypes().add(asJvmTypeReference);
-                    itClass.getMembers().add(module.get(JvmTypesBuilder.class).toMethod(
-                            featureSafe,
-                            "__fromTuple",
-                            module.get(TypeHelper.class).typeRef(className),
-                            itMeth -> {
-                                itMeth.setVisibility(JvmVisibility.PUBLIC);
-                                itMeth.setStatic(true);
-                                itMeth.getParameters().add(module.get(JvmTypesBuilder.class).toParameter(
-                                        featureSafe,
-                                        "tuple",
-                                        asJvmTypeReference
-                                ));
-                                module.get(CompilationHelper.class).createAndSetBody(itMeth, scb -> {
-                                    scb.line(className + " result = new " + className + "();");
-                                    for (int i = 0; i < elementTypes.size(); i++) {
-                                        scb.line("result.setElement" + i + "(tuple.getElement" + i + "());");
-                                    }
-                                    scb.line("return result;");
-                                });
-                            }
+        if (feature.isNothing()) {
+            return;
+        }
+        final ExtendingFeature featureSafe = feature.toNullable();
+
+        List<IJadescriptType> elementTypes = this.getElementTypes();
+
+        String className = getAdHocTupleClassName(elementTypes);
+
+        if (generatedSpecificClasses.containsKey(className)) {
+            return;
+        }
+
+        final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
+        members.add(jvmTB.toClass(featureSafe, className, itClass -> {
+            itClass.setStatic(true);
+            itClass.setVisibility(JvmVisibility.PUBLIC);
+            final JvmTypeReference asJvmTypeReference =
+                asJvmTypeReference();
+            itClass.getSuperTypes().add(asJvmTypeReference);
+            final TypeHelper typeHelper = module.get(TypeHelper.class);
+            itClass.getMembers().add(jvmTB.toMethod(
+                featureSafe,
+                "__fromTuple",
+                typeHelper.typeRef(className),
+                itMeth -> {
+                    itMeth.setVisibility(JvmVisibility.PUBLIC);
+                    itMeth.setStatic(true);
+                    itMeth.getParameters().add(jvmTB.toParameter(
+                        featureSafe,
+                        "tuple",
+                        asJvmTypeReference
                     ));
-                }));
-                generatedSpecificClasses.put(className, getCategoryName());
-                addSchemaWriters.add(w.simpleStmt("add(new jade.content.schema.AgentActionSchema(\"" + className + "\"), " +
-                        "" + className + ".class);"));
-                describeSchemaWriters.add(new StatementWriter() {
-                    @Override
-                    public void writeSonnet(SourceCodeBuilder scb) {
-                        if (slotTypeExpression != null && slotTypeExpression.getSubExprs() != null) {
-                            EList<TypeExpression> typeParameters = slotTypeExpression.getSubExprs();
-                            for (int i = 0; i < typeParameters.size(); i++) {
-                                scb.line("((jade.content.schema.AgentActionSchema) getSchema(\"" + className + "\"))" +
-                                        ".add(\"element" + i + "\", (jade.content.schema.TermSchema) getSchema(" +
-                                        schemaNameForSlotProvider.apply(typeParameters.get(i)) +
-                                        "));");
-                            }
+                    final CompilationHelper compilationHelper =
+                        module.get(CompilationHelper.class);
+                    compilationHelper.createAndSetBody(itMeth, scb -> {
+                        scb.line(className + " result = " +
+                            "new " + className + "();");
+                        for (int i = 0; i < elementTypes.size(); i++) {
+                            scb.line("result.setElement" + i +
+                                "(tuple.getElement" + i + "());");
                         }
+                        scb.line("return result;");
+                    });
+                }
+            ));
+        }));
+
+        generatedSpecificClasses.put(className, getCategoryName());
+        addSchemaWriters.add(SemanticsConsts.w.simpleStmt(
+            "add(new jade.content.schema.AgentActionSchema(\"" + className +
+                "\"), " +
+                "" + className + ".class);"));
+        describeSchemaWriters.add(new StatementWriter() {
+            @Override
+            public void writeSonnet(SourceCodeBuilder scb) {
+                if (slotTypeExpression != null
+                    && slotTypeExpression.getSubExprs() != null) {
+                    EList<TypeExpression> typeParameters =
+                        slotTypeExpression.getSubExprs();
+                    for (int i = 0; i < typeParameters.size(); i++) {
+                        scb.line(
+                            "((jade.content.schema.AgentActionSchema)" +
+                                " getSchema(\"" + className + "\"))" +
+                                ".add(\"element" + i + "\", (jade" +
+                                ".content.schema.TermSchema) " +
+                                "getSchema(" +
+                                schemaNameForSlotProvider.apply(
+                                    typeParameters.get(i)) +
+                                "));");
                     }
-                });
+                }
             }
         });
     }
 
-    public static String getAdHocTupleClassName(List<IJadescriptType> elementTypes) {
-        return "__TupleClass__" + elementTypes.stream()
-                .map(IJadescriptType::compileToJavaTypeReference)
-                .map(s -> s.replace(".", "_"))
-                .collect(Collectors.joining("__"));
-    }
+
     private Map<String, Property> getBuiltinProperties() {
         initBuiltinProperties();
         return properties;
     }
 
+
     @Override
     public TypeNamespace namespace() {
         return new BuiltinOpsNamespace(
-                module,
-                Maybe.nothing(),
-                new ArrayList<>(getBuiltinProperties().values()),
-                List.of(),
-                getLocation()
+            module,
+            Maybe.nothing(),
+            new ArrayList<>(getBuiltinProperties().values()),
+            List.of(),
+            getLocation()
         );
     }
 

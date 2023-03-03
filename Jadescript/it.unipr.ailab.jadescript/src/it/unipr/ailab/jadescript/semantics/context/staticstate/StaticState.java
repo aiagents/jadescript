@@ -685,7 +685,7 @@ public final class StaticState
         if (isValid()) {
             scb.open("Variables = [");
             for (String key : this.getLocalScopeNamedSymbols().getKeys()) {
-                this.getLocalScopeNamedSymbols().getUnsafe(key).debugDump(scb);
+                this.getLocalScopeNamedSymbols().getUnsafe(key).debugDumpName(scb);
             }
             scb.close("]");
             scb.open("UpperBounds = [");

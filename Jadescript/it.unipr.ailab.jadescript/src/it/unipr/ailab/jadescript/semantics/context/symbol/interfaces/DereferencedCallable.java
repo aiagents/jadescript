@@ -17,7 +17,7 @@ public interface DereferencedCallable
     default void debugDumpDereferencedCallable(SourceCodeBuilder scb){
         scb.open("member name '"+name()+"' {");
         {
-            scb.line("compiledOwner = " + getCompiledOwner());
+            scb.line("compiledOwner = " + getOwnerCompiler());
             scb.line("returnType = " + returnType());
             scb.line("parameterTypesByName = " + parameterTypesByName());
             scb.line("parameterNames = " + parameterNames());

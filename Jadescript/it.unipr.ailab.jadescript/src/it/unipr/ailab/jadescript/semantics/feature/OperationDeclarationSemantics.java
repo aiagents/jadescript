@@ -1,7 +1,8 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
-import com.google.common.collect.Streams;
-import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.jadescript.CodeBlock;
+import it.unipr.ailab.jadescript.jadescript.FormalParameter;
+import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -10,6 +11,7 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.ParameterizedContex
 import it.unipr.ailab.jadescript.semantics.context.c2feature.ProcedureContext;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.context.symbol.ActualParameter;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
@@ -23,10 +25,13 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.iterate;
+import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
 /**
  * Created on 2019-05-17.
@@ -57,7 +62,7 @@ public interface OperationDeclarationSemantics
         }
 
         String nameSafe = name.toNullable();
-        if(nameSafe.isBlank()){
+        if (nameSafe.isBlank()) {
             return;
         }
 
@@ -183,18 +188,22 @@ public interface OperationDeclarationSemantics
 
         module.get(ContextManager.class).exit();
 
+        Map<String, IJadescriptType> namesToTypes = new HashMap<>();
+
+        int assumedArity = Math.min(paramNames.size(), paramTypes.size());
+        for(int i = 0; i < assumedArity; i++){
+            namesToTypes.put(paramNames.get(i), paramTypes.get(i));
+        }
+
 
         module.get(ValidationHelper.class).validateMethodCompatibility(
-            new Operation(
-                false,
-                nameSafe,
+            Operation.operation(
                 returnType,
-                Streams.zip(
-                    paramNames.stream(),
-                    paramTypes.stream(),
-                    Util.Tuple2::new
-                ).collect(Collectors.toList()),
-                locationOfThis
+                nameSafe,
+                namesToTypes,
+                paramNames,
+                locationOfThis,
+                false
             ),
             input,
             acceptor

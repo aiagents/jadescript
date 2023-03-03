@@ -534,7 +534,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                             method.parameterTypes()
                         );
 
-                return method.compileInvokeByArity(compiledRexprs);
+                return method.compileInvokeByArity(compiledRexprs, acceptor);
             }
             // Falling back to common invocation
             return name + "(" + String.join(", ", compiledArgs) + ")";
@@ -593,7 +593,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
 
                 return methodsFound.toNullable()
-                    .compileInvokeByName(compiledRexprs);
+                    .compileInvokeByName(compiledRexprs, acceptor);
             } else {
                 StringJoiner joiner = new StringJoiner(", ");
                 for (String argName : argNames) {

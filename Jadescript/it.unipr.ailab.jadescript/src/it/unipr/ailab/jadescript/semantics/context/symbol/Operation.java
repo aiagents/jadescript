@@ -1,5 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol;
 
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
@@ -10,7 +11,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.UtilityType;
 import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Operation implements MemberCallable {
@@ -254,9 +255,11 @@ public class Operation implements MemberCallable {
 
 
     @Override
-    public DereferencedCallable dereference(String compiledOwner) {
+    public DereferencedCallable dereference(
+        Function<BlockElementAcceptor, String> ownerCompiler
+    ) {
         return new DereferencedOperation(
-            compiledOwner,
+            ownerCompiler,
             this
         );
     }

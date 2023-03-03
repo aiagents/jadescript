@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.namespace.BehaviourTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import jadescript.core.behaviours.Behaviour;
 import jadescript.core.behaviours.CyclicBehaviour;

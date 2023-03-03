@@ -12,6 +12,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.function.Function;
 
+import static it.unipr.ailab.maybe.Maybe.some;
+
 public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
     protected final SemanticsModule module;
@@ -105,9 +107,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             this,
             pattern.__(extractSubpattern),
             idSuffix,
-            (owner) -> owner.descriptorOfMemberProperty(
-                propertyName
-            )
+            (owner) -> some(owner.descriptorOfMemberProperty(propertyName))
         );
     }
 

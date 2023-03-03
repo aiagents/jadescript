@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.semantics.context.search.UnknownLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.maybe.Maybe;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.stream.Stream;
 
@@ -23,13 +24,15 @@ public class EmptyTypeNamespace extends TypeNamespace {
 
 
     @Override
-    public Stream<? extends MemberCallable> memberCallables() {
+    public Stream<? extends MemberCallable> memberCallables(
+        @Nullable String name
+    ) {
         return Stream.empty();
     }
 
 
     @Override
-    public Stream<? extends MemberName> memberNamedCells() {
+    public Stream<? extends MemberName> memberNames(@Nullable String name) {
         return Stream.empty();
     }
 

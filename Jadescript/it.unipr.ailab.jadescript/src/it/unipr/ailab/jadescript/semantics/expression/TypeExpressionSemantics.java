@@ -8,15 +8,16 @@ import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
-import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseBehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
+import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import jadescript.content.JadescriptOntoElement;
+import org.eclipse.xtext.common.types.JvmOperation;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.jetbrains.annotations.Nullable;
@@ -158,16 +159,13 @@ public final class TypeExpressionSemantics extends Semantics {
         );
 
         if (typeHelper.isAssignable(JadescriptOntoElement.class, jdType)) {
+            final JvmTypeNamespace jvmNamespace = jdType.jvmNamespace();
             Optional<IJadescriptType> declaringOntology =
-                jdType.namespace()
+                jvmNamespace
                     // Search only local on purpose.
-                    .searchCallable(
-                        name -> name.startsWith("__metadata"),
-                        null,
-                        null,
-                        null
-                    ).findFirst()
-                    .map(CallableMember::returnType);
+                    .getMetadataMethod()
+                    .map(JvmOperation::getReturnType)
+                    .map(jvmNamespace::resolveType);
 
             if (declaringOntology.isPresent()) {
                 IJadescriptType jadescriptType = declaringOntology.get();

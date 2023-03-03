@@ -31,6 +31,8 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
 import java.util.function.Function;
 
+import static it.unipr.ailab.maybe.Maybe.some;
+
 public class OnBehaviourFailureHandlerSemantics
     extends FeatureSemantics<OnBehaviourFailureHandler> {
 
@@ -212,7 +214,8 @@ public class OnBehaviourFailureHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 propositionUpperBound,
-                pattern
+                pattern,
+                some(ExpressionDescriptor.failureReasonReference)
             );
 
             LValueExpressionSemantics lves =
@@ -303,9 +306,7 @@ public class OnBehaviourFailureHandlerSemantics
 
             wexpNarrowedContentType = afterWhenExprReturnedTrue.inferUpperBound(
                     ed -> ed.equals(
-                        new ExpressionDescriptor.PropertyChain(
-                            "failureReason"
-                        )
+                        ExpressionDescriptor.failureReasonReference
                     ),
                     null
                 ).findFirst()
@@ -449,7 +450,8 @@ public class OnBehaviourFailureHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 propositionUpperBound,
-                pattern
+                pattern,
+                some(ExpressionDescriptor.failureReasonReference)
             );
 
             LValueExpressionSemantics lves =
@@ -515,9 +517,7 @@ public class OnBehaviourFailureHandlerSemantics
                 wexpNarrowedContentType = afterWhenExprReturnedTrue
                     .inferUpperBound(
                         ed -> ed.equals(
-                            new ExpressionDescriptor.PropertyChain(
-                                "failureReason"
-                            )
+                            ExpressionDescriptor.failureReasonReference
                         ),
                         null
                     ).findFirst()

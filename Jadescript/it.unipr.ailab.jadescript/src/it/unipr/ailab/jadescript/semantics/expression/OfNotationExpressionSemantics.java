@@ -165,9 +165,10 @@ public class OfNotationExpressionSemantics
                     s -> s.memberNames(propName)
                 ).findFirst();
             if (property.isPresent()) {
+                String prevCompiled = r.toString();
                 r = new StringBuilder(
                     property.get()
-                        .dereference(r.toString())
+                        .dereference((__)-> prevCompiled)
                         .compileRead(acceptor)
                 );
             } else {
@@ -216,8 +217,8 @@ public class OfNotationExpressionSemantics
             acceptor
         ));
         IJadescriptType prevType = ales.inferType(aidLiteral, state);
-        //NOT NEEDED:
-//        StaticState afterSubExpr = ales.advance(aidLiteral, state);
+        // NOT NEEDED:
+        // StaticState afterSubExpr = ales.advance(aidLiteral, state);
         for (int i = properties.size() - 1; i >= 0; i--) {
             String propName = properties.get(i).extract(nullAsEmptyString);
             IJadescriptType currentPropType = inferTypeProperty(
@@ -238,14 +239,15 @@ public class OfNotationExpressionSemantics
                     currentPropType
                 );
             if (property.isPresent()) {
+                String prevCompiled = sb.toString();
                 if (i == 0) {
                     property.get().dereference(
-                        sb.toString()
+                        (__) -> prevCompiled
                     ).compileWrite(rExprConverted, acceptor);
                 } else {
                     sb = new StringBuilder(
                         property.get()
-                            .dereference(sb.toString())
+                            .dereference((__) -> prevCompiled)
                             .compileRead(acceptor)
                     );
                 }

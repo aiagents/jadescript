@@ -6,11 +6,12 @@ import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.WhenMatchesStatement;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -76,10 +77,11 @@ public class WhenMatchesStatementSemantics
 
         final BlockSemantics blockSemantics = module.get(BlockSemantics.class);
 
-        final IJadescriptType inputExprType = rves.inferType(
-            inputExpr,
-            state
-        );
+        final IJadescriptType inputExprType =
+            rves.inferType(inputExpr, state);
+
+        final Maybe<ExpressionDescriptor> inputExprDesc =
+            rves.describeExpression(inputExpr, state);
 
         final String compiledInputExpr = acceptor.auxiliaryVariable(
             inputExpr,
@@ -96,7 +98,6 @@ public class WhenMatchesStatementSemantics
         List<StaticState> afterBranches = new ArrayList<>(assumedSize);
 
 
-
         StaticState runningState = afterInputExpr;
         for (int i = 0; i < assumedSize; ++i) {
             final Maybe<LValueExpression> pattern = patterns.get(i);
@@ -107,11 +108,12 @@ public class WhenMatchesStatementSemantics
             final String variableName =
                 patternMatchHelper.getPatternMatcherVariableName(pattern);
 
-             final PatternMatchInput.WhenMatchesStatement<LValueExpression>
-                 pmi = patternMatchHelper.whenMatchesStatement(
-                    inputExprType,
-                    pattern
-                );
+            final PatternMatchInput.WhenMatchesStatement<LValueExpression>
+                pmi = patternMatchHelper.whenMatchesStatement(
+                inputExprType,
+                pattern,
+                inputExprDesc
+            );
 
             final PatternMatcher output =
                 lves.compilePatternMatch(
@@ -171,8 +173,6 @@ public class WhenMatchesStatementSemantics
         StaticState inElseBranch = runningState;
 
 
-
-
         if (ifsp != null &&
             input.__(WhenMatchesStatement::isWithElseBranch)
                 .extract(nullAsFalse)) {
@@ -191,7 +191,7 @@ public class WhenMatchesStatementSemantics
             final StaticState afterElseBranch = endOfElseBranch.exitScope();
 
             afterBranches.add(afterElseBranch);
-        }else{
+        } else {
             afterBranches.add(inElseBranch);
         }
 
@@ -250,7 +250,11 @@ public class WhenMatchesStatementSemantics
         final IJadescriptType inputExprType =
             rves.inferType(inputExpr, state);
 
+        final Maybe<ExpressionDescriptor> inputExprDesc =
+            rves.describeExpression(inputExpr, state);
+
         StaticState afterInputExpr = rves.advance(inputExpr, state);
+
 
         final int assumedSize = Math.min(patterns.size(), branches.size());
 
@@ -264,7 +268,8 @@ public class WhenMatchesStatementSemantics
             final PatternMatchInput.WhenMatchesStatement<LValueExpression> pmi =
                 patternMatchHelper.whenMatchesStatement(
                     inputExprType,
-                    pattern
+                    pattern,
+                    inputExprDesc
                 );
 
             boolean patternCheck = lves.validatePatternMatch(

@@ -34,15 +34,13 @@ public class Agent extends jade.core.Agent {
 
     /*
      Multi-map associating each message to the hash-codes of behaviours that
-     executed without extracting
-     (i.e. ignored) the message.
+     executed without extracting (i.e. ignored) the message.
      Preferring to use a Set<Integer> instead of Set<Behaviour> because:
         - prevents eventual memory leaks (i.e., behaviour objects that cannot
-         be removed from the heap by the GC
-                because are referenced in this map);
+          be removed from the heap by the GC because are referenced in this map);
         - we are not interested in getting back the actual behaviours that
-        ignored the message, we only need
-                to check if each behaviour has already inserted a signature.
+          ignored the message, we only need to check if each active behaviour 
+          has already inserted a signature in a message to detect staleness.
     */
     private final Map<String, Set<Integer>> __ignoreSignatures =
         new HashMap<>();

@@ -63,8 +63,10 @@ public class ListType extends ParametricType implements EmptyCreatable {
                 "head",
                 getElementType(),
                 getLocation(),
-                o -> o + ".get(0)",
-                (o, r) -> o + ".set(0, " + r + ")"
+                (o, a) -> o + ".get(0)",
+                (o, r, a) -> a.accept(
+                    w.simpleStmt(o + ".set(0, " + r + ")")
+                )
             )
         );
         this.addProperty(
@@ -73,10 +75,12 @@ public class ListType extends ParametricType implements EmptyCreatable {
                 "tail",
                 this,
                 getLocation(),
-                (e) -> "jadescript.util.JadescriptCollections" +
+                (e, a) -> "jadescript.util.JadescriptCollections" +
                     ".getRest(" + e + ", 1)",
-                (e, re) -> "jadescript.util.JadescriptCollections" +
-                    ".getRest(" + e + ", 1)"
+                (e, re, a) -> a.accept(
+                    w.simpleStmt("jadescript.util.JadescriptCollections" +
+                    ".getRest(" + e + ", 1)")
+                )
             )
         );
         this.addProperty(
@@ -85,8 +89,10 @@ public class ListType extends ParametricType implements EmptyCreatable {
                 "last",
                 this,
                 getLocation(),
-                (e) -> e + ".get(" + e + ".size()-1)",
-                (e, re) -> e + ".set(" + e + ".size()-1, " + re + ")"
+                (e, a) -> e + ".get(" + e + ".size()-1)",
+                (e, re, a) -> a.accept(
+                    w.simpleStmt(e + ".set(" + e + ".size()-1, " + re + ")")
+                )
             )
         );
         operations.add(Operation.operation(

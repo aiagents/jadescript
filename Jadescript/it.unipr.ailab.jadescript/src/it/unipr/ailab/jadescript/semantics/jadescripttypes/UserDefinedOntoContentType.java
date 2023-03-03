@@ -11,6 +11,7 @@ import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.*;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -159,16 +160,19 @@ public class UserDefinedOntoContentType
 
 
         @Override
-        public Stream<? extends MemberCallable> memberCallables() {
+        public Stream<? extends MemberCallable> memberCallables(
+            @Nullable String name
+        ) {
             return Stream.empty();
         }
 
 
         @Override
-        public Stream<? extends MemberName> memberNamedCells() {
-            return namesFromJvm(jvmNamespace.get())
-                .memberNames();
+        public Stream<? extends MemberName> memberNames(@Nullable String name) {
+            return namesFromJvm(jvmNamespace.get()).memberNames(name);
         }
+
+
 
 
         @Override

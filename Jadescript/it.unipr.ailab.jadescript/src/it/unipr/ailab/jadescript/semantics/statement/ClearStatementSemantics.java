@@ -76,8 +76,7 @@ public class ClearStatementSemantics
         module.get(ValidationHelper.class).asserting(
             collectionType.namespace().searchAs(
                 MemberCallable.Namespace.class,
-                searcher -> searcher.memberCallables()
-                    .filter(mc -> mc.name().equals("clear"))
+                searcher -> searcher.memberCallables("clear")
                     .filter(mc -> mc.arity() == 0)
             ).findAny().isPresent(),
             "NotClearableCollection",

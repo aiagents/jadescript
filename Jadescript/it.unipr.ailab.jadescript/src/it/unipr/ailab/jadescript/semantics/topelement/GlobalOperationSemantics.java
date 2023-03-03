@@ -19,6 +19,7 @@ import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.feature.OperationDeclarationSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -410,10 +411,10 @@ public class GlobalOperationSemantics
                 String ontologyName = usedOntologyType
                     .compileToJavaTypeReference();
 
-                w.variable(
+                SemanticsConsts.w.variable(
                     ontologyName,
                     ontologyVarName,
-                    w.expr("(" + ontologyName + ") "
+                    SemanticsConsts.w.expr("(" + ontologyName + ") "
                         + ontologyName +
                         ".getInstance()")
                 ).writeSonnet(scb);

@@ -4,6 +4,7 @@ import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.FQNameLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Callable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -20,8 +21,8 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
      */
     static boolean isOverriding(
         SemanticsModule module,
-        CompilableCallable alreadyPresent,
-        CompilableCallable toBeAdded
+        Callable alreadyPresent,
+        Callable toBeAdded
     ) {
         final SearchLocation alreadyPresentLocation =
             alreadyPresent.sourceLocation();
@@ -50,8 +51,8 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
     }
 
     static boolean isSignatureCompatibleForOverriding(
-        CompilableCallable alreadyPresent,
-        CompilableCallable toBeAdded
+        Callable alreadyPresent,
+        Callable toBeAdded
     ) {
         if (alreadyPresent.arity() != toBeAdded.arity()) {
             return false;
@@ -72,7 +73,7 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
     @Override
     default Stream<DefinitionClash> checkCallableClash(
         SemanticsModule module,
-        CompilableCallable toBeAdded
+        Callable toBeAdded
     ) {
         Stream<DefinitionClash> fromCallables;
         if (this instanceof CompilableCallable.Namespace) {

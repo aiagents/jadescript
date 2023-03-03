@@ -12,7 +12,7 @@ public interface DereferencedName
         BlockElementAcceptor debugAcceptor = (e) -> e.writeSonnet(scb);
         scb.open("member name '"+name()+"' {");
         {
-            scb.line("compiledOwner = " + getCompiledOwner());
+            scb.line("compiledOwner = " + getOwnerCompiler());
             scb.line("readingType = " + readingType());
             scb.line("writingType = " + writingType());
             scb.line("canWrite = " + canWrite());

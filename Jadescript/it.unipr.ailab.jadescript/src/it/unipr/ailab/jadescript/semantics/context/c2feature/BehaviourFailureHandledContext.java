@@ -1,36 +1,35 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
+import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedName;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
 public interface BehaviourFailureHandledContext extends SemanticsConsts {
 
     @NotNull
-    static ContextGeneratedReference failureReasonContextGeneratedReference(
+    static ContextGeneratedName failureReasonContextGeneratedName(
         IJadescriptType failureReasonType
     ) {
-        return new ContextGeneratedReference(
+        return new ContextGeneratedName(
             "failureReason",
             failureReasonType,
-            (__) -> FAILURE_REASON_VAR_NAME
+            () -> FAILURE_REASON_VAR_NAME
         );
     }
 
     @NotNull
-    static ContextGeneratedReference behaviourContextGeneratedReference(
+    static ContextGeneratedName behaviourContextGeneratedName(
         IJadescriptType failedBehaviourType
     ) {
-        return new ContextGeneratedReference(
+        return new ContextGeneratedName(
             "behaviour",
             failedBehaviourType,
-            (__) -> FAILED_BEHAVIOUR_VAR_NAME
+            () -> FAILED_BEHAVIOUR_VAR_NAME
         );
     }
 
@@ -39,39 +38,13 @@ public interface BehaviourFailureHandledContext extends SemanticsConsts {
     IJadescriptType getFailedBehaviourType();
 
 
-    default Stream<NameMember> getFailureReasonStream(
-        Predicate<String> name,
-        Predicate<IJadescriptType> readingType,
-        Predicate<Boolean> canWrite
-    ) {
-        Stream<String> stream = Stream.of(
-            "failureReason"
-        );
-        stream = safeFilter(stream, it -> it, name);
-        stream = safeFilter(stream, __ -> getFailureReasonType(), readingType);
-        stream = safeFilter(stream, __ -> true, canWrite);
-        return stream.map(__ -> failureReasonContextGeneratedReference(
-            getFailureReasonType()
-        ));
+    default CompilableName getFailureReasonName() {
+        return failureReasonContextGeneratedName(getFailureReasonType());
     }
 
 
-    default Stream<NameMember> getFailedBehaviourStream(
-        Predicate<String> name,
-        Predicate<IJadescriptType> readingType,
-        Predicate<Boolean> canWrite
-    ) {
-        Stream<Integer> stream = Stream.of(0);
-        stream = safeFilter(stream, __ -> "behaviour", name);
-        stream = safeFilter(
-            stream,
-            __ -> getFailedBehaviourType(),
-            readingType
-        );
-        stream = safeFilter(stream, __ -> true, canWrite);
-        return stream.map(__ -> behaviourContextGeneratedReference(
-            getFailedBehaviourType()
-        ));
+    default CompilableName getFailedBehaviourName() {
+        return behaviourContextGeneratedName(getFailedBehaviourType());
     }
 
     default void debugDumpBehaviourFailureHandled(SourceCodeBuilder scb) {

@@ -216,7 +216,8 @@ public class OnExceptionHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 propositionUpperBound,
-                pattern
+                pattern,
+                Maybe.some(ExpressionDescriptor.exceptionReference)
             );
 
             LValueExpressionSemantics lves =
@@ -306,11 +307,7 @@ public class OnExceptionHandlerSemantics
             );
 
             wexpNarrowedContentType = afterWhenExprReturnedTrue.inferUpperBound(
-                    ed -> ed.equals(
-                        new ExpressionDescriptor.PropertyChain(
-                            "exception"
-                        )
-                    ),
+                    ed -> ed.equals(ExpressionDescriptor.exceptionReference),
                     null
                 ).findFirst()
                 .orElse(propositionUpperBound);
@@ -445,7 +442,8 @@ public class OnExceptionHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 contentUpperBound,
-                pattern
+                pattern,
+                Maybe.some(ExpressionDescriptor.exceptionReference)
             );
 
             LValueExpressionSemantics lves =
@@ -536,7 +534,7 @@ public class OnExceptionHandlerSemantics
 
         StaticState preparedState =
             prepareBodyState.apply(afterWhenExprReturnedTrue).declareName(
-                ExceptionHandledContext.reasonContextGeneratedReference(
+                ExceptionHandledContext.reasonContextGeneratedName(
                     finalContentType
                 )
             );

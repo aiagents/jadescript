@@ -1,5 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol;
 
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
@@ -180,13 +181,17 @@ public class BehaviourConstructor implements GlobalCallable {
 
 
     @Override
-    public String compileInvokeByArity(List<String> compiledRexprs) {
+    public String compileInvokeByArity(List<String> compiledRexprs,
+        BlockElementAcceptor acceptor
+    ) {
         return invokeByArityCustom.apply(compiledRexprs);
     }
 
 
     @Override
-    public String compileInvokeByName(Map<String, String> compiledRexprs) {
+    public String compileInvokeByName(Map<String, String> compiledRexprs,
+        BlockElementAcceptor acceptor
+    ) {
         return invokeByNameCustom.apply(compiledRexprs);
     }
 

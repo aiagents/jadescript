@@ -10,6 +10,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.maybe.Functional;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
@@ -28,7 +29,7 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
     }
 
 
-    protected MemberCallable.Namespace callablesFromJvm(
+    public MemberCallable.Namespace callablesFromJvm(
         JvmTypeNamespace jvmTypeNamespace
     ) {
         return (name) -> {
@@ -62,8 +63,20 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
     }
 
 
-    protected GlobalCallable.Namespace staticCallablesFromJvm(
+    public GlobalCallable.Namespace staticCallablesFromJvm(
         JvmTypeNamespace jvmTypeNamespace
+    ) {
+        return staticCallablesFromJvm(
+            jvmTypeNamespace,
+            GlobalFunctionOrProcedure::fromJvmStaticOperation
+        );
+    }
+
+
+    public GlobalCallable.Namespace staticCallablesFromJvm(
+        JvmTypeNamespace jvmTypeNamespace,
+        Functional.TriFunction<SemanticsModule, JvmTypeNamespace,
+            JvmOperation, GlobalCallable> converter
     ) {
         return (@Nullable String name) -> {
             final TypeHelper typeHelper = module.get(TypeHelper.class);
@@ -88,19 +101,16 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
                         jvmTypeNamespace.resolveType(
                             parameters.get(0).getParameterType()
                         );
+
                     return typeHelper.ANYAGENTENV.isSupEqualTo(firstParamType);
-                }).map((JvmOperation operation) -> GlobalFunctionOrProcedure
-                    .fromJvmStaticOperation(
-                        module,
-                        jvmTypeNamespace,
-                        operation
-                    )
+                }).map((JvmOperation operation) ->
+                    converter.apply(module, jvmTypeNamespace, operation)
                 );
         };
     }
 
 
-    protected MemberName.Namespace namesFromJvm(
+    public MemberName.Namespace namesFromJvm(
         JvmTypeNamespace jvmTypeNamespace
     ) {
         return (searchedName) -> {
@@ -114,7 +124,7 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
                         jvmTypeNamespace.resolveType(f.getType());
                     String name = f.getSimpleName();
 
-                    if(searchedName != null && !searchedName.equals(name)){
+                    if (searchedName != null && !searchedName.equals(name)) {
                         return Stream.empty();
                     }
 

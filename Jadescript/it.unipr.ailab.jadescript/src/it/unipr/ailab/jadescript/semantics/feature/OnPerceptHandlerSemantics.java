@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.function.Function;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class OnPerceptHandlerSemantics
     extends FeatureSemantics<OnPerceptHandler> {
@@ -221,7 +222,8 @@ public class OnPerceptHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 contentUpperBound,
-                pattern
+                pattern,
+                some(ExpressionDescriptor.perceptReference)
             );
 
             LValueExpressionSemantics lves =
@@ -310,11 +312,7 @@ public class OnPerceptHandlerSemantics
             );
 
             wexpNarrowedContentType = afterWhenExprRetunedTrue.inferUpperBound(
-                    ed -> ed.equals(
-                        new ExpressionDescriptor.PropertyChain(
-                            "percept"
-                        )
-                    ),
+                    ed -> ed.equals(ExpressionDescriptor.perceptReference),
                     null
                 ).findFirst()
                 .orElse(contentUpperBound);
@@ -471,7 +469,7 @@ public class OnPerceptHandlerSemantics
 //generating => if (__receivedPercept != null) {
 //generating =>     [OUTERCLASS].this.__ignoreMessageHandlers = true;
 //generating =>
-//generating =>     __theAgent().__cleanIgnoredFlagForMessage(__receivedPercept);
+//generating =>    __theAgent().__cleanIgnoredFlagForMessage(__receivedPercept);
 //generating =>     this.__eventFired = true;
 //generating =>
 //generating =>     try {
@@ -487,7 +485,7 @@ public class OnPerceptHandlerSemantics
 //generating =>             __throwable) {
 //generating =>             __handleJadescriptException(__throwable);
 //generating =>         } catch (java.lang.Throwable __throwable) {
-//generating =>             __handleJadescriptException(jadescript.core.exception
+//generating =>            __handleJadescriptException(jadescript.core.exception
 //generating =>             .JadescriptException.wrap(__throwable));
 //generating =>         }
 //generating =>
@@ -580,7 +578,8 @@ public class OnPerceptHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 contentUpperBound,
-                pattern
+                pattern,
+                some(ExpressionDescriptor.perceptReference)
             );
 
             LValueExpressionSemantics lves =
@@ -651,9 +650,7 @@ public class OnPerceptHandlerSemantics
                 wexpNarrowedContentType = afterWhenExprReturnedTrue
                     .inferUpperBound(
                         ed -> ed.equals(
-                            new ExpressionDescriptor.PropertyChain(
-                                "percept"
-                            )
+                            ExpressionDescriptor.perceptReference
                         ),
                         null
                     ).findFirst()

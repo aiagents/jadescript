@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.jadescript.LValueExpression;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
@@ -65,7 +66,7 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
                 module.get(PatternMatchHelper.class);
             final PatternMatchInput<LValueExpression> pmi =
                 patternMatchHelper.assignmentDeconstruction(
-                    rightType, left
+                    rightType, left, rves.describeExpression(right, state)
                 );
             if (lves.isHoled(pmi, afterRight)) {
                 final PatternMatcher patternMatcher = lves.compilePatternMatch(
@@ -137,6 +138,8 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
         }
 
         final IJadescriptType rightType = rves.inferType(right, state);
+        final Maybe<ExpressionDescriptor> rightDesc =
+            rves.describeExpression(right, state);
         final StaticState afterRight = rves.advance(right, state);
 
         final LValueExpressionSemantics lves =
@@ -170,7 +173,8 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
             PatternMatchInput.AssignmentDeconstruction<LValueExpression> pmi =
                 patternMatchHelper.assignmentDeconstruction(
                     rightType,
-                    left
+                    left,
+                    rightDesc
                 );
 
             if (lves.isHoled(pmi, afterRight)) {

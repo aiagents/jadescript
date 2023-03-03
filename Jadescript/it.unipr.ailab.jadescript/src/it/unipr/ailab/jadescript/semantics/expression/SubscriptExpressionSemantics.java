@@ -5,7 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
@@ -229,17 +229,15 @@ public class SubscriptExpressionSemantics
                 methodName = "put";
             }
 
-            final List<? extends CallableMember> matchesFound =
+            final List<? extends MemberCallable> matchesFound =
                 restType.namespace().searchAs(
-                    CallableMember.Namespace.class,
-                    searcher -> searcher.searchCallable(
-                        methodName,
-                        null,
-                        (s, n) -> s == 2,
-                        (s, t) -> s == 2
-                            && t.apply(0).isSupEqualTo(keyType)
-                            && t.apply(1).isSupEqualTo(rightType)
-                    )
+                    MemberCallable.Namespace.class,
+                    searcher -> searcher.memberCallables(methodName)
+                        .filter(mc -> mc.arity() == 2)
+                        .filter(mc -> mc.parameterTypes().get(0)
+                            .isSupEqualTo(keyType))
+                        .filter(mc -> mc.parameterTypes().get(1)
+                            .isSupEqualTo(rightType))
                 ).collect(Collectors.toList());
 
             if (matchesFound.size() != 1) {
@@ -500,15 +498,14 @@ public class SubscriptExpressionSemantics
             );
         } else if (restType instanceof MapType
             || restType instanceof ListType) {
-            final List<? extends CallableMember> matchesFound =
+
+            final List<? extends MemberCallable> matchesFound =
                 restType.namespace().searchAs(
-                    CallableMember.Namespace.class,
-                    searcher -> searcher.searchCallable(
-                        "get",
-                        null,
-                        (s, n) -> s == 1,
-                        (s, t) -> s == 1 && t.apply(0).isSupEqualTo(keyType)
-                    )
+                    MemberCallable.Namespace.class,
+                    searcher -> searcher.memberCallables("get")
+                        .filter(mc -> mc.arity() == 1)
+                        .filter(mc -> mc.parameterTypes().get(0)
+                            .isSupEqualTo(keyType))
                 ).collect(Collectors.toList());
 
             if (matchesFound.size() != 1) {

@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.context.symbol.interfaces;
 import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,22 @@ public interface Callable extends Located {
             returnType(),
             parameterTypes()
         );
+    }
+
+    default void debugDumpCallable(SourceCodeBuilder scb) {
+        scb.open("Callable(concrete class=" + this.getClass().getName() +
+            ") {");
+        scb.line("sourceLocation = " + sourceLocation());
+        scb.line("name =" + name());
+        scb.line("returnType = " + returnType().getDebugPrint());
+
+        scb.open("parameters (arity=" + arity() + ") = [");
+        parameterNames().stream()
+            .map(name -> name + ": " +
+                parameterTypesByName().get(name).getDebugPrint())
+            .forEach(scb::line);
+        scb.close("]");
+        scb.close("}");
     }
 
     public static class Signature implements BaseSignature{

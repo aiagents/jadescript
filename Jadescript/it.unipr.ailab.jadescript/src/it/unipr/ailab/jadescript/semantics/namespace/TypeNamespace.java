@@ -24,7 +24,7 @@ public abstract class TypeNamespace
 
 
     @Override
-    public Maybe<? extends Searcheable> superSearcheable() {
+    public Maybe<? extends TypeNamespace> superSearcheable() {
         return getSuperTypeNamespace();
     }
 

@@ -5,6 +5,8 @@ import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.DereferencedName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 
+import java.util.function.Function;
+
 public class SuperProperty implements DereferencedName {
 
     private final String name;
@@ -38,8 +40,8 @@ public class SuperProperty implements DereferencedName {
 
 
     @Override
-    public String getCompiledOwner() {
-        return "super";
+    public Function<BlockElementAcceptor, String> getOwnerCompiler() {
+        return (__) -> "super";
     }
 
 
@@ -50,7 +52,10 @@ public class SuperProperty implements DereferencedName {
 
 
     @Override
-    public DereferencedName dereference(String compiledOwner) {
+    public DereferencedName dereference(
+        Function<BlockElementAcceptor,
+            String> ownerCompiler
+    ) {
         return new SuperProperty(name, type, location);
     }
 

@@ -14,8 +14,8 @@ import it.unipr.ailab.jadescript.semantics.context.clashing.DefinitionClash;
 import it.unipr.ailab.jadescript.semantics.context.clashing.NameClashValidator;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Callable;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
@@ -32,7 +32,10 @@ import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -296,7 +299,7 @@ public class ValidationHelper implements SemanticsConsts {
 
     @SuppressWarnings("UnusedReturnValue")
     public boolean validateMethodCompatibility(
-        CallableMember toBeAdded,
+        Callable toBeAdded,
         Maybe<? extends EObject> refEObject,
         ValidationMessageAcceptor acceptor
     ) {
@@ -336,8 +339,13 @@ public class ValidationHelper implements SemanticsConsts {
                     .actAs(NameClashValidator.class)
                     .flatMap(ncv -> ncv.checkNameClash(
                         fieldNameSafe,
-                        new Property(fieldNameSafe, fieldType, false,
-                            currentLocation
+                        new Property(
+                            true,
+                            fieldNameSafe,
+                            fieldType,
+                            currentLocation,
+                            Property.compileWithJVMGetter(fieldNameSafe),
+                            Property.compileWithJVMSetter(fieldNameSafe)
                         )
                     ))
                     .filter(dc -> !dc.getAlreadyPresentSymbol().sourceLocation()

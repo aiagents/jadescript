@@ -6,22 +6,36 @@ import java.util.Comparator;
 import java.util.stream.Stream;
 
 public class AnyAssociationComputer {
+
     private AnyAssociationComputer() {
     }
 
-    public static Stream<Association> computeAllAssociations(Object target) {
+
+    public static Stream<Association> computeAllAssociations(Associated target) {
         Stream<Association> result = Stream.empty();
         if (target instanceof SelfAssociated) {
-            result = Streams.concat(result, ((SelfAssociated) target).computeAllSelfAssociations());
+            result = Streams.concat(
+                result,
+                ((SelfAssociated) target).computeAllSelfAssociations()
+            );
         }
         if (target instanceof BehaviourAssociated) {
-            result = Streams.concat(result, ((BehaviourAssociated) target).computeAllBehaviourAssociations());
+            result = Streams.concat(
+                result,
+                ((BehaviourAssociated) target).computeAllBehaviourAssociations()
+            );
         }
         if (target instanceof AgentAssociated) {
-            result = Streams.concat(result, ((AgentAssociated) target).computeAllAgentAssociations());
+            result = Streams.concat(
+                result,
+                ((AgentAssociated) target).computeAllAgentAssociations()
+            );
         }
         if (target instanceof OntologyAssociated) {
-            result = Streams.concat(result, ((OntologyAssociated) target).computeAllOntologyAssociations());
+            result = Streams.concat(
+                result,
+                ((OntologyAssociated) target).computeAllOntologyAssociations()
+            );
         }
         return result.sorted(Comparator.comparingInt(a -> {
             if (a instanceof SelfAssociation) {
@@ -39,4 +53,5 @@ public class AnyAssociationComputer {
             return 0;
         }));
     }
+
 }

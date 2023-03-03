@@ -13,6 +13,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.LocalVariable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.PatternMatchUnifiedVariable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.FlowSensitiveSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchMode;
@@ -63,6 +64,14 @@ public class SingleIdentifierExpressionSemantics
         if (resolved.isNothing() || ident.isBlank()) {
             return Maybe.nothing();
         } else if (resolved.toNullable() instanceof Either.Left) {
+            final CompilableName left = ((Either.Left<CompilableName,
+                CompilableCallable>)
+                resolved.toNullable()).getLeft();
+
+            if (left instanceof FlowSensitiveSymbol) {
+                return some(((FlowSensitiveSymbol) left).descriptor());
+            }
+
             return some(new ExpressionDescriptor.PropertyChain(ident));
         } else /*if(resolved.toNullable() instanceof Either.Right)*/ {
             return module.get(CallSemantics.class).describeExpression(
@@ -266,7 +275,7 @@ public class SingleIdentifierExpressionSemantics
 
         // Otherwise, new declaration.
 
-        if(ident.isNothing()){
+        if (ident.isNothing()) {
             return state;
         }
 

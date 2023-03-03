@@ -5,12 +5,14 @@ import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.maybe.Maybe;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.stream.Stream;
 
 
 public class BuiltinOpsNamespace extends JadescriptTypeNamespace {
+
     private final Maybe<? extends TypeNamespace> superTypeNamespace;
     private final List<MemberName> properties;
     private final List<? extends MemberCallable> callables;
@@ -18,11 +20,11 @@ public class BuiltinOpsNamespace extends JadescriptTypeNamespace {
 
 
     public BuiltinOpsNamespace(
-            SemanticsModule module,
-            Maybe<? extends TypeNamespace> superTypeNamespace,
-            List<MemberName> properties,
-            List<? extends MemberCallable> callables,
-            SearchLocation location
+        SemanticsModule module,
+        Maybe<? extends TypeNamespace> superTypeNamespace,
+        List<MemberName> properties,
+        List<? extends MemberCallable> callables,
+        SearchLocation location
     ) {
         super(module);
         this.superTypeNamespace = superTypeNamespace;
@@ -33,24 +35,36 @@ public class BuiltinOpsNamespace extends JadescriptTypeNamespace {
 
 
     @Override
-    public Stream<? extends MemberCallable> memberCallables() {
-        return callables.stream();
-    }
-
-
-    @Override
-    public Stream<? extends MemberName> memberNamedCells() {
-        return properties.stream();
-    }
-
-
-    @Override
     public Maybe<? extends TypeNamespace> getSuperTypeNamespace() {
         return superTypeNamespace;
     }
+
 
     @Override
     public SearchLocation currentLocation() {
         return location;
     }
+
+
+    @Override
+    public Stream<? extends MemberCallable> memberCallables(
+        @Nullable String name
+    ) {
+        if (name == null) {
+            return callables.stream();
+        } else {
+            return callables.stream().filter(c -> name.equals(c.name()));
+        }
+    }
+
+
+    @Override
+    public Stream<? extends MemberName> memberNames(@Nullable String name) {
+        if (name == null) {
+            return properties.stream();
+        } else {
+            return properties.stream().filter(c -> name.equals(c.name()));
+        }
+    }
+
 }

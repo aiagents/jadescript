@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnCreateHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.search.UserLocalDefinition;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.context.symbol.ActualParameter;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -185,7 +186,7 @@ public class OnCreateHandlerSemantics
                 )
             ).writeSonnet(scb);
 
-            extractedParameters.add(new ActualParameter(
+            extractedParameters.add(ActualParameter.actualParameter(
                 paramNameSafe,
                 typeHelper.LIST.apply(
                     Collections.singletonList(typeHelper.TEXT)
@@ -194,7 +195,7 @@ public class OnCreateHandlerSemantics
 
         } else {
             //otherwise, add all the parameters as variables in the scope
-            // with correct types and casts from getArguments' elements.
+            // with correct types and casts from the elements of getArguments.
 
             for (int i = 0; i < parameters.size(); i++) {
                 Maybe<FormalParameter> parameter = parameters.get(i);
@@ -228,7 +229,7 @@ public class OnCreateHandlerSemantics
                     )
                 ).writeSonnet(scb);
 
-                extractedParameters.add(new ActualParameter(
+                extractedParameters.add(ActualParameter.actualParameter(
                     parameterNameSafe,
                     tes.toJadescriptType(parameterType)
                 ));
@@ -308,10 +309,13 @@ public class OnCreateHandlerSemantics
                                     {
                                         UserLocalDefinition.getInstance();
 
-                                        final TypeHelper typeHelper = mod.get(TypeHelper.class);
-                                        return new ActualParameter(
+                                        final TypeHelper typeHelper =
+                                            mod.get(TypeHelper.class);
+                                        return ActualParameter.actualParameter(
                                             jvmPar.getName(),
-                                            typeHelper.jtFromJvmTypeRef(jvmPar.getParameterType())
+                                            typeHelper.jtFromJvmTypeRef(
+                                                jvmPar.getParameterType()
+                                            )
                                         );
                                     }
                                 ).collect(Collectors.toList())
@@ -381,7 +385,7 @@ public class OnCreateHandlerSemantics
 
                 if (paramTypeCheck == VALID && parameterName.isPresent()) {
                     String parameterNameSafe = parameterName.toNullable();
-                    extractedParameters.add(new ActualParameter(
+                    extractedParameters.add(ActualParameter.actualParameter(
                         parameterNameSafe,
                         tes.toJadescriptType(
                             parameter.__(FormalParameter::getType)

@@ -1,17 +1,18 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class OnExceptionHandlerWhenExpressionContext
     extends HandlerWhenExpressionContext
-    implements NameMember.Namespace, ExceptionHandledContext {
+    implements CompilableName.Namespace, ExceptionHandledContext {
 
 
     public OnExceptionHandlerWhenExpressionContext(
@@ -35,12 +36,12 @@ public class OnExceptionHandlerWhenExpressionContext
 
 
     @Override
-    public Stream<? extends NameMember> searchName(
-        Predicate<String> name,
-        Predicate<IJadescriptType> readingType,
-        Predicate<Boolean> canWrite
+    public Stream<? extends CompilableName> compilableNames(
+        @Nullable String name
     ) {
-        return getExceptionReasonStream(name, readingType, canWrite);
+        return Util.buildStream(
+            this::getExceptionReasonName
+        ).filter(n -> name == null || name.equals(n.name()));
     }
 
 

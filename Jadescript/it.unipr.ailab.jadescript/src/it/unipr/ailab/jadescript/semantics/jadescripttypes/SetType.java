@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
@@ -256,7 +257,7 @@ public class SetType extends ParametricType implements EmptyCreatable,
 
 
     @Override
-    public void declareSpecificOntologyClass(
+    public void declareAdHocClass(
         EList<JvmMember> members,
         Maybe<ExtendingFeature> feature,
         HashMap<String, String> generatedSpecificClasses,
@@ -326,7 +327,7 @@ public class SetType extends ParametricType implements EmptyCreatable,
                     }
                 ));
                 generatedSpecificClasses.put(className, getCategoryName());
-                addSchemaWriters.add(w.simpleStmt(
+                addSchemaWriters.add(SemanticsConsts.w.simpleStmt(
                     "add(new jade.content.schema.ConceptSchema(\"" + className + "\"), " +
                         "" + className + ".class);"));
                 describeSchemaWriters.add(new StatementWriter() {

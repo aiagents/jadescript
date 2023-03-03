@@ -5,14 +5,15 @@ import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.OfNotation;
 import it.unipr.ailab.jadescript.jadescript.PerformativeExpression;
 import it.unipr.ailab.jadescript.jadescript.UnaryPrefix;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.CallableMember;
-import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
@@ -20,13 +21,11 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -209,27 +208,19 @@ public class UnaryPrefixExpressionSemantics
 
         return "[DEBUG]Searching " + target + " in scope: \n\n" +
             state.searchAs(
-                NameMember.Namespace.class,
+                CompilableName.Namespace.class,
                 s -> {
-                    Stream<? extends NameMember> result;
+                    Stream<? extends CompilableName> result;
                     if (identifier.isPresent()) {
-                        result = s.searchName(
-                            identifier.orElse(""),
-                            null,
-                            null
-                        );
+                        result = s.compilableNames(identifier.orElse(""));
                     } else {
-                        result = s.searchName(
-                            (Predicate<String>) null,
-                            null,
-                            null
-                        );
+                        result = s.compilableNames(null);
                     }
                     return result;
                 }
             ).map(ns -> {
                 SourceCodeBuilder scb = new SourceCodeBuilder("");
-                ns.debugDumpNamedMember(scb);
+                ns.debugDumpName(scb);
                 return " - " + scb;
             }).collect(Collectors.joining(";\n")) +
             "\n\n****** End Searching " + target + " in scope ******";
@@ -246,29 +237,19 @@ public class UnaryPrefixExpressionSemantics
 
         return "[DEBUG]Searching " + target + " in scope: \n\n" +
             state.searchAs(
-                CallableMember.Namespace.class,
+                CompilableCallable.Namespace.class,
                 s -> {
-                    Stream<? extends CallableMember> result;
+                    Stream<? extends CompilableCallable> result;
                     if (identifier.isPresent()) {
-                        result = s.searchCallable(
-                            identifier.orElse(""),
-                            null,
-                            null,
-                            null
-                        );
+                        result = s.compilableCallables(identifier.orElse(""));
                     } else {
-                        result = s.searchCallable(
-                            (Predicate<String>) null,
-                            null,
-                            null,
-                            null
-                        );
+                        result = s.compilableCallables(null);
                     }
                     return result;
                 }
-            ).map(ns -> {
+            ).map(cc -> {
                 SourceCodeBuilder scb = new SourceCodeBuilder("");
-                ns.debugDumpCallableMember(scb);
+                cc.debugDumpCallable(scb);
                 return " - " + scb;
             }).collect(Collectors.joining(";\n")) +
             "\n\n****** End Searching " + target + " in scope ******";

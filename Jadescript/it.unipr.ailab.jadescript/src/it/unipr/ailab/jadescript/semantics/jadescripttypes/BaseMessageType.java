@@ -209,22 +209,19 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
                         "getJadescriptPerformative"
                     )
                 ),
-
                 Property.readonlyProperty(
                     "content",
                     contentType.ignoreBound(),
                     location,
-                    o -> o + "." + "getContent(" + THE_AGENT + "()" +
+                    (o, a) -> o + "." + "getContent(" + THE_AGENT + "()" +
                         ".getContentManager())"
                 ),
-
                 Property.readonlyProperty(
                     "ontology",
                     typeHelper.ONTOLOGY,
                     location,
                     Property.compileWithJVMGetter("ontology")
                 ),
-
                 location
             );
         }

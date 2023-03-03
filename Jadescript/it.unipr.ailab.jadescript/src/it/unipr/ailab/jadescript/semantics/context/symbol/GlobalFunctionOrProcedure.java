@@ -1,5 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol;
 
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
@@ -128,13 +129,15 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
             operation.getSimpleName(),
             paramNamesToTypes,
             paramNames,
-            namespace.currentLocation(),
+            location == null
+                ? namespace.currentLocation()
+                : location,
             withoutSideEffects,
             CompilationHelper.addEnvParameterByArity(defaultInvokeByArity(
-                operation.getSimpleName()
+                operation.getQualifiedName('.')
             )),
             CompilationHelper.addEnvParameterByName(defaultInvokeByName(
-                operation.getSimpleName(),
+                operation.getQualifiedName('.'),
                 paramNames
             ))
         );
@@ -162,7 +165,6 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
             )
         ) + ")";
     }
-
 
 
     @Override
@@ -206,13 +208,19 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
 
 
     @Override
-    public String compileInvokeByArity(List<String> compiledRexprs) {
+    public String compileInvokeByArity(
+        List<String> compiledRexprs,
+        BlockElementAcceptor acceptor
+    ) {
         return invokeByArityCustom.apply(compiledRexprs);
     }
 
 
     @Override
-    public String compileInvokeByName(Map<String, String> compiledRexprs) {
+    public String compileInvokeByName(
+        Map<String, String> compiledRexprs,
+        BlockElementAcceptor acceptor
+    ) {
         return invokeByNameCustom.apply(compiledRexprs);
     }
 

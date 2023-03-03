@@ -1,38 +1,37 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import com.google.common.collect.Streams;
-import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
+import it.unipr.ailab.jadescript.semantics.context.symbol.ActualParameter;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.LocalName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
-
-public interface ParameterizedContext extends NameMember.Namespace {
+public interface ParameterizedContext
+    extends LocalName.Namespace {
     List<ActualParameter> getParameters();
 
-    default Stream<? extends NameMember> searchName(
-            Predicate<String> name,
-            Predicate<IJadescriptType> readingType,
-            Predicate<Boolean> canWrite
-    ) {
-        Stream<ActualParameter> stream = getParameters().stream();
-        stream = safeFilter(stream, NameMember::name, name);
-        stream = safeFilter(stream, NameMember::readingType, readingType);
-        stream = safeFilter(stream, NameMember::canWrite, canWrite);
-        return stream;
+    @Override
+    default Stream<? extends LocalName> localNames(@Nullable String name){
+        return getParameters().stream().filter(
+            p -> name == null || p.name().equals(name)
+        );
     }
+
 
     static List<ActualParameter> zipArguments(
             List<String> paramNames,
             List<IJadescriptType> paramTypes
     ) {
-        return Streams.zip(paramNames.stream(), paramTypes.stream(), ActualParameter::new)
-                .collect(Collectors.toList());
+        return Streams.zip(
+                paramNames.stream(),
+                paramTypes.stream(),
+                ActualParameter::actualParameter
+            ).collect(Collectors.toList());
     }
 
 
@@ -41,8 +40,8 @@ public interface ParameterizedContext extends NameMember.Namespace {
     default void debugDumpParameters(SourceCodeBuilder scb){
         scb.open("--> is ParameterizedContext {");
         scb.open("parameters = [");
-        for (NameMember parameter : getParameters()) {
-            parameter.debugDumpNamedMember(scb);
+        for (LocalName parameter : getParameters()) {
+            parameter.debugDumpName(scb);
         }
         scb.close("]");
         scb.close("}");

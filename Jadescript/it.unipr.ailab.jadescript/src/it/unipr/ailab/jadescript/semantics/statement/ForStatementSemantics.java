@@ -11,8 +11,8 @@ import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.newsys.member.NameMember;
-import it.unipr.ailab.jadescript.semantics.context.symbol.UserVariable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.LocalVariable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
@@ -101,11 +101,10 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             );
 
             StaticState withVar = afterEndIndex.declareName(
-                new UserVariable(
+                LocalVariable.localVariable(
                     varName.extract(nullAsEmptyString),
-                    firstVarType,
-                    true
-                ) //TODO specific NameMember for for-variables
+                    firstVarType
+                )
             );
 
 
@@ -151,16 +150,14 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
             StaticState withVars = afterCollection
                 .declareName(
-                    new UserVariable(
+                    LocalVariable.localVariable(
                         varName.extract(nullAsEmptyString),
-                        firstVarType,
-                        true
+                        firstVarType
                     )
                 ).declareName(
-                    new UserVariable(
+                    LocalVariable.localVariable(
                         var2Name.extract(nullAsEmptyString),
-                        secondVarType,
-                        true
+                        secondVarType
                     )
                 );
 
@@ -201,10 +198,9 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
             StaticState withVar = afterCollection
                 .declareName(
-                    new UserVariable(
+                    LocalVariable.localVariable(
                         varName.extract(nullAsEmptyString),
-                        firstVarType,
-                        true
+                        firstVarType
                     )
                 );
 
@@ -320,16 +316,13 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         if (varName.isPresent()) {
             validationHelper.asserting(
                 state.searchAs(
-                    NameMember.Namespace.class,
-                    (NameMember.Namespace s) -> s.searchName(
-                        varName.extract(nullAsEmptyString),
-                        null,
-                        null
+                    CompilableName.Namespace.class,
+                    (CompilableName.Namespace s) -> s.compilableNames(
+                        varName.extract(nullAsEmptyString)
                     )
                 ).findAny().isEmpty(),
-                "AlreadyDefinedVariable",
-                "A variable with same name is already defined in this" +
-                    " scope",
+                "AlreadyDefinedName",
+                "This name is already used in this scope",
                 input,
                 JadescriptPackage.eINSTANCE.getForStatement_VarName(),
                 acceptor
@@ -384,16 +377,13 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                 if (var2Name.isPresent()) {
                     validationHelper.asserting(
                         state.searchAs(
-                            NameMember.Namespace.class,
-                            (NameMember.Namespace s) -> s.searchName(
-                                var2Name.orElse(""),
-                                null,
-                                null
+                            CompilableName.Namespace.class,
+                            (CompilableName.Namespace s) -> s.compilableNames(
+                                var2Name.orElse("")
                             )
                         ).findAny().isEmpty(),
-                        "AlreadyDefinedVariable",
-                        "A variable with same name is already defined" +
-                            " in this scope",
+                        "AlreadyDefinedName",
+                        "This name is already used in this scope",
                         input,
                         JadescriptPackage.eINSTANCE
                             .getForStatement_Var2Name(),
@@ -410,9 +400,8 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                     if (varName.isPresent() && var2Name.toNullable()
                         .equals(varName.toNullable())) {
                         validationHelper.emitError(
-                            "AlreadyDefinedVariable",
-                            "A variable with same name is already defined" +
-                                " in this scope",
+                            "AlreadyDefinedName",
+                            "This name is already used in this scope",
                             input,
                             JadescriptPackage.eINSTANCE
                                 .getForStatement_Var2Name(),
@@ -508,10 +497,9 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
         StaticState withVars = afterForHeader;
         if (varName.isPresent()) {
-            withVars = withVars.declareName(new UserVariable(
+            withVars = withVars.declareName(LocalVariable.localVariable(
                 varName.orElse(""),
-                var1Type,
-                true
+                var1Type
             ));
         }
 
@@ -528,10 +516,9 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
         if (var2Type.isPresent()) {
             if (var2Name.isPresent()) {
-                withVars = withVars.declareName(new UserVariable(
+                withVars = withVars.declareName(LocalVariable.localVariable(
                     var2Name.orElse(""),
-                    var2Type.toNullable(),
-                    true
+                    var2Type.toNullable()
                 ));
             }
 
