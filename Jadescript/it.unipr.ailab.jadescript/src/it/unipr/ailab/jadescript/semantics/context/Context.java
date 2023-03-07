@@ -10,7 +10,9 @@ import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 public abstract class Context
-        implements SemanticsConsts, Searcheable, AutoNameClashValidator, AutoCallableClashValidator {
+        implements SemanticsConsts, Searcheable,
+    AutoNameClashValidator,
+    AutoCallableClashValidator {
     protected final SemanticsModule module;
 
     public Context(SemanticsModule module) {

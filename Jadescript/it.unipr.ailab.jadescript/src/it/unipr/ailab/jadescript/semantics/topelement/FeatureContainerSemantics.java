@@ -317,22 +317,26 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
         super.populateMainMembers(input, members, itClass);
         if (input == null) return;
 
+
+        final SemanticsDispatchHelper dispatchHelper =
+            module.get(SemanticsDispatchHelper.class);
+
+
         prepareAndEnterContext(input, itClass);
 
         for (Maybe<Feature> feature :
             Maybe.iterate(input.__(FeatureContainer::getFeatures))) {
-            module.get(SemanticsDispatchHelper.class).dispachFeatureSemantics(
+            dispatchHelper.dispachFeatureSemantics(
                 feature,
-                sem -> {
-                    sem.generateJvmMembers(
-                        wrappedSubCast(feature),
-                        wrappedSuperCast(input),
-                        members,
-                        itClass
-                    );
-                }
+                sem -> sem.generateJvmMembers(
+                    wrappedSubCast(feature),
+                    wrappedSuperCast(input),
+                    members,
+                    itClass
+                )
             );
         }
+
 
         populateAdditionalContextualizedMembers(input, members, itClass);
 
@@ -640,7 +644,7 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
 
 
     private void addThrower(Maybe<T> input, EList<JvmMember> members) {
-        if(input.isNothing()){
+        if (input.isNothing()) {
             return;
         }
         final T inputSafe = input.toNullable();

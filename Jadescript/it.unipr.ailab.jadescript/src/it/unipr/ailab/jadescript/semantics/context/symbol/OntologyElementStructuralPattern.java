@@ -146,7 +146,7 @@ public class OntologyElementStructuralPattern implements GlobalPattern {
 
     @Override
     public boolean isWithoutSideEffects() {
-        return false;
+        return true;
     }
 
 }

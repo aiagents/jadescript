@@ -13,7 +13,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
@@ -87,7 +87,7 @@ public class OntologyElementConstructor implements GlobalCallable {
                 continue;
             }
 
-            if (paramName.equals(SemanticsConsts.AGENT_ENV_PARAMETER)) {
+            if (paramName.equals(SemanticsConsts.AGENT_ENV)) {
                 continue;
             }
 
@@ -224,9 +224,9 @@ public class OntologyElementConstructor implements GlobalCallable {
         List<String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
-        return CompilationHelper.addEnvParameterByArity(defaultInvokeByArity(
+        return defaultInvokeByArity(
             ontoFQName + "." + name
-        )).apply(compiledRexprs);
+        ).apply(compiledRexprs);
     }
 
 
@@ -235,10 +235,10 @@ public class OntologyElementConstructor implements GlobalCallable {
         Map<String, String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
-        return CompilationHelper.addEnvParameterByName(defaultInvokeByName(
+        return defaultInvokeByName(
             ontoFQName + "." + name,
             parameterNames()
-        )).apply(compiledRexprs);
+        ).apply(compiledRexprs);
 
     }
 

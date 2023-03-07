@@ -265,10 +265,24 @@ public class TupleType extends ParametricType
         List<String> newEmptyInstances = new ArrayList<>();
         for (TypeArgument typeArgument : elementTypes) {
             IJadescriptType elementType = typeArgument.ignoreBound();
-            newEmptyInstances.add(CompilationHelper.compileDefaultValueForType(
-                elementType));
+            newEmptyInstances.add(
+                CompilationHelper.compileDefaultValueForType(elementType)
+            );
         }
         return compileNewInstance(newEmptyInstances, elementTypes);
+    }
+
+
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        for (TypeArgument type : elementTypes) {
+            if (type instanceof EmptyCreatable) {
+                if (((EmptyCreatable) type).requiresAgentEnvParameter()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 

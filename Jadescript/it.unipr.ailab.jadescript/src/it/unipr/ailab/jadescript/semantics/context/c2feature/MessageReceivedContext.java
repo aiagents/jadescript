@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedName;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
@@ -23,14 +24,16 @@ public interface MessageReceivedContext extends SemanticsConsts {
             contentType,
             () -> "(" + messageType.compileAsJavaCast() + " "
                 + MESSAGE_VAR_NAME + ")" +
-                ".getContent(" + THE_AGENT + "().getContentManager())"
+                ".getContent(" +
+                CompilationHelper.compileAgentReference() +
+                ".getContentManager())"
         );
     }
 
     @NotNull
     private static ContextGeneratedName messageContextGeneratedName(
-         IJadescriptType messageType
-    ){
+        IJadescriptType messageType
+    ) {
         return new ContextGeneratedName(
             "message",
             messageType,
@@ -65,4 +68,5 @@ public interface MessageReceivedContext extends SemanticsConsts {
         scb.line("messageType = " + getMessageType().getDebugPrint());
         scb.close("}");
     }
+
 }

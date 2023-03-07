@@ -504,7 +504,8 @@ public class OnMessageHandlerSemantics
                 w.assign(Util.getOuterClassThisReference(input) + "."
                     + IGNORE_MSG_HANDLERS_VAR_NAME, w.expr("true"))
             ).addStatement(w.callStmnt(
-                    THE_AGENT + "().__cleanIgnoredFlagForMessage",
+                    CompilationHelper.compileAgentReference() +
+                        ".__cleanIgnoredFlagForMessage",
                     w.expr(MESSAGE_VAR_NAME)
                 )
             ).addStatement(

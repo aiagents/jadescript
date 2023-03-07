@@ -29,19 +29,28 @@ import java.util.logging.LogRecord;
 
 public class Agent extends jade.core.Agent {
 
-    protected final Logger __myLogger = __initLog();
+    protected final Logger __myLogger =
+        Logger.getMyLogger(this.getClass().getName());
+
     protected final int __o2aQueueSize = 100;
 
-    /*
-     Multi-map associating each message to the hash-codes of behaviours that
-     executed without extracting (i.e. ignored) the message.
-     Preferring to use a Set<Integer> instead of Set<Behaviour> because:
-        - prevents eventual memory leaks (i.e., behaviour objects that cannot
-          be removed from the heap by the GC because are referenced in this map);
-        - we are not interested in getting back the actual behaviours that
-          ignored the message, we only need to check if each active behaviour 
-          has already inserted a signature in a message to detect staleness.
-    */
+    /**
+     * Multi-map associating each message to the hash codes of behaviours that
+     * executed without extracting (i.e. ignored) the message.
+     * These hash codes can be thought as "signatures" left by behaviours to
+     * messages in the queue to state that they were not interested in the
+     * message.
+     * Please note that only behaviours that executed all their event
+     * handlers and that did not extract any message leave the signatures.
+     * Preferring to use a {@code Set<Integer>} instead of
+     * {@code Set<Behaviour>} because:
+     * - it prevents eventual memory leaks (i.e., behaviour objects that cannot
+     * be removed from the heap by the GC because are referenced indefinitely
+     * by this map);
+     * - to detect staleness, we are not interested in getting back the
+     * actual behaviours that ignored the message, we only need to check if
+     * each active behaviour has already inserted a signature in a message.
+     */
     private final Map<String, Set<Integer>> __ignoreSignatures =
         new HashMap<>();
 
@@ -49,7 +58,13 @@ public class Agent extends jade.core.Agent {
      Set of all currently active/activating behaviours
      */
     private final Set<Behaviour<?>> __addedBehaviours = new HashSet<>();
-    private AgentEnv<Agent, SideEffectsFlag.AnySideEffectFlag> baseEnv = null;
+
+    /*
+     Agent env to be passed around to operations which are executed in the
+     context of the agent.
+     */
+    protected AgentEnv<Agent, SideEffectsFlag.AnySideEffectFlag> _agentEnv
+        = null;
 
 
     public Agent() {
@@ -57,6 +72,7 @@ public class Agent extends jade.core.Agent {
     }
 
 
+    @SuppressWarnings("rawtypes")
     public static void doLog(
         Level level,
         String loggerName,
@@ -140,8 +156,8 @@ public class Agent extends jade.core.Agent {
                 StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
             Optional<String> callerName =
                 stackWalker.walk(stream1 -> stream1.skip(
-                    1)
-                .findFirst()).map(StackWalker.StackFrame::getMethodName);
+                        1)
+                    .findFirst()).map(StackWalker.StackFrame::getMethodName);
             record.setSourceMethodName(callerName.orElse("Log"));
         }
 
@@ -161,8 +177,39 @@ public class Agent extends jade.core.Agent {
     }
 
 
-    public AgentEnv<Agent, SideEffectsFlag.AnySideEffectFlag> __getAgentEnv() {
-        return baseEnv;
+    /**
+     * Invoked by JADE. Sets up the main Jadescript agent facilities, namely the
+     * agentEnv, the ContentManager, the codec, the used ontologies, the native
+     * event manager via O2A, and the stale message cleaner.
+     */
+    protected void setup() {
+        this._agentEnv = AgentEnv.agentEnv(this);
+
+        final ContentManager cm = getContentManager();
+
+        if (cm != null) {
+            __registerCodecs(cm);
+            __registerOntologies(cm);
+        }
+
+        __O2APerceptManager o2APerceptManager = new __O2APerceptManager();
+        this.setEnabledO2ACommunication(true, __o2aQueueSize);
+        o2APerceptManager.activate(this);
+
+        this.setO2AManager(o2APerceptManager);
+        __StaleMessageCleaner staleMessageCleaner = new __StaleMessageCleaner();
+        staleMessageCleaner.activate(this);
+
+        this.__initializeProperties();
+
+        this.__onCreate();
+    }
+
+
+    @SuppressWarnings("unchecked")
+    public <T extends Agent>
+    AgentEnv<T, SideEffectsFlag.AnySideEffectFlag> toEnv() {
+        return (AgentEnv<T, SideEffectsFlag.AnySideEffectFlag>) _agentEnv;
     }
 
 
@@ -188,9 +235,7 @@ public class Agent extends jade.core.Agent {
     }
 
 
-    public void __escalateException(
-        JadescriptException exception
-    ) {
+    public void __escalateException(JadescriptException exception) {
         doLog(
             Level.SEVERE,
             this.getClass().getName(),
@@ -210,26 +255,18 @@ public class Agent extends jade.core.Agent {
             "Exception Stacktrace: " + out
         );
 
-        onDestroy();
         takeDown();
     }
 
 
-    protected void setup() {
-        super.setup();
-        this.baseEnv = AgentEnv.agentEnv(this);
-        final ContentManager cm = getContentManager();
-        if (cm != null) {
-            cm.registerLanguage(new jade.content.lang.leap.LEAPCodec());
-            __registerOntologies(cm);
-        }
-        __O2APerceptManager o2APerceptManager = new __O2APerceptManager();
-        setEnabledO2ACommunication(true, __o2aQueueSize);
-        o2APerceptManager.activate(this);
-        setO2AManager(o2APerceptManager);
-        __StaleMessageCleaner staleMessageCleaner = new __StaleMessageCleaner();
-        staleMessageCleaner.activate(this);
-
+    /**
+     * To be overridden by compiler-generated methods in Jadescript agent
+     * subclasses. Used to execute the initialization expressions of the agent
+     * properties.
+     */
+    @SuppressWarnings("EmptyMethod")
+    protected void __initializeProperties() {
+        // Overriden by compiler-generated methods
     }
 
 
@@ -238,22 +275,36 @@ public class Agent extends jade.core.Agent {
     }
 
 
+    protected void __registerCodecs(ContentManager cm) {
+        cm.registerLanguage(new jade.content.lang.leap.LEAPCodec());
+    }
+
+
     @SuppressWarnings("EmptyMethod")
     @Override
     protected void takeDown() {
+        __onDestroy();
         super.takeDown();
     }
 
 
+    /**
+     * To be overridden by compiler-generated methods in Jadescript agent
+     * subclasses. Used to execute the 'on create' event handler.
+     */
     @SuppressWarnings("EmptyMethod")
-    protected void onCreate() {
-
+    protected void __onCreate() {
+        // Overriden by compiler-generated methods
     }
 
 
+    /**
+     * To be overridden by compiler-generated methods in Jadescript agent
+     * subclasses. Used to execute the 'on destroy' event handler.
+     */
     @SuppressWarnings("EmptyMethod")
-    protected void onDestroy() {
-
+    protected void __onDestroy() {
+        // Overriden by compiler-generated methods
     }
 
 
@@ -280,11 +331,6 @@ public class Agent extends jade.core.Agent {
 
     public AID getAid() {
         return super.getAID();
-    }
-
-
-    private Logger __initLog() {
-        return Logger.getMyLogger(this.getClass().getName());
     }
 
 
@@ -331,7 +377,7 @@ public class Agent extends jade.core.Agent {
     public boolean __isMessageStale(ACLMessage message) {
         final Set<Integer> signatures =
             __ignoreSignatures.getOrDefault(message.toString(),
-            Set.of());
+                Set.of());
         return __addedBehaviours.stream()
             .filter(Behaviour::isActive)
             .allMatch(b -> signatures.contains(b.hashCode()));
@@ -347,6 +393,7 @@ public class Agent extends jade.core.Agent {
         __cleanIgnoredFlagForMessage(message);
         putBack(message);
     }
+
 
     protected static class __O2APerceptManager extends CyclicBehaviour<Agent> {
 

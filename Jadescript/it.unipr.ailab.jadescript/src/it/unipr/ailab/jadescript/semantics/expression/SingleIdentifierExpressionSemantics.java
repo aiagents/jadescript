@@ -213,7 +213,10 @@ public class SingleIdentifierExpressionSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        if (input == null) return;
+        if (input == null) {
+            return;
+        }
+
         final Maybe<String> ident = input.__(SingleIdentifier::getIdent);
 
         final Maybe<CompilableName> variable =
@@ -233,6 +236,8 @@ public class SingleIdentifierExpressionSemantics
                     w.expr(compiledExpression)
                 )
             );
+
+            return;
         }
 
         String adaptedExpression = compiledExpression;
@@ -311,7 +316,6 @@ public class SingleIdentifierExpressionSemantics
             return module.get(CallSemantics.class).inferType(
                 Call.call(input), state);
         }
-
     }
 
 

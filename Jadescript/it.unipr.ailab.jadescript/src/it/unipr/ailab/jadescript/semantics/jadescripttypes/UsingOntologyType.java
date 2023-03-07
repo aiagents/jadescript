@@ -1,7 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import org.eclipse.xtext.common.types.JvmField;
 
 import java.util.stream.Stream;

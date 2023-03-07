@@ -17,7 +17,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntoContentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ParametricType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;

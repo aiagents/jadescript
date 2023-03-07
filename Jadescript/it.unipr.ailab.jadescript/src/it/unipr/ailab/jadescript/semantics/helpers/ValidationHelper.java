@@ -333,38 +333,40 @@ public class ValidationHelper implements SemanticsConsts {
         SearchLocation currentLocation,
         ValidationMessageAcceptor acceptor
     ) {
-        fieldName.safeDo(fieldNameSafe -> {
-            final List<DefinitionClash> clashes =
-                module.get(ContextManager.class).currentContext()
-                    .actAs(NameClashValidator.class)
-                    .flatMap(ncv -> ncv.checkNameClash(
+        if (fieldName.isNothing()) {
+            return;
+        }
+        final String fieldNameSafe = fieldName.toNullable();
+        final List<DefinitionClash> clashes =
+            module.get(ContextManager.class).currentContext()
+                .actAs(NameClashValidator.class)
+                .flatMap(ncv -> ncv.checkNameClash(
+                    fieldNameSafe,
+                    new Property(
+                        true,
                         fieldNameSafe,
-                        new Property(
-                            true,
-                            fieldNameSafe,
-                            fieldType,
-                            currentLocation,
-                            Property.compileWithJVMGetter(fieldNameSafe),
-                            Property.compileWithJVMSetter(fieldNameSafe)
-                        )
-                    ))
-                    .filter(dc -> !dc.getAlreadyPresentSymbol().sourceLocation()
-                        .equals(dc.getToBeAddedSymbol().sourceLocation())
-                    ).filter(Util.dinstinctBy(dc -> Util.tuple(
-                        dc.getAlreadyPresentSymbol().getSignature(),
-                        dc.getAlreadyPresentSymbol().sourceLocation()
-                    )))
-                    .collect(Collectors.toList());
-            asserting(
-                clashes.isEmpty(),
-                "ClashingDeclaration",
-                "Cannot declare property with name '" + fieldNameSafe +
-                    "', clashes found.\n" +
-                    DefinitionClash.clashListToString(clashes),
-                refEObject,
-                acceptor
-            );
-        });
+                        fieldType,
+                        currentLocation,
+                        Property.compileWithJVMGetter(fieldNameSafe),
+                        Property.compileWithJVMSetter(fieldNameSafe)
+                    )
+                ))
+                .filter(dc -> !dc.getAlreadyPresentSymbol().sourceLocation()
+                    .equals(dc.getToBeAddedSymbol().sourceLocation())
+                ).filter(Util.dinstinctBy(dc -> Util.tuple(
+                    dc.getAlreadyPresentSymbol().getSignature(),
+                    dc.getAlreadyPresentSymbol().sourceLocation()
+                )))
+                .collect(Collectors.toList());
+        asserting(
+            clashes.isEmpty(),
+            "ClashingDeclaration",
+            "Cannot declare property with name '" + fieldNameSafe +
+                "', clashes found.\n" +
+                DefinitionClash.clashListToString(clashes),
+            refEObject,
+            acceptor
+        );
     }
 
 

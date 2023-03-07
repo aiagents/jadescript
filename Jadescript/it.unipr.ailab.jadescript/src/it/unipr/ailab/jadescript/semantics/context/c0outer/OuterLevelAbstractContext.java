@@ -10,7 +10,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCalla
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import jadescript.lang.JadescriptGlobalFunction;
 import jadescript.lang.JadescriptGlobalProcedure;
 import org.eclipse.xtext.common.types.JvmDeclaredType;

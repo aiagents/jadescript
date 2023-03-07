@@ -36,6 +36,9 @@ public class OntologyDeclarationContext
             this.ontoType.get().namespace());
     }
 
+    public String getOntologyName(){
+        return ontoType.get().getJadescriptName();
+    }
 
     @Override
     public Maybe<Searcheable> superTypeSearcheable() {
@@ -69,7 +72,7 @@ public class OntologyDeclarationContext
 
     @Override
     public String getCurrentOperationLogName() {
-        return "<init ontology " + ontoType.get().getJadescriptName() + ">";
+        return "<init ontology " + getOntologyName() + ">";
     }
 
     @Override

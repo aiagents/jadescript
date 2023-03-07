@@ -7,7 +7,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.*;
@@ -35,7 +35,39 @@ public class UserDefinedOntoContentType
 
     @Override
     public String compileNewEmptyInstance() {
-        return "new " + compileToJavaTypeReference() + "()";
+        String argument;
+
+        if (requiresAgentEnvParameter()) {
+            argument = AGENT_ENV;
+        } else {
+            argument = "";
+        }
+
+        return "new " + compileToJavaTypeReference() + "(" + argument + ")";
+    }
+
+
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        final JvmTypeNamespace jvmTypeNamespace = jvmNamespace();
+        if (jvmTypeNamespace == null) {
+            return true;
+        }
+
+        final Optional<? extends JvmOperation> metadata =
+            jvmTypeNamespace.getMetadataMethod();
+
+        return metadata.map(op -> op.getParameters()
+                .stream()
+                .filter(Objects::nonNull)
+                .map(JvmFormalParameter::getParameterType)
+                .map(jvmTypeNamespace::resolveType)
+                .filter(t -> t instanceof EmptyCreatable)
+                .map(t -> (EmptyCreatable) t)
+                .anyMatch(EmptyCreatable::requiresAgentEnvParameter))
+            //when empty, assume false; sometimes the metatadata method is
+            // generated/visible later in the process
+            .orElse(false);
     }
 
 
@@ -171,8 +203,6 @@ public class UserDefinedOntoContentType
         public Stream<? extends MemberName> memberNames(@Nullable String name) {
             return namesFromJvm(jvmNamespace.get()).memberNames(name);
         }
-
-
 
 
         @Override

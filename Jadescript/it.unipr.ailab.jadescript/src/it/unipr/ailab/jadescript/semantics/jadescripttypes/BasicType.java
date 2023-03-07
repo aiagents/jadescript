@@ -111,4 +111,11 @@ public class BasicType extends JadescriptType implements EmptyCreatable{
     public String compileNewEmptyInstance() {
         return defaultValue;
     }
+
+
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        return false;
+    }
+
 }

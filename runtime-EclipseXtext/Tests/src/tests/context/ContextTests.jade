@@ -20,16 +20,24 @@ agent MyAgent extends SuperAgent
         return "foo"
         
     on create do
+        log sax
+        log ax
         activate MyBehaviour
 
 
 one shot behaviour SuperBehaviour for agent MyAgent
     property sbx = true
     function sby as boolean do
+        log sax
+        log ax
+        log sbx
         return false
 
 agent AnotherAgent extends MyAgent
     property aax = "bar"@
+    
+    on create do
+        log aax
 
 one shot behaviour MyBehaviour extends SuperBehaviour
     property bx = inform
@@ -37,7 +45,7 @@ one shot behaviour MyBehaviour extends SuperBehaviour
         return cfp
         
     on execute do
-        log __d_type__ SuperConcept
+        log __d_type__ SuperConcept 
         log __d_type__ MyConcept
         log __d_type__ sax
         log __d_type__ say
@@ -47,3 +55,5 @@ one shot behaviour MyBehaviour extends SuperBehaviour
         log __d_type__ sby
         log __d_type__ bx
         log __d_type__ by
+
+

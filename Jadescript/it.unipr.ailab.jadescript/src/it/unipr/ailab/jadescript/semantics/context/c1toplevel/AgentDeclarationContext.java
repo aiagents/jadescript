@@ -9,7 +9,6 @@ import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.search.WithSupertype;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedName;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.LocalName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
@@ -26,7 +25,7 @@ import java.util.stream.Stream;
 public class AgentDeclarationContext extends UsingOntologyDeclarationContext
     implements AgentAssociated,
     WithSupertype,
-    LocalName.Namespace {
+    CompilableName.Namespace {
 
     private final JvmDeclaredType agentJvmType;
     private final LazyValue<IJadescriptType> agentType;
@@ -44,7 +43,7 @@ public class AgentDeclarationContext extends UsingOntologyDeclarationContext
         this.agentJvmType = agentType;
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         this.agentType = new LazyValue<>(() ->
-            typeHelper.jtFromJvmType(agentJvmType)
+            typeHelper.jtFromJvmTypePermissive(agentJvmType)
         );
         this.agentTypeNamespace = new LazyValue<>(() ->
             this.agentType.get().namespace()
@@ -92,6 +91,8 @@ public class AgentDeclarationContext extends UsingOntologyDeclarationContext
     }
 
 
+
+
     @Override
     public Stream<OntologyAssociation> computeCurrentOntologyAssociations() {
         return Stream.empty();
@@ -111,19 +112,11 @@ public class AgentDeclarationContext extends UsingOntologyDeclarationContext
 
 
     @Override
-    public Stream<? extends LocalName> localNames(
+    public Stream<? extends CompilableName> compilableNames(
         @Nullable String name
     ) {
         return Util.buildStream(agentReference)
             .filter((__) -> name == null || name.equals("agent"));
-    }
-
-
-    @Override
-    public Stream<? extends CompilableName> compilableNames(
-        @Nullable String name
-    ) {
-        return localNames(name);
     }
 
 

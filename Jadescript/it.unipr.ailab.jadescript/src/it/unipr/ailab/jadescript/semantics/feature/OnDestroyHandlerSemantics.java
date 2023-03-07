@@ -1,13 +1,13 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnDestroyHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.maybe.Maybe;
@@ -61,7 +61,7 @@ public class OnDestroyHandlerSemantics
             module.get(JvmTypesBuilder.class);
         input.safeDo(handlerSafe -> members.add(jvmTypesBuilder.toMethod(
             handlerSafe,
-            "takeDown",
+            "__onDestroy",
             module.get(TypeHelper.class).typeRef(void.class),
             itMethod -> {
                 fillTakeDownMethod(
@@ -86,7 +86,7 @@ public class OnDestroyHandlerSemantics
         jvmTypesBuilder.setDocumentation(
             itMethod,
             containerName.__(QualifiedName::toString).extract(
-                nullAsEmptyString) + " TAKEDOWN"
+                nullAsEmptyString) + " on destroy"
         );
         itMethod.setVisibility(JvmVisibility.PROTECTED);
 
@@ -94,20 +94,21 @@ public class OnDestroyHandlerSemantics
         module.get(CompilationHelper.class).createAndSetBody(
             itMethod,
             scb -> {
-                w.callStmnt("super.takeDown").writeSonnet(scb);
+                w.callStmnt("super.__onDestroy").writeSonnet(scb);
 
                 scb.line("getContentManager()" +
-                        ".registerLanguage(" + CODEC_VAR_NAME +
-                        ");")
+                        ".registerLanguage(" + CODEC_VAR_NAME + ");")
                     .line();
                 if (!body.isPresent()) {
                     scb.line("//do nothing;");
                     return;
                 }
 
-                module.get(ContextManager.class).restore(savedContext);
+                final ContextManager contextManager =
+                    module.get(ContextManager.class);
+                contextManager.restore(savedContext);
 
-                module.get(ContextManager.class)
+                contextManager
                     .enterProceduralFeature(OnDestroyHandlerContext::new);
 
                 StaticState state = StaticState.beginningOfOperation(module);
@@ -118,7 +119,7 @@ public class OnDestroyHandlerSemantics
 
                 scb.add(encloseInGeneralHandlerTryCatch(blockPSR.result()));
 
-                module.get(ContextManager.class).exit();
+                contextManager.exit();
 
             }
         );

@@ -8,20 +8,22 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import java.util.stream.Stream;
 
 public interface BehaviourAssociationComputer extends AgentAssociationComputer {
+
     Stream<BehaviourAssociation> computeCurrentBehaviourAssociations();
 
     default Stream<BehaviourAssociation> computeAllBehaviourAssociations() {
         return Streams.concat(
-                computeCurrentBehaviourAssociations(),
-                computeBehaviourAssociationsFromSupertype()
+            computeCurrentBehaviourAssociations(),
+            computeBehaviourAssociationsFromSupertype()
         );
     }
 
     private Stream<BehaviourAssociation> computeBehaviourAssociationsFromSupertype() {
         Maybe<Searcheable> ms = superTypeSearcheable();
         if (ms.isPresent() && ms.toNullable() instanceof BehaviourAssociated) {
-            return ((BehaviourAssociated) ms.toNullable()).computeAllBehaviourAssociations()
-                    .map(BehaviourAssociation::applyExtends);
+            return ((BehaviourAssociated) ms.toNullable())
+                .computeAllBehaviourAssociations()
+                .map(BehaviourAssociation::applyExtends);
         } else {
             return Stream.empty();
         }
@@ -31,7 +33,9 @@ public interface BehaviourAssociationComputer extends AgentAssociationComputer {
     default void debugDumpBehaviourAssociations(SourceCodeBuilder scb) {
         scb.open("--> is BehaviourAssociated {");
         scb.line("*** Behaviour associations: ***");
-        computeAllBehaviourAssociations().forEach((BehaviourAssociation b) -> b.debugDump(scb));
+        computeAllBehaviourAssociations().forEach((BehaviourAssociation b) -> b.debugDump(
+            scb));
         scb.close("}");
     }
+
 }

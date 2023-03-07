@@ -28,8 +28,8 @@ import java.util.stream.Collectors;
 import static it.unipr.ailab.jadescript.semantics.helpers.TypeHelper.builtinPrefix;
 import static it.unipr.ailab.maybe.Maybe.some;
 
-public class SetType extends ParametricType implements EmptyCreatable,
-    DeclaresOntologyAdHocClass {
+public class SetType extends ParametricType
+    implements EmptyCreatable, DeclaresOntologyAdHocClass {
 
     private final Map<String, Property> properties = new HashMap<>();
     private final List<Operation> operations = new ArrayList<>();
@@ -241,6 +241,12 @@ public class SetType extends ParametricType implements EmptyCreatable,
     public String compileNewEmptyInstance() {
         return "new jadescript.util.JadescriptSet<" +
             getElementType().compileToJavaTypeReference() + ">()";
+    }
+
+
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        return false;
     }
 
 

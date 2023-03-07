@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.jadescript.ExtendingFeature;
+import it.unipr.ailab.jadescript.jadescript.FeatureContainer;
 import it.unipr.ailab.jadescript.jadescript.NamedElement;
 import it.unipr.ailab.jadescript.jadescript.Ontology;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -10,10 +11,16 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementConstru
 import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementStructuralPattern;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
+import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedOntologyType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import org.eclipse.xtext.common.types.JvmParameterizedTypeReference;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
@@ -95,6 +102,73 @@ public class OntologyDeclarationSupportContext
 
     @Override
     public boolean canUseAgentReference() {
+        return false;
+    }
+
+
+    private boolean isExtensionOfOntology(
+        UserDefinedOntologyType superOnto,
+        String expectedOntoName
+    ) {
+        if (superOnto.compileToJavaTypeReference().equals(expectedOntoName)) {
+            return true;
+        }
+
+        final OntologyType superSuperOnto = superOnto.getSuperOntologyType();
+
+        if (superSuperOnto instanceof UserDefinedOntologyType) {
+            return isExtensionOfOntology(
+                ((UserDefinedOntologyType) superSuperOnto),
+                expectedOntoName
+            );
+        } else {
+            return false;
+        }
+    }
+
+
+    public boolean isDeclarationOrExtensionOfOntology(
+        String expectedOntoName
+    ) {
+        if (ontoFQName != null && ontoFQName.equals(expectedOntoName)) {
+            return true;
+        }
+
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        final List<Maybe<JvmParameterizedTypeReference>> superOntologies =
+            Maybe.toListOfMaybes(input.__(FeatureContainer::getSuperTypes));
+
+        for (Maybe<JvmParameterizedTypeReference> superOntology :
+            superOntologies) {
+
+            final Maybe<String> name =
+                superOntology.__(s -> s.getQualifiedName('.'));
+
+            if (name.isNothing()) {
+                continue;
+            }
+
+            if (name.toNullable().equals(expectedOntoName)) {
+                return true;
+            }
+
+            if (superOntology.isNothing()) {
+                continue;
+            }
+
+            final IJadescriptType superType = typeHelper.jtFromJvmTypeRef(
+                superOntology.toNullable());
+
+            if (superType instanceof UserDefinedOntologyType &&
+                isExtensionOfOntology(
+                    ((UserDefinedOntologyType) superType),
+                    expectedOntoName
+                )
+            ) {
+                return true;
+            }
+        }
         return false;
     }
 

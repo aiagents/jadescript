@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociation;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
+import it.unipr.ailab.jadescript.semantics.context.c2feature.OntologyDeclarationSupportContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
@@ -28,6 +29,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociation.OntologyAssociationKind;
@@ -245,16 +247,31 @@ public class SendMessageStatementSemantics
                 .map(OntologyAssociation::getAssociationKind)
                 .collect(Collectors.toList());
 
-            // The ontology has to be used in some way (e.g., direcly
-            // used, used by supertypes, used by the agent...)
-            validationHelper.asserting(
-                !associationsToOntotype.isEmpty(),
-                "OntologyNotUsed",
-                "Ontology " + ontoType.getJadescriptName() + " is not" +
-                    " accessible in this context.",
-                maybeEobject,
-                acceptor
-            );
+            if (associationsToOntotype.isEmpty()) {
+
+                Optional<OntologyDeclarationSupportContext> supportContext =
+                    module.get(ContextManager.class)
+                        .currentContext()
+                        .actAs(OntologyDeclarationSupportContext.class)
+                        .findFirst();
+
+                final boolean isInDeclaration = supportContext.map(
+                    context -> context.isDeclarationOrExtensionOfOntology(
+                        ontoType.compileToJavaTypeReference()
+                    )).orElse(false);
+                // The ontology containing the ontology element declaration
+                // has to be used in some way (e.g., direcly
+                // used, used by supertypes, used by the agent...)
+                validationHelper.asserting(
+                    isInDeclaration,
+                    "OntologyNotUsed",
+                    "Ontology " + ontoType.getJadescriptName() + " is not" +
+                        " accessible in this context.",
+                    maybeEobject,
+                    acceptor
+                );
+            }
+
         }
 
         return afterReceivers;
@@ -412,7 +429,7 @@ public class SendMessageStatementSemantics
 
 //generating => this.myAgent.send(_msg1);
         acceptor.accept(w.callStmnt(
-            THE_AGENT + "().send",
+            CompilationHelper.compileAgentReference() + ".send",
             w.expr(messageName)
         ));
 
@@ -543,15 +560,15 @@ public class SendMessageStatementSemantics
             .typeEquals(componentType);
 
         acceptor.accept(doAIDConversion ?
-            w.callStmnt(
-                messageName + ".addReceiver",
-                w.callExpr(
-                    "new jade.core.AID",
-                    w.callExpr(argOfAddReceiver + ".toString"),
-                    w.expr("false")
+                w.callStmnt(
+                    messageName + ".addReceiver",
+                    w.callExpr(
+                        "new jade.core.AID",
+                        w.callExpr(argOfAddReceiver + ".toString"),
+                        w.expr("false")
+                    )
                 )
-            )
-            : w.callStmnt(
+                : w.callStmnt(
                 messageName + ".addReceiver",
                 w.expr(argOfAddReceiver)
             )
@@ -639,7 +656,8 @@ public class SendMessageStatementSemantics
                     ContentElement.class)
                     || typeSafe.isSubtypeOf(AbsContentElement.class))) {
                     tryBranch = w.block().addStatement(w.callStmnt(
-                        THE_AGENT + "().getContentManager().fillContent",
+                        CompilationHelper.compileAgentReference() +
+                            ".getContentManager().fillContent",
                         w.expr(messageName),
                         w.callExpr(
                             "jadescript.content.onto.MessageContent" +

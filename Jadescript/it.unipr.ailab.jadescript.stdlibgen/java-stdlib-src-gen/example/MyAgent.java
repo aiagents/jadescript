@@ -13,8 +13,8 @@ import jadescript.java.JadescriptAgentController;
 
 @SuppressWarnings("all")
 public class MyAgent extends Agent {
-  public void onCreate() {
-    super.onCreate();
+  public void __onCreate() {
+    super.__onCreate();
     try {
     	/* 
     	 * Compiled from source statement at line 4
@@ -64,14 +64,9 @@ public class MyAgent extends Agent {
     return this;
   }
 
-  /**
-   * example.MyAgent SETUP
-   */
-  protected void setup() {
-    super.setup();
-    getContentManager().registerLanguage(__codec);
-    
-    this.onCreate();
+  protected void __registerCodecs(final ContentManager cm) {
+    super.__registerCodecs(cm);
+    cm.registerLanguage(__codec);
   }
 
   public static JadescriptAgentController create(final ContainerController _container, final String _agentName) throws StaleProxyException {

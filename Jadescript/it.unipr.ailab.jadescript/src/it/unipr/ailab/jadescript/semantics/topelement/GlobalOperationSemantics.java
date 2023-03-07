@@ -2,10 +2,13 @@ package it.unipr.ailab.jadescript.semantics.topelement;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
+import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation;
+import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.c0outer.ModuleContext;
 import it.unipr.ailab.jadescript.semantics.context.c1toplevel.GFoPDeclarationContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.FunctionContext;
@@ -15,13 +18,13 @@ import it.unipr.ailab.jadescript.semantics.context.search.ModuleGlobalLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.UnknownLocation;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.feature.OperationDeclarationSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -215,13 +218,6 @@ public class GlobalOperationSemantics
     ) {
         super.populateMainMembers(input, members, itClass);
 
-        input.safeDo(inputsafe -> {
-            members.add(module.get(JvmTypesBuilder.class).toConstructor(
-                inputsafe,
-                itCtor -> itCtor.setVisibility(JvmVisibility.PUBLIC)
-            ));
-        });
-
     }
 
 
@@ -244,7 +240,7 @@ public class GlobalOperationSemantics
         final ContextManager contextManager =
             module.get(ContextManager.class);
 
-        final JvmTypesBuilder jvmTypesBuilder =
+        final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
 
         final CompilationHelper compilationHelper =
@@ -275,7 +271,7 @@ public class GlobalOperationSemantics
             final SavedContext saved = contextManager.save();
 
 
-            members.add(jvmTypesBuilder.toMethod(
+            members.add(jvmTB.toMethod(
                 methodSafe,
                 methodNameSafe,
                 returnType.asJvmTypeReference(),
@@ -283,14 +279,34 @@ public class GlobalOperationSemantics
                     contextManager.restore(saved);
                     itMethod.setVisibility(JvmVisibility.PUBLIC);
                     itMethod.setStatic(false);
+
                     final List<Maybe<FormalParameter>> parameters =
                         toListOfMaybes(
                             method.__(GlobalFunctionOrProcedure::getParameters)
                         );
 
+                    final Optional<IJadescriptType> contextAgent =
+                        contextManager.currentContext().searchAs(
+                            AgentAssociationComputer.class,
+                            aac -> aac.computeAllAgentAssociations()
+                                .map(AgentAssociation::getAgent)
+                        ).findFirst();
+
+                    itMethod.getParameters().add(jvmTB.toParameter(
+                        methodSafe,
+                        SemanticsConsts.AGENT_ENV,
+                        typeHelper.AGENTENV.apply(List.of(
+                            typeHelper.covariant(
+                                contextAgent.orElse(typeHelper.AGENT)
+                            ),
+                            typeHelper.jtFromClass(AgentEnvType.toSEModeClass(
+                                AgentEnvType.SEMode.WITH_SE
+                            ))
+                        )).asJvmTypeReference()
+                    ));
+
+
                     for (Maybe<FormalParameter> parameter : parameters) {
-
-
                         final Maybe<String> parameterName =
                             parameter.__(FormalParameter::getName);
 
@@ -306,7 +322,7 @@ public class GlobalOperationSemantics
                             parameterName.toNullable();
 
                         itMethod.getParameters().add(
-                            jvmTypesBuilder.toParameter(
+                            jvmTB.toParameter(
                                 parameterSafe,
                                 parameterNameSafe,
                                 parameter.__(FormalParameter::getType)

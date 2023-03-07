@@ -357,8 +357,15 @@ public class ListType extends ParametricType implements EmptyCreatable {
 
     @Override
     public String compileNewEmptyInstance() {
+        //TODO when using new JadescriptList implementation, update this
         return "new java.util.ArrayList<" +
             getElementType().compileToJavaTypeReference() + ">()";
+    }
+
+
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        return false;
     }
 
 }

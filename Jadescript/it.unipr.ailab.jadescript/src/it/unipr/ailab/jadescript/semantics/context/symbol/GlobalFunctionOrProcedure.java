@@ -10,7 +10,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
 import org.eclipse.xtext.common.types.JvmTypeReference;
@@ -98,7 +98,7 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
                 continue;
             }
 
-            if (paramName.equals(SemanticsConsts.AGENT_ENV_PARAMETER)) {
+            if (paramName.equals(SemanticsConsts.AGENT_ENV)) {
                 final IJadescriptType envType =
                     namespace.resolveType(paramTypeRef);
 

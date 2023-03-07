@@ -10,6 +10,7 @@ import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociated;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -69,7 +70,7 @@ public class ActivateStatementSemantics
             runningState
         );
 
-        params.add(w.expr(THE_AGENT + "()"));
+        params.add(w.expr(CompilationHelper.compileAgentReference()));
         if (delay.isPresent()) {
             methodName += "_after";
             final String delayCompiled = rves.compile(

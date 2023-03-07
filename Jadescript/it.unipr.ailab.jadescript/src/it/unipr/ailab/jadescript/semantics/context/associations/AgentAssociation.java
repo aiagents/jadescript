@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.context.associations;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.ImportedMembersNamespace;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -104,8 +105,7 @@ public class AgentAssociation implements Comparable<AgentAssociation>,
     ) {
         return ImportedMembersNamespace.importMembersNamespace(
             module,
-            acceptor -> Util.getOuterClassThisReference(eObject).orElse(THIS)
-                + "." + THE_AGENT + "()",
+            acceptor -> CompilationHelper.compileAgentReference(eObject),
             ExpressionDescriptor.agentReference,
             getAssociatedType().namespace()
         );

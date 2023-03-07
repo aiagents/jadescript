@@ -363,7 +363,8 @@ public class OnPerceptHandlerSemantics
 
         final BlockWriter tryBlock = w.block();
         tryBlock.addStatement(w.ifStmnt(
-            w.expr("!(((jadescript.core.percept.Percept) " + THE_AGENT + "()" +
+            w.expr("!(((jadescript.core.percept.Percept) " +
+                CompilationHelper.compileAgentReference() +
                 ".getContentManager()" +
                 ".extractContent(" + PERCEPT_VAR_NAME + "))" +
                 ".getContent() instanceof " +
@@ -378,8 +379,9 @@ public class OnPerceptHandlerSemantics
                 finalContentType.compileToJavaTypeReference(),
                 PERCEPT_CONTENT_VAR_NAME,
                 w.expr(finalContentType.compileAsJavaCast() +
-                    "((jadescript.core.percept.Percept)"
-                    + THE_AGENT + "().getContentManager()" +
+                    "((jadescript.core.percept.Percept)" +
+                    CompilationHelper.compileAgentReference() +
+                    ".getContentManager()" +
                     ".extractContent(" + PERCEPT_VAR_NAME + "))" +
                     ".getContent()"
                 )
@@ -506,7 +508,8 @@ public class OnPerceptHandlerSemantics
                     w.expr("true")
                 ))
                 .addStatement(w.callStmnt(
-                    THE_AGENT + "().__cleanIgnoredFlagForMessage",
+                    CompilationHelper.compileAgentReference() +
+                        ".__cleanIgnoredFlagForMessage",
                     w.expr(PERCEPT_VAR_NAME)
                 ))
                 .addStatement(w.assign(

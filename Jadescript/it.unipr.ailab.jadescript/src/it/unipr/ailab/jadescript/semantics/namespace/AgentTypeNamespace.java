@@ -13,7 +13,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseAgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedAgentType;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import org.jetbrains.annotations.Nullable;
@@ -68,7 +67,8 @@ public class AgentTypeNamespace
             return namesFromJvm(jvmNamespace.get())
                 .memberNames(name);
         } else {
-            return builtinProperties.stream();
+            return builtinProperties.stream()
+                .filter(p -> name == null || name.equals(p.name()));
         }
     }
 

@@ -1,4 +1,4 @@
-package it.unipr.ailab.jadescript.semantics.namespace.jvm;
+package it.unipr.ailab.jadescript.semantics.namespace;
 
 import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -22,6 +22,9 @@ import java.util.stream.Stream;
 public class JvmTypeNamespace implements Searcheable {
 
     public static final String CTOR_INTERNAL_NAME = "###CTOR###";
+
+
+
     private final SemanticsModule module;
     private final JvmDeclaredType jvmDeclaredType;
     private final boolean isGeneric;
@@ -250,7 +253,7 @@ public class JvmTypeNamespace implements Searcheable {
 
         biggest.ifPresent(c -> {
             final EList<JvmFormalParameter> parameters = c.getParameters();
-            if(parameters == null){
+            if (parameters == null) {
                 return;
             }
 

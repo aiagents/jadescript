@@ -119,6 +119,8 @@ public abstract class UsesOntologyEntitySemantics<T extends UsesOntologyElement>
                     }
             ));
 
+
+
             members.add(module.get(JvmTypesBuilder.class).toField(
                     inputsafe,
                     CODEC_VAR_NAME,

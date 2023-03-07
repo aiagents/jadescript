@@ -913,6 +913,7 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
                     .toString("."))
             .or(input.__(NamedElement::getName))
             .orElse("");
+
         //creates all the classes of the elements of the ontology:
         module.get(ContextManager.class).enterTopLevelDeclaration(
             (module, outer) -> new OntologyDeclarationSupportContext(

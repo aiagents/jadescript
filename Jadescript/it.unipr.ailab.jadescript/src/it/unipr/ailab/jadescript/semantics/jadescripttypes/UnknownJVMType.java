@@ -4,8 +4,9 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.EmptyTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.PermissiveJvmBasedNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import jadescript.content.JadescriptOntoElement;
 import org.eclipse.xtext.common.types.JvmOperation;
@@ -18,9 +19,13 @@ import static it.unipr.ailab.maybe.Maybe.*;
 public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
     private final JvmTypeReference typeReference;
 
+    private final boolean permissive;
+
+
     public UnknownJVMType(
         SemanticsModule module,
-        JvmTypeReference typeReference
+        JvmTypeReference typeReference,
+        boolean permissive
     ) {
         super(
             module,
@@ -29,6 +34,7 @@ public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
             "OTHER"
         );
         this.typeReference = typeReference;
+        this.permissive = permissive;
     }
 
     @Override
@@ -91,7 +97,18 @@ public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
 
     @Override
     public TypeNamespace namespace() {
-        return module.get(EmptyTypeNamespace.class);
+        if(permissive){
+            return new PermissiveJvmBasedNamespace(
+                module,
+                this.jvmNamespace(),
+                () -> module.get(TypeHelper.class)
+                    .jtFromJvmTypeRef(this.asJvmTypeReference())
+                    .namespace().getSuperTypeNamespace(),
+                getLocation()
+            );
+        }else {
+            return module.get(EmptyTypeNamespace.class);
+        }
     }
 
     @Override
@@ -138,4 +155,11 @@ public class UnknownJVMType extends JadescriptType implements EmptyCreatable {
             "reference was probably detected*/";
 
     }
+
+
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        return false;
+    }
+
 }

@@ -3,7 +3,7 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.OntologyTypeNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmField;
 import org.eclipse.xtext.common.types.JvmTypeReference;
@@ -29,6 +29,12 @@ public class UserDefinedOntologyType
 
 
     @Override
+    public boolean requiresAgentEnvParameter() {
+        return false;
+    }
+
+
+    @Override
     public Maybe<OntologyType> getDeclaringOntology() {
         return Maybe.nothing();
     }
@@ -49,7 +55,7 @@ public class UserDefinedOntologyType
     public OntologyType getSuperOntologyType() { //TODO multiple ontologies
         JvmTypeNamespace jvmNamespace = jvmNamespace();
 
-        if(jvmNamespace == null){
+        if (jvmNamespace == null) {
             return module.get(TypeHelper.class).ONTOLOGY;
         }
 
@@ -73,9 +79,8 @@ public class UserDefinedOntologyType
         final BaseOntologyType basic = module.get(TypeHelper.class).ONTOLOGY;
         if (this.typeEquals(basic)) {
             return true;
-        } else if (
-            other instanceof BaseOntologyType
-                || basic.typeEquals(other)
+        } else if (other instanceof BaseOntologyType
+            || basic.typeEquals(other)
         ) {
             return false;
         } else if (other instanceof UserDefinedOntologyType) {

@@ -83,6 +83,7 @@ public abstract class ForEntitySemantics<T extends ForElement> extends UsesOntol
                     ));
                 }
         );
+
         super.populateMainMembers(input, members, itClass);
     }
 

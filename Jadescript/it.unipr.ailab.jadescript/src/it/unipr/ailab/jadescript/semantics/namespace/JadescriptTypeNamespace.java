@@ -9,7 +9,6 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCalla
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Functional;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
@@ -23,6 +22,9 @@ import static it.unipr.ailab.jadescript.semantics.utils.Util.buildStream;
 
 public abstract class JadescriptTypeNamespace extends TypeNamespace {
 
+    public static final boolean REQUIRE_ENV_PARAMETER = true;
+    public static final boolean NO_ENV_PARAMETER = false;
+
 
     public JadescriptTypeNamespace(SemanticsModule module) {
         super(module);
@@ -35,8 +37,11 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
         return (name) -> {
             final TypeHelper typeHelper = module.get(TypeHelper.class);
             return jvmTypeNamespace.searchJvmOperation()
+                .filter(jvmop -> jvmop.getReturnType() != null)
                 .filter(jvmop -> jvmop.getSimpleName() != null
                     && !jvmop.getSimpleName().startsWith("_"))
+                .filter(jvmop -> name == null
+                    || jvmop.getSimpleName().equals(name))
                 .filter(jvmop -> {
                     final EList<JvmFormalParameter> parameters =
                         jvmop.getParameters();
@@ -64,9 +69,11 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
 
 
     public GlobalCallable.Namespace staticCallablesFromJvm(
+        boolean requireEnvParameter,
         JvmTypeNamespace jvmTypeNamespace
     ) {
         return staticCallablesFromJvm(
+            requireEnvParameter,
             jvmTypeNamespace,
             GlobalFunctionOrProcedure::fromJvmStaticOperation
         );
@@ -74,6 +81,7 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
 
 
     public GlobalCallable.Namespace staticCallablesFromJvm(
+        boolean requireEnvParameter,
         JvmTypeNamespace jvmTypeNamespace,
         Functional.TriFunction<SemanticsModule, JvmTypeNamespace,
             JvmOperation, GlobalCallable> converter
@@ -82,11 +90,20 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
             final TypeHelper typeHelper = module.get(TypeHelper.class);
             return jvmTypeNamespace.searchJvmOperation()
                 .filter(JvmOperation::isStatic)
+                .filter(f -> f.getReturnType() != null)
                 .filter(jvmop -> jvmop.getSimpleName() != null
                     && !jvmop.getSimpleName().startsWith("_"))
+                .filter(jvmop -> name == null
+                    || jvmop.getSimpleName().equals(name))
                 .filter(jvmop -> {
+                    if (!requireEnvParameter) {
+                        return true;
+                    }
+
+                    // Otherwise, checking env parameter...
                     final EList<JvmFormalParameter> parameters =
                         jvmop.getParameters();
+
 
                     if (parameters.size() < 1) {
                         return false;
@@ -102,7 +119,8 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
                             parameters.get(0).getParameterType()
                         );
 
-                    return typeHelper.ANYAGENTENV.isSupEqualTo(firstParamType);
+                    return typeHelper.ANYAGENTENV.isSupEqualTo(
+                        firstParamType);
                 }).map((JvmOperation operation) ->
                     converter.apply(module, jvmTypeNamespace, operation)
                 );
@@ -115,18 +133,14 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
     ) {
         return (searchedName) -> {
             return jvmTypeNamespace.searchJvmField()
+                .filter(f -> f.getType() != null)
+                .filter(f -> f.getSimpleName() != null)
+                .filter(f -> searchedName == null
+                    || searchedName.equals(f.getSimpleName()))
                 .flatMap(f -> {
-                    if (f.getType() == null || f.getSimpleName() == null) {
-                        return Stream.empty();
-                    }
-
                     final IJadescriptType resolvedType =
                         jvmTypeNamespace.resolveType(f.getType());
                     String name = f.getSimpleName();
-
-                    if (searchedName != null && !searchedName.equals(name)) {
-                        return Stream.empty();
-                    }
 
                     boolean hasGetter = jvmTypeNamespace.searchJvmOperation()
                         .anyMatch(o -> o.getSimpleName().equals(

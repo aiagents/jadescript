@@ -81,7 +81,11 @@ public abstract class NamedEntitySemantics<T extends NamedElement> extends Seman
                         populateMainSuperTypes(input, itClass.getSuperTypes());
 
                         if (!isPreIndexingPhase) {
-                            populateMainMembers(input, itClass.getMembers(), itClass);
+                            populateMainMembers(
+                                input,
+                                itClass.getMembers(),
+                                itClass
+                            );
                         }
 
                     }
@@ -90,11 +94,18 @@ public abstract class NamedEntitySemantics<T extends NamedElement> extends Seman
     }
 
 
-    public void populateMainMembers(Maybe<T> input, EList<JvmMember> members, JvmDeclaredType beingDeclared) {
+    public void populateMainMembers(
+        Maybe<T> input,
+        EList<JvmMember> members,
+        JvmDeclaredType beingDeclared
+    ) {
         //do nothing
     }
 
-    public void populateMainSuperTypes(Maybe<T> input, EList<JvmTypeReference> superTypes) {
+    public void populateMainSuperTypes(
+        Maybe<T> input,
+        EList<JvmTypeReference> superTypes
+    ) {
         //do nothing
     }
 }

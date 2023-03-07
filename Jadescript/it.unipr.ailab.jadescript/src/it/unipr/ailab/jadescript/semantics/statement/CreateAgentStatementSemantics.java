@@ -8,10 +8,11 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import jade.wrapper.ContainerController;
@@ -584,7 +585,9 @@ public class CreateAgentStatementSemantics
         final String agentTypeCompiled = agentType.compileToJavaTypeReference();
         acceptor.accept(w.simpleStmt(
             agentTypeCompiled +
-                ".create(" + THE_AGENT + "().getContainerController(), " +
+                ".create(" +
+                CompilationHelper.compileAgentReference() +
+                ".getContainerController(), " +
                 compiledNickName + comma + compiledArgs +
                 ")"
         ));

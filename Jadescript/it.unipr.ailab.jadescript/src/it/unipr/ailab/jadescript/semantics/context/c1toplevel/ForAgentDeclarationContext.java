@@ -8,6 +8,8 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedName;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
@@ -40,7 +42,7 @@ public abstract class ForAgentDeclarationContext
             new ContextGeneratedName(
                 "agent",
                 agentType,
-                () -> THE_AGENT + "()"
+                CompilationHelper::compileAgentReference
             )
         );
     }
@@ -57,7 +59,6 @@ public abstract class ForAgentDeclarationContext
     }
 
 
-
     @Override
     public Stream<AgentAssociation> computeCurrentAgentAssociations() {
         return Stream.empty();
@@ -66,10 +67,18 @@ public abstract class ForAgentDeclarationContext
 
     @Override
     public Stream<AgentAssociation> computeForClauseAgentAssociations() {
-        return Stream.of(new AgentAssociation(
-            agentType,
-            AgentAssociation.F_A.INSTANCE
-        ));
+        if (agentType instanceof AgentType) {
+            return ((AgentType) agentType).namespace()
+                .computeAllAgentAssociations()
+                .map(AgentAssociation::applyForAgent);
+        } else {
+            return Stream.of(
+                new AgentAssociation(
+                    agentType,
+                    AgentAssociation.F_A.INSTANCE
+                )
+            );
+        }
     }
 
 

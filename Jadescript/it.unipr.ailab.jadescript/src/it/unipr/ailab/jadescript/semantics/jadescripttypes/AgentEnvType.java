@@ -22,7 +22,8 @@ public class AgentEnvType extends ParametricType {
     public AgentEnvType(
         SemanticsModule module,
         TypeArgument forAgent,
-        TypeArgument seMode
+        TypeArgument seMode,
+        BaseAgentType baseAgentType
     ) {
         super(
             module,
@@ -34,7 +35,7 @@ public class AgentEnvType extends ParametricType {
             ")",
             "",
             List.of(forAgent),
-            List.of(module.get(TypeHelper.class).AGENT)
+            List.of(baseAgentType)
         );
         this.forAgent = forAgent;
         this.seMode = getFromTypeArgument(seMode);
@@ -53,6 +54,18 @@ public class AgentEnvType extends ParametricType {
             return SEMode.NO_SE;
         } else {
             return SEMode.ANY;
+        }
+    }
+
+    public static Class<?> toSEModeClass(SEMode mode){
+        switch (mode) {
+            case WITH_SE:
+                return SideEffectsFlag.WithSideEffects.class;
+            case NO_SE:
+                return SideEffectsFlag.NoSideEffects.class;
+            default:
+            case ANY:
+                return SideEffectsFlag.AnySideEffectFlag.class;
         }
     }
 

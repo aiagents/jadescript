@@ -311,6 +311,12 @@ public class MapType extends ParametricType implements EmptyCreatable,
 
 
     @Override
+    public boolean requiresAgentEnvParameter() {
+        return false;
+    }
+
+
+    @Override
     public void declareAdHocClass(
         EList<JvmMember> members,
         Maybe<ExtendingFeature> feature,

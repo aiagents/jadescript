@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.maybe.Maybe;
@@ -151,6 +152,12 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
     }
 
 
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        return false;
+    }
+
+
     public static class MessageTypeNamespace extends BuiltinOpsNamespace {
 
 
@@ -213,7 +220,8 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
                     "content",
                     contentType.ignoreBound(),
                     location,
-                    (o, a) -> o + "." + "getContent(" + THE_AGENT + "()" +
+                    (o, a) -> o + "." + "getContent(" +
+                        CompilationHelper.compileAgentReference() +
                         ".getContentManager())"
                 ),
                 Property.readonlyProperty(

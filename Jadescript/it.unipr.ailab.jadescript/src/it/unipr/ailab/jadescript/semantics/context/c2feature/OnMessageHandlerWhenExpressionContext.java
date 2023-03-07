@@ -22,12 +22,14 @@ import java.util.stream.Stream;
 
 public class OnMessageHandlerWhenExpressionContext
     extends HandlerWhenExpressionContext
-    implements CompilableName.Namespace, CompilableCallable.Namespace,
+    implements CompilableName.Namespace,
+    CompilableCallable.Namespace,
     MessageReceivedContext {
 
 
     private final Maybe<Performative> performative;
     private final LazyValue<NamespaceWithMembers> messageNamespace;
+    private final LazyValue<ImportedMembersNamespace> importedFromMessage;
 
 
     public OnMessageHandlerWhenExpressionContext(
@@ -39,6 +41,13 @@ public class OnMessageHandlerWhenExpressionContext
         this.messageNamespace =
             new LazyValue<>(() -> getMessageType().namespace());
         this.performative = performative;
+        this.importedFromMessage = new LazyValue<>(() ->
+            ImportedMembersNamespace.importMembersNamespace(
+                module,
+                (__) -> MESSAGE_VAR_NAME,
+                ExpressionDescriptor.messageReference,
+                messageNamespace.get()
+            ));
     }
 
 
@@ -49,7 +58,8 @@ public class OnMessageHandlerWhenExpressionContext
             .orElseGet(() -> module.get(TypeHelper.class).ANY);
     }
 
-     @Override
+
+    @Override
     public Stream<? extends CompilableName> compilableNames(
         @Nullable String name
     ) {
@@ -58,26 +68,18 @@ public class OnMessageHandlerWhenExpressionContext
                 this::getMessageName,
                 this::getContentName
             ).filter(n -> name == null || name.equals(n.name())),
-            ImportedMembersNamespace.importMembersNamespace(
-                module,
-                (__) -> MESSAGE_VAR_NAME,
-                ExpressionDescriptor.messageReference,
-                messageNamespace.get()
-            ).compilableNames(name)
+            importedFromMessage.get().compilableNames(name)
         );
     }
+
 
     @Override
     public Stream<? extends CompilableCallable> compilableCallables(
         @Nullable String name
     ) {
-        return ImportedMembersNamespace.importMembersNamespace(
-            module,
-            (__) -> MESSAGE_VAR_NAME,
-            ExpressionDescriptor.messageReference,
-            messageNamespace.get()
-        ).compilableCallables(name);
+        return importedFromMessage.get().compilableCallables(name);
     }
+
 
     @Override
     public IJadescriptType getMessageType() {

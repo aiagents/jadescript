@@ -68,6 +68,12 @@ public class BaseBehaviourType
     }
 
 
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        return true;
+    }
+
+
     public IJadescriptType getForAgentType() {
         return forAgentType.ignoreBound();
     }

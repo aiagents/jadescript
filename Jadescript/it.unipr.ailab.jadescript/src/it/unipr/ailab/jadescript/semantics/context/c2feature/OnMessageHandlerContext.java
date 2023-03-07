@@ -4,8 +4,6 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.ImportedMembersNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithMembers;
@@ -16,9 +14,6 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import jadescript.lang.Performative;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.function.BiPredicate;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class OnMessageHandlerContext
@@ -31,6 +26,7 @@ public class OnMessageHandlerContext
     private final IJadescriptType messageContentType;
     private final IJadescriptType messageType;
     private final LazyValue<NamespaceWithMembers> messageNamespace;
+    private final LazyValue<ImportedMembersNamespace> importedFromMessage;
 
 
     public OnMessageHandlerContext(
@@ -46,6 +42,14 @@ public class OnMessageHandlerContext
         this.messageType = messageType;
         this.messageNamespace =
             new LazyValue<>(() -> getMessageType().namespace());
+        this.importedFromMessage = new LazyValue<>(() ->
+            ImportedMembersNamespace.importMembersNamespace(
+                module,
+                (__) -> MESSAGE_VAR_NAME,
+                ExpressionDescriptor.messageReference,
+                messageNamespace.get()
+            )
+        );
     }
 
 
@@ -76,25 +80,16 @@ public class OnMessageHandlerContext
                 this::getMessageName,
                 this::getContentName
             ).filter(n -> name == null || name.equals(n.name())),
-            ImportedMembersNamespace.importMembersNamespace(
-                module,
-                (__) -> MESSAGE_VAR_NAME,
-                ExpressionDescriptor.messageReference,
-                messageNamespace.get()
-            ).compilableNames(name)
+            importedFromMessage.get().compilableNames(name)
         );
     }
+
 
     @Override
     public Stream<? extends CompilableCallable> compilableCallables(
         @Nullable String name
     ) {
-        return ImportedMembersNamespace.importMembersNamespace(
-            module,
-            (__) -> MESSAGE_VAR_NAME,
-            ExpressionDescriptor.messageReference,
-            messageNamespace.get()
-        ).compilableCallables(name);
+        return importedFromMessage.get().compilableCallables(name);
     }
 
 

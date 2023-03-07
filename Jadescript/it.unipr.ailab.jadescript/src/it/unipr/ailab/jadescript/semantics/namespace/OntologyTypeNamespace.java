@@ -9,7 +9,6 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementStructu
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedOntologyType;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -42,8 +41,10 @@ public class OntologyTypeNamespace
     public Stream<? extends GlobalPattern> globalPatterns(
         @Nullable String name
     ) {
-        return staticCallablesFromJvm(jvmNamespace.get())
-            .compilableCallables(name)
+        return staticCallablesFromJvm(
+            JadescriptTypeNamespace.NO_ENV_PARAMETER,
+            jvmNamespace.get()
+        ).compilableCallables(name)
             .map(cs -> new OntologyElementStructuralPattern(
                 cs.name(),
                 cs.returnType(),
@@ -59,6 +60,7 @@ public class OntologyTypeNamespace
         @Nullable String name
     ) {
         return staticCallablesFromJvm(
+            JadescriptTypeNamespace.NO_ENV_PARAMETER,
             jvmNamespace.get(),
             (sm, namespace, op) -> OntologyElementConstructor
                 .fromJvmStaticOperation(

@@ -376,7 +376,9 @@ public class UnaryPrefixExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
+        if (input == null) {
+            return VALID;
+        }
         final Maybe<OfNotation> ofNotation =
             input.__(UnaryPrefix::getOfNotation);
         final Maybe<String> unaryPrefixOp =
@@ -496,17 +498,19 @@ public class UnaryPrefixExpressionSemantics
 
         if (isDebugType) {
             input.safeDo(inputsafe -> {
-                IJadescriptType jadescriptType = ones
-                    .inferType(ofNotation, newState);
+                IJadescriptType jadescriptType =
+                    ones.inferType(ofNotation, newState);
+
                 acceptor.acceptInfo(
                     jadescriptType.getDebugPrint(),
                     inputsafe,
                     null,
-                    -1,
+                    ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
                     "DEBUG"
                 );
             });
         }
+
         if (isDebugScope) {
             SourceCodeBuilder scb = new SourceCodeBuilder("");
             state.debugDump(scb);

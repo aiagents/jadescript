@@ -8,13 +8,14 @@ import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
+import it.unipr.ailab.jadescript.semantics.context.c2feature.OntologyDeclarationSupportContext;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseBehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import jadescript.content.JadescriptOntoElement;
 import org.eclipse.xtext.common.types.JvmOperation;
@@ -168,24 +169,47 @@ public final class TypeExpressionSemantics extends Semantics {
                     .map(jvmNamespace::resolveType);
 
             if (declaringOntology.isPresent()) {
-                IJadescriptType jadescriptType = declaringOntology.get();
-                boolean ontologyAccessible = validationHelper.asserting(
+                IJadescriptType ontoType = declaringOntology.get();
+                final boolean hasMatchingOntoAssociations =
                     module.get(ContextManager.class).currentContext()
-                        .actAs(OntologyAssociationComputer.class)
-                        .findFirst()
-                        .orElse(OntologyAssociationComputer
-                            .EMPTY_ONTOLOGY_ASSOCIATIONS)
-                        .computeAllOntologyAssociations()
-                        .anyMatch(oa ->
-                            oa.getOntology().typeEquals(jadescriptType)
-                        ),
-                    "NotUsedOntology",
-                    "The type '" + jdType + "' is defined in" +
-                        " an ontology which" +
-                        " is not accessible in this context.",
-                    input,
-                    acceptor
-                );
+                    .actAs(OntologyAssociationComputer.class)
+                    .findFirst()
+                    .orElse(OntologyAssociationComputer
+                        .EMPTY_ONTOLOGY_ASSOCIATIONS)
+                    .computeAllOntologyAssociations()
+                    .anyMatch(oa ->
+                        oa.getOntology().typeEquals(ontoType)
+                    );
+
+
+                boolean ontologyAccessible;
+                if(!hasMatchingOntoAssociations){
+                    Optional<OntologyDeclarationSupportContext> supportContext =
+                        module.get(ContextManager.class)
+                            .currentContext()
+                            .actAs(OntologyDeclarationSupportContext.class)
+                            .findFirst();
+
+                    final boolean isInDeclaration = supportContext.map(
+                        context -> context.isDeclarationOrExtensionOfOntology(
+                            ontoType.compileToJavaTypeReference()
+                        )).orElse(false);
+                    // The ontology containing the ontology element declaration
+                    // has to be used in some way (e.g., direcly
+                    // used, used by supertypes, used by the agent...)
+                    ontologyAccessible = validationHelper.asserting(
+                        isInDeclaration,
+                        "OntologyNotUsed",
+                        "The type " + jdType + "is defined in the ontology " +
+                            ontoType.getJadescriptName() + " which is not" +
+                            " accessible in this context.",
+                        input,
+                        acceptor
+                    );
+                }else{
+                    ontologyAccessible = VALID;
+                }
+
                 result = result && ontologyAccessible;
             }
         }

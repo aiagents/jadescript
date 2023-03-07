@@ -1,6 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmField;
 

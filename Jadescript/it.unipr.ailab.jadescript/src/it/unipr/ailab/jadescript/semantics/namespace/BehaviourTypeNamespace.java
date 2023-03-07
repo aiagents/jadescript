@@ -7,7 +7,6 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import org.jetbrains.annotations.Nullable;
@@ -24,7 +23,7 @@ public class BehaviourTypeNamespace
 
     private final BehaviourType behaviourType;
     private final LazyValue<JvmTypeNamespace> jvmNamespace;
-    private final boolean useJvm;
+    private final boolean useJvmIndex;
     private final List<Property> builtinProperties;
 
 
@@ -35,7 +34,7 @@ public class BehaviourTypeNamespace
     ) {
         super(module);
         this.behaviourType = behaviourType;
-        useJvm = !(behaviourType instanceof BaseBehaviourType);
+        useJvmIndex = !(behaviourType instanceof BaseBehaviourType);
         this.builtinProperties = builtinProperties;
         this.jvmNamespace =
             new LazyValue<>(this.behaviourType::jvmNamespace);
@@ -43,8 +42,10 @@ public class BehaviourTypeNamespace
 
 
     @Override
-    public Stream<? extends MemberCallable> memberCallables(@Nullable String name) {
-        if (useJvm) {
+    public Stream<? extends MemberCallable> memberCallables(
+        @Nullable String name
+    ) {
+        if (useJvmIndex) {
             return callablesFromJvm(jvmNamespace.get())
                 .memberCallables(name);
         } else {
@@ -55,7 +56,7 @@ public class BehaviourTypeNamespace
 
     @Override
     public Stream<? extends MemberName> memberNames(@Nullable String name) {
-        if (useJvm) {
+        if (useJvmIndex) {
             return namesFromJvm(jvmNamespace.get())
                 .memberNames(name);
         } else {
@@ -108,15 +109,13 @@ public class BehaviourTypeNamespace
 
 
     @Override
-    public Stream<OntologyAssociation>
-    computeCurrentOntologyAssociations() {
+    public Stream<OntologyAssociation> computeCurrentOntologyAssociations() {
         return Stream.empty(); //not an ontology
     }
 
 
     @Override
-    public Stream<OntologyAssociation>
-    computeForClauseOntologyAssociations() {
+    public Stream<OntologyAssociation> computeForClauseOntologyAssociations() {
         return behaviourType.getDirectlyForAgentType()
             .__(AgentType::namespace)
             .__(namspc -> namspc.computeAllOntologyAssociations()
