@@ -22,10 +22,11 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class AgentDeclarationContext extends UsingOntologyDeclarationContext
-    implements AgentAssociated,
-    WithSupertype,
-    CompilableName.Namespace {
+public class AgentDeclarationContext
+    extends UsingOntologyDeclarationContext
+    implements AgentAssociated, WithSupertype, CompilableName.Namespace {
+
+
 
     private final JvmDeclaredType agentJvmType;
     private final LazyValue<IJadescriptType> agentType;

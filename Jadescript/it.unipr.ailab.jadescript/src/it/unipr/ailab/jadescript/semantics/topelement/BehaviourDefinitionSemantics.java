@@ -29,12 +29,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static it.unipr.ailab.maybe.Maybe.*;
 
 public class BehaviourDefinitionSemantics
-    extends ForEntitySemantics<BehaviourDefinition> {
+    extends ForAgentDeclarationSemantics<BehaviourDefinition> {
 
     public BehaviourDefinitionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -66,7 +65,7 @@ public class BehaviourDefinitionSemantics
                 module,
                 outer,
                 getUsedOntologyTypes(input),
-                getAssociatedAgentType(input),
+                getAssociatedAgentType(input, null),
                 jvmDeclaredType
             )
         );

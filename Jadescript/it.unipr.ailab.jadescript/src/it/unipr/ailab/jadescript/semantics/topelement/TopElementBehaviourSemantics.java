@@ -20,7 +20,7 @@ import java.util.Optional;
  * Created on 27/04/18.
  */
 @Singleton
-public class TopElementBehaviourSemantics extends ForEntitySemantics<Behaviour> {
+public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<Behaviour> {
 
     public TopElementBehaviourSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -76,10 +76,15 @@ public class TopElementBehaviourSemantics extends ForEntitySemantics<Behaviour> 
 
 
     @Override
-    public IJadescriptType getAssociatedAgentType(Maybe<Behaviour> input) {
-        return module.get(BehaviourDefinitionSemantics.class).getAssociatedAgentType(
-            BehaviourDefinition.topLevelBehaviour(input)
-        );
+    public IJadescriptType getAssociatedAgentType(
+        Maybe<Behaviour> input,
+        JvmDeclaredType beingDeclaredAgentType
+    ) {
+        return module.get(BehaviourDefinitionSemantics.class)
+            .getAssociatedAgentType(
+                BehaviourDefinition.topLevelBehaviour(input),
+                null
+            );
     }
 
 
@@ -165,8 +170,6 @@ public class TopElementBehaviourSemantics extends ForEntitySemantics<Behaviour> 
         return module.get(BehaviourDefinitionSemantics.class)
             .isNameAlwaysRequired();
     }
-
-
 
 
     @Override

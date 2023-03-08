@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.jadescript.Model
 import it.unipr.ailab.jadescript.jadescript.Ontology
 import it.unipr.ailab.jadescript.jadescript.TopElement
 import it.unipr.ailab.jadescript.semantics.SemanticsModule
-import it.unipr.ailab.jadescript.semantics.topelement.AgentSemantics
+import it.unipr.ailab.jadescript.semantics.topelement.AgentDeclarationSemantics
 import it.unipr.ailab.jadescript.semantics.topelement.GlobalOperationSemantics
 import it.unipr.ailab.jadescript.semantics.topelement.OntologySemantics
 import it.unipr.ailab.jadescript.semantics.topelement.TopElementBehaviourSemantics
@@ -158,7 +158,7 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 
 			for (agent : agents) {
 				var module = createSemanticsModule(model, phase)
-				module.get(AgentSemantics).generateDeclaredTypes(Maybe.some(agent), acceptor, isPreIndexingPhase)
+				module.get(AgentDeclarationSemantics).generateDeclaredTypes(Maybe.some(agent), acceptor, isPreIndexingPhase)
 
 			}
 

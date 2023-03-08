@@ -10,7 +10,7 @@ import it.unipr.ailab.jadescript.jvmmodel.JadescriptCompilerUtils;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.topelement.AgentSemantics;
+import it.unipr.ailab.jadescript.semantics.topelement.AgentDeclarationSemantics;
 import it.unipr.ailab.jadescript.semantics.topelement.GlobalOperationSemantics;
 import it.unipr.ailab.jadescript.semantics.topelement.OntologySemantics;
 import it.unipr.ailab.jadescript.semantics.topelement.TopElementBehaviourSemantics;
@@ -191,7 +191,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
                     boolean matched = false;
                     if (element instanceof Agent) {
                         matched = true;
-                        module.get(AgentSemantics.class).validate(Maybe.some(((Agent) element)), this);
+                        module.get(AgentDeclarationSemantics.class).validate(Maybe.some(((Agent) element)), this);
                     }
                     if (!matched) {
                         if (element instanceof Behaviour) {

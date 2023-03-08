@@ -14,10 +14,7 @@ import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import jade.wrapper.ContainerController;
 import jadescript.java.JadescriptAgentController;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.xtext.common.types.JvmDeclaredType;
-import org.eclipse.xtext.common.types.JvmMember;
-import org.eclipse.xtext.common.types.JvmTypeReference;
-import org.eclipse.xtext.common.types.JvmVisibility;
+import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
@@ -32,10 +29,33 @@ import static it.unipr.ailab.maybe.Maybe.*;
  * Created on 27/04/18.
  */
 @Singleton
-public class AgentSemantics extends UsesOntologyEntitySemantics<Agent> {
+public class AgentDeclarationSemantics
+    extends UsesOntologyEntitySemantics<Agent>
+    implements AgentAssociatedDeclarationSemantics<Agent> {
 
-    public AgentSemantics(SemanticsModule semanticsModule) {
+    public AgentDeclarationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
+    }
+
+
+    @Override
+    public IJadescriptType getAssociatedAgentType(
+        Maybe<Agent> input,
+        JvmDeclaredType beingDeclared
+    ) {
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        return typeHelper.beingDeclaredAgentType(
+            beingDeclared,
+            Maybe.toListOfMaybes(input.__(Agent::getSuperTypes))
+                .stream()
+                .findFirst()
+                .orElse(nothing())
+                .__(JvmParameterizedTypeReference::getType)
+                .require(t -> t instanceof JvmDeclaredType)
+                .__(t -> (JvmDeclaredType) t)
+                .__(t -> typeHelper.jtFromJvmType(t))
+
+        );
     }
 
 
@@ -115,15 +135,13 @@ public class AgentSemantics extends UsesOntologyEntitySemantics<Agent> {
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
-        members.add(jvmTB.toField(
-            inputSafe,
-            THE_AGENT,
-            typeHelper.typeRef(itClass),
-            itField -> compilationHelper.createAndSetInitializer(
-                itField,
-                scb -> scb.line("this")
-            )
-        ));
+        populateAgentAssociatedMembers(
+            input,
+            members,
+            module,
+            itClass
+        );
+
 
         members.add(jvmTB.toMethod(
             inputSafe,

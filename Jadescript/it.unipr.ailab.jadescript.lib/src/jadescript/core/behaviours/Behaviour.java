@@ -5,6 +5,8 @@ import jade.core.Agent;
 import jade.core.behaviours.SimpleBehaviour;
 import jadescript.content.JadescriptProposition;
 import jadescript.core.exception.JadescriptException;
+import jadescript.java.AgentEnv;
+import jadescript.java.SideEffectsFlag;
 import jadescript.lang.Duration;
 import jadescript.lang.Timestamp;
 
@@ -17,16 +19,14 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
     extends SimpleBehaviour implements Base {
 
     //Fixed period -> the next wake-up time is obtained as
-    // __startTime + (a multiple of period)
-    //Not fixed period -> just wait period ms from the last execution
+    // __startTime + (an integer multiple of period)
+
+    //Not fixed period -> just wait (period)ms from the end of last execution
     private static final boolean __fixedPeriod = false;
 
 
-    //Constant parameters.
-    //State
-
-    //Set of requests to wait for something
-    // (an event, a time instant to be elapsed).
+    //Set of requests to wait
+    // (for an external event or for a time instant to be elapsed).
     private final List<Waiting> __waitings = new ArrayList<>();
 
     //Behaviour property:
@@ -42,14 +42,30 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
 
     private Waiting __ensureWait = Waiting.doNotWait();
 
+    private boolean __initialized = false;
 
-    public Behaviour() {
-        //Here's the thing: in JADE, the agent reference is setted when the
-        // behaviour is activated and un-setted when the behaviour is
-        // deactivated; since we do not need to have the agent reference active
-        // in the 'on create' event handler, here we pass null.
-        super(null);
+    private AgentEnv<A, SideEffectsFlag.AnySideEffectFlag>
+        _agentEnv = null;
+
+    public Behaviour(AgentEnv<A, SideEffectsFlag.AnySideEffectFlag> _agentEnv) {
+        super(_agentEnv.getAgent());
         this.macroState = MacroState.NOT_ACTIVE;
+        __initializeAgentEnv();
+        __initializeProperties();
+    }
+
+    protected void __initializeAgentEnv(){
+        this._agentEnv = AgentEnv.agentEnv(__theAgent());
+    }
+
+    /**
+     * To be overridden by compiler-generated methods in Jadescript behaviour
+     * subclasses. Used to execute the initialization expressions of the
+     * behaviour properties.
+     */
+    @SuppressWarnings("EmptyMethod")
+    protected void __initializeProperties() {
+        // Overriden by compiler-generated methods
     }
 
     @SuppressWarnings("rawtypes")
@@ -60,7 +76,10 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
     protected abstract ExecutionType __executionType();
 
 
-    public void reset() { //invoked when macroState does the transition ACTIVE -> NOT_ACTIVE
+    /**
+    invoked when macroState does the transition ACTIVE -> NOT_ACTIVE
+    */
+    public void reset() {
         super.reset();
         __waitings.clear();
         __clearEnsureWaiting();
@@ -538,13 +557,14 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
 
 
     /*
-    What issues a waiting?
-    Waitings priority: (when a waiting is issued, the ones on the top override the ones
-        on the bottom, never the opposite).
-    AD) Activation Delay / Postponed Activation / User-issued Pause
-    EW) Event Wait / Indefinite wait (only waiting for events)
-    PW) Periodic wait. Between a tick and the next for behaviours with period > 0.
-    NO) No wait
+        What issues a waiting?
+        Waitings priority: (when a waiting is issued, the ones on the top
+                override the ones on the bottom, never the opposite).
+        AD) Activation Delay / Postponed Activation / User-issued Pause
+        EW) Event Wait / Indefinite wait (only waiting for events)
+        PW) Periodic wait. Between a tick and the next for behaviours with
+                period > 0.
+        NO) No wait
      */
     private enum WaitingType {
         ActivationDelay, EventWait, PeriodicWait, NoWait
@@ -751,6 +771,11 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
 
     @SuppressWarnings("rawtypes")
     public static class EmptyBehaviour extends Behaviour {
+
+        public EmptyBehaviour() {
+            super(null);
+        }
+
 
         @Override
         protected ExecutionType __executionType() {

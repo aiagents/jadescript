@@ -132,6 +132,7 @@ public class TypeHelper implements SemanticsConsts {
     public final Function<List<TypeArgument>, MessageSubType> PROXY_MESSAGE;
     public final Function<List<TypeArgument>, MessageSubType> PROPAGATE_MESSAGE;
     public final Function<List<TypeArgument>, MessageSubType> UNKNOWN_MESSAGE;
+    public final UnknownJVMType ANY_SE_MODE;
     //Associates JVM fully-qualified-name strings to Jadescript types.
     private final Map<String, IJadescriptType> defaultJVMToDescriptorTable =
         new HashMap<>();
@@ -511,14 +512,14 @@ public class TypeHelper implements SemanticsConsts {
 
         defineJVMToGenericDescriptor(AgentEnv.class, AGENTENV, 2);
 
-        UnknownJVMType anySEMode = new UnknownJVMType(
+        ANY_SE_MODE = new UnknownJVMType(
             module,
             typeRef(SideEffectsFlag.AnySideEffectFlag.class),
             /*permissive = */false
         );
 
         ANYAGENTENV = AGENTENV.apply(
-            List.of(covariant(AGENT), covariant(anySEMode))
+            List.of(covariant(AGENT), covariant(ANY_SE_MODE))
         );
 
         MESSAGE = (arguments) -> new BaseMessageType(module, arguments.get(0));

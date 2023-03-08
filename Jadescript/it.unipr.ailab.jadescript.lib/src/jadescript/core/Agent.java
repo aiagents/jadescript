@@ -15,6 +15,7 @@ import jadescript.core.exception.JadescriptException;
 import jadescript.core.percept.Percept;
 import jadescript.java.AgentEnv;
 import jadescript.java.SideEffectsFlag;
+import jadescript.java.SideEffectsFlag.AnySideEffectFlag;
 import jadescript.lang.JadescriptExecutableContainer;
 import jadescript.lang.JadescriptGlobalFunction;
 import jadescript.lang.JadescriptGlobalProcedure;
@@ -63,8 +64,8 @@ public class Agent extends jade.core.Agent {
      Agent env to be passed around to operations which are executed in the
      context of the agent.
      */
-    protected AgentEnv<Agent, SideEffectsFlag.AnySideEffectFlag> _agentEnv
-        = null;
+    private AgentEnv<Agent, SideEffectsFlag.AnySideEffectFlag>
+        _agentEnv = null;
 
 
     public Agent() {
@@ -183,26 +184,31 @@ public class Agent extends jade.core.Agent {
      * event manager via O2A, and the stale message cleaner.
      */
     protected void setup() {
-        this._agentEnv = AgentEnv.agentEnv(this);
-
         final ContentManager cm = getContentManager();
+
+        this.__initializeAgentEnv();
 
         if (cm != null) {
             __registerCodecs(cm);
             __registerOntologies(cm);
         }
 
-        __O2APerceptManager o2APerceptManager = new __O2APerceptManager();
+        __O2APerceptManager o2APerceptManager = new __O2APerceptManager(_agentEnv);
         this.setEnabledO2ACommunication(true, __o2aQueueSize);
         o2APerceptManager.activate(this);
 
         this.setO2AManager(o2APerceptManager);
-        __StaleMessageCleaner staleMessageCleaner = new __StaleMessageCleaner();
+        __StaleMessageCleaner staleMessageCleaner = new __StaleMessageCleaner(_agentEnv);
         staleMessageCleaner.activate(this);
+
 
         this.__initializeProperties();
 
         this.__onCreate();
+    }
+
+    protected void __initializeAgentEnv(){
+        this._agentEnv = AgentEnv.agentEnv(this);
     }
 
 
@@ -395,9 +401,15 @@ public class Agent extends jade.core.Agent {
     }
 
 
-    protected static class __O2APerceptManager extends CyclicBehaviour<Agent> {
+    @SuppressWarnings("serial")
+	protected static class __O2APerceptManager extends CyclicBehaviour<Agent> {
 
-        private final Codec __codec = new jade.content.lang.leap.LEAPCodec();
+        public __O2APerceptManager(AgentEnv<Agent, AnySideEffectFlag> _agentEnv) {
+			super(_agentEnv);
+		}
+
+
+		private final Codec __codec = new jade.content.lang.leap.LEAPCodec();
 
 
         @Override
@@ -432,9 +444,15 @@ public class Agent extends jade.core.Agent {
 
     }
 
-    protected static class __StaleMessageCleaner extends CyclicBehaviour<Agent> {
+    @SuppressWarnings("serial")
+	protected static class __StaleMessageCleaner extends CyclicBehaviour<Agent> {
 
-        private final Codec __codec = new jade.content.lang.leap.LEAPCodec();
+        public __StaleMessageCleaner(AgentEnv<Agent, AnySideEffectFlag> _agentEnv) {
+			super(_agentEnv);
+		}
+
+
+		private final Codec __codec = new jade.content.lang.leap.LEAPCodec();
 
         private final MessageTemplate __mt = StaleMessageTemplate.matchStale(
             this::__theAgent);
