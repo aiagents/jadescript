@@ -95,11 +95,8 @@ public class BehaviourConstructor implements GlobalCallable {
                     namespace.resolveType(paramTypeRef);
 
                 if (envType instanceof AgentEnvType) {
-                    final AgentEnvType.SEMode sideEffectsFlag =
-                        ((AgentEnvType) envType).getSideEffectsFlag();
-                    if (sideEffectsFlag == AgentEnvType.SEMode.NO_SE) {
-                        withoutSideEffects = true;
-                    }
+                    withoutSideEffects =
+                        ((AgentEnvType) envType).isWithoutSideEffects();
                 }
 
                 continue;
@@ -130,12 +127,10 @@ public class BehaviourConstructor implements GlobalCallable {
                 String.join(" ,", args) +
                 ")"),
             CompilationHelper.addEnvParameterByName((args) -> "new " + fqn +
-                "(" +
-                String.join(" ,", CallSemantics.sortToMatchParamNames(
-                    args,
-                    paramNames
-                )) +
-                ")")
+                "(" + String.join(
+                    " ,",
+                CallSemantics.sortToMatchParamNames(args, paramNames)
+            ) + ")")
         );
     }
 
@@ -181,7 +176,8 @@ public class BehaviourConstructor implements GlobalCallable {
 
 
     @Override
-    public String compileInvokeByArity(List<String> compiledRexprs,
+    public String compileInvokeByArity(
+        List<String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
         return invokeByArityCustom.apply(compiledRexprs);
@@ -189,7 +185,8 @@ public class BehaviourConstructor implements GlobalCallable {
 
 
     @Override
-    public String compileInvokeByName(Map<String, String> compiledRexprs,
+    public String compileInvokeByName(
+        Map<String, String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
         return invokeByNameCustom.apply(compiledRexprs);

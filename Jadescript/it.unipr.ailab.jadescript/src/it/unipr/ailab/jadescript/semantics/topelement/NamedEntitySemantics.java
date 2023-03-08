@@ -1,10 +1,11 @@
 package it.unipr.ailab.jadescript.semantics.topelement;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
+import it.unipr.ailab.jadescript.jadescript.NamedElement;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
@@ -22,7 +23,8 @@ import java.util.Optional;
  * Created on 26/04/18.
  */
 @Singleton
-public abstract class NamedEntitySemantics<T extends NamedElement> extends Semantics {
+public abstract class NamedEntitySemantics<T extends NamedElement>
+    extends Semantics {
 
     public NamedEntitySemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -31,30 +33,35 @@ public abstract class NamedEntitySemantics<T extends NamedElement> extends Seman
 
     public void validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {
         if (input == null) return;
-        Maybe<String> name = input.__(NamedElement::getName).nullIf(String::isBlank);
+        Maybe<String> name = input.__(NamedElement::getName)
+            .nullIf(String::isBlank);
+
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
         if (nameShouldStartWithCapital()) {
-
-            module.get(ValidationHelper.class).advice(
-                    name.__(String::charAt, 0).__(Character::isUpperCase),
-                    "LowerCaseElementName",
-                    "Names here should start with a capital letter",
-                    input,
-                    JadescriptPackage.eINSTANCE.getNamedElement_Name(),
-                    acceptor
-            );
-        }
-
-        module.get(ValidationHelper.class).assertNotReservedName(
-                name,
+            validationHelper.advice(
+                name.__(String::charAt, 0).__(Character::isUpperCase),
+                "LowerCaseElementName",
+                "Names here should start with a capital letter",
                 input,
                 JadescriptPackage.eINSTANCE.getNamedElement_Name(),
                 acceptor
+            );
+        }
+
+        validationHelper.assertNotReservedName(
+            name,
+            input,
+            JadescriptPackage.eINSTANCE.getNamedElement_Name(),
+            acceptor
         );
     }
+
 
     public boolean nameShouldStartWithCapital() {
         return true;
     }
+
 
     @SuppressWarnings("SameReturnValue")
     public boolean isNameAlwaysRequired() {
@@ -62,7 +69,11 @@ public abstract class NamedEntitySemantics<T extends NamedElement> extends Seman
     }
 
 
-    public void generateDeclaredTypes(Maybe<T> input, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
+    public void generateDeclaredTypes(
+        Maybe<T> input,
+        IJvmDeclaredTypeAcceptor acceptor,
+        boolean isPreIndexingPhase
+    ) {
 
 
         if (input == null) return;
@@ -73,22 +84,27 @@ public abstract class NamedEntitySemantics<T extends NamedElement> extends Seman
         Optional<T> inputSafe = input.toOpt();
 
         if (inputSafe.isPresent()) {
-            Optional<QualifiedName> fullyQualifiedName = input.__(module.get(CompilationHelper.class)::getFullyQualifiedName).toOpt();
-            fullyQualifiedName.ifPresent(qualifiedName -> acceptor.accept(module.get(JvmTypesBuilder.class).toClass(
-                    inputSafe.get(),
-                    qualifiedName,
-                    itClass -> {
-                        populateMainSuperTypes(input, itClass.getSuperTypes());
+            final CompilationHelper compilationHelper =
+                module.get(CompilationHelper.class);
 
-                        if (!isPreIndexingPhase) {
-                            populateMainMembers(
-                                input,
-                                itClass.getMembers(),
-                                itClass
-                            );
-                        }
+            Optional<QualifiedName> fullyQualifiedName =
+                input.__(compilationHelper::getFullyQualifiedName).toOpt();
 
+            final JvmTypesBuilder jvmTB =
+                module.get(JvmTypesBuilder.class);
+            fullyQualifiedName.ifPresent(fqn -> acceptor.accept(jvmTB.toClass(
+                inputSafe.get(), fqn, itClass -> {
+                    populateMainSuperTypes(input, itClass.getSuperTypes());
+
+                    if (!isPreIndexingPhase) {
+                        populateMainMembers(
+                            input,
+                            itClass.getMembers(),
+                            itClass
+                        );
                     }
+
+                }
             )));
         }
     }
@@ -102,10 +118,12 @@ public abstract class NamedEntitySemantics<T extends NamedElement> extends Seman
         //do nothing
     }
 
+
     public void populateMainSuperTypes(
         Maybe<T> input,
         EList<JvmTypeReference> superTypes
     ) {
         //do nothing
     }
+
 }

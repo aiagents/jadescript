@@ -136,11 +136,8 @@ public class Operation implements MemberCallable {
                     namespace.resolveType(paramTypeRef);
 
                 if(envType instanceof AgentEnvType){
-                    final AgentEnvType.SEMode sideEffectsFlag =
-                        ((AgentEnvType) envType).getSideEffectsFlag();
-                    if(sideEffectsFlag== AgentEnvType.SEMode.NO_SE){
-                        withoutSideEffects = true;
-                    }
+                    withoutSideEffects =
+                        ((AgentEnvType) envType).isWithoutSideEffects();
                 }
 
                 continue;

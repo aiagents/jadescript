@@ -11,10 +11,8 @@ import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDefinition;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -141,29 +139,12 @@ public class CompilationHelper implements IQualifiedNameProvider {
     }
 
 
-    public static BiFunction<String, Map<String, String>, String>
-    addEnvParameterByName(
-        BiFunction<String, Map<String, String>, String> callByNames
-    ) {
-        return (rec, argsByNames) -> {
-            Map<String, String> m = new HashMap<>(argsByNames);
-            m.put(
-                SemanticsConsts.AGENT_ENV,
-                CompilationHelper.compileEnvArgument()
-            );
-            return callByNames.apply(rec, m);
-        };
-    }
-
-
-    public static BiFunction<String, List<String>, String>
-    addEnvParameterByArity(
-        BiFunction<String, List<String>, String> callByArity
-    ) {
-        return (rec, argsByArity) -> {
+    public static Function<List<String>, String>
+    addEnvParameterByArity(Function<List<String>, String> callByArity) {
+        return (argsByArity) -> {
             List<String> l = new ArrayList<>(argsByArity);
             l.add(0, CompilationHelper.compileEnvArgument());
-            return callByArity.apply(rec, l);
+            return callByArity.apply(l);
         };
     }
 
@@ -183,12 +164,29 @@ public class CompilationHelper implements IQualifiedNameProvider {
     }
 
 
-    public static Function<List<String>, String>
-    addEnvParameterByArity(Function<List<String>, String> callByArity) {
-        return (argsByArity) -> {
+    public static BiFunction<String, List<String>, String>
+    addEnvParameterByArity(
+        BiFunction<String, List<String>, String> callByArity
+    ) {
+        return (rec, argsByArity) -> {
             List<String> l = new ArrayList<>(argsByArity);
             l.add(0, CompilationHelper.compileEnvArgument());
-            return callByArity.apply(l);
+            return callByArity.apply(rec, l);
+        };
+    }
+
+
+    public static BiFunction<String, Map<String, String>, String>
+    addEnvParameterByName(
+        BiFunction<String, Map<String, String>, String> callByNames
+    ) {
+        return (rec, argsByNames) -> {
+            Map<String, String> m = new HashMap<>(argsByNames);
+            m.put(
+                SemanticsConsts.AGENT_ENV,
+                CompilationHelper.compileEnvArgument()
+            );
+            return callByNames.apply(rec, m);
         };
     }
 
@@ -217,32 +215,6 @@ public class CompilationHelper implements IQualifiedNameProvider {
         return compileAgentReference() + ".toEnv()";
     }
 
-
-    public boolean addAgentEnvParameter(
-        EObject inputSafe,
-        JvmExecutable target,
-        Maybe<IJadescriptType> contextAgent
-    ) {
-        final JvmTypesBuilder jvmTB =
-            module.get(JvmTypesBuilder.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-
-        return target.getParameters().add(jvmTB.toParameter(
-            inputSafe,
-            SemanticsConsts.AGENT_ENV,
-            typeHelper.AGENTENV
-                .apply(List.of(
-                    typeHelper.covariant(
-                        contextAgent.orElse(typeHelper.AGENT)
-                    ),
-                    typeHelper.jtFromClass(
-                        AgentEnvType.toSEModeClass(
-                            AgentEnvType.SEMode.WITH_SE
-                        )
-                    )
-                )).asJvmTypeReference()
-        ));
-    }
 
     public void createAndSetBody(
         JvmExecutable container,

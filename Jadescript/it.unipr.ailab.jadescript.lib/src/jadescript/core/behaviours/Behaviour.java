@@ -47,16 +47,27 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
     private AgentEnv<A, SideEffectsFlag.AnySideEffectFlag>
         _agentEnv = null;
 
-    public Behaviour(AgentEnv<A, SideEffectsFlag.AnySideEffectFlag> _agentEnv) {
+
+    public Behaviour(
+        AgentEnv<? extends A, SideEffectsFlag.AnySideEffectFlag> _agentEnv
+    ) {
         super(_agentEnv.getAgent());
         this.macroState = MacroState.NOT_ACTIVE;
         __initializeAgentEnv();
         __initializeProperties();
     }
 
-    protected void __initializeAgentEnv(){
+
+    @SuppressWarnings("rawtypes")
+    public static Behaviour __createEmpty() {
+        return new EmptyBehaviour();
+    }
+
+
+    protected void __initializeAgentEnv() {
         this._agentEnv = AgentEnv.agentEnv(__theAgent());
     }
+
 
     /**
      * To be overridden by compiler-generated methods in Jadescript behaviour
@@ -68,17 +79,13 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         // Overriden by compiler-generated methods
     }
 
-    @SuppressWarnings("rawtypes")
-    public static Behaviour __createEmpty() {
-        return new EmptyBehaviour();
-    }
 
     protected abstract ExecutionType __executionType();
 
 
     /**
-    invoked when macroState does the transition ACTIVE -> NOT_ACTIVE
-    */
+     * invoked when macroState does the transition ACTIVE -> NOT_ACTIVE
+     */
     public void reset() {
         super.reset();
         __waitings.clear();
@@ -88,21 +95,26 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         __effectiveExecutions = 0;
     }
 
+
     private boolean __hasExpirationTime() {
         return __expirationTime > 0;
     }
+
 
     private boolean __hasEnsureWakeUpTime() {
         return __ensureWait.hasWakeUpTime();
     }
 
+
     private void __setEnsureWaiting(Waiting waiting) {
         this.__ensureWait = waiting;
     }
 
+
     private void __clearEnsureWaiting() {
         __setEnsureWaiting(Waiting.doNotWait());
     }
+
 
     public void __unblock() {
         restart();
@@ -127,22 +139,27 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         }
     }
 
-    //Used by generated behaviours, when they detect that no event handler fired in an execution step, to put the
+
+    //Used by generated behaviours, when they detect that no event handler
+    // fired in an execution step, to put the
     // behaviour to sleep until a new event (message/percept) occurs.
     public void __awaitForEvents() {
         __waitings.add(Waiting.waitForEvents());
 
     }
 
+
     public void __awaitDelayedActivation(long delay) {
         __waitings.add(Waiting.waitActivation(System.currentTimeMillis() + delay));
     }
+
 
     public void __noMessageHandled() {
         if (myAgent != null && myAgent instanceof jadescript.core.Agent) {
             ((jadescript.core.Agent) myAgent).__setAllMessagesIgnored(this);
         }
     }
+
 
     public void __awaitNextTick() {
         if (period > 0) {
@@ -157,13 +174,16 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         }
     }
 
+
     public Duration getPeriod() {
         return Duration.of(period);
     }
 
+
     public void setPeriod(Duration period) {
         this.period = period.getSecondsLong() * 1000L + period.getMillis();
     }
+
 
     public abstract void doAction(int _tickCount);
 
@@ -176,10 +196,12 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
     @SuppressWarnings("EmptyMethod")
     public abstract void doOnDestroy();
 
+
     @Override
     public final boolean done() {
         return false;
     }
+
 
     @Override
     public final void action() {
@@ -213,7 +235,8 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
             } else {
 
                 if (__hasEnsureWakeUpTime()) {
-                    //We needed to wait a specific amount of time, but that time elapsed.
+                    //We needed to wait a specific amount of time, but that
+                    // time elapsed.
                     // We can clear the ensure-field now.
                     __clearEnsureWaiting();
                 }
@@ -224,6 +247,7 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
 
         }
     }
+
 
     private void __feedInput(Input input) {
 
@@ -239,20 +263,26 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
                     __startActivatingInternal(((ActivateDelayed) input).getAgent());
                     macroState = MacroState.ACTIVATING;
                 } else if (input instanceof Execute) {
-                    throw new RuntimeException("Invalid behaviour state (cannot execute if not active).");
+                    throw new RuntimeException(
+                        "Invalid behaviour state (cannot execute if not " +
+                            "active).");
                 } else if (input instanceof DeactivateNow) {
                     // Deactivation is idempotent, do nothing.
-                    // Just remove expiration time (deactivating and reactivating has to behave like a 'reset').
+                    // Just remove expiration time (deactivating and
+                    // reactivating has to behave like a 'reset').
                     __expirationTime = 0;
                     // Staying in NOT_ACTIVE.
                 } else if (input instanceof DeactivateDelayed) {
                     // Deactivation is idempotent, do nothing.
                     // Just set expiration time.
-                    __expirationTime = System.currentTimeMillis() + ((DeactivateDelayed) input).getDelay();
+                    __expirationTime =
+                        System.currentTimeMillis() + ((DeactivateDelayed) input).getDelay();
                     // Staying in NOT_ACTIVE.
                 } else if (input instanceof FailNow) {
-                    // Failure when not active -> put in failed state, dispatch failure event
-                    // remove expiration time (deactivating and reactivating has to behave like a 'reset').
+                    // Failure when not active -> put in failed state,
+                    // dispatch failure event
+                    // remove expiration time (deactivating and reactivating
+                    // has to behave like a 'reset').
                     //noinspection unchecked
                     final A agent = (A) getAgent();
                     __expirationTime = 0;
@@ -287,7 +317,8 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
                     __doRaceDeactivationWithActivationInternal(((DeactivateDelayed) input).getDelay());
                     // Staying in ACTIVATING.
                 } else if (input instanceof FailNow) {
-                    // Failure when activating -> cancel activating, put in failed state, dispatch failure event
+                    // Failure when activating -> cancel activating, put in
+                    // failed state, dispatch failure event
                     //noinspection unchecked
                     final A agent = (A) getAgent();
                     __cancelActivatingInternal();
@@ -317,11 +348,14 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
                     __deactivateInternal(false);
                     macroState = MacroState.NOT_ACTIVE;
                 } else if (input instanceof DeactivateDelayed) {
-                    __expirationTime = System.currentTimeMillis() + ((DeactivateDelayed) input).getDelay();
+                    __expirationTime =
+                        System.currentTimeMillis() + ((DeactivateDelayed) input).getDelay();
                     // Staying in ACTIVE.
                 } else if (input instanceof FailNow) {
-                    // Failure when active -> deactivate, put in failed state, dispatch failure event
-                    // remove expiration time (deactivating and reactivating has to behave like a 'reset').
+                    // Failure when active -> deactivate, put in failed
+                    // state, dispatch failure event
+                    // remove expiration time (deactivating and reactivating
+                    // has to behave like a 'reset').
                     //noinspection unchecked
                     final A agent = (A) getAgent();
                     __expirationTime = 0;
@@ -337,7 +371,8 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
             }
             break;
             case DESTROYED: {
-                if (!(input instanceof Destroy)) { // destroy statement is idempotent
+                if (!(input instanceof Destroy)) { // destroy statement is
+                    // idempotent
                     throw new DestroyedBehaviourException(this);
                 }
             }
@@ -348,12 +383,15 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         externallyIssued.ifPresent(waiting -> waiting.doBlock(this));
     }
 
+
     private void __pauseInternal(long delay) {
         __awaitDelayedActivation(delay);
     }
 
+
     private void __cancelActivatingInternal() {
-        //Like __deactivateInternal(), but without calling on-deactivate (because on-activate has never executed)
+        //Like __deactivateInternal(), but without calling on-deactivate
+        // (because on-activate has never executed)
         __waitings.clear();
         if (myAgent != null) {
             __unblock();
@@ -361,6 +399,7 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
             setAgent(null);
         }
     }
+
 
     private void __postponeActivationInternal(long delay) {
         if (delay <= 0) {
@@ -372,14 +411,17 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         }
     }
 
+
     private void __anticipateActivationInternal() {
         __waitings.clear();
         __unblock();
     }
 
+
     private void __doRaceDeactivationWithActivationInternal(long delay) {
         __expirationTime = System.currentTimeMillis() + delay;
     }
+
 
     private void __startActivatingInternal(Agent toAgent) {
         if (this.getAgent() != null) {
@@ -388,6 +430,7 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         toAgent.addBehaviour(this);
         this.setAgent(toAgent);
     }
+
 
     private void __executeOnActivateInternal() {
         __startTime = System.currentTimeMillis();
@@ -401,10 +444,12 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         doOnActivate();
     }
 
+
     private void __executeHandlersInternal() {
         doAction(__effectiveExecutions);
         __effectiveExecutions++;
     }
+
 
     private void __deactivateInternal(boolean skipOnDeactivate) {
         __waitings.clear();
@@ -416,19 +461,27 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         }
     }
 
+
     private void __destroyInternal() {
         doOnDestroy();
     }
+
 
     protected void __registerOntologies(ContentManager cm) {
         cm.registerOntology(jadescript.content.onto.Ontology.getInstance());
     }
 
+
     public final void onStart() {
         __JADEstartTime = System.currentTimeMillis();
     }
 
-    public final void activate_after_every(Agent agent, Duration delay, Duration period) {
+
+    public final void activate_after_every(
+        Agent agent,
+        Duration delay,
+        Duration period
+    ) {
 
         long delayMillis;
         long periodMillis;
@@ -451,29 +504,44 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         }
     }
 
-    public final void activate_at_every(Agent agent, Timestamp start, Duration period) {
-        activate_after_every(agent, Timestamp.subtract(start, Timestamp.now()), period);
+
+    public final void activate_at_every(
+        Agent agent,
+        Timestamp start,
+        Duration period
+    ) {
+        activate_after_every(
+            agent,
+            Timestamp.subtract(start, Timestamp.now()),
+            period
+        );
     }
+
 
     public final void activate_at(Agent agent, Timestamp start) {
         activate_at_every(agent, start, null);
     }
 
+
     public final void activate_every(Agent agent, Duration period) {
         activate_after_every(agent, null, period);
     }
+
 
     public final void activate_after(Agent agent, Duration delay) {
         activate_after_every(agent, delay, null);
     }
 
+
     public final void activate(Agent agent) {
         activate_after_every(agent, null, null);
     }
 
+
     public final void deactivate_after_millis(long delay) {
         __feedInput(new DeactivateDelayed(delay));
     }
+
 
     public final void deactivate_after(Duration delay) {
         deactivate_after_millis(delay.getSecondsLong() * 1000L + delay.getMillis());
@@ -485,17 +553,21 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         deactivate_after(Timestamp.subtract(end, Timestamp.now()));
     }
 
+
     public final boolean isActive() {
         return macroState == MacroState.ACTIVE;
     }
+
 
     public final void deactivate() {
         __feedInput(DeactivateNow.INSTANCE);
     }
 
+
     public final void destroy() {
         __feedInput(Destroy.INSTANCE);
     }
+
 
     @Override
     public final int onEnd() {
@@ -503,30 +575,39 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         return super.onEnd();
     }
 
+
     public void __escalateException(
-            JadescriptException exception
+        JadescriptException exception
     ) {
         __failBehaviour(exception);
     }
+
 
     public final void __failBehaviour(JadescriptException reason) {
         __failBehaviour(reason.getReason());
     }
 
+
     public final void __failBehaviour(JadescriptProposition reason) {
         __feedInput(new FailNow(reason));
     }
 
-    public final void __dispatchFailure(jadescript.core.Agent agent, JadescriptProposition reason) {
+
+    public final void __dispatchFailure(
+        jadescript.core.Agent agent,
+        JadescriptProposition reason
+    ) {
         if (agent != null) {
             agent.__handleBehaviourFailure(this, reason);
         }
     }
 
+
     public Boolean __hasStaleMessageHandler() {
         // Is overriden by generated subclasses.
         return false;
     }
+
 
     @SuppressWarnings("unchecked")
     public A getJadescriptAgent() {
@@ -538,9 +619,11 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         return (A) agent;
     }
 
+
     public A __theAgent() {
         return getJadescriptAgent();
     }
+
 
     private enum MacroState {
         NOT_ACTIVE,
@@ -571,137 +654,175 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
     }
 
     private interface Input {
+
     }
 
     private static class ActivateNow implements Input {
+
         private final jade.core.Agent agent;
+
 
         private ActivateNow(jade.core.Agent agent) {
             this.agent = agent;
         }
 
+
         public jade.core.Agent getAgent() {
             return agent;
         }
+
 
         @Override
         public String toString() {
             return "ActivateNow{}";
         }
+
     }
 
     private static class ActivateDelayed implements Input {
+
         private final jade.core.Agent agent;
         private final long delay;
+
 
         private ActivateDelayed(jade.core.Agent agent, long delay) {
             this.agent = agent;
             this.delay = delay;
         }
 
+
         public long getDelay() {
             return delay;
         }
+
 
         public jade.core.Agent getAgent() {
             return agent;
         }
 
+
         @Override
         public String toString() {
             return "ActivateDelayed{" +
-                    "delay=" + Duration.of(delay) +
-                    '}';
+                "delay=" + Duration.of(delay) +
+                '}';
         }
+
     }
 
     private static class DeactivateNow implements Input {
+
         public static final DeactivateNow INSTANCE = new DeactivateNow();
+
 
         @Override
         public String toString() {
             return "DeactivateNow{}";
         }
+
     }
 
     private static class DeactivateDelayed implements Input {
+
         private final long delay;
+
 
         private DeactivateDelayed(long delay) {
             this.delay = delay;
         }
 
+
         public long getDelay() {
             return delay;
         }
 
+
         @Override
         public String toString() {
             return "DeactivateDelayed{" +
-                    "delay=" + Duration.of(delay) +
-                    '}';
+                "delay=" + Duration.of(delay) +
+                '}';
         }
+
     }
 
     private static class FailNow implements Input {
+
         private final JadescriptProposition reason;
+
 
         private FailNow(JadescriptProposition reason) {
             this.reason = reason;
         }
 
+
         public JadescriptProposition getReason() {
             return reason;
         }
+
 
         @Override
         public String toString() {
             return "FailNow{}";
         }
+
     }
 
     private static class Destroy implements Input {
+
         public static final Destroy INSTANCE = new Destroy();
+
 
         @Override
         public String toString() {
             return "Destroy{}";
         }
+
     }
 
     private static class Execute implements Input {
+
         public static final Execute INSTANCE = new Execute();
+
 
         @Override
         public String toString() {
             return "Execute{}";
         }
+
     }
 
     private static class Waiting {
+
         private final WaitingType waitingType;
         private final long wakeUpTime;
+
 
         private Waiting(long wakeUpTime, WaitingType waitingType) {
             this.wakeUpTime = wakeUpTime;
             this.waitingType = waitingType;
         }
 
+
         public static Waiting doNotWait() {
             return new Waiting(0, WaitingType.NoWait);
         }
+
 
         public static Waiting waitForEvents() {
             return new Waiting(0, WaitingType.EventWait);
         }
 
+
         public static Waiting waitActivation(long wakeUpTime) {
             return new Waiting(wakeUpTime, WaitingType.ActivationDelay);
         }
 
+
         public static Waiting waitPeriodic(long wakeUpTime) {
             return new Waiting(wakeUpTime, WaitingType.PeriodicWait);
         }
+
 
         @Override
         public String toString() {
@@ -713,15 +834,18 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
             return "Waiting{" + wut + "type=" + waitingType.name() + '}';
         }
 
+
         public boolean hasWakeUpTime() {
             return wakeUpTime != 0;
         }
+
 
         public Waiting computeOverride(Waiting w) {
             // Higher-priority waitings overwrite other waitings.
             if (this.waitingType.ordinal() < w.waitingType.ordinal()) {
                 return this;
-            } else { //if(this.waitingType.ordinal() >= w.waitingType.ordinal())//
+            } else { //if(this.waitingType.ordinal() >= w.waitingType.ordinal
+                // ())//
                 return w;
             }
         }
@@ -749,24 +873,31 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
                 }
             }
         }
+
     }
 
     public static class UninitializedBehaviourException extends RuntimeException {
+
         public UninitializedBehaviourException() {
             super("Attempted to executed an uninitialized behaviour.");
         }
+
     }
 
     public static class DestroyedBehaviourException extends RuntimeException {
+
         public DestroyedBehaviourException(Behaviour<?> b) {
             super("Cannot activate destroyed behaviour '" + b.getBehaviourName() + "'.");
         }
+
     }
 
     public static class InactiveBehaviourException extends RuntimeException {
+
         public InactiveBehaviourException(Behaviour<?> b) {
             super("Cannot access agent state from non-active behaviour '" + b.getBehaviourName() + "'.");
         }
+
     }
 
     @SuppressWarnings("rawtypes")
@@ -782,25 +913,30 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
             return null;
         }
 
+
         @Override
         public void doAction(int _tickCount) {
             throw new UninitializedBehaviourException();
         }
+
 
         @Override
         public void doOnActivate() {
             throw new UninitializedBehaviourException();
         }
 
+
         @Override
         public void doOnDeactivate() {
 
         }
 
+
         @Override
         public void doOnDestroy() {
 
         }
+
     }
 
 }

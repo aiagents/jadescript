@@ -36,7 +36,7 @@ public abstract class ForAgentDeclarationSemantics<T extends ForElement>
     @Override
     public IJadescriptType getAssociatedAgentType(
         Maybe<T> input,
-        @Nullable JvmDeclaredType beingDeclaredAgentType
+        @Nullable JvmDeclaredType ignored
     ) {
         final IJadescriptType result1 = getDeclaredAssociatedAgentType(input);
         final Maybe<IJadescriptType> superTempMaybe = getExtendedType(input);
@@ -84,20 +84,20 @@ public abstract class ForAgentDeclarationSemantics<T extends ForElement>
         JvmDeclaredType itClass
     ) {
         if (input == null) return;
-
         populateAgentAssociatedMembers(input, members, module, null);
 
         super.populateMainMembers(input, members, itClass);
+
     }
 
 
     @Override
     public void validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {
         if (input == null) return;
-        super.validate(input, acceptor);
-        InterceptAcceptor interceptAcceptor = new InterceptAcceptor(acceptor);
+
 
         final IJadescriptType agent = getAssociatedAgentType(input, null);
+
         if (!agent.isErroneous()) {
             module.get(ValidationHelper.class).assertExpectedType(
                 jade.core.Agent.class,
@@ -105,9 +105,11 @@ public abstract class ForAgentDeclarationSemantics<T extends ForElement>
                 "InvalidAgentType",
                 input,
                 JadescriptPackage.eINSTANCE.getForElement_Agent(),
-                interceptAcceptor
+                acceptor
             );
         }
+
+        super.validate(input, acceptor);
     }
 
 }

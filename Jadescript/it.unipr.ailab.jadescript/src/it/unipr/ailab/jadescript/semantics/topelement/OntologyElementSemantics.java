@@ -1065,7 +1065,8 @@ public class OntologyElementSemantics extends Semantics {
 
 
 
-            compiledSuperArguments.addAll(CallSemantics.sortToMatchParamNames(
+            compiledSuperArguments.addAll(
+                CallSemantics.sortToMatchParamNames(
                 superArgs,
                 ctorArgNames,
                 parameters.stream()

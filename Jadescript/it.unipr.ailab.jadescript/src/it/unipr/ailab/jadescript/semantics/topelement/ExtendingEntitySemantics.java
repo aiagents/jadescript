@@ -46,7 +46,6 @@ public abstract class ExtendingEntitySemantics<T extends ExtendingElement>
 
     @Override
     public void validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {
-        super.validate(input, acceptor);
         if (input == null) return;
         List<IJadescriptType> allowedSuperTypes =
             allowedIndirectSupertypes(input);
@@ -81,6 +80,8 @@ public abstract class ExtendingEntitySemantics<T extends ExtendingElement>
                 );
             }
         }
+
+        super.validate(input, acceptor);
     }
 
 

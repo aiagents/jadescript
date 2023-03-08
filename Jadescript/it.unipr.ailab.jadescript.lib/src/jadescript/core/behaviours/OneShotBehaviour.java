@@ -12,7 +12,7 @@ public class OneShotBehaviour<A extends jadescript.core.Agent>
     }
 
     public OneShotBehaviour(
-        AgentEnv<A, SideEffectsFlag.AnySideEffectFlag> _agentEnv
+        AgentEnv<? extends A, SideEffectsFlag.AnySideEffectFlag> _agentEnv
     ) {
         super(_agentEnv);
     }

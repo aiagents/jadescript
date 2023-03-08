@@ -6,8 +6,8 @@ import it.unipr.ailab.jadescript.jadescript.MemberBehaviour;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDefinition;
-import it.unipr.ailab.jadescript.semantics.topelement.BehaviourDefinitionSemantics;
+import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDeclaration;
+import it.unipr.ailab.jadescript.semantics.topelement.BehaviourDeclarationSemantics;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -39,8 +39,8 @@ public class MemberBehaviourSemantics extends FeatureSemantics<MemberBehaviour> 
             boolean isPreIndexingPhase
     ){
         final Maybe<JvmTypeReference> agentTypeRef = getAgentType(featureContainer);
-        module.get(BehaviourDefinitionSemantics.class).generateDeclaredTypes(
-                BehaviourDefinition.memberBehaviour(
+        module.get(BehaviourDeclarationSemantics.class).generateDeclaredTypes(
+                BehaviourDeclaration.memberBehaviour(
                         input,
                         input.__(MemberBehaviour::getType),
                         input.__(MemberBehaviour::getName),
@@ -76,8 +76,8 @@ public class MemberBehaviourSemantics extends FeatureSemantics<MemberBehaviour> 
             ValidationMessageAcceptor acceptor
     ) {
         final Maybe<JvmTypeReference> agentTypeRef = getAgentType(container);
-        module.get(BehaviourDefinitionSemantics.class).validate(
-                BehaviourDefinition.memberBehaviour(
+        module.get(BehaviourDeclarationSemantics.class).validate(
+                BehaviourDeclaration.memberBehaviour(
                         input,
                         input.__(MemberBehaviour::getType),
                         input.__(MemberBehaviour::getName),

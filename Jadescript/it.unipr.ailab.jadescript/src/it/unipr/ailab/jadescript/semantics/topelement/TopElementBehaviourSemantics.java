@@ -4,7 +4,7 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.Behaviour;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDefinition;
+import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDeclaration;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -32,8 +32,8 @@ public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<B
         Maybe<Behaviour> input,
         JvmDeclaredType jvmDeclaredType
     ) {
-        module.get(BehaviourDefinitionSemantics.class).prepareAndEnterContext(
-            BehaviourDefinition.topLevelBehaviour(input),
+        module.get(BehaviourDeclarationSemantics.class).prepareAndEnterContext(
+            BehaviourDeclaration.topLevelBehaviour(input),
             jvmDeclaredType
         );
     }
@@ -41,8 +41,8 @@ public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<B
 
     @Override
     protected void exitContext(Maybe<Behaviour> input) {
-        module.get(BehaviourDefinitionSemantics.class).exitContext(
-            BehaviourDefinition.topLevelBehaviour(input)
+        module.get(BehaviourDeclarationSemantics.class).exitContext(
+            BehaviourDeclaration.topLevelBehaviour(input)
         );
     }
 
@@ -52,8 +52,8 @@ public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<B
         Maybe<Behaviour> input,
         ValidationMessageAcceptor acceptor
     ) {
-        module.get(BehaviourDefinitionSemantics.class).validate(
-            BehaviourDefinition.topLevelBehaviour(input),
+        module.get(BehaviourDeclarationSemantics.class).validate(
+            BehaviourDeclaration.topLevelBehaviour(input),
             acceptor
         );
     }
@@ -61,16 +61,16 @@ public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<B
 
     @Override
     public Optional<IJadescriptType> defaultSuperType(Maybe<Behaviour> input) {
-        return module.get(BehaviourDefinitionSemantics.class).defaultSuperType(
-            BehaviourDefinition.topLevelBehaviour(input)
+        return module.get(BehaviourDeclarationSemantics.class).defaultSuperType(
+            BehaviourDeclaration.topLevelBehaviour(input)
         );
     }
 
 
     @Override
     public List<IJadescriptType> allowedIndirectSupertypes(Maybe<Behaviour> input) {
-        return module.get(BehaviourDefinitionSemantics.class).allowedIndirectSupertypes(
-            BehaviourDefinition.topLevelBehaviour(input)
+        return module.get(BehaviourDeclarationSemantics.class).allowedIndirectSupertypes(
+            BehaviourDeclaration.topLevelBehaviour(input)
         );
     }
 
@@ -80,9 +80,9 @@ public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<B
         Maybe<Behaviour> input,
         JvmDeclaredType beingDeclaredAgentType
     ) {
-        return module.get(BehaviourDefinitionSemantics.class)
+        return module.get(BehaviourDeclarationSemantics.class)
             .getAssociatedAgentType(
-                BehaviourDefinition.topLevelBehaviour(input),
+                BehaviourDeclaration.topLevelBehaviour(input),
                 null
             );
     }
@@ -90,16 +90,16 @@ public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<B
 
     @Override
     public List<IJadescriptType> getUsedOntologyTypes(Maybe<Behaviour> input) {
-        return module.get(BehaviourDefinitionSemantics.class).getUsedOntologyTypes(
-            BehaviourDefinition.topLevelBehaviour(input)
+        return module.get(BehaviourDeclarationSemantics.class).getUsedOntologyTypes(
+            BehaviourDeclaration.topLevelBehaviour(input)
         );
     }
 
 
     @Override
     public Maybe<IJadescriptType> getExtendedType(Maybe<Behaviour> input) {
-        return module.get(BehaviourDefinitionSemantics.class).getExtendedType(
-            BehaviourDefinition.topLevelBehaviour(input)
+        return module.get(BehaviourDeclarationSemantics.class).getExtendedType(
+            BehaviourDeclaration.topLevelBehaviour(input)
         );
     }
 
@@ -109,8 +109,8 @@ public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<B
         Maybe<Behaviour> input,
         EList<JvmTypeReference> superTypes
     ) {
-        module.get(BehaviourDefinitionSemantics.class).populateMainSuperTypes(
-            BehaviourDefinition.topLevelBehaviour(input),
+        module.get(BehaviourDeclarationSemantics.class).populateMainSuperTypes(
+            BehaviourDeclaration.topLevelBehaviour(input),
             superTypes
         );
     }
@@ -121,9 +121,9 @@ public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<B
         Maybe<Behaviour> input,
         ValidationMessageAcceptor acceptor
     ) {
-        module.get(BehaviourDefinitionSemantics.class)
+        module.get(BehaviourDeclarationSemantics.class)
             .validateAdditionalContextualizedAspects(
-                BehaviourDefinition.topLevelBehaviour(input),
+                BehaviourDeclaration.topLevelBehaviour(input),
                 acceptor
             );
     }
@@ -135,9 +135,9 @@ public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<B
         EList<JvmMember> members,
         JvmDeclaredType itClass
     ) {
-        module.get(BehaviourDefinitionSemantics.class)
+        module.get(BehaviourDeclarationSemantics.class)
             .populateAdditionalContextualizedMembers(
-                BehaviourDefinition.topLevelBehaviour(input),
+                BehaviourDeclaration.topLevelBehaviour(input),
                 members,
                 itClass
             );
@@ -150,8 +150,8 @@ public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<B
         IJvmDeclaredTypeAcceptor acceptor,
         boolean isPreIndexingPhase
     ) {
-        module.get(BehaviourDefinitionSemantics.class).generateDeclaredTypes(
-            BehaviourDefinition.topLevelBehaviour(input),
+        module.get(BehaviourDeclarationSemantics.class).generateDeclaredTypes(
+            BehaviourDeclaration.topLevelBehaviour(input),
             acceptor,
             isPreIndexingPhase
         );
@@ -160,14 +160,14 @@ public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<B
 
     @Override
     public boolean nameShouldStartWithCapital() {
-        return module.get(BehaviourDefinitionSemantics.class)
+        return module.get(BehaviourDeclarationSemantics.class)
             .nameShouldStartWithCapital();
     }
 
 
     @Override
     public boolean isNameAlwaysRequired() {
-        return module.get(BehaviourDefinitionSemantics.class)
+        return module.get(BehaviourDeclarationSemantics.class)
             .isNameAlwaysRequired();
     }
 
@@ -178,8 +178,8 @@ public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<B
         EList<JvmMember> members,
         JvmDeclaredType itClass
     ) {
-        module.get(BehaviourDefinitionSemantics.class).populateMainMembers(
-            BehaviourDefinition.topLevelBehaviour(input),
+        module.get(BehaviourDeclarationSemantics.class).populateMainMembers(
+            BehaviourDeclaration.topLevelBehaviour(input),
             members,
             itClass
         );

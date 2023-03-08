@@ -15,6 +15,7 @@ import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -291,6 +292,7 @@ public class OnCreateHandlerSemantics
                 contextManager.restore(savedContext);
 
                 if (itCtor.getParameters() != null) {
+
                     final Maybe<IJadescriptType> contextAgent =
                         Maybe.fromOpt(contextManager.currentContext().searchAs(
                             AgentAssociationComputer.class,
@@ -298,11 +300,22 @@ public class OnCreateHandlerSemantics
                                 .map(AgentAssociation::getAgent)
                         ).findFirst());
 
-                    compilationHelper.addAgentEnvParameter(
+
+                    itCtor.getParameters().add(jvmTB.toParameter(
                         inputSafe,
-                        itCtor,
-                        contextAgent
-                    );
+                        AGENT_ENV,
+                        typeHelper.AGENTENV
+                            .apply(List.of(
+                                typeHelper.covariant(
+                                    contextAgent.orElse(typeHelper.AGENT)
+                                ),
+                                typeHelper.jtFromClass(
+                                    AgentEnvType.toSEModeClass(
+                                        AgentEnvType.SEMode.WITH_SE
+                                    )
+                                )
+                            )).asJvmTypeReference()
+                    ));
 
                     stream(parameters)
                         .flatMap(Maybe::filterNulls)
@@ -342,6 +355,10 @@ public class OnCreateHandlerSemantics
                             actualParameters
                         )
                     );
+
+
+                    w.callStmnt("super", w.expr(AGENT_ENV))
+                        .writeSonnet(scb);
 
                     StaticState inBody =
                         StaticState.beginningOfOperation(module);

@@ -53,27 +53,37 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         List<String> argNames,
         List<String> paramNames
     ) {
-        List<HashMap.SimpleEntry<Integer, T>> tmp = new ArrayList<>();
+        List<Util.Tuple2<Integer, T>> tmp = new ArrayList<>();
         for (int i = 0; i < args.size(); i++) {
             T arg = args.get(i);
-            Integer x = paramNames.indexOf(argNames.get(i));
-            tmp.add(new HashMap.SimpleEntry<>(x, arg));
+            if(argNames.get(i).equals(AGENT_ENV)){
+                tmp.add(new Util.Tuple2<>(-1, arg));
+            }else {
+                Integer x = paramNames.indexOf(argNames.get(i));
+                tmp.add(new Util.Tuple2<>(x, arg));
+            }
         }
         return tmp.stream()
-            .sorted(Comparator.comparingInt(AbstractMap.SimpleEntry::getKey))
-            .map(AbstractMap.SimpleEntry::getValue)
+            .sorted(Comparator.comparingInt(Tuple2::get_1))
+            .map(Tuple2::get_2)
             .collect(Collectors.toList());
     }
+
 
 
     public static <T> List<T> sortToMatchParamNames(
         Map<String, T> namedArgs,
         List<String> paramNames
     ) {
-        return paramNames.stream()
+        final List<T> collect = paramNames.stream()
             .map(namedArgs::get)
-            .collect(Collectors.toList());
+            .collect(Collectors.toCollection(ArrayList::new));
+        if(namedArgs.containsKey(AGENT_ENV)){
+            collect.add(0, namedArgs.get(AGENT_ENV));
+        }
+        return collect;
     }
+
 
 
     private static StaticState advanceCallByNameParameters(

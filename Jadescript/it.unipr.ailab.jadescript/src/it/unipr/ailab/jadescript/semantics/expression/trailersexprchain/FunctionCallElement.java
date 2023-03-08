@@ -42,7 +42,7 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
             identifier,
             simpleArgs,
             namedArgs,
-            false
+            Call.IS_FUNCTION
         );
     }
 

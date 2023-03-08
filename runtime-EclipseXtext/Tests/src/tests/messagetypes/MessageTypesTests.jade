@@ -68,7 +68,7 @@ cyclic behaviour ReceiveMessages for agent Receiver
         log "Received count = "+counter
 
     on message agree (A, p as Proposition) do
-        do logMessage with perf= performative of message, content=""+content of message
+        do logMessage with perf=performative of message, content=""+content of message
 
     on message accept_proposal (A, p as Proposition) do
         do logMessage with perf= performative of message, content=""+content of message

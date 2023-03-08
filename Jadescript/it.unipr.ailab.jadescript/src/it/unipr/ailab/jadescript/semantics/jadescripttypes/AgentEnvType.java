@@ -100,8 +100,9 @@ public class AgentEnvType extends ParametricType {
     }
 
 
-    public SEMode getSideEffectsFlag() {
-        return seMode;
+
+    public boolean isWithoutSideEffects(){
+        return seMode == SEMode.NO_SE;
     }
 
 

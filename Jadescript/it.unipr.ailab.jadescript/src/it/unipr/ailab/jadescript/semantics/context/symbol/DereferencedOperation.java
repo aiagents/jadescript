@@ -24,7 +24,8 @@ public class DereferencedOperation
             memberCallable.parameterNames(),
             memberCallable.sourceLocation(),
             memberCallable.isWithoutSideEffects(),
-            memberCallable.invokeByArityCustom, memberCallable.invokeByNameCustom
+            memberCallable.invokeByArityCustom,
+            memberCallable.invokeByNameCustom
         );
         this.ownerCompiler = ownerCompiler;
     }

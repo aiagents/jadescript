@@ -194,12 +194,13 @@ public class OfNotationExpressionSemantics
         BlockElementAcceptor acceptor
     ) {
 
-        final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(
-            OfNotation::getProperties));
+        final List<Maybe<String>> properties =
+            Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
         final Maybe<AidLiteral> aidLiteral =
             input.__(OfNotation::getAidLiteral);
         final AidLiteralExpressionSemantics ales =
             module.get(AidLiteralExpressionSemantics.class);
+
         if (properties.isEmpty()) {
             ales.compileAssignment(
                 aidLiteral,
@@ -211,20 +212,19 @@ public class OfNotationExpressionSemantics
             return;
         }
 
-        StringBuilder sb = new StringBuilder(ales.compile(
-            aidLiteral,
-            state,
-            acceptor
-        ));
+        StringBuilder sb = new StringBuilder(
+            ales.compile(aidLiteral, state, acceptor)
+        );
+
         IJadescriptType prevType = ales.inferType(aidLiteral, state);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
         // NOT NEEDED:
         // StaticState afterSubExpr = ales.advance(aidLiteral, state);
         for (int i = properties.size() - 1; i >= 0; i--) {
             String propName = properties.get(i).extract(nullAsEmptyString);
-            IJadescriptType currentPropType = inferTypeProperty(
-                some(propName),
-                prevType
-            );
+            IJadescriptType currentPropType =
+                inferTypeProperty(some(propName), prevType);
 
             Optional<? extends MemberName> property =
                 prevType.namespace().searchAs(
@@ -232,12 +232,13 @@ public class OfNotationExpressionSemantics
                     s -> s.memberNames(propName)
                 ).findFirst();
 
-            final String rExprConverted = module.get(TypeHelper.class)
+            final String rExprConverted = typeHelper
                 .compileWithEventualImplicitConversions(
                     compiledExpression,
                     exprType,
                     currentPropType
                 );
+
             if (property.isPresent()) {
                 String prevCompiled = sb.toString();
                 if (i == 0) {
@@ -259,6 +260,7 @@ public class OfNotationExpressionSemantics
                         true
                     )).append("(");
                     sb.append(rExprConverted).append(")");
+                    acceptor.accept(w.simpleStmt(sb.toString()));
                 } else {
                     sb.append(".").append(generateMethodName(
                         propName,
@@ -271,7 +273,7 @@ public class OfNotationExpressionSemantics
 
             prevType = inferTypeProperty(some(propName), prevType);
         }
-        acceptor.accept(w.simpleStmt(sb.toString()));
+
     }
 
 

@@ -64,16 +64,15 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
         if (lves.canBeHoled(left)) {
             final PatternMatchHelper patternMatchHelper =
                 module.get(PatternMatchHelper.class);
+
             final PatternMatchInput<LValueExpression> pmi =
                 patternMatchHelper.assignmentDeconstruction(
                     rightType, left, rves.describeExpression(right, state)
                 );
+
             if (lves.isHoled(pmi, afterRight)) {
-                final PatternMatcher patternMatcher = lves.compilePatternMatch(
-                    pmi,
-                    afterRight,
-                    acceptor
-                );
+                final PatternMatcher patternMatcher =
+                    lves.compilePatternMatch(pmi, afterRight, acceptor);
 
                 final String localClassName =
                     patternMatchHelper.getPatternMatcherClassName(left);

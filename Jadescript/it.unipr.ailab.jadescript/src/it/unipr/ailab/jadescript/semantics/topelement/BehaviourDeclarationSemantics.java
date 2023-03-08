@@ -4,15 +4,14 @@ import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
-import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation;
-import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.c1toplevel.TopLevelBehaviourDeclarationContext;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDefinition;
+import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDeclaration;
 import it.unipr.ailab.maybe.Maybe;
 import jadescript.core.behaviours.CyclicBehaviour;
 import jadescript.core.behaviours.OneShotBehaviour;
@@ -32,10 +31,10 @@ import java.util.Optional;
 
 import static it.unipr.ailab.maybe.Maybe.*;
 
-public class BehaviourDefinitionSemantics
-    extends ForAgentDeclarationSemantics<BehaviourDefinition> {
+public class BehaviourDeclarationSemantics
+    extends ForAgentDeclarationSemantics<BehaviourDeclaration> {
 
-    public BehaviourDefinitionSemantics(SemanticsModule semanticsModule) {
+    public BehaviourDeclarationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
@@ -49,13 +48,13 @@ public class BehaviourDefinitionSemantics
 
     @Override
     protected void prepareAndEnterContext(
-        Maybe<BehaviourDefinition> input,
+        Maybe<BehaviourDeclaration> input,
         JvmDeclaredType jvmDeclaredType
     ) {
         final ContextManager contextManager = module.get(ContextManager.class);
 
 
-        if (input.__(BehaviourDefinition::isMemberBehaviour)
+        if (input.__(BehaviourDeclaration::isMemberBehaviour)
             .extract(nullAsFalse)) {
             contextManager.enterEmulatedFile();
         }
@@ -81,14 +80,14 @@ public class BehaviourDefinitionSemantics
 
 
     @Override
-    protected void exitContext(Maybe<BehaviourDefinition> input) {
+    protected void exitContext(Maybe<BehaviourDeclaration> input) {
         // From ProceduralFeatureContainerContext:
         module.get(ContextManager.class).exit();
 
         // From TopLevelBehaviourDeclarationContext:
         module.get(ContextManager.class).exit();
 
-        if (input.__(BehaviourDefinition::isMemberBehaviour)
+        if (input.__(BehaviourDeclaration::isMemberBehaviour)
             .extract(nullAsFalse)) {
             //From EmulatedFileContext:
             module.get(ContextManager.class).exit();
@@ -99,19 +98,21 @@ public class BehaviourDefinitionSemantics
 
     @Override
     public void validate(
-        Maybe<BehaviourDefinition> input,
+        Maybe<BehaviourDeclaration> input,
         ValidationMessageAcceptor acceptor
     ) {
+
+        //Keep super.validate at the end
         super.validate(input, acceptor);
     }
 
 
     @Override
     public List<IJadescriptType> allowedIndirectSupertypes(
-        Maybe<BehaviourDefinition> input
+        Maybe<BehaviourDeclaration> input
     ) {
         final Maybe<JvmTypeReference> typeArg =
-            input.__(BehaviourDefinition::getForAgent)
+            input.__(BehaviourDeclaration::getForAgent)
                 .extract(Maybe::flatten);
 
         List<IJadescriptType> typeArgs = new ArrayList<>();
@@ -125,7 +126,7 @@ public class BehaviourDefinitionSemantics
         }
 
         if (Maybe.nullAsFalse(input
-            .__(BehaviourDefinition::getType)
+            .__(BehaviourDeclaration::getType)
             .__(String::equals, "cyclic"))) {
 
             return Collections.singletonList(typeHelper.jtFromClass(
@@ -146,10 +147,10 @@ public class BehaviourDefinitionSemantics
 
     @Override
     public Optional<IJadescriptType> defaultSuperType(
-        Maybe<BehaviourDefinition> input
+        Maybe<BehaviourDeclaration> input
     ) {
         final Maybe<JvmTypeReference> typeArg =
-            input.__(BehaviourDefinition::getForAgent)
+            input.__(BehaviourDeclaration::getForAgent)
                 .extract(Maybe::flatten);
 
         List<IJadescriptType> typeArgs = new ArrayList<>(1);
@@ -158,7 +159,7 @@ public class BehaviourDefinitionSemantics
             typeArgs.add(typeHelper.jtFromJvmTypeRef(typeArg.toNullable()));
         }
         if (Maybe.nullAsFalse(input
-            .__(BehaviourDefinition::getType)
+            .__(BehaviourDeclaration::getType)
             .__(String::equals, "cyclic"))) {
 
             final IJadescriptType value = typeHelper.jtFromClass(
@@ -182,18 +183,18 @@ public class BehaviourDefinitionSemantics
 
     @Override
     public void populateMainMembers(
-        Maybe<BehaviourDefinition> input,
+        Maybe<BehaviourDeclaration> input,
         EList<JvmMember> members,
         JvmDeclaredType itClass
     ) {
-        super.populateMainMembers(input, members, itClass);
-
         if (input.isNothing()) {
             return;
         }
 
+        final BehaviourDeclaration inputSafe = input.toNullable();
+
         final Optional<OnCreateHandler> onCreateHandler =
-            stream(input.__(BehaviourDefinition::getFeatures))
+            stream(input.__(BehaviourDeclaration::getFeatures))
                 .filter(j -> j.__(f -> f instanceof OnCreateHandler)
                     .extract(nullAsFalse))
                 .map(Maybe::toOpt)
@@ -208,9 +209,6 @@ public class BehaviourDefinitionSemantics
 
         final SavedContext savedContext = contextManager.save();
 
-        if(true){//TODO remove
-            return;
-        }
 
         if (onCreateHandler.isPresent()) {
             final List<Maybe<FormalParameter>> formalParameters =
@@ -236,12 +234,6 @@ public class BehaviourDefinitionSemantics
         }
 
 
-        if (input.isNothing()) {
-            return;
-        }
-
-        final BehaviourDefinition inputSafe = input.toNullable();
-
         final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
 
@@ -260,20 +252,25 @@ public class BehaviourDefinitionSemantics
 
                 contextManager.restore(savedContext);
 
-                final Maybe<IJadescriptType> contextAgent =
-                    Maybe.fromOpt(contextManager.currentContext().searchAs(
-                        AgentAssociationComputer.class,
-                        aac -> aac.computeAllAgentAssociations()
-                            .map(AgentAssociation::getAgent)
-                    ).findFirst());
+                final IJadescriptType contextAgent =
+                    getAssociatedAgentType(input, null);
 
                 itMethod.setStatic(true);
 
-                compilationHelper.addAgentEnvParameter(
+
+                itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
-                    itMethod,
-                    contextAgent
-                );
+                    AGENT_ENV,
+                    typeHelper.AGENTENV
+                        .apply(List.of(
+                            typeHelper.covariant(contextAgent),
+                            typeHelper.jtFromClass(
+                                AgentEnvType.toSEModeClass(
+                                    AgentEnvType.SEMode.WITH_SE
+                                )
+                            )
+                        )).asJvmTypeReference()
+                ));
 
                 compilationHelper.createAndSetBody(
                     itMethod,
@@ -339,7 +336,7 @@ public class BehaviourDefinitionSemantics
                         .filter(Maybe::isPresent)
                         .map(Maybe::toNullable)
                         .filter(
-                            BehaviourDefinitionSemantics::hasEventClassSystem
+                            BehaviourDeclarationSemantics::hasEventClassSystem
                         ).map(this::synthesizeEventVariableName)
                         .forEach(eventName -> scb.line(eventName + ".run();"));
 
@@ -356,7 +353,7 @@ public class BehaviourDefinitionSemantics
                         .filter(Maybe::isPresent)
                         .map(Maybe::toNullable)
                         .filter(
-                            BehaviourDefinitionSemantics::hasEventClassSystem
+                            BehaviourDeclarationSemantics::hasEventClassSystem
                         )
                         .map(this::synthesizeEventVariableName)
                         .forEach(eventName -> {
@@ -385,7 +382,7 @@ public class BehaviourDefinitionSemantics
             typeHelper.BOOLEAN.asJvmTypeReference(),
             itMethod -> {
                 boolean result =
-                    Maybe.stream(input.__(BehaviourDefinition::getFeatures))
+                    Maybe.stream(input.__(BehaviourDeclaration::getFeatures))
                         .anyMatch(featureMaybe -> {
                             if (featureMaybe.isPresent()) {
                                 Feature f = featureMaybe.toNullable();
@@ -407,20 +404,24 @@ public class BehaviourDefinitionSemantics
                 );
             }
         ));
+
+        super.populateMainMembers(input, members, itClass);
     }
 
 
+    /**
+     * Creates the behaviour's "default constructor".
+     */
     private void createDefaultOnCreateHandler(
-        Maybe<BehaviourDefinition> input,
+        Maybe<BehaviourDeclaration> input,
         EList<JvmMember> members,
         SavedContext savedContext
     ) {
-        //create the behaviour's "default constructor"
         if (input.isNothing()) {
             return;
         }
 
-        final BehaviourDefinition inputSafe = input.toNullable();
+        final BehaviourDeclaration inputSafe = input.toNullable();
 
         final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
@@ -436,18 +437,25 @@ public class BehaviourDefinitionSemantics
             itCtor -> {
                 contextManager.restore(savedContext);
 
-                final Maybe<IJadescriptType> contextAgent =
-                    Maybe.fromOpt(contextManager.currentContext().searchAs(
-                        AgentAssociationComputer.class,
-                        aac -> aac.computeAllAgentAssociations()
-                            .map(AgentAssociation::getAgent)
-                    ).findFirst());
 
-                compilationHelper.addAgentEnvParameter(
+                final IJadescriptType contextAgent =
+                    getAssociatedAgentType(input, null);
+
+                final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+                itCtor.getParameters().add(jvmTB.toParameter(
                     inputSafe,
-                    itCtor,
-                    contextAgent
-                );
+                    AGENT_ENV,
+                    typeHelper.AGENTENV
+                        .apply(List.of(
+                            typeHelper.covariant(contextAgent),
+                            typeHelper.jtFromClass(
+                                AgentEnvType.toSEModeClass(
+                                    AgentEnvType.SEMode.WITH_SE
+                                )
+                            )
+                        )).asJvmTypeReference()
+                ));
 
                 compilationHelper.createAndSetBody(
                     itCtor,
