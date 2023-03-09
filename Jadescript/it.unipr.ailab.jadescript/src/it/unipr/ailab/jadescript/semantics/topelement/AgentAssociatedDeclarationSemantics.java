@@ -40,27 +40,11 @@ public interface AgentAssociatedDeclarationSemantics<T> {
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
-        Util.extractEObject(input).safeDo(inputsafe -> {
-                members.add(jvmTB.toField(
-                    inputsafe,
-                    SemanticsConsts.THE_AGENT,
-                    agentType.asJvmTypeReference(),
-                    itField -> {
-                        itField.setVisibility(JvmVisibility.PRIVATE);
-                        compilationHelper.createAndSetInitializer(
-                            itField,
-                            scb -> scb.add("(" +
-                                agentType.compileToJavaTypeReference() +
-                                ")/*Used as metadata*/null")
-                        );
-                    }
-                ));
-            }
-        );
+
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         Util.extractEObject(input).safeDo(inputsafe -> {
-            members.add(jvmTB.toField(
+            members.add(0, jvmTB.toField(
                 inputsafe,
                 SemanticsConsts.AGENT_ENV,
                 typeHelper.AGENTENV
@@ -76,6 +60,23 @@ public interface AgentAssociatedDeclarationSemantics<T> {
             ));
         });
 
+        Util.extractEObject(input).safeDo(inputsafe -> {
+                members.add(0, jvmTB.toField(
+                    inputsafe,
+                    SemanticsConsts.THE_AGENT,
+                    agentType.asJvmTypeReference(),
+                    itField -> {
+                        itField.setVisibility(JvmVisibility.PRIVATE);
+                        compilationHelper.createAndSetInitializer(
+                            itField,
+                            scb -> scb.add("(" +
+                                agentType.compileToJavaTypeReference() +
+                                ")/*Used as metadata*/null")
+                        );
+                    }
+                ));
+            }
+        );
 
         Util.extractEObject(input).safeDo(inputSafe -> {
             members.add(jvmTB.toMethod(
