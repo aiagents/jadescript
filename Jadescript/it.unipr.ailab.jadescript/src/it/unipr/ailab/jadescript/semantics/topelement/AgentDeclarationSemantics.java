@@ -30,7 +30,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
  */
 @Singleton
 public class AgentDeclarationSemantics
-    extends UsesOntologyEntitySemantics<Agent>
+    extends UsesOntologyDeclarationSemantics<Agent>
     implements AgentAssociatedDeclarationSemantics<Agent> {
 
     public AgentDeclarationSemantics(SemanticsModule semanticsModule) {

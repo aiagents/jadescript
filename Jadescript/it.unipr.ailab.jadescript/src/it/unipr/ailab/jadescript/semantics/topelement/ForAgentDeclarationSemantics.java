@@ -3,7 +3,6 @@ package it.unipr.ailab.jadescript.semantics.topelement;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.ForElement;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociated;
 import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation;
@@ -25,7 +24,7 @@ import java.util.Optional;
  */
 @Singleton
 public abstract class ForAgentDeclarationSemantics<T extends ForElement>
-    extends UsesOntologyEntitySemantics<T>
+    extends UsesOntologyDeclarationSemantics<T>
     implements AgentAssociatedDeclarationSemantics<T>{
 
     public ForAgentDeclarationSemantics(SemanticsModule semanticsModule) {

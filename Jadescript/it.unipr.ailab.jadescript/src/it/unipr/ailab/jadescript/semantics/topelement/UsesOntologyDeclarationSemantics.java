@@ -22,16 +22,19 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
  * Created on 27/04/18.
  */
 @Singleton
-public abstract class UsesOntologyEntitySemantics<T extends UsesOntologyElement>
-    extends ExtendingEntitySemantics<T> {
+public abstract class UsesOntologyDeclarationSemantics
+    <T extends UsesOntologyElement>
+    extends ExtendingEntitySemantics<T>
+    implements OntologyAssociatedDeclarationSemantics<T> {
 
-    public UsesOntologyEntitySemantics(SemanticsModule semanticsModule) {
+    public UsesOntologyDeclarationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
@@ -90,23 +93,41 @@ public abstract class UsesOntologyEntitySemantics<T extends UsesOntologyElement>
         EList<JvmMember> members,
         JvmDeclaredType itClass
     ) {
+        if (input == null) {
+            return;
+        }
 
-        if (input == null) return;
         List<JvmTypeReference> ontologyTypes = getUsedOntologiesTypeRefs(input);
+
+        final JvmTypesBuilder jvmTypesBuilder =
+            module.get(JvmTypesBuilder.class);
+
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
+
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
 
         input.safeDo(inputsafe -> {
             for (final JvmTypeReference ontologyType : ontologyTypes) {
-                String ontologyName = ontologyType.getQualifiedName('.');
-                members.add(module.get(JvmTypesBuilder.class).toField(
+                members.add(jvmTypesBuilder.toField(
                     inputsafe,
                     CompilationHelper.extractOntologyVarName(ontologyType),
                     ontologyType,
                     itField -> {
                         itField.setVisibility(JvmVisibility.PUBLIC);
-                        module.get(CompilationHelper.class).createAndSetInitializer(
+
+                        compilationHelper.createAndSetInitializer(
                             itField,
-                            scb -> scb.line("(" + ontologyName + ") " + ontologyName + ".")
-                                .add("getInstance()")
+                            scb -> {
+                                String ontologyName =
+                                    ontologyType.getQualifiedName('.');
+
+                                scb.line(
+                                    "(" + ontologyName + ") " +
+                                        ontologyName + ".getInstance()"
+                                );
+                            }
+
 
                         );
                     }
@@ -114,47 +135,44 @@ public abstract class UsesOntologyEntitySemantics<T extends UsesOntologyElement>
             }
 
 
-            members.add(module.get(JvmTypesBuilder.class).toMethod(
+            members.add(jvmTypesBuilder.toMethod(
                 inputsafe,
                 "__registerOntologies",
-                module.get(TypeHelper.class).VOID.asJvmTypeReference(),
+                typeHelper.VOID.asJvmTypeReference(),
                 itMethod -> {
-                    itMethod.getParameters().add(module.get(JvmTypesBuilder.class).toParameter(
-                        inputsafe,
-                        "cm",
-                        module.get(TypeHelper.class).typeRef(ContentManager.class)
-                    ));
-                    module.get(CompilationHelper.class).createAndSetBody(
-                        itMethod,
-                        scb -> {
-                            itMethod.setVisibility(JvmVisibility.PROTECTED);
-                            if (!(inputsafe instanceof GlobalFunctionOrProcedure)) {
-                                scb.line("super.__registerOntologies(cm);");
-                            }
-
-                            for (JvmTypeReference ontologyType :
-                                ontologyTypes) {
-                                scb.line("cm.registerOntology(" +
-                                    CompilationHelper.extractOntologyVarName(
-                                        ontologyType)
-                                    + ");");
-                            }
-                        }
+                    itMethod.getParameters().add(
+                        jvmTypesBuilder.toParameter(
+                            inputsafe,
+                            "cm",
+                            typeHelper.typeRef(ContentManager.class)
+                        )
                     );
+                    compilationHelper.createAndSetBody(itMethod, scb -> {
+                        if (!(inputsafe instanceof GlobalFunctionOrProcedure)) {
+                            scb.line("super.__registerOntologies(cm);");
+                        }
+
+                        for (JvmTypeReference ontologyType : ontologyTypes) {
+                            scb.line("cm.registerOntology(" +
+                                ontologyType.getQualifiedName('.')
+                                + ".getInstance());");
+                        }
+                    });
                 }
             ));
 
 
-            members.add(module.get(JvmTypesBuilder.class).toField(
+            members.add(jvmTypesBuilder.toField(
                 inputsafe,
                 CODEC_VAR_NAME,
-                module.get(TypeHelper.class).typeRef(jade.content.lang.Codec.class),
+                typeHelper.typeRef(jade.content.lang.Codec.class),
                 itField -> {
                     itField.setVisibility(JvmVisibility.PUBLIC);
-                    module.get(CompilationHelper.class).createAndSetInitializer(
+                    compilationHelper.createAndSetInitializer(
                         itField,
-                        scb -> scb.line("new jade.content.lang.leap.LEAPCodec" +
-                            "()")
+                        scb -> scb.line(
+                            "new jade.content.lang.leap.LEAPCodec" +
+                                "()")
                     );
                 }
             ));

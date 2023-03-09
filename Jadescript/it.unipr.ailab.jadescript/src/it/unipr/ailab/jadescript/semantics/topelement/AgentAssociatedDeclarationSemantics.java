@@ -17,7 +17,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public interface AgentAssociatedDeclarationSemantics<T> {
-    IJadescriptType getAssociatedAgentType(Maybe<T> input,
+
+    IJadescriptType getAssociatedAgentType(
+        Maybe<T> input,
         JvmDeclaredType beingDeclared
     );
 
@@ -99,4 +101,5 @@ public interface AgentAssociatedDeclarationSemantics<T> {
             ));
         });
     }
+
 }

@@ -20,33 +20,28 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class BehaviourConstructor implements GlobalCallable {
 
 
-    protected final Function<List<String>, String>
-        invokeByArityCustom;
-    protected final Function<Map<String, String>, String>
-        invokeByNameCustom;
     private final IJadescriptType returnType;
     private final String name;
     private final Map<String, IJadescriptType> parameterNamesToTypes;
     private final List<String> parameterNames;
     private final SearchLocation location;
     private final boolean withoutSideEffects;
+    private final String fullyQualifiedName;
 
 
-    public BehaviourConstructor(
+    private BehaviourConstructor(
         IJadescriptType returnType,
         String name,
         Map<String, IJadescriptType> parameterNamesToTypes,
         List<String> parameterNames,
         SearchLocation location,
         boolean withoutSideEffects,
-        Function<List<String>, String> invokeByArityCustom,
-        Function<Map<String, String>, String> invokeByNameCustom
+        String fullyQualifiedName
     ) {
         this.returnType = returnType;
         this.name = name;
@@ -54,8 +49,7 @@ public class BehaviourConstructor implements GlobalCallable {
         this.parameterNames = parameterNames;
         this.location = location;
         this.withoutSideEffects = withoutSideEffects;
-        this.invokeByArityCustom = invokeByArityCustom;
-        this.invokeByNameCustom = invokeByNameCustom;
+        this.fullyQualifiedName = fullyQualifiedName;
     }
 
 
@@ -113,7 +107,8 @@ public class BehaviourConstructor implements GlobalCallable {
         }
 
 
-        String fqn = constructor.getSimpleName();
+        String fqn = constructor.getQualifiedName('.');
+
         return new BehaviourConstructor(
             namespace.resolveType(typeHelper.typeRef(type)),
             type.getSimpleName(),
@@ -121,16 +116,7 @@ public class BehaviourConstructor implements GlobalCallable {
             paramNames,
             namespace.currentLocation(),
             withoutSideEffects,
-            //TODO don't use lambda fields, integrate all in the corr. methods
-            CompilationHelper.addEnvParameterByArity((args) -> "new " + fqn +
-                "(" +
-                String.join(" ,", args) +
-                ")"),
-            CompilationHelper.addEnvParameterByName((args) -> "new " + fqn +
-                "(" + String.join(
-                    " ,",
-                CallSemantics.sortToMatchParamNames(args, paramNames)
-            ) + ")")
+            fqn
         );
     }
 
@@ -180,7 +166,11 @@ public class BehaviourConstructor implements GlobalCallable {
         List<String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
-        return invokeByArityCustom.apply(compiledRexprs);
+        return CompilationHelper.addEnvParameterByArity(
+            (args) -> "new " + this.fullyQualifiedName + "(" +
+                String.join(" ,", args) +
+                ")"
+        ).apply(compiledRexprs);
     }
 
 
@@ -189,7 +179,13 @@ public class BehaviourConstructor implements GlobalCallable {
         Map<String, String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
-        return invokeByNameCustom.apply(compiledRexprs);
+        return CompilationHelper.addEnvParameterByName(
+            (args) -> "new " + this.fullyQualifiedName + "(" +
+                String.join(
+                    " ,",
+                    CallSemantics.sortToMatchParamNames(args, parameterNames)
+                ) + ")"
+        ).apply(compiledRexprs);
     }
 
 

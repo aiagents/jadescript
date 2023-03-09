@@ -92,20 +92,18 @@ public abstract class NamedEntitySemantics<T extends NamedElement>
 
             final JvmTypesBuilder jvmTB =
                 module.get(JvmTypesBuilder.class);
-            fullyQualifiedName.ifPresent(fqn -> acceptor.accept(jvmTB.toClass(
-                inputSafe.get(), fqn, itClass -> {
+            fullyQualifiedName.ifPresent(fqn -> acceptor.accept(
+                jvmTB.toClass(inputSafe.get(), fqn, itClass -> {
                     populateMainSuperTypes(input, itClass.getSuperTypes());
-
-                    if (!isPreIndexingPhase) {
-                        populateMainMembers(
-                            input,
-                            itClass.getMembers(),
-                            itClass
-                        );
-                    }
-
+                }),
+                itClass -> {
+                    populateMainMembers(
+                        input,
+                        itClass.getMembers(),
+                        itClass
+                    );
                 }
-            )));
+            ));
         }
     }
 

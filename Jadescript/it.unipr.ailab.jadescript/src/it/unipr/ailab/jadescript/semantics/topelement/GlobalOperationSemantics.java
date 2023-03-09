@@ -47,7 +47,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
  */
 @Singleton
 public class GlobalOperationSemantics
-    extends UsesOntologyEntitySemantics<GlobalFunctionOrProcedure>
+    extends UsesOntologyDeclarationSemantics<GlobalFunctionOrProcedure>
     implements OperationDeclarationSemantics {
 
     private final Map<String, List<Maybe<GlobalFunctionOrProcedure>>>
@@ -278,7 +278,7 @@ public class GlobalOperationSemantics
                 itMethod -> {
                     contextManager.restore(saved);
                     itMethod.setVisibility(JvmVisibility.PUBLIC);
-                    itMethod.setStatic(false);
+                    itMethod.setStatic(true);
 
                     final List<Maybe<FormalParameter>> parameters =
                         toListOfMaybes(

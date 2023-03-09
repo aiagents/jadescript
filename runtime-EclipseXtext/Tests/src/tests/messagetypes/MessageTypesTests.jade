@@ -11,7 +11,7 @@ ontology Onto
 agent MessageTypesTest uses ontology Onto
     on create do
         log "SENDER!"
-        activate SendMessages
+        activate SendMessages 
 
 
 agent Receiver uses ontology Onto
@@ -47,7 +47,7 @@ oneshot behaviour SendMessages for agent MessageTypesTest
         send message request_when (A, P) to "Receiver"@
         send message request_whenever (A, P) to "Receiver"@
         # Sending 8 messages using the default values
-        send message accept_proposal A to "Receiver"@ 
+        send message accept_proposal A to "Receiver"@
         send message agree A to "Receiver"@
         send message cfp A to "Receiver"@
         send message failure A to "Receiver"@
