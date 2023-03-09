@@ -87,8 +87,9 @@ public abstract class NamedEntitySemantics<T extends NamedElement>
             final CompilationHelper compilationHelper =
                 module.get(CompilationHelper.class);
 
-            Optional<QualifiedName> fullyQualifiedName =
-                input.__(compilationHelper::getFullyQualifiedName).toOpt();
+            Optional<QualifiedName> fullyQualifiedName = input
+                .__(compilationHelper::getFullyQualifiedName)
+                .toOpt();
 
             final JvmTypesBuilder jvmTB =
                 module.get(JvmTypesBuilder.class);

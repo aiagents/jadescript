@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.topelement;
 import com.google.common.collect.HashMultimap;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.FieldInitializerContext;
@@ -18,11 +19,13 @@ import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Functional;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmMember;
+import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -39,11 +42,14 @@ import static it.unipr.ailab.maybe.Maybe.*;
  * Created on 27/04/18.
  */
 @Singleton
-public abstract class FeatureContainerSemantics<T extends FeatureContainer>
+public abstract class MemberContainerDeclarationSemantics
+    <T extends FeatureContainer>
     extends NamedEntitySemantics<T> {
 
 
-    public FeatureContainerSemantics(SemanticsModule semanticsModule) {
+    public MemberContainerDeclarationSemantics(
+        SemanticsModule semanticsModule
+    ) {
         super(semanticsModule);
     }
 
@@ -84,8 +90,11 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
 
         final T inputSafe = input.toNullable();
 
-        final Maybe<QualifiedName> qualifiedNameMaybe = input
-            .__(module.get(CompilationHelper.class)::getFullyQualifiedName);
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
+
+        final Maybe<QualifiedName> qualifiedNameMaybe =
+            input.__(compilationHelper::getFullyQualifiedName);
 
         if (qualifiedNameMaybe.isNothing()) {
             return;
@@ -173,7 +182,6 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
                 StaticState inInitializer =
                     StaticState.beginningOfOperation(module);
 
-                //TODO change: use 'trivially co-referent' semantics
                 List<? extends List<String>> listOfLists =
                     rves.collectFromAllNodes(right, (i, sem) -> {
                         final Maybe<ExpressionDescriptor> descriptorMaybe =
@@ -315,7 +323,10 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
         JvmDeclaredType itClass
     ) {
         super.populateMainMembers(input, members, itClass);
-        if (input == null) return;
+
+        if (input == null) {
+            return;
+        }
 
 
         final SemanticsDispatchHelper dispatchHelper =
@@ -324,17 +335,27 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
 
         prepareAndEnterContext(input, itClass);
 
+
+        final BlockWriter fieldInitBlock = w.block();
+
+        BlockElementAcceptor fieldInitializerAcceptor = fieldInitBlock::add;
+
         for (Maybe<Feature> feature :
             Maybe.iterate(input.__(FeatureContainer::getFeatures))) {
+
+
             dispatchHelper.dispachFeatureSemantics(
                 feature,
                 sem -> sem.generateJvmMembers(
                     wrappedSubCast(feature),
                     wrappedSuperCast(input),
                     members,
-                    itClass
+                    itClass,
+                    fieldInitializerAcceptor
                 )
             );
+
+
         }
 
 
@@ -348,8 +369,47 @@ public abstract class FeatureContainerSemantics<T extends FeatureContainer>
             addBehaviourFailureHandlingDispatcher(input, members);
         }
 
+        addInitializePropertiesMethod(
+            input,
+            fieldInitBlock,
+            members
+        );
+
         exitContext(input);
 
+    }
+
+
+    private void addInitializePropertiesMethod(
+        Maybe<T> input,
+        BlockWriter fieldInitBlock,
+        List<JvmMember> members
+    ) {
+        if (input.isNothing()) {
+            return;
+        }
+
+        final T inputSafe = input.toNullable();
+
+        final JvmTypesBuilder jvmTypesBuilder =
+            module.get(JvmTypesBuilder.class);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        members.add(jvmTypesBuilder.toMethod(
+            inputSafe,
+            "__initializeProperties",
+            typeHelper.VOID.asJvmTypeReference(),
+            itMethod -> {
+                itMethod.setVisibility(JvmVisibility.PRIVATE);
+                final CompilationHelper compilationHelper =
+                    module.get(CompilationHelper.class);
+
+                compilationHelper.createAndSetBody(itMethod, scb -> {
+                    w.comment("Initializing properties and event handlers:")
+                        .writeSonnet(scb);
+                    fieldInitBlock.writeSonnet(scb);
+                });
+            }
+        ));
     }
 
 

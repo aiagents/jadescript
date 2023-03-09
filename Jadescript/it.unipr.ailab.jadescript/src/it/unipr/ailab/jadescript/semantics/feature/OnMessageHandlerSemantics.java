@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.feature;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
@@ -46,7 +47,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
 @SuppressWarnings("restriction")
 @Singleton
 public class OnMessageHandlerSemantics
-    extends FeatureSemantics<OnMessageHandler> {
+    extends DeclarationMemberSemantics<OnMessageHandler> {
 
     public OnMessageHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -58,7 +59,8 @@ public class OnMessageHandlerSemantics
         Maybe<OnMessageHandler> input,
         Maybe<FeatureContainer> container,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
         if (input.isNothing()) {
             return;
@@ -81,34 +83,43 @@ public class OnMessageHandlerSemantics
 
         members.add(eventClass);
 
-        addEventField(members, inputSafe, eventClass);
+        addEventField(
+            members,
+            inputSafe,
+            eventClass,
+            fieldInitializationAcceptor
+        );
     }
 
 
     private void addEventField(
         EList<JvmMember> members,
         OnMessageHandler inputSafe,
-        JvmGenericType eventClass
+        JvmGenericType eventClass,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
+        final String eventFieldName = synthesizeEventFieldName(inputSafe);
         members.add(module.get(JvmTypesBuilder.class).toField(
             inputSafe,
-            synthesizeEventVariableName(inputSafe),
-            module.get(TypeHelper.class).typeRef(eventClass), it -> {
-                it.setVisibility(JvmVisibility.PRIVATE);
-                module.get(JvmTypesBuilder.class).setInitializer(
-                    it,
-                    new StringConcatenationClient() {
-                        @Override
-                        protected void appendTo(
-                            TargetStringConcatenation target
-                        ) {
-                            target.append(" new ");
-                            target.append(module.get(TypeHelper.class)
-                                .typeRef(eventClass));
-                            target.append("()");
-                        }
-                    }
-                );
+            eventFieldName,
+            module.get(TypeHelper.class).typeRef(eventClass),
+            itField -> {
+                itField.setVisibility(JvmVisibility.PRIVATE);
+                module.get(CompilationHelper.class)
+                    .createAndSetInitializer(itField, scb -> {
+                        scb.add("null");
+                        fieldInitializationAcceptor.accept(
+                            w.assign(
+                                eventFieldName,
+                                w.expr("new " +
+                                    module.get(TypeHelper.class)
+                                        .typeRef(eventClass)
+                                        .getQualifiedName('.') +
+                                    "()"
+                                )
+                            )
+                        );
+                    });
             }
         ));
     }

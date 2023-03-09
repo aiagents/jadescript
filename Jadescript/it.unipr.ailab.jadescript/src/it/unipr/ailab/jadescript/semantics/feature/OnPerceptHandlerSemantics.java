@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
@@ -44,7 +45,7 @@ import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public class OnPerceptHandlerSemantics
-    extends FeatureSemantics<OnPerceptHandler> {
+    extends DeclarationMemberSemantics<OnPerceptHandler> {
 
     public OnPerceptHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -56,7 +57,8 @@ public class OnPerceptHandlerSemantics
         Maybe<OnPerceptHandler> input,
         Maybe<FeatureContainer> featureContainer,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
 
         if (input.isNothing()) {
@@ -93,7 +95,7 @@ public class OnPerceptHandlerSemantics
     ) {
         members.add(module.get(JvmTypesBuilder.class).toField(
             inputSafe,
-            synthesizeEventVariableName(inputSafe),
+            synthesizeEventFieldName(inputSafe),
             module.get(TypeHelper.class).typeRef(eventClass), it -> {
                 it.setVisibility(JvmVisibility.PRIVATE);
                 module.get(JvmTypesBuilder.class).setInitializer(

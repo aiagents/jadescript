@@ -10,10 +10,9 @@ import it.unipr.ailab.jadescript.jvmmodel.JadescriptCompilerUtils;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.topelement.AgentDeclarationSemantics;
-import it.unipr.ailab.jadescript.semantics.topelement.GlobalOperationSemantics;
-import it.unipr.ailab.jadescript.semantics.topelement.OntologySemantics;
-import it.unipr.ailab.jadescript.semantics.topelement.TopElementBehaviourSemantics;
+import it.unipr.ailab.jadescript.semantics.topelement.*;
+import it.unipr.ailab.jadescript.semantics.topelement.GlobalOperationDeclarationSemantics;
+import it.unipr.ailab.jadescript.semantics.topelement.OntologyDeclarationSemantics;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
@@ -175,8 +174,8 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
             for (final String k : functionsMap.keySet()) {
                 {
                     SemanticsModule module = createSemanticsModule(m, "Validation");
-                    GlobalOperationSemantics gms = module.get(
-                        GlobalOperationSemantics.class);
+                    GlobalOperationDeclarationSemantics gms = module.get(
+                        GlobalOperationDeclarationSemantics.class);
                     for (final GlobalFunctionOrProcedure v : functionsMap.get(k)) {
                         gms.addMethod(Maybe.some(v));
                     }
@@ -196,14 +195,14 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
                     if (!matched) {
                         if (element instanceof Behaviour) {
                             matched = true;
-                            module.get(TopElementBehaviourSemantics.class).validate(
+                            module.get(TopElementBehaviourDeclarationSemantics.class).validate(
                                     Maybe.some(((Behaviour) element)), this
                             );
                         }
                     }
                     if (!matched) {
                         if (element instanceof Ontology) {
-                            module.get(OntologySemantics.class).validate(Maybe.some(((Ontology) element)), this);
+                            module.get(OntologyDeclarationSemantics.class).validate(Maybe.some(((Ontology) element)), this);
                         }
                     }
                 }

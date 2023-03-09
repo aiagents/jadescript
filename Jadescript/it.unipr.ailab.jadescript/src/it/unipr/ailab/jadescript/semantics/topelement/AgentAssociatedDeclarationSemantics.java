@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.sonneteer.WriterFactory;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmMember;
@@ -40,9 +41,9 @@ public interface AgentAssociatedDeclarationSemantics<T> {
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
-
-
         final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        final WriterFactory w = SemanticsConsts.w;
         Util.extractEObject(input).safeDo(inputsafe -> {
             members.add(0, jvmTB.toField(
                 inputsafe,
@@ -54,7 +55,7 @@ public interface AgentAssociatedDeclarationSemantics<T> {
                     itField.setVisibility(JvmVisibility.PRIVATE);
                     compilationHelper.createAndSetInitializer(
                         itField,
-                        SemanticsConsts.w.Null::writeSonnet
+                        w.Null::writeSonnet
                     );
                 }
             ));
@@ -84,15 +85,15 @@ public interface AgentAssociatedDeclarationSemantics<T> {
                 "__initializeAgentEnv",
                 typeHelper.VOID.asJvmTypeReference(),
                 itMethod -> {
-                    itMethod.setVisibility(JvmVisibility.PROTECTED);
+                    itMethod.setVisibility(JvmVisibility.PRIVATE);
                     compilationHelper.createAndSetBody(
                         itMethod,
                         scb -> {
-                            SemanticsConsts.w.assign(
+                            w.assign(
                                 "this." + SemanticsConsts.AGENT_ENV,
-                                SemanticsConsts.w.callExpr(
+                                w.callExpr(
                                     "jadescript.java.AgentEnv.agentEnv",
-                                    SemanticsConsts.w.expr(
+                                    w.expr(
                                         SemanticsConsts.THE_AGENT + "()")
                                 )
                             ).writeSonnet(scb);

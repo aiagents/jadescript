@@ -70,7 +70,6 @@ public class BehaviourDeclarationSemantics
         );
 
 
-
         contextManager.enterProceduralFeatureContainer(
             module.get(TypeHelper.class)
                 .jtFromJvmTypePermissive(jvmDeclaredType),
@@ -276,8 +275,8 @@ public class BehaviourDeclarationSemantics
                     itMethod,
                     scb -> {
                         scb.line("return new " +
-                            qnProvider.getFullyQualifiedName(inputSafe)
-                                .toString(".") +
+                            input.__(qnProvider::getFullyQualifiedName)
+                                .__(qn -> qn.toString(".")) +
                             "(" +
                             AGENT_ENV +
                             (paramDefaultValues.isEmpty() ? "" : ", ") +
@@ -337,7 +336,7 @@ public class BehaviourDeclarationSemantics
                         .map(Maybe::toNullable)
                         .filter(
                             BehaviourDeclarationSemantics::hasEventClassSystem
-                        ).map(this::synthesizeEventVariableName)
+                        ).map(this::synthesizeEventFieldName)
                         .forEach(eventName -> scb.line(eventName + ".run();"));
 
                     w.ifStmnt(
@@ -355,7 +354,7 @@ public class BehaviourDeclarationSemantics
                         .filter(
                             BehaviourDeclarationSemantics::hasEventClassSystem
                         )
-                        .map(this::synthesizeEventVariableName)
+                        .map(this::synthesizeEventFieldName)
                         .forEach(eventName -> {
                             scb.add(" && !" + eventName +
                                 "." + MESSAGE_RECEIVED_BOOL_VAR_NAME);
@@ -462,6 +461,8 @@ public class BehaviourDeclarationSemantics
                     scb -> {
                         w.callStmnt("super", w.expr(AGENT_ENV))
                             .writeSonnet(scb);
+                        w.callStmnt("__initializeAgentEnv").writeSonnet(scb);
+                        w.callStmnt("__initializeProperties").writeSonnet(scb);
                     }
                 );
             }

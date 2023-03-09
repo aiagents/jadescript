@@ -578,6 +578,10 @@ public class OntologyElementSemantics extends Semantics {
         final QualifiedName fullyQualifiedName =
             compilationHelper.getFullyQualifiedName(inputSafe);
 
+        if (fullyQualifiedName == null) {
+            return Stream.empty();
+        }
+
         return Stream.of(jvmTB.toClass(
             inputSafe,
             fullyQualifiedName,
@@ -681,9 +685,13 @@ public class OntologyElementSemantics extends Semantics {
 
         final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
 
+        if (fqName == null) {
+            return Stream.empty();
+        }
+
         return Stream.of(jvmTB.toClass(
             inputSafe,
-            fqName != null ? fqName.toString() : null,
+            fqName.toString(),
             (JvmGenericType itClass) -> {
                 itClass.setAbstract(true);
                 module.get(ContextManager.class)
@@ -703,7 +711,7 @@ public class OntologyElementSemantics extends Semantics {
             }
         ), jvmTB.toInterface(
             inputSafe,
-            fqName != null ? (fqName + "Factory") : null,
+            fqName.toString() + "Factory",
             itClass -> fillNativeInterface(
                 input,
                 inputSafe,
@@ -1064,16 +1072,15 @@ public class OntologyElementSemantics extends Semantics {
             }
 
 
-
             compiledSuperArguments.addAll(
                 CallSemantics.sortToMatchParamNames(
-                superArgs,
-                ctorArgNames,
-                parameters.stream()
-                    .map(JvmFormalParameter::getName)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList())
-            ));
+                    superArgs,
+                    ctorArgNames,
+                    parameters.stream()
+                        .map(JvmFormalParameter::getName)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList())
+                ));
         });
 
     }
@@ -1563,7 +1570,6 @@ public class OntologyElementSemantics extends Semantics {
 
 
     private void fillToStringMethod(
-
         ExtendingFeature inputSafe,
         TypeHelper typeHelper,
         CompilationHelper compilationHelper,
@@ -1578,8 +1584,11 @@ public class OntologyElementSemantics extends Semantics {
         w.callStmnt(
             "_sb.append",
             w.stringLiteral(
-                compilationHelper.getFullyQualifiedName(inputSafe)
-                    .toString()
+                some(inputSafe)
+                    .__(compilationHelper::getFullyQualifiedName)
+                    .__(QualifiedName::toString)
+                    .orElse("")
+
             )
         ).writeSonnet(scb);
 

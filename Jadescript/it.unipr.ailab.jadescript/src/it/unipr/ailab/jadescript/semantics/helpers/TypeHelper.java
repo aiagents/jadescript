@@ -28,6 +28,7 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.naming.IQualifiedNameProvider;
+import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
@@ -56,7 +57,7 @@ public class TypeHelper implements SemanticsConsts {
     // Top and bottom: equal to ANY and NOTHING; but include an error text
     // message, to explain what caused the erroneous type to result from type
     // inferring:
-    //TODO use new TOP when possible
+    //TODO use new TOP & BOTTOM when possible
     public final Function<String, UtilityType> TOP;
     public final Function<String, UtilityType> BOTTOM;
     // ANY = Supertype of all types. NOTHING = Subtype of all types.
@@ -1639,20 +1640,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
-    public IJadescriptType beingDeclaredBehaviourType(
-        JvmDeclaredType itClass,
-        TypeArgument agentType,
-        Maybe<IJadescriptType> superType,
-        boolean isCyclic
-    ) {
-        return new UserDefinedBehaviourType(
-            module,
-            typeRef(itClass),
-            superType,
-            (isCyclic ? CYCLIC_BEHAVIOUR : ONESHOT_BEHAVIOUR)
-                .apply(List.of(agentType))
-        );
-    }
+
 
 
     public IJadescriptType jtFromClass(
@@ -1838,7 +1826,8 @@ public class TypeHelper implements SemanticsConsts {
         Maybe<OntologyType> mt1,
         Maybe<OntologyType> mt2,
         List<Maybe<OntologyType>> mts
-    ) {//TODO multiple ontologies
+    ) {
+        //TODO multiple ontologies
         Maybe<OntologyType> result = getOntologyGLB(mt1, mt2);
         for (Maybe<OntologyType> mt : mts) {
             if (result.isNothing()) {
@@ -1853,7 +1842,8 @@ public class TypeHelper implements SemanticsConsts {
     public Maybe<OntologyType> getOntologyGLB(
         Maybe<OntologyType> mt1,
         Maybe<OntologyType> mt2
-    ) {//TODO multiple ontologies
+    ) {
+        //TODO multiple ontologies
         if (mt1.isNothing()) {
             return nothing();
         }
@@ -2075,10 +2065,13 @@ public class TypeHelper implements SemanticsConsts {
         EObject eObject,
         JvmTypeReference... typeParameters
     ) {
-        return typeRef(
+        final @Nullable QualifiedName nullableFQName =
             module.get(IQualifiedNameProvider.class)
-                .getFullyQualifiedName(eObject)
-                .toString("."),
+                .getFullyQualifiedName(eObject);
+        return typeRef(
+            nullableFQName == null
+                ? ""
+                : nullableFQName.toString("."),
             typeParameters
         );
     }

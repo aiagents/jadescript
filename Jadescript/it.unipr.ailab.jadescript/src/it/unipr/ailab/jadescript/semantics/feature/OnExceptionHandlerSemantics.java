@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
@@ -35,7 +36,7 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 import java.util.function.Function;
 
 public class OnExceptionHandlerSemantics
-    extends FeatureSemantics<OnExceptionHandler> {
+    extends DeclarationMemberSemantics<OnExceptionHandler> {
 
     public OnExceptionHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -47,7 +48,8 @@ public class OnExceptionHandlerSemantics
         Maybe<OnExceptionHandler> input,
         Maybe<FeatureContainer> featureContainer,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
         if (input.isNothing()) {
             return;

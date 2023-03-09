@@ -16,11 +16,6 @@ public class ProcedureContext extends FunctionOrProcedureContext {
         super(module, outer, procedureName, parameters);
     }
 
-    //TODO 25/02/23:
-    /*  - create way to automatically import all the members of something into a
-            new scope/context, with correct coreferent descriptor
-        - proceed to fix all the other contexts with context-generated references
-     */
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {

@@ -53,7 +53,7 @@ public class AgentDeclarationSemantics
                 .__(JvmParameterizedTypeReference::getType)
                 .require(t -> t instanceof JvmDeclaredType)
                 .__(t -> (JvmDeclaredType) t)
-                .__(t -> typeHelper.jtFromJvmType(t))
+                .__(typeHelper::jtFromJvmType)
 
         );
     }
@@ -157,6 +157,21 @@ public class AgentDeclarationSemantics
 
         members.add(jvmTB.toMethod(
             inputSafe,
+            "setup",
+            typeHelper.VOID.asJvmTypeReference(),
+            itMethod -> {
+                itMethod.setVisibility(JvmVisibility.PROTECTED);
+                compilationHelper.createAndSetBody(itMethod, scb -> {
+                    w.callStmnt("super.setup").writeSonnet(scb);
+                    w.callStmnt("__initializeAgentEnv").writeSonnet(scb);
+                    w.callStmnt("__initializeProperties").writeSonnet(scb);
+                    w.callStmnt("this.__onCreate").writeSonnet(scb);
+                });
+            }
+        ));
+
+        members.add(jvmTB.toMethod(
+            inputSafe,
             "__registerCodecs",
             typeHelper.VOID.asJvmTypeReference(),
             itMethod -> {
@@ -169,19 +184,16 @@ public class AgentDeclarationSemantics
                     )
                 );
 
-                compilationHelper.createAndSetBody(
-                    itMethod,
-                    scb -> {
-                        w.callStmnt(
-                            "super.__registerCodecs",
-                            w.expr("cm")
-                        ).writeSonnet(scb);
-                        w.callStmnt(
-                            "cm.registerLanguage",
-                            w.expr(CODEC_VAR_NAME)
-                        ).writeSonnet(scb);
-                    }
-                );
+                compilationHelper.createAndSetBody(itMethod, scb -> {
+                    w.callStmnt(
+                        "super.__registerCodecs",
+                        w.expr("cm")
+                    ).writeSonnet(scb);
+                    w.callStmnt(
+                        "cm.registerLanguage",
+                        w.expr(CODEC_VAR_NAME)
+                    ).writeSonnet(scb);
+                });
             }
         ));
 

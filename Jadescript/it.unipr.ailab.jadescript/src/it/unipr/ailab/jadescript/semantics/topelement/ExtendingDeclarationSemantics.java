@@ -21,10 +21,10 @@ import java.util.stream.Collectors;
  * Created on 27/04/18.
  */
 @Singleton
-public abstract class ExtendingEntitySemantics<T extends ExtendingElement>
-    extends FeatureContainerSemantics<T> {
+public abstract class ExtendingDeclarationSemantics<T extends ExtendingElement>
+    extends MemberContainerDeclarationSemantics<T> {
 
-    public ExtendingEntitySemantics(SemanticsModule semanticsModule) {
+    public ExtendingDeclarationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 

@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.feature;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -39,7 +40,7 @@ import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
  */
 @Singleton
 public class MemberOperationSemantics
-    extends FeatureSemantics<FunctionOrProcedure>
+    extends DeclarationMemberSemantics<FunctionOrProcedure>
     implements OperationDeclarationSemantics {
 
 
@@ -52,14 +53,17 @@ public class MemberOperationSemantics
      * Method for declaring element's functions.
      * It adds a method to the generated class.
      *
-     * @param members The {@link EList list} of class members.
+     * @param members                     The {@link EList list} of class
+     *                                    members.
+     * @param fieldInitializationAcceptor
      */
     @Override
     public void generateJvmMembers(
         Maybe<FunctionOrProcedure> input,
         Maybe<FeatureContainer> container,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
         if (input == null) {
             return;

@@ -46,7 +46,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
  * Created on 2019-05-13.
  */
 @Singleton
-public class GlobalOperationSemantics
+public class GlobalOperationDeclarationSemantics
     extends UsesOntologyDeclarationSemantics<GlobalFunctionOrProcedure>
     implements OperationDeclarationSemantics {
 
@@ -56,7 +56,7 @@ public class GlobalOperationSemantics
         originalMethodMap = new HashMap<>();
 
 
-    public GlobalOperationSemantics(SemanticsModule semanticsModule) {
+    public GlobalOperationDeclarationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 

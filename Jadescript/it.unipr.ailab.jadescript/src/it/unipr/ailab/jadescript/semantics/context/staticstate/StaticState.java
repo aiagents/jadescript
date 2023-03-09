@@ -39,9 +39,6 @@ public final class StaticState
     FlowSensitiveInferrer,
     SemanticsConsts {
 
-    //TODO change: introduce 'trivially co-referent' semantics
-    // - several expressions could be trivially referring to the same value
-    //   - e.g., 'X' and 'X of this'
 
     private final SemanticsModule module;
     private final Searcheable outer;
@@ -132,6 +129,7 @@ public final class StaticState
         }
 
         TypeHelper typeHelper = module.get(TypeHelper.class);
+
         //All names must be the same
         String name = null;
         IJadescriptType lub = null;
@@ -685,7 +683,8 @@ public final class StaticState
         if (isValid()) {
             scb.open("Variables = [");
             for (String key : this.getLocalScopeNamedSymbols().getKeys()) {
-                this.getLocalScopeNamedSymbols().getUnsafe(key).debugDumpName(scb);
+                this.getLocalScopeNamedSymbols().getUnsafe(key)
+                    .debugDumpName(scb);
             }
             scb.close("]");
             scb.open("UpperBounds = [");

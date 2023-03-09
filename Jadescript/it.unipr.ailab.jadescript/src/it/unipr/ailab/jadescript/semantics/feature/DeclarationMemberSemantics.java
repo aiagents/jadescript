@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.feature;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.Feature;
 import it.unipr.ailab.jadescript.jadescript.FeatureContainer;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -22,10 +23,10 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
  * Created on 26/04/18.
  */
 @Singleton
-public abstract class FeatureSemantics<T extends Feature> extends Semantics {
+public abstract class DeclarationMemberSemantics<T extends Feature> extends Semantics {
 
 
-    public FeatureSemantics(SemanticsModule semanticsModule) {
+    public DeclarationMemberSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
@@ -33,7 +34,8 @@ public abstract class FeatureSemantics<T extends Feature> extends Semantics {
             Maybe<T> input,
             Maybe<FeatureContainer> featureContainer,
             EList<JvmMember> members,
-            JvmDeclaredType beingDeclared
+            JvmDeclaredType beingDeclared,
+            BlockElementAcceptor fieldInitializationAcceptor
     );
 
 

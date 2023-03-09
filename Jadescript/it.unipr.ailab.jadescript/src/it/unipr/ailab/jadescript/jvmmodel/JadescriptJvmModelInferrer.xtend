@@ -12,10 +12,11 @@ import it.unipr.ailab.jadescript.jadescript.Model
 import it.unipr.ailab.jadescript.jadescript.Ontology
 import it.unipr.ailab.jadescript.jadescript.TopElement
 import it.unipr.ailab.jadescript.semantics.SemanticsModule
+import it.unipr.ailab.jadescript.semantics.context.ContextManager
 import it.unipr.ailab.jadescript.semantics.topelement.AgentDeclarationSemantics
-import it.unipr.ailab.jadescript.semantics.topelement.GlobalOperationSemantics
-import it.unipr.ailab.jadescript.semantics.topelement.OntologySemantics
-import it.unipr.ailab.jadescript.semantics.topelement.TopElementBehaviourSemantics
+import it.unipr.ailab.jadescript.semantics.topelement.GlobalOperationDeclarationSemantics
+import it.unipr.ailab.jadescript.semantics.topelement.OntologyDeclarationSemantics
+import it.unipr.ailab.jadescript.semantics.topelement.TopElementBehaviourDeclarationSemantics
 import it.unipr.ailab.maybe.Maybe
 import java.util.ArrayList
 import org.eclipse.emf.common.util.EList
@@ -24,24 +25,14 @@ import org.eclipse.xtext.common.types.JvmDeclaredType
 import org.eclipse.xtext.naming.IQualifiedNameProvider
 import org.eclipse.xtext.xbase.jvmmodel.AbstractModelInferrer
 import org.eclipse.xtext.xbase.jvmmodel.IJvmDeclaredTypeAcceptor
-import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder
 import org.eclipse.xtext.xbase.jvmmodel.JvmAnnotationReferenceBuilder
-import it.unipr.ailab.jadescript.semantics.context.ContextManager
-import org.eclipse.xtext.EcoreUtil2
+import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder
 
 /**
- * <p>Infers a JVM model from the source model.</p> 
- * 
- * <p>The JVM model should contain all elements that would appear in the Java code 
- * which is generated from the source model. Other models link against the JVM model rather than the source model.</p>
+ * @author Giuseppe Petrosino - giuseppe.petrosino@unimore.it
  * 
  * @author Eleonora Iotti - eleonora.iotti@studenti.unipr.it
- * 
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
  * @author Andrea Segalini - andrea.segalini@studenti.unipr.it
- * 
- * 
- * 
  */
 class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 
@@ -69,8 +60,14 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 	}
 
 	def SemanticsModule createSemanticsModule(Model model, String phase) {
-		var module = new SemanticsModule(phase, _jvmTypesBuilder, _typeReferenceBuilder, _jvmAnnotationReferenceBuilder,
-			_iQualifiedNameProvider, _jadescriptCompilerUtils)
+		var module = new SemanticsModule(
+			phase,
+			_jvmTypesBuilder,
+			_typeReferenceBuilder,
+			_jvmAnnotationReferenceBuilder,
+			_iQualifiedNameProvider,
+			_jadescriptCompilerUtils
+		)
 		var String moduleName
 		if (model.isWithModule) {
 			moduleName = model.name
@@ -142,7 +139,7 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 			for (k : functionsMap.keySet) {
 				var module = createSemanticsModule(model, phase)
 
-				var gms = module.get(GlobalOperationSemantics)
+				var gms = module.get(GlobalOperationDeclarationSemantics)
 				for (v : functionsMap.get(k)) {
 					gms.addMethod(Maybe.some(v))
 
@@ -152,13 +149,14 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 
 			for (ontology : ontologies) {
 				var module = createSemanticsModule(model, phase)
-				module.get(OntologySemantics).generateDeclaredTypes(Maybe.some(ontology), acceptor, isPreIndexingPhase)
+				module.get(OntologyDeclarationSemantics).generateDeclaredTypes(Maybe.some(ontology), acceptor, isPreIndexingPhase)
 
 			}
 
 			for (agent : agents) {
 				var module = createSemanticsModule(model, phase)
-				module.get(AgentDeclarationSemantics).generateDeclaredTypes(Maybe.some(agent), acceptor, isPreIndexingPhase)
+				module.get(AgentDeclarationSemantics).generateDeclaredTypes(Maybe.some(agent), acceptor,
+					isPreIndexingPhase)
 
 			}
 
@@ -168,7 +166,7 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 					Behaviour:
 						switch (element as Behaviour) {
 							Behaviour:
-								module.get(TopElementBehaviourSemantics).generateDeclaredTypes(
+								module.get(TopElementBehaviourDeclarationSemantics).generateDeclaredTypes(
 									Maybe.some(element as Behaviour),
 									acceptor,
 									isPreIndexingPhase

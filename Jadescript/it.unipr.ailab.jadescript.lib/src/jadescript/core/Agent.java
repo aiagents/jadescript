@@ -186,29 +186,23 @@ public class Agent extends jade.core.Agent {
     protected void setup() {
         final ContentManager cm = getContentManager();
 
-        this.__initializeAgentEnv();
+        this._agentEnv = AgentEnv.agentEnv(this);
 
         if (cm != null) {
             __registerCodecs(cm);
             __registerOntologies(cm);
         }
 
-        __O2APerceptManager o2APerceptManager = new __O2APerceptManager(_agentEnv);
+        __O2APerceptManager o2APerceptManager =
+            new __O2APerceptManager(_agentEnv);
         this.setEnabledO2ACommunication(true, __o2aQueueSize);
         o2APerceptManager.activate(this);
 
         this.setO2AManager(o2APerceptManager);
-        __StaleMessageCleaner staleMessageCleaner = new __StaleMessageCleaner(_agentEnv);
+
+        __StaleMessageCleaner staleMessageCleaner =
+            new __StaleMessageCleaner(_agentEnv);
         staleMessageCleaner.activate(this);
-
-
-        this.__initializeProperties();
-
-        this.__onCreate();
-    }
-
-    protected void __initializeAgentEnv(){
-        this._agentEnv = AgentEnv.agentEnv(this);
     }
 
 
@@ -262,17 +256,6 @@ public class Agent extends jade.core.Agent {
         );
 
         takeDown();
-    }
-
-
-    /**
-     * To be overridden by compiler-generated methods in Jadescript agent
-     * subclasses. Used to execute the initialization expressions of the agent
-     * properties.
-     */
-    @SuppressWarnings("EmptyMethod")
-    protected void __initializeProperties() {
-        // Overriden by compiler-generated methods
     }
 
 

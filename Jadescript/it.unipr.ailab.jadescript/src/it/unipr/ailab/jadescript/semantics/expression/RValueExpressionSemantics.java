@@ -9,10 +9,12 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
+import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Optional;
@@ -244,6 +246,14 @@ public class RValueExpressionSemantics
         StaticState state
     ) {
         return false;
+    }
+
+
+    public boolean isThis(Maybe<RValueExpression> expression) {
+        return CompilationHelper.sourceToLocationText(expression)
+            .__(String::trim)
+            .__(s -> s.equals(THIS))
+            .orElse(false);
     }
 
 }

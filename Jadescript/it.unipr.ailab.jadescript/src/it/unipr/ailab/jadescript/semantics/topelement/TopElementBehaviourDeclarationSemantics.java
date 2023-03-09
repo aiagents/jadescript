@@ -20,9 +20,9 @@ import java.util.Optional;
  * Created on 27/04/18.
  */
 @Singleton
-public class TopElementBehaviourSemantics extends ForAgentDeclarationSemantics<Behaviour> {
+public class TopElementBehaviourDeclarationSemantics extends ForAgentDeclarationSemantics<Behaviour> {
 
-    public TopElementBehaviourSemantics(SemanticsModule semanticsModule) {
+    public TopElementBehaviourDeclarationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 

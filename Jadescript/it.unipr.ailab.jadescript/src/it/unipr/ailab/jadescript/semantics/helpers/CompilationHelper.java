@@ -387,10 +387,11 @@ public class CompilationHelper implements IQualifiedNameProvider {
 
 
     @Override
+    @Nullable
     public QualifiedName getFullyQualifiedName(EObject eObject) {
-        if (eObject == null)
-            //noinspection ReturnOfNull
+        if (eObject == null) {
             return null;
+        }
         return module.get(IQualifiedNameProvider.class)
             .getFullyQualifiedName(eObject);
     }
@@ -398,8 +399,8 @@ public class CompilationHelper implements IQualifiedNameProvider {
 
     @SuppressWarnings("unused")
     public QualifiedName apply(EObject arg0) {
-        return module.get(IQualifiedNameProvider.class).getFullyQualifiedName(
-            arg0);
+        return module.get(IQualifiedNameProvider.class)
+            .getFullyQualifiedName(arg0);
     }
 
 

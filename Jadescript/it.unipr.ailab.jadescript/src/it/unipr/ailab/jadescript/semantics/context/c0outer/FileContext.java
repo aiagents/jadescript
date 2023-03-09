@@ -61,12 +61,11 @@ public class FileContext
         @Nullable String name
     ) {
         return getImportedJvmTypeDeclarations()
+            .filter(i -> name == null || name.equals(i.getSimpleName()))
             .flatMap(imported -> getCallableStreamFromDeclaredType(
                 module.get(TypeHelper.class).typeRef(imported),
                 imported
-            ))
-            //TODO put filter before
-            .filter(c -> name == null || c.name().equals(name));
+            ));
     }
 
 

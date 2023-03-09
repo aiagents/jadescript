@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
@@ -25,7 +26,7 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
 public class OnDestroyHandlerSemantics
-    extends FeatureSemantics<OnDestroyHandler> {
+    extends DeclarationMemberSemantics<OnDestroyHandler> {
 
     public OnDestroyHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -37,11 +38,16 @@ public class OnDestroyHandlerSemantics
         Maybe<OnDestroyHandler> input,
         Maybe<FeatureContainer> container,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
+
         Maybe<QualifiedName> containerName = input
             .__(EcoreUtil2::getContainerOfType, TopElement.class)
-            .__(module.get(CompilationHelper.class)::getFullyQualifiedName);
+            .__(compilationHelper::getFullyQualifiedName);
+
         if (container.isInstanceOf(Agent.class)) {
             generateOnDestroyHandlerForAgent(input, members, containerName);
         } else { //container is a behaviour
@@ -85,8 +91,9 @@ public class OnDestroyHandlerSemantics
     ) {
         jvmTypesBuilder.setDocumentation(
             itMethod,
-            containerName.__(QualifiedName::toString).extract(
-                nullAsEmptyString) + " on destroy"
+            containerName
+                .__(QualifiedName::toString)
+                .extract(nullAsEmptyString) + " on destroy"
         );
         itMethod.setVisibility(JvmVisibility.PROTECTED);
 

@@ -12,6 +12,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
+import org.eclipse.xtext.naming.QualifiedName;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -89,13 +90,16 @@ public class OntologyElementStructuralPattern implements GlobalPattern {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
-        return some(new OntologyElementStructuralPattern(
-            ontologyElement.getName() == null ? "" : ontologyElement.getName(),
+        final QualifiedName nullableQN =
+            compilationHelper.getFullyQualifiedName(
+            ontologyElement);
+        final String ontoElementName = ontologyElement.getName() == null
+            ? ""
+            : ontologyElement.getName();
+        return some(nullableQN).__(qnSafe -> new OntologyElementStructuralPattern(
+            ontoElementName,
             typeHelper.jtFromJvmTypeRef(
-                typeHelper.typeRef(
-                    compilationHelper.getFullyQualifiedName(ontologyElement)
-                        .toString(".")
-                )
+                typeHelper.typeRef(qnSafe.toString("."))
             ),
             termNames,
             termTypesByName,

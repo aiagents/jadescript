@@ -84,11 +84,11 @@ public interface SemanticsConsts {
     String JAVA_TYPE_Byte = "java.lang.Byte";
     String JAVA_TYPE_Object = "java.lang.Object";
 
+    String AGENT_ENV = "_agentEnv";
 
     boolean VALID = true;
     boolean INVALID = false;
-    //TODO move out
-    String AGENT_ENV = "_agentEnv";
+
 
     default String synthesizeReceiverListName(final SendMessageStatement send) {
         return numberedName(RECEIVER_LIST_VAR_NAME, send);
@@ -114,7 +114,7 @@ public interface SemanticsConsts {
         return numberedName(MESSAGE_TEMPLATE_NAME, hf);
     }
 
-    default String synthesizeEventVariableName(Feature behaviourEvent) {
+    default String synthesizeEventFieldName(Feature behaviourEvent) {
         return numberedName(EVENT_VAR_NAME, behaviourEvent);
     }
 

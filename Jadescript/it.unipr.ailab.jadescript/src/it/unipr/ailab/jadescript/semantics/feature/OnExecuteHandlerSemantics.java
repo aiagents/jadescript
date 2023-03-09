@@ -4,6 +4,7 @@ import it.unipr.ailab.jadescript.jadescript.CodeBlock;
 import it.unipr.ailab.jadescript.jadescript.FeatureContainer;
 import it.unipr.ailab.jadescript.jadescript.FeatureWithBody;
 import it.unipr.ailab.jadescript.jadescript.OnExecuteHandler;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -21,7 +22,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
 public class OnExecuteHandlerSemantics
-    extends FeatureSemantics<OnExecuteHandler> {
+    extends DeclarationMemberSemantics<OnExecuteHandler> {
 
     public OnExecuteHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -33,7 +34,8 @@ public class OnExecuteHandlerSemantics
         Maybe<OnExecuteHandler> input,
         Maybe<FeatureContainer> container,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
         if (input == null) return;
         final SavedContext savedContext =

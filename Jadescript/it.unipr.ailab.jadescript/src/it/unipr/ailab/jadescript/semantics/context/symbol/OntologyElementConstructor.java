@@ -19,6 +19,7 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
 import org.eclipse.xtext.common.types.JvmTypeReference;
+import org.eclipse.xtext.naming.QualifiedName;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -165,11 +166,16 @@ public class OntologyElementConstructor implements GlobalCallable {
                 final TypeHelper typeHelper = module.get(TypeHelper.class);
                 final CompilationHelper compilationHelper =
                     module.get(CompilationHelper.class);
+                final QualifiedName fqname = compilationHelper.
+                    getFullyQualifiedName(ontologyElement);
+
+
+                String fqnameString = fqname == null
+                    ? ""
+                    : fqname.toString(".");
+
                 return typeHelper.jtFromJvmTypeRef(
-                    typeHelper.typeRef(
-                        compilationHelper.getFullyQualifiedName(ontologyElement)
-                            .toString(".")
-                    )
+                    typeHelper.typeRef(fqnameString)
                 );
             }),
             paramTypesByName,

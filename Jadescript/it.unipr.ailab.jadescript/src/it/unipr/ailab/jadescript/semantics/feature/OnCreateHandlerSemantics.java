@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
@@ -34,7 +35,7 @@ import java.util.stream.Collectors;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 public class OnCreateHandlerSemantics
-    extends FeatureSemantics<OnCreateHandler> {
+    extends DeclarationMemberSemantics<OnCreateHandler> {
 
     public OnCreateHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -46,7 +47,8 @@ public class OnCreateHandlerSemantics
         Maybe<OnCreateHandler> input,
         Maybe<FeatureContainer> container,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
         if (container.isInstanceOf(Agent.class)) {
             generateOnCreateHandlerForAgent(input, members);
@@ -357,8 +359,9 @@ public class OnCreateHandlerSemantics
                     );
 
 
-                    w.callStmnt("super", w.expr(AGENT_ENV))
-                        .writeSonnet(scb);
+                    w.callStmnt("super", w.expr(AGENT_ENV)).writeSonnet(scb);
+                    w.callStmnt("__initializeAgentEnv").writeSonnet(scb);
+                    w.callStmnt("__initializeProperties").writeSonnet(scb);
 
                     StaticState inBody =
                         StaticState.beginningOfOperation(module);

@@ -37,7 +37,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
  * Created on 27/04/18.
  */
 @Singleton
-public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
+public class OntologyDeclarationSemantics extends MemberContainerDeclarationSemantics<Ontology> {
 
     private final SemanticsClassState<Ontology, HashMap<String,
         JvmDeclaredType>> declaredSchemaTypes
@@ -47,7 +47,7 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
         = new SemanticsClassState<>(HashMap::new);
 
 
-    public OntologySemantics(SemanticsModule semanticsModule) {
+    public OntologyDeclarationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
@@ -101,10 +101,12 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
             );
         }
 
-        final String ontoFqName = input.__(inputSafe ->
-                module.get(CompilationHelper.class)
-                    .getFullyQualifiedName(inputSafe)
-                    .toString("."))
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
+
+        final String ontoFqName = input
+            .__(compilationHelper::getFullyQualifiedName)
+            .__(qn -> qn.toString("."))
             .or(input.__(NamedElement::getName))
             .orElse("");
 
@@ -169,10 +171,11 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
                 );
             }
         ));
+        final String ontologyNameString = input
+            .__(compilationHelper::getFullyQualifiedName)
+            .__(qn -> qn.toString("_"))
+            .orElse("");
 
-        final String ontologyNameString = compilationHelper
-            .getFullyQualifiedName(inputsafe)
-            .toString("_");
 
         input.__(NamedElement::getName).safeDo(nameSafe -> {
             members.add(jvmTB.toField(
@@ -888,9 +891,12 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
     private String retrieveNativeTypeFactory(
         ExtendingFeature ontologyElementSafe
     ) {
-        final String ontoElementFqName = module.get(CompilationHelper.class)
-            .getFullyQualifiedName(ontologyElementSafe)
-            .toString(".");
+        final QualifiedName nullableFQName =
+            module.get(CompilationHelper.class)
+            .getFullyQualifiedName(ontologyElementSafe);
+        final String ontoElementFqName = nullableFQName == null
+            ? ""
+            : nullableFQName.toString(".");
 
         return "((" + ontoElementFqName + "Factory) " +
             "(jadescript.java.Jadescript." +
@@ -907,10 +913,10 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
 
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
-        final String ontoFqName = input.__(inputSafe ->
-                compilationHelper
-                    .getFullyQualifiedName(inputSafe)
-                    .toString("."))
+
+        final String ontoFqName = input
+            .__(compilationHelper::getFullyQualifiedName)
+            .__(qn -> qn.toString("."))
             .or(input.__(NamedElement::getName))
             .orElse("");
 
@@ -1021,7 +1027,8 @@ public class OntologySemantics extends FeatureContainerSemantics<Ontology> {
                             .__(List::get, 0)
                             .__(t -> (JvmTypeReference) t)
                             .orElse(typeHelper.typeRef(
-                                jadescript.content.onto.Ontology.class));
+                                jadescript.content.onto.Ontology.class
+                            ));
 
                         itInterf.getSuperTypes().add(
                             typeHelper.typeRef(

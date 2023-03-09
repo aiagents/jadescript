@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -34,7 +35,7 @@ import java.util.function.Function;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public class OnBehaviourFailureHandlerSemantics
-    extends FeatureSemantics<OnBehaviourFailureHandler> {
+    extends DeclarationMemberSemantics<OnBehaviourFailureHandler> {
 
     public OnBehaviourFailureHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -46,7 +47,8 @@ public class OnBehaviourFailureHandlerSemantics
         Maybe<OnBehaviourFailureHandler> input,
         Maybe<FeatureContainer> featureContainer,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
         if (input.isNothing()) {
             return;
@@ -77,10 +79,9 @@ public class OnBehaviourFailureHandlerSemantics
                 it.setVisibility(JvmVisibility.PRIVATE);
                 module.get(CompilationHelper.class).createAndSetInitializer(
                     it,
-                    scb -> {
-                        scb.add("new " + eventClass.getQualifiedName('.') +
-                            "()");
-                    }
+                    scb -> scb.add("new ")
+                        .add(eventClass.getQualifiedName('.'))
+                        .add("()")
                 );
             }
         ));

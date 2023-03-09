@@ -42,10 +42,7 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
 
     private Waiting __ensureWait = Waiting.doNotWait();
 
-    private boolean __initialized = false;
 
-    private AgentEnv<A, SideEffectsFlag.AnySideEffectFlag>
-        _agentEnv = null;
 
 
     public Behaviour(
@@ -53,8 +50,7 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
     ) {
         super(_agentEnv.getAgent());
         this.macroState = MacroState.NOT_ACTIVE;
-        __initializeAgentEnv();
-        __initializeProperties();
+
     }
 
 
@@ -64,20 +60,7 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
     }
 
 
-    protected void __initializeAgentEnv() {
-        this._agentEnv = AgentEnv.agentEnv(__theAgent());
-    }
 
-
-    /**
-     * To be overridden by compiler-generated methods in Jadescript behaviour
-     * subclasses. Used to execute the initialization expressions of the
-     * behaviour properties.
-     */
-    @SuppressWarnings("EmptyMethod")
-    protected void __initializeProperties() {
-        // Overriden by compiler-generated methods
-    }
 
 
     protected abstract ExecutionType __executionType();

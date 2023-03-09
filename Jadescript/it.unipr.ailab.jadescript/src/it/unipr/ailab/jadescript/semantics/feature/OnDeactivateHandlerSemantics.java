@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -25,7 +26,7 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
 public class OnDeactivateHandlerSemantics
-    extends FeatureSemantics<OnDeactivateHandler> {
+    extends DeclarationMemberSemantics<OnDeactivateHandler> {
 
     public OnDeactivateHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -37,15 +38,21 @@ public class OnDeactivateHandlerSemantics
         Maybe<OnDeactivateHandler> input,
         Maybe<FeatureContainer> container,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
+
         Maybe<QualifiedName> containerName = input
             .__(EcoreUtil2::getContainerOfType, TopElement.class)
-            .__(module.get(CompilationHelper.class)::getFullyQualifiedName);
+            .__(compilationHelper::getFullyQualifiedName);
+
         final SavedContext savedContext =
             module.get(ContextManager.class).save();
         final JvmTypesBuilder jvmTypesBuilder =
             module.get(JvmTypesBuilder.class);
+
         input.safeDo(handlerSafe -> members.add(jvmTypesBuilder.toMethod(
             handlerSafe,
             "doOnDeactivate",
@@ -72,8 +79,9 @@ public class OnDeactivateHandlerSemantics
     ) {
         jvmTypesBuilder.setDocumentation(
             itMethod,
-            containerName.__(QualifiedName::toString).extract(
-                nullAsEmptyString) + " doOnDeactivate"
+            containerName
+                .__(QualifiedName::toString)
+                .extract(nullAsEmptyString) + " doOnDeactivate"
         );
         itMethod.setVisibility(JvmVisibility.PUBLIC);
 
