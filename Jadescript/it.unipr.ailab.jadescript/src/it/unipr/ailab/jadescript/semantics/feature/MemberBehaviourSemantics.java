@@ -81,13 +81,13 @@ public class MemberBehaviourSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<MemberBehaviour> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
     ) {
         final Maybe<JvmTypeReference> agentTypeRef = getAgentType(container);
-        module.get(BehaviourDeclarationSemantics.class).validate(
+        module.get(BehaviourDeclarationSemantics.class).validateOnEdit(
             BehaviourDeclaration.memberBehaviour(
                 input,
                 input.__(MemberBehaviour::getType),
@@ -101,5 +101,26 @@ public class MemberBehaviourSemantics
         );
     }
 
+
+    @Override
+    public void validateOnSave(
+        Maybe<MemberBehaviour> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
+        final Maybe<JvmTypeReference> agentTypeRef = getAgentType(container);
+        module.get(BehaviourDeclarationSemantics.class).validateOnSave(
+            BehaviourDeclaration.memberBehaviour(
+                input,
+                input.__(MemberBehaviour::getType),
+                input.__(MemberBehaviour::getName),
+                agentTypeRef,
+                input.__(MemberBehaviour::getOntologies),
+                input.__(MemberBehaviour::getSuperTypes),
+                input.__(MemberBehaviour::getFeatures)
+            ),
+            acceptor
+        );
+    }
 
 }

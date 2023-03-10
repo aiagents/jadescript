@@ -30,7 +30,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
  */
 @Singleton
 public class AgentDeclarationSemantics
-    extends UsesOntologyDeclarationSemantics<Agent>
+    extends UsesOntologyTopLevelDeclarationSemantics<Agent>
     implements AgentAssociatedDeclarationSemantics<Agent> {
 
     public AgentDeclarationSemantics(SemanticsModule semanticsModule) {
@@ -44,17 +44,16 @@ public class AgentDeclarationSemantics
         JvmDeclaredType beingDeclared
     ) {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
+
         return typeHelper.beingDeclaredAgentType(
             beingDeclared,
-            Maybe.toListOfMaybes(input.__(Agent::getSuperTypes))
-                .stream()
+            Maybe.toListOfMaybes(input.__(Agent::getSuperTypes)).stream()
                 .findFirst()
                 .orElse(nothing())
                 .__(JvmParameterizedTypeReference::getType)
                 .require(t -> t instanceof JvmDeclaredType)
                 .__(t -> (JvmDeclaredType) t)
                 .__(typeHelper::jtFromJvmType)
-
         );
     }
 
@@ -94,11 +93,12 @@ public class AgentDeclarationSemantics
 
 
     @Override
-    public void validate(
+    public void validateOnEdit(
         Maybe<Agent> input,
         ValidationMessageAcceptor acceptor
     ) {
-        super.validate(input, acceptor);
+        // Keep super call at the end
+        super.validateOnEdit(input, acceptor);
     }
 
 
@@ -126,14 +126,13 @@ public class AgentDeclarationSemantics
             return;
         }
 
+
         final Agent inputSafe = input.toNullable();
-
         final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
-
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
+
 
         populateAgentAssociatedMembers(
             input,
@@ -141,7 +140,6 @@ public class AgentDeclarationSemantics
             module,
             itClass
         );
-
 
         members.add(jvmTB.toMethod(
             inputSafe,

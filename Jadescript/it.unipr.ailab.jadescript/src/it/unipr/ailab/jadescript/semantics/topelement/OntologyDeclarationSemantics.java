@@ -37,7 +37,8 @@ import static it.unipr.ailab.maybe.Maybe.*;
  * Created on 27/04/18.
  */
 @Singleton
-public class OntologyDeclarationSemantics extends MemberContainerDeclarationSemantics<Ontology> {
+public class OntologyDeclarationSemantics extends
+    MemberContainerTopLevelDeclarationSemantics<Ontology> {
 
     private final SemanticsClassState<Ontology, HashMap<String,
         JvmDeclaredType>> declaredSchemaTypes
@@ -72,34 +73,14 @@ public class OntologyDeclarationSemantics extends MemberContainerDeclarationSema
 
     @SuppressWarnings("unchecked")
     @Override
-    public void validate(
+    public void validateOnEdit(
         Maybe<Ontology> input,
         ValidationMessageAcceptor acceptor
     ) {
-        super.validate(input, acceptor);
+        super.validateOnEdit(input, acceptor);
         if (input == null) return;
 
-        Maybe<EList<JvmParameterizedTypeReference>> superTypes =
-            input.__(FeatureContainer::getSuperTypes);//TODO multiple ontologies
 
-        if (!superTypes
-            .__(List::isEmpty)
-            .extract(nullAsTrue)) {
-            final ValidationHelper validationHelper =
-                module.get(ValidationHelper.class);
-            validationHelper.assertExpectedType(
-                jade.content.onto.Ontology.class,
-                superTypes//TODO multiple ontologies
-                    .__(EList::get, 0)
-                    .__(st -> module.get(TypeHelper.class).jtFromJvmTypeRef(st))
-                    .orElse(module.get(TypeHelper.class).ANY),
-                "NotAValidOntologyTypeReference",
-                input,
-                JadescriptPackage.eINSTANCE.getFeatureContainer_SuperTypes(),
-                0,
-                acceptor
-            );
-        }
 
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
@@ -129,6 +110,33 @@ public class OntologyDeclarationSemantics extends MemberContainerDeclarationSema
         module.get(ContextManager.class).exit();
     }
 
+
+    @Override
+    public void validateOnSave(
+        Maybe<Ontology> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        super.validateOnSave(input, acceptor);
+        Maybe<EList<JvmParameterizedTypeReference>> superTypes =
+            input.__(FeatureContainer::getSuperTypes);//TODO multiple ontologies
+
+        if (!superTypes.__(List::isEmpty).extract(nullAsTrue)) {
+            final ValidationHelper validationHelper =
+                module.get(ValidationHelper.class);
+            validationHelper.assertExpectedType(
+                jade.content.onto.Ontology.class,
+                superTypes//TODO multiple ontologies
+                    .__(EList::get, 0)
+                    .__(st -> module.get(TypeHelper.class).jtFromJvmTypeRef(st))
+                    .orElse(module.get(TypeHelper.class).ANY),
+                "NotAValidOntologyTypeReference",
+                input,
+                JadescriptPackage.eINSTANCE.getFeatureContainer_SuperTypes(),
+                0,
+                acceptor
+            );
+        }
+    }
 
 
     @Override

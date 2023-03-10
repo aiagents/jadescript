@@ -541,7 +541,7 @@ public class OnPerceptHandlerSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnPerceptHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -703,4 +703,12 @@ public class OnPerceptHandlerSemantics
     }
 
 
+    @Override
+    public void validateOnSave(
+        Maybe<OnPerceptHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ){
+
+    }
 }

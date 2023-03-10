@@ -384,7 +384,7 @@ public class OnCreateHandlerSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnCreateHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -445,6 +445,16 @@ public class OnCreateHandlerSemantics
         module.get(BlockSemantics.class).validate(body, inBody, acceptor);
 
         module.get(ContextManager.class).exit();
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<OnCreateHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
+
     }
 
 }

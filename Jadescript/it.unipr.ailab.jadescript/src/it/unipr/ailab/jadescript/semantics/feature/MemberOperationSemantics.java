@@ -48,15 +48,6 @@ public class MemberOperationSemantics
         super(semanticsModule);
     }
 
-
-    /**
-     * Method for declaring element's functions.
-     * It adds a method to the generated class.
-     *
-     * @param members                     The {@link EList list} of class
-     *                                    members.
-     * @param fieldInitializationAcceptor
-     */
     @Override
     public void generateJvmMembers(
         Maybe<FunctionOrProcedure> input,
@@ -222,12 +213,12 @@ public class MemberOperationSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<FunctionOrProcedure> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
     ) {
-        validateGenericFunctionOrProcedure(
+        validateGenericFunctionOrProcedureOnEdit(
             input,
             input.__(FunctionOrProcedure::getName),
             input.__(ParameterizedFeature::getParameters),
@@ -239,5 +230,26 @@ public class MemberOperationSemantics
             acceptor
         );
     }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<FunctionOrProcedure> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
+        validateGenericFunctionOrProcedureOnSave(
+            input,
+            input.__(FunctionOrProcedure::getName),
+            input.__(ParameterizedFeature::getParameters),
+            input.__(FunctionOrProcedure::getType),
+            input.__(FeatureWithBody::getBody),
+            module,
+            input.__(FunctionOrProcedure::isFunction).extract(nullAsFalse),
+            getLocationOfThis(),
+            acceptor
+        );
+    }
+
 
 }

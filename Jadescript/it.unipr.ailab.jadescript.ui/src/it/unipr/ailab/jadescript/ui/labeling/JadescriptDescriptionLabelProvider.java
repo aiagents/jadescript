@@ -11,6 +11,7 @@ import org.eclipse.xtext.xbase.ui.labeling.XbaseDescriptionLabelProvider;
  * 
  * See https://www.eclipse.org/Xtext/documentation/310_eclipse_support.html#label-provider
  */
+@SuppressWarnings("restriction")
 public class JadescriptDescriptionLabelProvider extends XbaseDescriptionLabelProvider {
 
 	@Override

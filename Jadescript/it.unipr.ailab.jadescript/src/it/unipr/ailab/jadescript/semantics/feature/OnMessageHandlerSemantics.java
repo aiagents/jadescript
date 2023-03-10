@@ -599,7 +599,7 @@ public class OnMessageHandlerSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnMessageHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -842,6 +842,16 @@ public class OnMessageHandlerSemantics
         );
 
         module.get(ContextManager.class).exit();
+
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<OnMessageHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
 
     }
 

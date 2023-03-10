@@ -406,7 +406,7 @@ public class OnBehaviourFailureHandlerSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnBehaviourFailureHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -579,6 +579,16 @@ public class OnBehaviourFailureHandlerSemantics
         );
 
         module.get(ContextManager.class).exit();
+
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<OnBehaviourFailureHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
 
     }
 

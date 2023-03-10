@@ -403,7 +403,7 @@ public class OnExceptionHandlerSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnExceptionHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -561,6 +561,16 @@ public class OnExceptionHandlerSemantics
         );
 
         module.get(ContextManager.class).exit();
+
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<OnExceptionHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
 
     }
 

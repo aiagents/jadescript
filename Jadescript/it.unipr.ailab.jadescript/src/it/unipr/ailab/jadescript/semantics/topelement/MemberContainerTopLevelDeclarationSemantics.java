@@ -42,12 +42,12 @@ import static it.unipr.ailab.maybe.Maybe.*;
  * Created on 27/04/18.
  */
 @Singleton
-public abstract class MemberContainerDeclarationSemantics
+public abstract class MemberContainerTopLevelDeclarationSemantics
     <T extends FeatureContainer>
-    extends NamedEntitySemantics<T> {
+    extends NamedTopLevelDeclarationSemantics<T> {
 
 
-    public MemberContainerDeclarationSemantics(
+    public MemberContainerTopLevelDeclarationSemantics(
         SemanticsModule semanticsModule
     ) {
         super(semanticsModule);
@@ -73,15 +73,19 @@ public abstract class MemberContainerDeclarationSemantics
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
-    public void validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {
-        super.validate(input, acceptor);
-        if (input == null) return;
+    public void validateOnEdit(
+        Maybe<T> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        if (input == null) {
+            return;
+        }
+
+        super.validateOnEdit(input, acceptor);
 
         List<Maybe<Feature>> features = Maybe.toListOfMaybes(
             input.__(FeatureContainer::getFeatures)
         );
-
-        validateDuplicateFeatures(input, acceptor, features);
 
         if (input.isNothing()) {
             return;
@@ -110,7 +114,72 @@ public abstract class MemberContainerDeclarationSemantics
 
         prepareAndEnterContext(input, itClass);
 
-        validateAdditionalContextualizedAspects(input, acceptor);
+        validateAdditionalContextualizedAspectsOnEdit(input, acceptor);
+
+        final SemanticsDispatchHelper semanticsDispatchHelper =
+            module.get(SemanticsDispatchHelper.class);
+
+
+        for (Maybe<Feature> feature : features) {
+            if (feature.isNothing()) {
+                continue;
+            }
+
+
+            semanticsDispatchHelper.dispachMemberSemantics(
+                feature,
+                sem -> sem.validateOnEdit(
+                    (Maybe) feature,
+                    (Maybe<FeatureContainer>) input,
+                    acceptor
+                )
+            );
+
+        }
+        exitContext(input);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    @Override
+    public void validateOnSave(
+        Maybe<T> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        super.validateOnSave(input, acceptor);
+        List<Maybe<Feature>> features = Maybe.toListOfMaybes(
+            input.__(FeatureContainer::getFeatures)
+        );
+
+        validateDuplicateMembers(input, acceptor, features);
+
+        if (input.isNothing()) {
+            return;
+        }
+
+
+        final T inputSafe = input.toNullable();
+
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
+
+        final Maybe<QualifiedName> qualifiedNameMaybe =
+            input.__(compilationHelper::getFullyQualifiedName);
+
+        if (qualifiedNameMaybe.isNothing()) {
+            return;
+        }
+
+        final QualifiedName fullyQN = qualifiedNameMaybe.toNullable();
+
+        JvmDeclaredType itClass = module.get(JvmTypesBuilder.class)
+            .toClass(inputSafe, fullyQN, it -> {
+                populateMainSuperTypes(input, it.getSuperTypes());
+                populateMainMembers(input, it.getMembers(), it);
+            });
+
+        prepareAndEnterContext(input, itClass);
+
+        validateAdditionalContextualizedAspectsOnSave(input, acceptor);
 
         final SemanticsDispatchHelper semanticsDispatchHelper =
             module.get(SemanticsDispatchHelper.class);
@@ -137,9 +206,9 @@ public abstract class MemberContainerDeclarationSemantics
             }
 
 
-            semanticsDispatchHelper.dispachFeatureSemantics(
+            semanticsDispatchHelper.dispachMemberSemantics(
                 feature,
-                sem -> sem.validateFeature(
+                sem -> sem.validateOnSave(
                     (Maybe) feature,
                     (Maybe<FeatureContainer>) input,
                     acceptor
@@ -241,7 +310,7 @@ public abstract class MemberContainerDeclarationSemantics
     }
 
 
-    private void validateDuplicateFeatures(
+    private void validateDuplicateMembers(
         Maybe<T> input,
         ValidationMessageAcceptor acceptor,
         Iterable<Maybe<Feature>> features
@@ -308,13 +377,19 @@ public abstract class MemberContainerDeclarationSemantics
     }
 
 
-    protected void validateAdditionalContextualizedAspects(
+    protected void validateAdditionalContextualizedAspectsOnEdit(
         Maybe<T> input,
         ValidationMessageAcceptor acceptor
     ) {
         // Override if needed.
     }
 
+    protected void validateAdditionalContextualizedAspectsOnSave(
+        Maybe<T> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        // Override if needed.
+    }
 
     @Override
     public void populateMainMembers(
@@ -344,7 +419,7 @@ public abstract class MemberContainerDeclarationSemantics
             Maybe.iterate(input.__(FeatureContainer::getFeatures))) {
 
 
-            dispatchHelper.dispachFeatureSemantics(
+            dispatchHelper.dispachMemberSemantics(
                 feature,
                 sem -> sem.generateJvmMembers(
                     wrappedSubCast(feature),

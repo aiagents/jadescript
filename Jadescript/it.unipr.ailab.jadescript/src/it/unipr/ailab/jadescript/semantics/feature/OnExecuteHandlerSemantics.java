@@ -132,7 +132,7 @@ public class OnExecuteHandlerSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnExecuteHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -148,6 +148,16 @@ public class OnExecuteHandlerSemantics
         module.get(BlockSemantics.class).validate(body, state, acceptor);
 
         contextManager.exit();
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<OnExecuteHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
+
     }
 
 }

@@ -115,7 +115,7 @@ public class OnDeactivateHandlerSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnDeactivateHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -131,6 +131,16 @@ public class OnDeactivateHandlerSemantics
         module.get(BlockSemantics.class).validate(body, state, acceptor);
 
         module.get(ContextManager.class).exit();
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<OnDeactivateHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
+
     }
 
 }

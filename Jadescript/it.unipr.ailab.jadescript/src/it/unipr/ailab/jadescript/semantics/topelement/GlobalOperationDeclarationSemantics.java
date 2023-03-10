@@ -47,7 +47,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
  */
 @Singleton
 public class GlobalOperationDeclarationSemantics
-    extends UsesOntologyDeclarationSemantics<GlobalFunctionOrProcedure>
+    extends UsesOntologyTopLevelDeclarationSemantics<GlobalFunctionOrProcedure>
     implements OperationDeclarationSemantics {
 
     private final Map<String, List<Maybe<GlobalFunctionOrProcedure>>>
@@ -56,7 +56,9 @@ public class GlobalOperationDeclarationSemantics
         originalMethodMap = new HashMap<>();
 
 
-    public GlobalOperationDeclarationSemantics(SemanticsModule semanticsModule) {
+    public GlobalOperationDeclarationSemantics(
+        SemanticsModule semanticsModule
+    ) {
         super(semanticsModule);
     }
 
@@ -115,21 +117,11 @@ public class GlobalOperationDeclarationSemantics
 
 
     @Override
-    public void validate(
+    protected void validateAdditionalContextualizedAspectsOnSave(
         Maybe<GlobalFunctionOrProcedure> input,
         ValidationMessageAcceptor acceptor
     ) {
-        super.validate(input, acceptor);
-    }
-
-
-    @Override
-    protected void validateAdditionalContextualizedAspects(
-        Maybe<GlobalFunctionOrProcedure> input,
-        ValidationMessageAcceptor acceptor
-    ) {
-        super.validateAdditionalContextualizedAspects(input, acceptor);
-
+        super.validateAdditionalContextualizedAspectsOnSave(input, acceptor);
         final String name = input.__(NamedElement::getName)
             .extract(nullAsEmptyString);
 
@@ -138,17 +130,19 @@ public class GlobalOperationDeclarationSemantics
 
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
-        if (!methodsMap.get(name).stream().allMatch(funcOrProc -> funcOrProc
-            .__(GlobalFunctionOrProcedure::isFunction)
-            .__(Boolean::equals, mustBeFunction)
-            .extract(nullAsTrue))) {
 
+        final boolean allSameNature = methodsMap.get(name).stream()
+            .allMatch(funcOrProc ->
+                funcOrProc.__(GlobalFunctionOrProcedure::isFunction)
+                    .__(Boolean::equals, mustBeFunction)
+                    .extract(nullAsTrue));
 
-            methodsMap.get(name).forEach(m -> {
+        if (!allSameNature) {
+            methodsMap.get(name).forEach(o -> {
                 validationHelper.emitError(
                     "FunctionsSharingNamesWithProcedures",
-                    "Functions and procedures cannot share names.",
-                    m,
+                    "Functions cannot share names with procedures.",
+                    o,
                     JadescriptPackage.eINSTANCE.getNamedElement_Name(),
                     ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
                     acceptor
@@ -189,7 +183,7 @@ public class GlobalOperationDeclarationSemantics
             }
 
 
-            validateGenericFunctionOrProcedure(
+            validateGenericFunctionOrProcedureOnSave(
                 method,
                 method.__(NamedElement::getName),
                 method.__(GlobalFunctionOrProcedure::getParameters),
@@ -197,6 +191,41 @@ public class GlobalOperationDeclarationSemantics
                 method.__(GlobalFunctionOrProcedure::getBody),
                 module,
                 method.__(GlobalFunctionOrProcedure::isFunction)
+                    .extract(nullAsFalse),
+                module.get(ContextManager.class).currentContext()
+                    .actAs(ModuleContext.class)
+                    .findFirst()
+                    .map(ModuleContext::getModuleName)
+                    .<SearchLocation>map(ModuleGlobalLocation::new)
+                    .orElse(UnknownLocation.getInstance()),
+                acceptor
+            );
+        }
+    }
+
+
+    @Override
+    protected void validateAdditionalContextualizedAspectsOnEdit(
+        Maybe<GlobalFunctionOrProcedure> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        super.validateAdditionalContextualizedAspectsOnEdit(input, acceptor);
+
+        final String name = input.__(NamedElement::getName)
+            .extract(nullAsEmptyString);
+
+        for (int mI = 0; mI < methodsMap.get(name).size(); mI++) {
+            Maybe<GlobalFunctionOrProcedure> gfop =
+                methodsMap.get(name).get(mI);
+
+            validateGenericFunctionOrProcedureOnEdit(
+                gfop,
+                gfop.__(NamedElement::getName),
+                gfop.__(GlobalFunctionOrProcedure::getParameters),
+                gfop.__(GlobalFunctionOrProcedure::getType),
+                gfop.__(GlobalFunctionOrProcedure::getBody),
+                module,
+                gfop.__(GlobalFunctionOrProcedure::isFunction)
                     .extract(nullAsFalse),
                 module.get(ContextManager.class).currentContext()
                     .actAs(ModuleContext.class)

@@ -28,12 +28,12 @@ import java.util.stream.Collectors;
  * Created on 27/04/18.
  */
 @Singleton
-public abstract class UsesOntologyDeclarationSemantics
+public abstract class UsesOntologyTopLevelDeclarationSemantics
     <T extends UsesOntologyElement>
-    extends ExtendingDeclarationSemantics<T>
+    extends ExtendingTopLevelDeclarationSemantics<T>
     implements OntologyAssociatedDeclarationSemantics<T> {
 
-    public UsesOntologyDeclarationSemantics(SemanticsModule semanticsModule) {
+    public UsesOntologyTopLevelDeclarationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
@@ -46,9 +46,24 @@ public abstract class UsesOntologyDeclarationSemantics
 
 
     @Override
-    public void validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
+    public void validateOnEdit(
+        Maybe<T> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        if (input == null) {
+            return;
+        }
 
+        super.validateOnEdit(input, acceptor);
+
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<T> input,
+        ValidationMessageAcceptor acceptor
+    ) {
         final List<Maybe<JvmTypeReference>> ontologies = Maybe.toListOfMaybes(
             input.__(UsesOntologyElement::getOntologies)
         );
@@ -59,6 +74,7 @@ public abstract class UsesOntologyDeclarationSemantics
 
         for (int i = 0; i < ontologies.size(); i++) {
             Maybe<JvmTypeReference> ontologyTypeRef = ontologies.get(i);
+
             IJadescriptType ontology = ontologyTypeRef
                 .__(typeHelper::jtFromJvmTypeRef)
                 .orElseGet(() -> typeHelper.ANY);
@@ -73,9 +89,7 @@ public abstract class UsesOntologyDeclarationSemantics
                 acceptor
             );
         }
-
-        super.validate(input, acceptor);
-
+        super.validateOnSave(input, acceptor);
     }
 
 

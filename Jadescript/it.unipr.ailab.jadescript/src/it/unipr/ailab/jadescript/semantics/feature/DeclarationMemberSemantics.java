@@ -79,14 +79,16 @@ public abstract class DeclarationMemberSemantics<T extends Feature> extends Sema
     }
 
 
-    public void validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {
-        validateFeature(input, Maybe.nothing(), acceptor);
-    }
-
-    public abstract void validateFeature(
+    public abstract void validateOnEdit(
             Maybe<T> input,
             Maybe<FeatureContainer> container,
             ValidationMessageAcceptor acceptor
+    );
+
+    public abstract void validateOnSave(
+        Maybe<T> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
     );
 
     protected SearchLocation getLocationOfThis() {

@@ -16,7 +16,7 @@ public class SemanticsDispatchHelper {
         this.module = module;
     }
 
-    public void dispachFeatureSemantics(
+    public void dispachMemberSemantics(
             Maybe<? extends Feature> f,
             Consumer<DeclarationMemberSemantics<? extends Feature>> action
     ) {

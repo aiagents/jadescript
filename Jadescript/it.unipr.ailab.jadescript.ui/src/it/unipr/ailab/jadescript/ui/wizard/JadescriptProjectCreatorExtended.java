@@ -29,19 +29,11 @@ public class JadescriptProjectCreatorExtended extends JadescriptProjectCreator {
 	protected final List<String> LIBS_FILE_LIST = ImmutableList.of(JADE_JAR, JADESCRIPT_RUNTIME_LIB, COMMONS_CODEC);
 	
 	protected final List<String> REQUIRED_BUNDLES = ImmutableList.of();
-//  Other required bundles:
-//	 com.ibm.icu,
-//	 org.eclipse.xtext,
-//	 org.eclipse.xtend,
-//	 org.eclipse.xtend.typesystem.emf,
-//	 org.eclipse.xpand,
-//	 org.eclipse.emf.mwe2.launch;resolution:=optional
 	
 	private InputStream source;
 	
 	/**
-	 * Creazione del progetto Jadescript
-	 * con cartella libs che contiene jade.jar e jadescript.jar
+	 * Jadescript project creation, with libs folder and jars
 	 */
 	@Override
 	protected IProject createProject(org.eclipse.core.runtime.IProgressMonitor monitor) {
@@ -56,14 +48,7 @@ public class JadescriptProjectCreatorExtended extends JadescriptProjectCreator {
         return project;
 	};
 
-	/**
-	 * Aggiunta al progetto di tutte le cartelle specificate dai path dati
-	 * 
-	 * @param newProject
-	 * @param paths
-	 * @param monitor
-	 * @throws CoreException
-	 */
+	
     private void addToProjectStructure(IProject newProject, List<String> paths, IProgressMonitor monitor) throws CoreException {
         for (String path : paths) {
             IFolder etcFolders = newProject.getFolder(path);
@@ -71,13 +56,7 @@ public class JadescriptProjectCreatorExtended extends JadescriptProjectCreator {
         }
     }
     
-    /**
-     * Creazione di una cartella al progetto (non source folder)
-     * 
-     * @param folder
-     * @param monitor
-     * @throws CoreException
-     */
+    
     private void createFolder(IFolder folder, IProgressMonitor monitor) throws CoreException {
         Object parent = folder.getParent();
         if (parent instanceof IFolder) {
@@ -88,14 +67,7 @@ public class JadescriptProjectCreatorExtended extends JadescriptProjectCreator {
         }
     }
     
-    /**
-     * Aggiunta al progetto di tutti i file specificati
-     * 
-     * @param newProject
-     * @param files
-     * @param monitor
-     * @throws CoreException
-     */
+    
     private void addLibs(IProject newProject, List<String> files, IProgressMonitor monitor) throws CoreException{
 		IJavaProject javaProject = JavaCore.create(newProject);
 		Set<IClasspathEntry> entries = new HashSet<IClasspathEntry>();
@@ -117,14 +89,7 @@ public class JadescriptProjectCreatorExtended extends JadescriptProjectCreator {
 		javaProject.setRawClasspath(entries.toArray(new IClasspathEntry[entries.size()]), monitor);
     }
     
-    /**
-     * Creazione file nel progetto
-     * 
-     * @param file
-     * @param source
-     * @param monitor
-     * @throws CoreException
-     */
+    
     private static void createFile(IFile file, InputStream source, IProgressMonitor monitor) throws CoreException{
     	if (!file.exists()){
     		file.create(source, false, monitor);

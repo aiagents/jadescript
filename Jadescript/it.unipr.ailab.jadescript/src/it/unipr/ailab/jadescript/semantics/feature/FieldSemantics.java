@@ -257,7 +257,7 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<Field> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -363,6 +363,7 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
             module.get(ContextManager.class).exit();
         }
 
+
         validationHelper.validateFieldCompatibility(
             name,
             finalType,
@@ -370,6 +371,17 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
             getLocationOfThis(),
             acceptor
         );
+
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<Field> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
+
 
     }
 

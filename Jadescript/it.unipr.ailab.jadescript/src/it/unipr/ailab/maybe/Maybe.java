@@ -1,10 +1,11 @@
 package it.unipr.ailab.maybe;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.*;
 import java.util.function.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * Created on 2019-06-10.
@@ -13,12 +14,17 @@ public class Maybe<OfType> {
 
     public static final Function<Maybe<Boolean>, Boolean> nullAsFalse =
         Maybe::nullAsFalse;
+
     public static final Function<Maybe<Boolean>, Boolean> nullAsTrue =
         Maybe::nullAsTrue;
+
     public static final Function<Maybe<String>, String> nullAsEmptyString =
         Maybe::nullAsEmptyString;
+
     public static final Function<Boolean, Boolean> not = (b) -> !b;
+
     private static final Maybe<?> EMPTY = new Maybe<>(null);
+
     private final OfType o;
 
 
@@ -49,7 +55,9 @@ public class Maybe<OfType> {
     }
 
 
-    public static <T1, T2 extends List<T1>> List<T1> nullAsEmptyList(Maybe<T2> maybeList) {
+    public static <T1, T2 extends List<T1>> List<T1> nullAsEmptyList(
+        Maybe<T2> maybeList
+    ) {
         if (maybeList.isPresent()) {
             return maybeList.o;
         }
@@ -57,35 +65,14 @@ public class Maybe<OfType> {
     }
 
 
-    public static <T1, T2 extends Iterable<T1>> Iterable<T1> nullAsEmpty(Maybe<T2> maybeCollection) {
+    public static <T1, T2 extends Iterable<T1>> Iterable<T1> nullAsEmpty(
+        Maybe<T2> maybeCollection
+    ) {
         if (maybeCollection.isPresent()) {
             return maybeCollection.o;
         }
 
         return Collections.emptyList();
-    }
-
-
-    public static <T> Maybe<T> paddedGet(List<Maybe<T>> maybeList, int index) {
-        if (index < 0 || index >= maybeList.size()) {
-            return nothing();
-        } else {
-            return maybeList.get(index);
-        }
-    }
-
-
-    public static <T> void paddedSet(
-        List<Maybe<T>> maybeList,
-        int index,
-        Maybe<T> element
-    ) {
-        if (index >= maybeList.size()) {
-            while (maybeList.size() <= index) {
-                maybeList.add(nothing());
-            }
-        }
-        maybeList.set(index, element);
     }
 
 
@@ -116,29 +103,18 @@ public class Maybe<OfType> {
     }
 
 
-    public static Function<Maybe<String>, String> nullAsDefaultString(
-        String defaultValue
-    ) {
-        return ms -> {
-            if (ms.isPresent()) {
-                return ms.o;
-            }
-            return defaultValue;
-        };
-    }
-
-
     public static <T> Maybe<T> flatten(Maybe<Maybe<T>> input) {
         if (input.isPresent()) {
             return input.o;
         }
-
         return nothing();
     }
 
 
-    public static <T1> Iterable<Maybe<T1>> iterate(Maybe<?
-        extends Iterable<T1>> maybeCollection) {
+    public static <T1> Iterable<Maybe<T1>> iterate(
+        Maybe<?
+            extends Iterable<T1>> maybeCollection
+    ) {
         Iterable<T1> collection = nullAsEmpty(maybeCollection);
         Iterator<T1> iterator = collection.iterator();
         return () -> new Iterator<>() {
@@ -156,7 +132,9 @@ public class Maybe<OfType> {
     }
 
 
-    public static <T> List<Maybe<T>> toListOfMaybes(Maybe<? extends List<T>> maybeAList) {
+    public static <T> List<Maybe<T>> toListOfMaybes(
+        Maybe<? extends List<T>> maybeAList
+    ) {
         if (maybeAList.isPresent()) {
             return maybeAList.o.stream()
                 .map(Maybe::some)
@@ -167,44 +145,35 @@ public class Maybe<OfType> {
     }
 
 
-    public static <T> List<Maybe<T>> toListOfMaybes(List<T> list) {
+    //TODO when possible, renounce to usages of this in favor of Maybe.stream
+    public static <T> List<Maybe<T>> toListOfMaybes(
+        List<T> list
+    ) {
         return list.stream()
             .map(Maybe::some)
             .collect(Collectors.toList());
     }
 
 
-    public static <T1> Stream<Maybe<T1>> stream(Maybe<? extends Iterable<T1>> maybeCollection) {
-        Spliterator<Maybe<T1>> spliterator =
-            iterate(maybeCollection).spliterator();
-        return StreamSupport.stream(spliterator, false);
-    }
-
-
-    @SafeVarargs
-    public static Maybe<String> concat(Maybe<String>... x) {
-        String result = "";
-        for (Maybe<String> stringMaybe : x) {
-            if (stringMaybe.isPresent()) {
-                result += stringMaybe.o;
-            } else {
-                return nothing();
-            }
-        }
-        return some(result);
-    }
-
-
-    public static <T1, T2> void eitherDo(
-        Maybe<T1> j1,
-        Maybe<T2> j2,
-        Consumer<? super T1> c1,
-        Consumer<? super T2> c2
+    public static <T> Stream<Maybe<T>> stream(
+        Maybe<? extends List<T>> maybeList
     ) {
-        if (j1.isPresent()) {
-            c1.accept(j1.toNullable());
-        } else if (j2.isPresent()) {
-            c2.accept(j2.toNullable());
+        if(maybeList.isPresent()){
+            return stream(maybeList.toNullable());
+        }else{
+            return Stream.empty();
+        }
+    }
+
+
+    public static <T> Stream<Maybe<T>> stream(
+        @Nullable List<T> listOfNullables
+    ) {
+        if(listOfNullables == null){
+            return Stream.empty();
+        }else{
+            return listOfNullables.stream()
+                .map(Maybe::some);
         }
     }
 
@@ -232,46 +201,6 @@ public class Maybe<OfType> {
     }
 
 
-    public static <T1, T2> void safeDo(
-        Maybe<T1> j1,
-        Maybe<T2> j2,
-        BiConsumer<T1, T2> consumer
-    ) {
-        j1.safeDo(j1safe ->
-            j2.safeDo(j2safe -> {
-                consumer.accept(j1safe, j2safe);
-            }));
-    }
-
-
-    public static <T1, T2, T3> void safeDo(
-        Maybe<T1> j1,
-        Maybe<T2> j2,
-        Maybe<T3> j3,
-        Functional.TriConsumer<T1, T2, T3> consumer
-    ) {
-        j1.safeDo(j1safe ->
-            j2.safeDo(j2safe ->
-                j3.safeDo(j3safe ->
-                    consumer.accept(j1safe, j2safe, j3safe)
-                )));
-    }
-
-
-    public static <T1, T2, T3, T4> void safeDo(
-        Maybe<T1> j1,
-        Maybe<T2> j2,
-        Maybe<T3> j3,
-        Maybe<T4> j4,
-        Functional.QuadConsumer<T1, T2, T3, T4> consumer
-    ) {
-        j1.safeDo(j1safe ->
-            j2.safeDo(j2safe ->
-                j3.safeDo(j3safe ->
-                    j4.safeDo(j4safe ->
-                        consumer.accept(j1safe, j2safe, j3safe, j4safe)
-                    ))));
-    }
 
 
     public static <T> Stream<T> filterNulls(Maybe<T> maybe) {
@@ -300,20 +229,6 @@ public class Maybe<OfType> {
     }
 
 
-    public <OfType2> Maybe<OfType2> __(
-        Function<? super OfType, ? extends OfType2> function,
-        Supplier<? extends OfType2> nullPolicy
-    ) {
-        Objects.requireNonNull(nullPolicy);
-        Objects.requireNonNull(function);
-        if (isPresent()) {
-            return some(function.apply(o));
-        } else {
-            return some(nullPolicy.get());
-        }
-    }
-
-
     /**
      * Maybe's equivalent of {@link Optional#map(Function)}.
      * Named __ because while identifying the operation done, the focus of
@@ -331,19 +246,6 @@ public class Maybe<OfType> {
         }
     }
 
-
-    public <OfType2, ParType> Maybe<OfType2> __(
-        BiFunction<? super OfType, ? super ParType, ? extends OfType2> function,
-        ParType arg1,
-        Supplier<? extends OfType2> nullPolicy
-    ) {
-        Objects.requireNonNull(nullPolicy);
-        if (isPresent()) {
-            return some(function.apply(o, arg1));
-        } else {
-            return some(nullPolicy.get());
-        }
-    }
 
 
     public <OfType2, ParType> Maybe<OfType2> __(
@@ -388,38 +290,7 @@ public class Maybe<OfType> {
     }
 
 
-    /**
-     * Runs a BiConsumer on the wrapped object and the passed {@code arg},
-     * only if the
-     * wrapped object is present; otherwise, applies the {@code nullPolicy}.
-     */
-    public <ParType> void safeDo(
-        BiConsumer<OfType, ParType> function,
-        ParType arg1,
-        Runnable nullPolicy
-    ) {
-        Objects.requireNonNull(nullPolicy);
-        if (isPresent()) {
-            function.accept(o, arg1);
-        } else {
-            nullPolicy.run();
-        }
-    }
 
-
-    /**
-     * Runs a BiConsumer on the wrapped object and the passed {@code arg},
-     * only if the
-     * wrapped object is present; otherwise, no action is taken.
-     */
-    public <ParType> void safeDo(
-        BiConsumer<OfType, ParType> function,
-        ParType arg1
-    ) {
-        if (isPresent()) {
-            function.accept(o, arg1);
-        }
-    }
 
 
     public List<OfType> toList() {
@@ -440,12 +311,6 @@ public class Maybe<OfType> {
         } else {
             return o2 == null;
         }
-    }
-
-
-    @SuppressWarnings("unchecked")
-    public <R extends OfType> Maybe<R> wrappedSubCast() {
-        return some((R) this.toNullable());
     }
 
 
@@ -542,16 +407,6 @@ public class Maybe<OfType> {
     }
 
 
-    public Maybe<OfType> or(Supplier<? extends Maybe<? extends OfType>> supplier) {
-        Objects.requireNonNull(supplier);
-        if (isPresent()) {
-            return this;
-        } else {
-            @SuppressWarnings("unchecked")
-            Maybe<OfType> r = (Maybe<OfType>) supplier.get();
-            return Objects.requireNonNull(r);
-        }
-    }
 
 
     public Maybe<OfType> nullIf(Predicate<OfType> predicate) {

@@ -32,7 +32,7 @@ import java.util.Optional;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 public class BehaviourDeclarationSemantics
-    extends ForAgentDeclarationSemantics<BehaviourDeclaration> {
+    extends ForAgentTopLevelDeclarationSemantics<BehaviourDeclaration> {
 
     public BehaviourDeclarationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -96,13 +96,13 @@ public class BehaviourDeclarationSemantics
 
 
     @Override
-    public void validate(
+    public void validateOnEdit(
         Maybe<BehaviourDeclaration> input,
         ValidationMessageAcceptor acceptor
     ) {
 
-        //Keep super.validate at the end
-        super.validate(input, acceptor);
+        //Keep super call at the end
+        super.validateOnEdit(input, acceptor);
     }
 
 

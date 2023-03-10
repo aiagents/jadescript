@@ -1,7 +1,10 @@
 module examples.auction
 
+# The Bidder requires a startup argument, which is the budget (integer).
 agent Bidder uses ontology EnglishAuction
+
     property budget as integer
+
     on create with budget as integer do
         budget of this = budget
         log "Bidder "+name of agent+" created with budget: "+budget

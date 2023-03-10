@@ -21,10 +21,10 @@ import java.util.stream.Collectors;
  * Created on 27/04/18.
  */
 @Singleton
-public abstract class ExtendingDeclarationSemantics<T extends ExtendingElement>
-    extends MemberContainerDeclarationSemantics<T> {
+public abstract class ExtendingTopLevelDeclarationSemantics<T extends ExtendingElement>
+    extends MemberContainerTopLevelDeclarationSemantics<T> {
 
-    public ExtendingDeclarationSemantics(SemanticsModule semanticsModule) {
+    public ExtendingTopLevelDeclarationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
@@ -45,8 +45,25 @@ public abstract class ExtendingDeclarationSemantics<T extends ExtendingElement>
 
 
     @Override
-    public void validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
+    public void validateOnEdit(Maybe<T> input, ValidationMessageAcceptor acceptor) {
+        if (input == null) {
+            return;
+        }
+
+
+        super.validateOnEdit(input, acceptor);
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<T> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        if (input == null) {
+            return;
+        }
+
         List<IJadescriptType> allowedSuperTypes =
             allowedIndirectSupertypes(input);
 
@@ -80,8 +97,7 @@ public abstract class ExtendingDeclarationSemantics<T extends ExtendingElement>
                 );
             }
         }
-
-        super.validate(input, acceptor);
+        super.validateOnSave(input, acceptor);
     }
 
 

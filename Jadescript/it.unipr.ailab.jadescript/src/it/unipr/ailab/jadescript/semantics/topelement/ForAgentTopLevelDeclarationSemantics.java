@@ -23,11 +23,13 @@ import java.util.Optional;
  * Created on 27/04/18.
  */
 @Singleton
-public abstract class ForAgentDeclarationSemantics<T extends ForElement>
-    extends UsesOntologyDeclarationSemantics<T>
+public abstract class ForAgentTopLevelDeclarationSemantics<T extends ForElement>
+    extends UsesOntologyTopLevelDeclarationSemantics<T>
     implements AgentAssociatedDeclarationSemantics<T>{
 
-    public ForAgentDeclarationSemantics(SemanticsModule semanticsModule) {
+    public ForAgentTopLevelDeclarationSemantics(
+        SemanticsModule semanticsModule
+    ) {
         super(semanticsModule);
     }
 
@@ -91,9 +93,25 @@ public abstract class ForAgentDeclarationSemantics<T extends ForElement>
 
 
     @Override
-    public void validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
+    public void validateOnEdit(
+        Maybe<T> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        if (input == null) {
+            return;
+        }
+        super.validateOnEdit(input, acceptor);
+    }
 
+
+    @Override
+    public void validateOnSave(
+        Maybe<T> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        if (input == null) {
+            return;
+        }
 
         final IJadescriptType agent = getAssociatedAgentType(input, null);
 
@@ -108,7 +126,7 @@ public abstract class ForAgentDeclarationSemantics<T extends ForElement>
             );
         }
 
-        super.validate(input, acceptor);
+        super.validateOnSave(input, acceptor);
     }
 
 }

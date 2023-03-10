@@ -23,21 +23,49 @@ import java.util.Optional;
  * Created on 26/04/18.
  */
 @Singleton
-public abstract class NamedEntitySemantics<T extends NamedElement>
+public abstract class NamedTopLevelDeclarationSemantics<T extends NamedElement>
     extends Semantics {
 
-    public NamedEntitySemantics(SemanticsModule semanticsModule) {
+    public NamedTopLevelDeclarationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
 
-    public void validate(Maybe<T> input, ValidationMessageAcceptor acceptor) {
-        if (input == null) return;
+    public void validateOnEdit(
+        Maybe<T> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        if (input == null) {
+            return;
+        }
+
         Maybe<String> name = input.__(NamedElement::getName)
             .nullIf(String::isBlank);
 
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
+
+
+        validationHelper.assertNotReservedName(
+            name,
+            input,
+            JadescriptPackage.eINSTANCE.getNamedElement_Name(),
+            acceptor
+        );
+    }
+
+
+    public void validateOnSave(
+        Maybe<T> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+
+        Maybe<String> name = input.__(NamedElement::getName)
+            .nullIf(String::isBlank);
+
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
         if (nameShouldStartWithCapital()) {
             validationHelper.advice(
                 name.__(String::charAt, 0).__(Character::isUpperCase),
@@ -48,13 +76,13 @@ public abstract class NamedEntitySemantics<T extends NamedElement>
                 acceptor
             );
         }
+    }
 
-        validationHelper.assertNotReservedName(
-            name,
-            input,
-            JadescriptPackage.eINSTANCE.getNamedElement_Name(),
-            acceptor
-        );
+    public void validateOnRequest(
+        Maybe<T> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        // Overridden by subclasses.
     }
 
 

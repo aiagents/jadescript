@@ -206,7 +206,7 @@ public class OnDestroyHandlerSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnDestroyHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -221,6 +221,16 @@ public class OnDestroyHandlerSemantics
         module.get(BlockSemantics.class).validate(body, state, acceptor);
 
         module.get(ContextManager.class).exit();
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<OnDestroyHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
+
     }
 
 }
