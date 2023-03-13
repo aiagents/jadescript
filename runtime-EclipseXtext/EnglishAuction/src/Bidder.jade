@@ -5,10 +5,12 @@ agent Bidder uses ontology EnglishAuction
 
     property budget as integer
 
+
     on create with budget as integer do
         budget of this = budget
         log "Bidder "+name of agent+" created with budget: "+budget
         activate ParticipateToAuction
+        
         
     cyclic behaviour ParticipateToAuction
         on activate do

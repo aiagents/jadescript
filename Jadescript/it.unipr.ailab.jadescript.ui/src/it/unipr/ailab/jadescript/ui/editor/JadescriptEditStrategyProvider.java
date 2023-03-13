@@ -42,7 +42,6 @@ public class JadescriptEditStrategyProvider extends DefaultAutoEditStrategyProvi
 				// do nothing
 			}
 		}, IDocument.DEFAULT_CONTENT_TYPE);
-		acceptor.accept(new JadescriptAutoIndentStrategy(), IDocument.DEFAULT_CONTENT_TYPE);
 	}
 	
 	

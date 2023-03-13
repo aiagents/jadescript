@@ -59,6 +59,7 @@ public class JadescriptUiModule extends AbstractJadescriptUiModule {
 		return JadescriptEditStrategyProvider.class;
 	}
 	
+	
 	@Override
 	public Class<? extends org.eclipse.xtext.ide.editor.syntaxcoloring.ISemanticHighlightingCalculator> bindIdeSemanticHighlightingCalculator() {
 		return JadescriptSemanticHighlightingCalculator.class;

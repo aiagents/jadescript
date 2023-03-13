@@ -27,7 +27,6 @@ import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import jadescript.lang.Performative;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.xtend2.lib.StringConcatenationClient;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmGenericType;
 import org.eclipse.xtext.common.types.JvmMember;
