@@ -295,6 +295,7 @@ public class OntologyDeclarationSemantics extends
                 for (StatementWriter sw :
                     descriptionAdHocSchemaWriters) {
                     sw.writeSonnet(scb);
+                    scb.line();
                     writingSomething = true;
                 }
 
@@ -338,9 +339,10 @@ public class OntologyDeclarationSemantics extends
         featureWithSlots.ifPresent(featureSafe -> {
             for (SlotDeclaration slotDeclaration : featureSafe.getSlots()) {
                 TypeExpression typeExpression = slotDeclaration.getType();
+                final TypeExpressionSemantics tes =
+                    module.get(TypeExpressionSemantics.class);
                 IJadescriptType type =
-                    module.get(TypeExpressionSemantics.class).toJadescriptType(
-                        some(typeExpression));
+                    tes.toJadescriptType(some(typeExpression));
 
                 if (type instanceof DeclaresOntologyAdHocClass) {
                     ((DeclaresOntologyAdHocClass) type).declareAdHocClass(
@@ -382,8 +384,8 @@ public class OntologyDeclarationSemantics extends
             .append(") getSchema(").append(vocabularyName).append(");");
 
         sb.append("\n");
-        for (Maybe<SlotDeclaration> slot : iterate(feature.__(
-            FeatureWithSlots::getSlots))) {
+        for (Maybe<SlotDeclaration> slot :
+            iterate(feature.__(FeatureWithSlots::getSlots))) {
             sb.append(compileSlot(slot, vocabularyName, schemaVarName));
             sb.append("\n");
         }
@@ -425,8 +427,8 @@ public class OntologyDeclarationSemantics extends
 
         String vocabularyName = fatherVocabularyName + "_" + safeSlotName;
 
-        final TypeExpressionSemantics typeExpressionSemantics = module.get(
-            TypeExpressionSemantics.class);
+        final TypeExpressionSemantics tes =
+            module.get(TypeExpressionSemantics.class);
         if (safeSlotType.getSubExprs() != null
             && safeSlotType.getSubExprs().size() > 1) {
             //Tuples
@@ -436,7 +438,7 @@ public class OntologyDeclarationSemantics extends
                 "(jade.content.schema.AgentActionSchema) getSchema(\"" +
                 TupleType.getAdHocTupleClassName(typeParameters.stream()
                     .map(Maybe::some)
-                    .map(typeExpressionSemantics::toJadescriptType)
+                    .map(tes::toJadescriptType)
                     .collect(Collectors.toList())) + "\"));";
 
         } else if (safeSlotType.getCollectionTypeExpression() != null) {
@@ -446,22 +448,19 @@ public class OntologyDeclarationSemantics extends
                 safeSlotType.getCollectionTypeExpression().getCollectionType()
             ) {
                 case "list": {
-                    Maybe<String> elementType = getSchemaKindForSlot(
-                        typeParameters.get(0));
-                    String elementSchema = getSchemaNameForSlot(
-                        typeParameters.get(0));
-                    if (elementType.isPresent()) {
-                        return enclosingSchemaName + ".add(" +
-                            vocabularyName + ", " +
-                            "(" + elementType.toNullable() + ") getSchema" +
-                            "(" + elementSchema + ")," +
-                            "0, " +
-                            "jade.content.schema.ObjectSchema.UNLIMITED" +
-                            ");";
-                    } else {
-                        return "";
+                    IJadescriptType elemType =
+                        module.get(TypeHelper.class).ANY;
+                    if(typeParameters.size() == 1){
+                        elemType = tes.toJadescriptType(
+                            some(typeParameters.get(0))
+                        );
                     }
 
+                    return enclosingSchemaName + ".add("
+                        + vocabularyName + ", " +
+                        "(jade.content.schema.ConceptSchema) getSchema(\"" +
+                        ListType.getAdHocListClassName(elemType) +
+                        "\"));";
 
                 }
                 case "map":
@@ -470,9 +469,9 @@ public class OntologyDeclarationSemantics extends
                     IJadescriptType valType =
                         module.get(TypeHelper.class).ANY;
                     if (typeParameters.size() == 2) {
-                        keyType = typeExpressionSemantics.toJadescriptType(
+                        keyType = tes.toJadescriptType(
                             some(typeParameters.get(0)));
-                        valType = typeExpressionSemantics.toJadescriptType(
+                        valType = tes.toJadescriptType(
                             some(typeParameters.get(1)));
                     }
 
@@ -485,7 +484,7 @@ public class OntologyDeclarationSemantics extends
                     IJadescriptType elemType =
                         module.get(TypeHelper.class).ANY;
                     if (typeParameters.size() == 1) {
-                        elemType = typeExpressionSemantics.toJadescriptType(
+                        elemType = tes.toJadescriptType(
                             some(typeParameters.get(0)));
                     }
 
@@ -567,8 +566,8 @@ public class OntologyDeclarationSemantics extends
         if (slotTypeExpression == null) {
             return "";
         }
-        return module.get(TypeExpressionSemantics.class).toJadescriptType(some(
-                slotTypeExpression))
+        return module.get(TypeExpressionSemantics.class)
+            .toJadescriptType(some(slotTypeExpression))
             .getSlotSchemaName();
     }
 

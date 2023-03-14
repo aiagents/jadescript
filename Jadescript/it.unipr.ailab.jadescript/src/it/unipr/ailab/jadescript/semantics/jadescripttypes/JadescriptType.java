@@ -59,6 +59,7 @@ public abstract class JadescriptType implements SemanticsConsts,
     @Override
     public boolean isSupEqualTo(IJadescriptType other) {
         other = other.postResolve();
+
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         if (other.typeEquals(typeHelper.NOTHING)) {
             return true;

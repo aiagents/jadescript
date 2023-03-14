@@ -22,16 +22,16 @@ public abstract class ParametricType extends JadescriptType {
 
 
     public ParametricType(
-            SemanticsModule module,
-            String baseTypeID,
-            String simpleName,
-            String categoryName,
-            String parametricIntroductor,
-            String parametricListDelimiterOpen,
-            String parametricListDelimiterClose,
-            String parametricListSeparator,
-            List<TypeArgument> typeArguments,
-            /*Nullable*/ List<IJadescriptType> upperBounds
+        SemanticsModule module,
+        String baseTypeID,
+        String simpleName,
+        String categoryName,
+        String parametricIntroductor,
+        String parametricListDelimiterOpen,
+        String parametricListDelimiterClose,
+        String parametricListSeparator,
+        List<TypeArgument> typeArguments,
+        /*Nullable*/ List<IJadescriptType> upperBounds
 
     ) {
         super(module, baseTypeID, simpleName, categoryName);
@@ -47,52 +47,54 @@ public abstract class ParametricType extends JadescriptType {
     @Override
     public String getID() {
         return typeID + "<" + typeArguments.stream()
-                .map(TypeArgument::getID)
-                .reduce((s1, s2) -> s1 + ", " + s2).orElse("")
-                + ">";
+            .map(TypeArgument::getID)
+            .reduce((s1, s2) -> s1 + ", " + s2).orElse("")
+            + ">";
     }
+
 
     public String getJadescriptName() {
         String result = simpleName;
         result += " " + parametricIntroductor + " " + parametricListDelimiterOpen + typeArguments.stream()
-                .map(TypeArgument::getJadescriptName)
-                .map(s -> "(" + s + ")")
-                .reduce((s1, s2) -> s1 + parametricListSeparator + s2).orElse("(###notypeargs###)")
-                + parametricListDelimiterClose;
+            .map(TypeArgument::getJadescriptName)
+            .map(s -> "(" + s + ")")
+            .reduce((s1, s2) -> s1 + parametricListSeparator + s2).orElse(
+                "(###notypeargs###)")
+            + parametricListDelimiterClose;
         return result;
     }
 
 
     @Override
     public boolean typeEquals(IJadescriptType other) {
-        if(other instanceof ParametricType){
+        if (other instanceof ParametricType) {
             final ParametricType parOther = (ParametricType) other;
             return this.typeID.equals(parOther.typeID)
-                    && this.typeArguments.size() == parOther.typeArguments.size()
-                    && Streams.zip(
-                    this.typeArguments.stream(),
-                    parOther.typeArguments.stream(),
-                    (ta1, ta2) -> {
-                        BoundedTypeArgument.Variance v1;
-                        IJadescriptType t1;
-                        if (ta1 instanceof BoundedTypeArgument) {
-                            v1 = ((BoundedTypeArgument) ta1).getVariance();
-                            t1 = ((BoundedTypeArgument) ta1).getType();
-                        } else {
-                            v1 = BoundedTypeArgument.Variance.INVARIANT;
-                            t1 = ((IJadescriptType) ta1);
-                        }
-                        BoundedTypeArgument.Variance v2;
-                        IJadescriptType t2;
-                        if (ta2 instanceof BoundedTypeArgument) {
-                            v2 = ((BoundedTypeArgument) ta2).getVariance();
-                            t2 = ((BoundedTypeArgument) ta2).getType();
-                        } else {
-                            v2 = BoundedTypeArgument.Variance.INVARIANT;
-                            t2 = ((IJadescriptType) ta2);
-                        }
-                        return t1.typeEquals(t2) && v1 == v2;
+                && this.typeArguments.size() == parOther.typeArguments.size()
+                && Streams.zip(
+                this.typeArguments.stream(),
+                parOther.typeArguments.stream(),
+                (ta1, ta2) -> {
+                    BoundedTypeArgument.Variance v1;
+                    IJadescriptType t1;
+                    if (ta1 instanceof BoundedTypeArgument) {
+                        v1 = ((BoundedTypeArgument) ta1).getVariance();
+                        t1 = ((BoundedTypeArgument) ta1).getType();
+                    } else {
+                        v1 = BoundedTypeArgument.Variance.INVARIANT;
+                        t1 = ((IJadescriptType) ta1);
                     }
+                    BoundedTypeArgument.Variance v2;
+                    IJadescriptType t2;
+                    if (ta2 instanceof BoundedTypeArgument) {
+                        v2 = ((BoundedTypeArgument) ta2).getVariance();
+                        t2 = ((BoundedTypeArgument) ta2).getType();
+                    } else {
+                        v2 = BoundedTypeArgument.Variance.INVARIANT;
+                        t2 = ((IJadescriptType) ta2);
+                    }
+                    return t1.typeEquals(t2) && v1 == v2;
+                }
             ).allMatch(b -> b);
         }
         return super.typeEquals(other);
@@ -103,6 +105,7 @@ public abstract class ParametricType extends JadescriptType {
     public boolean isSupEqualTo(IJadescriptType other) {
         other = other.postResolve();
         final TypeHelper typeHelper = module.get(TypeHelper.class);
+
         if (other.typeEquals(typeHelper.NOTHING)) {
             return true;
         }
@@ -110,46 +113,48 @@ public abstract class ParametricType extends JadescriptType {
         if (other instanceof ParametricType) {
             final ParametricType parOther = (ParametricType) other;
             final boolean equals = this.typeID.equals(parOther.typeID);
-            final boolean equalsSize = this.typeArguments.size() == parOther.typeArguments.size();
+            final boolean equalsSize =
+                this.typeArguments.size() == parOther.typeArguments.size();
             return equals
-                    && equalsSize
-                    && Streams.zip(
-                    this.typeArguments.stream(),
-                    parOther.typeArguments.stream(),
-                    (ta1, ta2) -> {
-                        BoundedTypeArgument.Variance v1;
-                        IJadescriptType t1;
-                        if (ta1 instanceof BoundedTypeArgument) {
-                            v1 = ((BoundedTypeArgument) ta1).getVariance();
-                            t1 = ((BoundedTypeArgument) ta1).getType();
-                        } else {
-                            v1 = BoundedTypeArgument.Variance.INVARIANT;
-                            t1 = ((IJadescriptType) ta1);
-                        }
-                        BoundedTypeArgument.Variance v2;
-                        IJadescriptType t2;
-                        if (ta2 instanceof BoundedTypeArgument) {
-                            v2 = ((BoundedTypeArgument) ta2).getVariance();
-                            t2 = ((BoundedTypeArgument) ta2).getType();
-                        } else {
-                            v2 = BoundedTypeArgument.Variance.INVARIANT;
-                            t2 = ((IJadescriptType) ta2);
-                        }
-
-                        if (t1.typeEquals(t2)) {
-                            return v2 == BoundedTypeArgument.Variance.INVARIANT || v1 == v2;
-                        } else if (t1.isSupEqualTo(t2)) {
-                            return v1 == BoundedTypeArgument.Variance.EXTENDS
-                                    && (v2 == BoundedTypeArgument.Variance.INVARIANT
-                                    || v2 == BoundedTypeArgument.Variance.EXTENDS);
-                        } else if (t2.isSupEqualTo(t1)) {
-                            return v1 == BoundedTypeArgument.Variance.SUPER
-                                    && (v2 == BoundedTypeArgument.Variance.INVARIANT
-                                    || v2 == BoundedTypeArgument.Variance.SUPER);
-                        } else {
-                            return false;
-                        }
+                && equalsSize
+                && Streams.zip(
+                this.typeArguments.stream(),
+                parOther.typeArguments.stream(),
+                (ta1, ta2) -> {
+                    BoundedTypeArgument.Variance v1;
+                    IJadescriptType t1;
+                    if (ta1 instanceof BoundedTypeArgument) {
+                        v1 = ((BoundedTypeArgument) ta1).getVariance();
+                        t1 = ((BoundedTypeArgument) ta1).getType();
+                    } else {
+                        v1 = BoundedTypeArgument.Variance.INVARIANT;
+                        t1 = ((IJadescriptType) ta1);
                     }
+                    BoundedTypeArgument.Variance v2;
+                    IJadescriptType t2;
+                    if (ta2 instanceof BoundedTypeArgument) {
+                        v2 = ((BoundedTypeArgument) ta2).getVariance();
+                        t2 = ((BoundedTypeArgument) ta2).getType();
+                    } else {
+                        v2 = BoundedTypeArgument.Variance.INVARIANT;
+                        t2 = ((IJadescriptType) ta2);
+                    }
+
+                    if (t1.typeEquals(t2)) {
+                        return v2 == BoundedTypeArgument.Variance.INVARIANT
+                            || v1 == v2;
+                    } else if (t1.isSupEqualTo(t2)) {
+                        return v1 == BoundedTypeArgument.Variance.EXTENDS
+                            && (v2 == BoundedTypeArgument.Variance.INVARIANT
+                            || v2 == BoundedTypeArgument.Variance.EXTENDS);
+                    } else if (t2.isSupEqualTo(t1)) {
+                        return v1 == BoundedTypeArgument.Variance.SUPER
+                            && (v2 == BoundedTypeArgument.Variance.INVARIANT
+                            || v2 == BoundedTypeArgument.Variance.SUPER);
+                    } else {
+                        return false;
+                    }
+                }
             ).allMatch(b -> b);
 
         }
@@ -162,38 +167,47 @@ public abstract class ParametricType extends JadescriptType {
         return super.isSupEqualTo(other);
     }
 
+
     @Override
     public boolean isBasicType() {
         return false;
     }
 
 
-
     @Override
-    public boolean validateType(Maybe<? extends EObject> input, ValidationMessageAcceptor acceptor) {
+    public boolean validateType(
+        Maybe<? extends EObject> input,
+        ValidationMessageAcceptor acceptor
+    ) {
         boolean v1 = VALID;
         boolean v2 = VALID;
         boolean v3 = VALID;
         if (upperBounds != null) {
             v1 = module.get(ValidationHelper.class).asserting(
-                    upperBounds.size() == typeArguments.size(),
-                    "InvalidParametricType",
-                    "Invalid number of type arguments; expected: " +
-                            upperBounds.size() + ", provided: " + typeArguments.size() + ".",
-                    input,
-                    acceptor
+                upperBounds.size() == typeArguments.size(),
+                "InvalidParametricType",
+                "Invalid number of type arguments; expected: " +
+                    upperBounds.size() + ", provided: " +
+                    typeArguments.size() + ".",
+                input,
+                acceptor
             );
 
-            for (int i = 0; i < Math.min(upperBounds.size(), typeArguments.size()); i++) {
+            for (int i = 0; i < Math.min(
+                upperBounds.size(),
+                typeArguments.size()
+            ); i++) {
                 IJadescriptType upperBound = upperBounds.get(i);
-                IJadescriptType typeArgument = typeArguments.get(i).ignoreBound();
-                final boolean vtemp = module.get(ValidationHelper.class).assertExpectedType(
+                IJadescriptType typeArgument =
+                    typeArguments.get(i).ignoreBound();
+                final boolean vtemp = module.get(ValidationHelper.class)
+                    .assertExpectedType(
                         upperBound,
                         typeArgument,
                         "InvalidParametricType",
                         input,
                         acceptor
-                );
+                    );
                 v2 = v2 && vtemp;
             }
         }
@@ -201,48 +215,56 @@ public abstract class ParametricType extends JadescriptType {
 
         for (TypeArgument typeArgument : typeArguments) {
             v3 = module.get(ValidationHelper.class).asserting(
-                    !typeArgument.ignoreBound().isErroneous(),
-                    "InvalidParametricType",
-                    "Invalid parametric type type: '" + typeArgument.getJadescriptName() + "'.",
-                    input,
-                    acceptor
+                !typeArgument.ignoreBound().isErroneous(),
+                "InvalidParametricType",
+                "Invalid parametric type type: '" +
+                    typeArgument.getJadescriptName() + "'.",
+                input,
+                acceptor
             );
         }
 
         return v1 && v2 && v3;
     }
 
+
     @Override
     public boolean isErroneous() {
         return getTypeArguments().stream()
-                .map(TypeArgument::ignoreBound)
-                .anyMatch(IJadescriptType::isErroneous);
+            .map(TypeArgument::ignoreBound)
+            .anyMatch(IJadescriptType::isErroneous);
     }
+
 
     public List<TypeArgument> getTypeArguments() {
         return typeArguments;
     }
 
+
     @Override
     public String compileConversionType() {
 
         return "new jadescript.util.types.JadescriptTypeReference(" +
-                "jadescript.util.types.JadescriptBaseType." + getCategoryName() +
-                (getTypeArguments().isEmpty() ? "" :
-                        ", " +
-                                getTypeArguments().stream()
-                                        .map(TypeArgument::ignoreBound)
-                                        .map(IJadescriptType::compileConversionType)
-                                        .reduce((s1, s2) -> s1 + ", " + s2).orElse("null")) +
-                ")";
+            "jadescript.util.types.JadescriptBaseType." + getCategoryName() +
+            (getTypeArguments().isEmpty() ? "" :
+                ", " + getTypeArguments().stream()
+                    .map(TypeArgument::ignoreBound)
+                    .map(IJadescriptType::compileConversionType)
+                    .reduce((s1, s2) -> s1 + ", " + s2).orElse("null")) +
+            ")";
     }
+
 
     @Override
     public String getDebugPrint() {
         String sup = super.getDebugPrint();
         sup = sup.substring(0, sup.length() - 1); //removing the last '}'
-        sup+= "; typeArguments: ["+typeArguments.stream().map(TypeArgument::getDebugPrint).collect(Collectors.joining(", "))+"]";
+        sup += "; typeArguments: [" + typeArguments.stream()
+            .map(TypeArgument::getDebugPrint).collect(
+                Collectors.joining(", ")
+            ) + "]";
         sup += "}";
         return sup;
     }
+
 }

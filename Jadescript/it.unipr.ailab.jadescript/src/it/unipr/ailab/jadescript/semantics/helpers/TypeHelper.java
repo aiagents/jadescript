@@ -2401,7 +2401,7 @@ public class TypeHelper implements SemanticsConsts {
                 }
             }
         }
-        return ANY;
+        return TOP.apply("Could not compute LUB between "+t1+ " and "+t2);
     }
 
 

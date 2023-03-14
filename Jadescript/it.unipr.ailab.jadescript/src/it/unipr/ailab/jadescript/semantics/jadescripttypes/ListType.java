@@ -1,21 +1,35 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
+import it.unipr.ailab.jadescript.jadescript.ExtendingFeature;
+import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import it.unipr.ailab.sonneteer.statement.StatementWriter;
+import jadescript.util.JadescriptList;
+import org.eclipse.emf.common.util.EList;
+import org.eclipse.xtext.common.types.JvmMember;
 import org.eclipse.xtext.common.types.JvmTypeReference;
+import org.eclipse.xtext.common.types.JvmVisibility;
+import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.jadescript.semantics.helpers.TypeHelper.builtinPrefix;
 import static it.unipr.ailab.maybe.Maybe.some;
 
-public class ListType extends ParametricType implements EmptyCreatable {
+public class ListType
+    extends ParametricType
+    implements EmptyCreatable, DeclaresOntologyAdHocClass {
 
 
     private final Map<String, Property> properties = new HashMap<>();
@@ -44,6 +58,12 @@ public class ListType extends ParametricType implements EmptyCreatable {
     }
 
 
+    public static String getAdHocListClassName(IJadescriptType elementType) {
+        return "__ListClass_" + elementType.compileToJavaTypeReference()
+            .replace(".", "_");
+    }
+
+
     private void initBuiltinProperties() {
         if (initializedProperties) {
             return;
@@ -65,7 +85,8 @@ public class ListType extends ParametricType implements EmptyCreatable {
                 getLocation(),
                 (o, a) -> o + ".get(0)",
                 (o, r, a) -> a.accept(
-                    w.simpleStmt(o + ".set(0, " + r + ")")
+                    SemanticsConsts.w
+                        .simpleStmt(o + ".set(0, " + r + ")")
                 )
             )
         );
@@ -78,8 +99,9 @@ public class ListType extends ParametricType implements EmptyCreatable {
                 (e, a) -> "jadescript.util.JadescriptCollections" +
                     ".getRest(" + e + ", 1)",
                 (e, re, a) -> a.accept(
-                    w.simpleStmt("jadescript.util.JadescriptCollections" +
-                    ".getRest(" + e + ", 1)")
+                    SemanticsConsts.w
+                        .simpleStmt("jadescript.util.JadescriptCollections" +
+                        ".getRest(" + e + ", 1)")
                 )
             )
         );
@@ -91,7 +113,8 @@ public class ListType extends ParametricType implements EmptyCreatable {
                 getLocation(),
                 (e, a) -> e + ".get(" + e + ".size()-1)",
                 (e, re, a) -> a.accept(
-                    w.simpleStmt(e + ".set(" + e + ".size()-1, " + re + ")")
+                    SemanticsConsts.w
+                        .simpleStmt(e + ".set(" + e + ".size()-1, " + re + ")")
                 )
             )
         );
@@ -295,15 +318,17 @@ public class ListType extends ParametricType implements EmptyCreatable {
 
     @Override
     public boolean isSlottable() {
-        return getTypeArguments().stream().map(TypeArgument::ignoreBound).allMatch(
-            IJadescriptType::isSlottable);
+        return getTypeArguments().stream()
+            .map(TypeArgument::ignoreBound)
+            .allMatch(IJadescriptType::isSlottable);
     }
 
 
     @Override
     public boolean isSendable() {
-        return getTypeArguments().stream().map(TypeArgument::ignoreBound).allMatch(
-            IJadescriptType::isSendable);
+        return getTypeArguments().stream()
+            .map(TypeArgument::ignoreBound)
+            .allMatch(IJadescriptType::isSendable);
     }
 
 
@@ -333,7 +358,7 @@ public class ListType extends ParametricType implements EmptyCreatable {
 
     @Override
     public String getSlotSchemaName() {
-        return "jade.content.schema.ContentElementListSchema.BASE_NAME";
+        return "\"" + ListType.getAdHocListClassName(getElementType()) + "\"";
     }
 
 
@@ -357,15 +382,129 @@ public class ListType extends ParametricType implements EmptyCreatable {
 
     @Override
     public String compileNewEmptyInstance() {
-        //TODO when using new JadescriptList implementation, update this
-        return "new java.util.ArrayList<" +
-            getElementType().compileToJavaTypeReference() + ">()";
+        return "new jadescript.util.JadescriptList<" +
+            getElementType().compileToJavaTypeReference()
+            + ">()";
     }
 
 
     @Override
     public boolean requiresAgentEnvParameter() {
         return false;
+    }
+
+
+    @Override
+    public void declareAdHocClass(
+        EList<JvmMember> members,
+        Maybe<ExtendingFeature> feature,
+        HashMap<String, String> generatedSpecificClasses,
+        List<StatementWriter> addSchemaWriters,
+        List<StatementWriter> describeSchemaWriters,
+        TypeExpression slotTypeExpression,
+        Function<TypeExpression, String> schemaNameForSlotProvider,
+        SemanticsModule module
+    ) {
+        if (feature.isNothing()) {
+            return;
+        }
+
+        final ExtendingFeature featureSafe = feature.toNullable();
+
+        IJadescriptType elementType = this.getElementType();
+        String className = getAdHocListClassName(elementType);
+
+        if (generatedSpecificClasses.containsKey(className)) {
+            return;
+        }
+
+        final JvmTypesBuilder jvmTB =
+            module.get(JvmTypesBuilder.class);
+
+        members.add(jvmTB.toClass(
+            featureSafe,
+            className,
+            itClass -> {
+                itClass.setStatic(true);
+                itClass.setVisibility(JvmVisibility.PUBLIC);
+                final TypeHelper typeHelper =
+                    module.get(TypeHelper.class);
+
+                itClass.getSuperTypes().add(typeHelper.typeRef(
+                    JadescriptList.class,
+                    elementType.asJvmTypeReference()
+                ));
+
+                itClass.getMembers().add(jvmTB.toMethod(
+                    featureSafe,
+                    "__fromList",
+                    typeHelper.typeRef(className),
+                    itMeth -> {
+                        itMeth.setVisibility(JvmVisibility.PUBLIC);
+                        itMeth.setStatic(true);
+                        itMeth.getParameters().add(jvmTB.toParameter(
+                            featureSafe,
+                            "list",
+                            typeHelper.typeRef(
+                                List.class,
+                                elementType.asJvmTypeReference()
+                            )
+                        ));
+
+                        module.get(CompilationHelper.class).createAndSetBody(
+                            itMeth,
+                            scb -> {
+                                final String typeName = typeHelper
+                                    .noGenericsTypeName(
+                                        elementType.compileToJavaTypeReference()
+                                    );
+                                scb.line(className + " result = " +
+                                    "new " + className + "();");
+                                scb.line(
+                                    "java.util.List<" + typeName +
+                                        "> elements = new java.util" +
+                                        ".ArrayList<>();"
+                                );
+                                scb.line("list.forEach(elements::add);");
+                                scb.line("result.setElements(elements);");
+                                scb.line("return result;");
+                            }
+                        );
+                    }
+
+
+                ));
+
+            }
+        ));
+
+        generatedSpecificClasses.put(className, getCategoryName());
+
+        addSchemaWriters.add(SemanticsConsts.w.simpleStmt(
+            "add(new jade.content.schema.ConceptSchema(\"" +
+                className + "\"), " + className + ".class);"));
+
+        describeSchemaWriters.add(new StatementWriter() {
+            @Override
+            public void writeSonnet(SourceCodeBuilder scb) {
+                EList<TypeExpression> typeParameters = slotTypeExpression
+                    .getCollectionTypeExpression().getTypeParameters();
+
+                if (typeParameters == null || typeParameters.size() != 1) {
+                    return;
+                }
+
+                scb.add(
+                    "jadescript.content.onto.Ontology" +
+                        ".__populateListSchema(" +
+                        "(jade.content.schema.TermSchema) " +
+                        "getSchema(" + schemaNameForSlotProvider
+                        .apply(typeParameters.get(0)) + "), " +
+                        "(jade.content.schema.ConceptSchema) " +
+                        "getSchema(\"" + className + "\"));");
+
+            }
+        });
     }
 
 }

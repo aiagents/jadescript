@@ -678,7 +678,7 @@ public class SendMessageStatementSemantics
                 }
 
                 acceptor.accept(w.tryCatch(tryBranch)
-                    .addCatchBranch("java.lang.Throwable", "_t",
+                    .addCatchBranch("java.lang.Throwable", "_t", //TODO let it throw a jadescript exception
                         w.block().addStatement(w.callStmnt("_t" +
                             ".printStackTrace"))
                     )

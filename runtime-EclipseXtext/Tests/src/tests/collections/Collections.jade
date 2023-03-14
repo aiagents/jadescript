@@ -1,0 +1,29 @@
+module tests.collections
+
+ontology Collections
+    concept C1(x as list of text)
+    concept C2(x as list of C1)
+    concept CR(x as list of CR)
+    concept CS(x as set of C1)
+    concept CSS(x as set of CS)
+    proposition P
+    predicate P1(x as set of text)
+    predicate P4(x as list of C1)
+    action A2(x as list of C2)
+    
+agent CollectionReceiver uses ontology Collections
+    on create do
+        activate ReceiveCollection
+        
+    cyclic behaviour ReceiveCollection
+        on message inform P4([C1([_])]) do
+            log content
+        
+
+agent CollectionSender uses ontology Collections
+    property p as text
+    
+    on create with args as list of text do
+        xx = [P1(x={"abc"})]
+        send message inform P1({} of text) to "CollectionReceiver"@
+        

@@ -5,17 +5,16 @@ import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.Util.Tuple2;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import jadescript.util.JadescriptSet;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.xtend2.lib.StringConcatenationClient;
 import org.eclipse.xtext.common.types.JvmMember;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.common.types.JvmVisibility;
@@ -190,7 +189,8 @@ public class SetType extends ParametricType
 
     @Override
     public boolean isSendable() {
-        return getTypeArguments().stream().map(TypeArgument::ignoreBound)
+        return getTypeArguments().stream()
+            .map(TypeArgument::ignoreBound)
             .allMatch(IJadescriptType::isSendable);
     }
 
@@ -273,92 +273,103 @@ public class SetType extends ParametricType
         Function<TypeExpression, String> schemaNameForSlotProvider,
         SemanticsModule module
     ) {
-        feature.safeDo(featureSafe -> {
-            IJadescriptType elementType = this.getElementType();
-            String className = getAdHocSetClassName(elementType);
-            if (!generatedSpecificClasses.containsKey(className)) {
-                final JvmTypesBuilder jvmTB =
-                    module.get(JvmTypesBuilder.class);
-                members.add(jvmTB.toClass(
+        if (feature.isNothing()) {
+            return;
+        }
+
+        final ExtendingFeature featureSafe = feature.toNullable();
+
+        IJadescriptType elementType = this.getElementType();
+        String className = getAdHocSetClassName(elementType);
+
+        if (generatedSpecificClasses.containsKey(className)) {
+            return;
+        }
+
+        final JvmTypesBuilder jvmTB =
+            module.get(JvmTypesBuilder.class);
+
+        members.add(jvmTB.toClass(
+            featureSafe,
+            className,
+            itClass -> {
+                itClass.setStatic(true);
+                itClass.setVisibility(JvmVisibility.PUBLIC);
+                final TypeHelper typeHelper =
+                    module.get(TypeHelper.class);
+
+                itClass.getSuperTypes().add(typeHelper.typeRef(
+                    JadescriptSet.class,
+                    elementType.asJvmTypeReference()
+                ));
+
+
+                itClass.getMembers().add(jvmTB.toMethod(
                     featureSafe,
-                    className,
-                    itClass -> {
-                        itClass.setStatic(true);
-                        itClass.setVisibility(JvmVisibility.PUBLIC);
-                        itClass.getSuperTypes()
-                            .add(module.get(TypeHelper.class).typeRef(
-                                jadescript.util.JadescriptSet.class,
-                                elementType.asJvmTypeReference()
-                            ));
-                        itClass.getMembers().add(jvmTB.toMethod(
+                    "__fromSet",
+                    typeHelper.typeRef(className),
+                    itMeth -> {
+                        itMeth.setVisibility(JvmVisibility.PUBLIC);
+                        itMeth.setStatic(true);
+                        itMeth.getParameters().add(jvmTB.toParameter(
                             featureSafe,
-                            "__fromSet",
-                            module.get(TypeHelper.class).typeRef(className),
-                            itMeth -> {
-                                itMeth.setVisibility(JvmVisibility.PUBLIC);
-                                itMeth.setStatic(true);
-                                itMeth.getParameters().add(jvmTB.toParameter(
-                                    featureSafe,
-                                    "set",
-                                    module.get(TypeHelper.class).typeRef(
-                                        java.util.Set.class,
-                                        elementType.asJvmTypeReference()
-                                    )
-                                ));
-                                jvmTB.setBody(
-                                    itMeth,
-                                    new StringConcatenationClient() {//TODO
-                                        // use scb
-                                        @Override
-                                        protected void appendTo(
-                                            TargetStringConcatenation target
-                                        ) {
-                                            target.append(className + " " +
-                                                "result = new " + className + "();\n" +
-                                                "  java.util.List<" +
-                                                module.get(TypeHelper.class).noGenericsTypeName(
-                                                    elementType.compileToJavaTypeReference()) +
-                                                "> elements = new java.util" +
-                                                ".ArrayList<>();\n" +
-                                                "  set.forEach(elements::add)" +
-                                                ";\n" +
-                                                "  result.setElements" +
-                                                "(elements);\n" +
-                                                "  return result;");
-                                        }
-                                    }
-                                );
-                            }
+                            "set",
+                            typeHelper.typeRef(
+                                Set.class,
+                                elementType.asJvmTypeReference()
+                            )
                         ));
+
+                        module.get(CompilationHelper.class).createAndSetBody(
+                            itMeth,
+                            scb -> {
+                                final String typeName = typeHelper
+                                    .noGenericsTypeName(
+                                        elementType.compileToJavaTypeReference()
+                                    );
+                                scb.line(className + " result = " +
+                                    "new " + className + "();");
+                                scb.line(
+                                    "java.util.List<" + typeName +
+                                        "> elements = new java.util" +
+                                        ".ArrayList<>();"
+                                );
+                                scb.line("set.forEach(elements::add);");
+                                scb.line("result.setElements(elements);");
+                                scb.line("return result;");
+                            }
+                        );
                     }
                 ));
-                generatedSpecificClasses.put(className, getCategoryName());
-                addSchemaWriters.add(SemanticsConsts.w.simpleStmt(
-                    "add(new jade.content.schema.ConceptSchema(\"" + className + "\"), " +
-                        "" + className + ".class);"));
-                describeSchemaWriters.add(new StatementWriter() {
-                    @Override
-                    public void writeSonnet(SourceCodeBuilder scb) {
-                        EList<TypeExpression> typeParameters =
-                            slotTypeExpression
-                                .getCollectionTypeExpression().getTypeParameters();
-                        if (typeParameters != null && typeParameters.size() == 1) {
-
-                            scb.add(
-                                "jadescript.content.onto.Ontology" +
-                                    ".__populateSetSchema(" +
-                                    "(jade.content.schema.TermSchema) " +
-                                    "getSchema(" +
-                                    schemaNameForSlotProvider.apply(
-                                        typeParameters.get(0)) + "), " +
-                                    "(jade.content.schema.ConceptSchema) " +
-                                    "getSchema(\"" + className + "\"));");
-                        }
-
-                    }
-                });
             }
+        ));
 
+        generatedSpecificClasses.put(className, getCategoryName());
+
+        addSchemaWriters.add(SemanticsConsts.w.simpleStmt(
+            "add(new jade.content.schema.ConceptSchema(\"" +
+                className + "\"), " + className + ".class);"));
+
+        describeSchemaWriters.add(new StatementWriter() {
+            @Override
+            public void writeSonnet(SourceCodeBuilder scb) {
+                EList<TypeExpression> typeParameters = slotTypeExpression
+                    .getCollectionTypeExpression().getTypeParameters();
+
+                if (typeParameters == null || typeParameters.size() != 1) {
+                    return;
+                }
+
+                scb.add(
+                    "jadescript.content.onto.Ontology" +
+                        ".__populateSetSchema(" +
+                        "(jade.content.schema.TermSchema) " +
+                        "getSchema(" + schemaNameForSlotProvider
+                        .apply(typeParameters.get(0)) + "), " +
+                        "(jade.content.schema.ConceptSchema) " +
+                        "getSchema(\"" + className + "\"));");
+
+            }
         });
     }
 

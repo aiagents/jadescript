@@ -71,8 +71,8 @@ public class UserDefinedOntologyType
 
 
     @Override
-    public boolean isSuperOrEqualOntology(OntologyType other) { //TODO
-        // multiple ontologies
+    public boolean isSuperOrEqualOntology(OntologyType other) {
+        //TODO multiple ontologies
         if (this.typeEquals(other)) {
             return true;
         }

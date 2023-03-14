@@ -3,21 +3,15 @@
  */
 package it.unipr.ailab.jadescript.formatting2;
 
-import it.unipr.ailab.jadescript.jadescript.ImportSection;
-import it.unipr.ailab.jadescript.jadescript.Model;
-import it.unipr.ailab.jadescript.jadescript.TopElement;
 import org.eclipse.xtext.formatting2.IFormattableDocument;
 import org.eclipse.xtext.xbase.formatting2.XbaseFormatter;
 
+import it.unipr.ailab.jadescript.jadescript.Model;
+
+@SuppressWarnings("restriction")
 public class JadescriptFormatter extends XbaseFormatter {
 
 	protected void format(Model model, IFormattableDocument doc) {
-		
+		// Default formatting disabled.
 	}
-
-	protected void format(ImportSection importSection, IFormattableDocument doc) {
-		
-	}
-	
-	// TODO: implement for FeatureContainer, FeatureWithBody, ParameterizedFeature, ExtendingFeature, FeatureWithSlots, ExtendingElement, UsesOntologyElement, ForElement, FormalParameter, Agent, Behaviour, Ontology, GlobalFunctionOrProcedure, MemberBehaviour, Field, FunctionOrProcedure, OnMessageHandler, OnPerceptHandler, OnCreateHandler, OnDestroyHandler, OnActivateHandler, OnDeactivateHandler, OnExecuteHandler, OnExceptionHandler, OnBehaviourFailureHandler, Concept, Predicate, OntologyAction, SlotDeclaration, WhenExpression, OptionalBlock, CodeBlock, DebugTypeComparison, ActivateStatement, CreateAgentStatement, ThrowStatement, DeactivateStatement, FailStatement, DestroyStatement, SendMessageStatement, CommaSeparatedListOfRExpressions, SimpleArgumentList, NamedArgumentList, ProcedureCallStatement, ClearStatement, PutbackStatement, RemoveStatement, AddStatement, LogStatement, ReturnStatement, Assignment, IfStatement, WhenMatchesStatement, WhileStatement, ForStatement, TernaryConditional, LogicalOr, LogicalAnd, EqualityComparison, TypeComparison, RelationalComparison, ContainmentCheck, Additive, Multiplicative, Matches, TuplePattern, StructurePattern, ListPattern, MapOrSetPattern, MapPatternKeyTerm, PatternTerm, UnaryPrefix, OfNotation, AidLiteral, TypeCast, AtomExpr, Trailer, Primary, InvokeExpression, TypeExpression, BuiltinHierarchicType, MessageType, CollectionTypeExpression, Literal, ListLiteral, MapOrSetLiteral
 }
