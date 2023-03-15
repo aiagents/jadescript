@@ -7,8 +7,8 @@ In agent-oriented programming, software systems are composed of several autonomo
 Jadescript comes with a dedicated [Eclipse](https://www.eclipse.org) IDE Plug-in that provides graphical support to develop and run agents.
 
 ## Resources
- * [Eclipse Plugin Download](https://github.com/aiagents/jadescript/releases/download/v1.0.20221105/Jadescript_v1.0.20221105.zip)
- * [Compiler Download](https://github.com/aiagents/jadescript/releases/download/v1.0.20221105/jadescriptc.jar) (not needed if you use the above plug-in)
+ * [Eclipse Plugin Download](https://github.com/aiagents/jadescript/releases/download/v1.0.20230227/Jadescript_v1.0.20230227.zip)
+ * [Compiler Download](https://github.com/aiagents/jadescript/releases/download/v1.0.20230227/jadescriptc.jar) (not needed if you use the above plug-in)
  * [Programmer's Guide](https://github.com/aiagents/jadescript/releases/download/v1.0.20221015/JadescriptProgrammersGuide_v1.0.20221015.pdf)
 
 ## Citation
@@ -105,7 +105,7 @@ In the following wizard, make sure that:
 
 Then click on _Finish_.
 
-### Deploying the support JARs
+### Deploying the support JAR
 The project `it.unipr.ailab.jadescript`, `it.unipr.ailab.jadescript.ui` and all the examples in `runtime-EclipseXtext` require the JAR file `jadescript.jar` both in the build path and in the classpath for the plugin runtime. 
 The JAR file is created by the Eclipse project `it.unipr.ailab.jadescript.lib`.
 
