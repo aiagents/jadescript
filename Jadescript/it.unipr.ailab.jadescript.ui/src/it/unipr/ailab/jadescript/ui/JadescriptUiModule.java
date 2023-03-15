@@ -7,6 +7,7 @@ import org.eclipse.jface.viewers.ILabelProvider;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.eclipse.xtext.ide.editor.contentassist.CompletionPrefixProvider;
 import org.eclipse.xtext.ui.editor.XtextEditor;
+import org.eclipse.xtext.ui.editor.autoedit.AbstractEditStrategyProvider;
 import org.eclipse.xtext.ui.editor.contentassist.ContentProposalLabelProvider;
 import org.eclipse.xtext.ui.editor.hover.IEObjectHoverProvider;
 import org.eclipse.xtext.ui.editor.hover.html.IEObjectHoverDocumentationProvider;
@@ -17,6 +18,7 @@ import org.eclipse.xtext.ui.wizard.IProjectCreator;
 import com.google.inject.Binder;
 
 import it.unipr.ailab.jadescript.ui.contentassist.IndentationAwareCompletionPrefixProviderWithFix;
+import it.unipr.ailab.jadescript.ui.editor.JadescriptEditStrategyProvider;
 import it.unipr.ailab.jadescript.ui.editor.JadescriptEditorExtended;
 import it.unipr.ailab.jadescript.ui.hover.JadescriptEObjectHoverDocumentationProvider;
 import it.unipr.ailab.jadescript.ui.hover.JadescriptEObjectHoverProvider;
@@ -47,9 +49,16 @@ public class JadescriptUiModule extends AbstractJadescriptUiModule {
 
 	@Override
 	public void configureContentProposalLabelProvider(final Binder binder) {
-		binder.<ILabelProvider>bind(ILabelProvider.class).annotatedWith(ContentProposalLabelProvider.class)
+		binder.<ILabelProvider>bind(ILabelProvider.class)
+				.annotatedWith(ContentProposalLabelProvider.class)
 				.to(JadescriptLabelProvider.class);
 	}
+	
+	@Override
+	public Class<? extends AbstractEditStrategyProvider> bindAbstractEditStrategyProvider(){
+		return JadescriptEditStrategyProvider.class;
+	}
+	
 	
 	@Override
 	public Class<? extends org.eclipse.xtext.ide.editor.syntaxcoloring.ISemanticHighlightingCalculator> bindIdeSemanticHighlightingCalculator() {

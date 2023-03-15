@@ -2,21 +2,22 @@ package it.unipr.ailab.jadescript.semantics.statement;
 
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.CallSemantics;
+import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmOperationSymbol;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import jade.wrapper.ContainerController;
+import org.eclipse.xtext.common.types.JvmFormalParameter;
+import org.eclipse.xtext.common.types.JvmOperation;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.*;
@@ -106,8 +107,13 @@ public class CreateAgentStatementSemantics
             acceptor
         );
 
-        Optional<? extends CallableSymbol> createMethodOpt =
-            getCreateMethod(agentType);
+        final JvmTypeNamespace agentNamespace = JvmTypeNamespace.resolve(
+            module,
+            agentType.asJvmTypeReference()
+        );
+
+        Optional<? extends JvmOperation> createMethodOpt =
+            getCreateMethod(agentNamespace);
 
         module.get(ValidationHelper.class).asserting(
             createMethodOpt.isPresent(),
@@ -130,9 +136,16 @@ public class CreateAgentStatementSemantics
                 return afterNickName;
             }
 
-            final CallableSymbol createMethod = createMethodOpt.get();
+            final JvmOperation createMethod = createMethodOpt.get();
             final List<IJadescriptType> expectedMethodTypes =
-                createMethod.parameterTypes();
+                createMethod.getParameters() == null
+                    ? List.of()
+                    : createMethod.getParameters().stream()
+                    .map(JvmFormalParameter::getParameterType)
+                    .filter(Objects::nonNull)
+                    .map(agentNamespace::resolveType)
+                    .collect(Collectors.toList());
+
             module.get(ValidationHelper.class).asserting(
                 expectedMethodTypes.size() - 2 == 0,
                 "MissingCreateArguments",
@@ -160,9 +173,16 @@ public class CreateAgentStatementSemantics
 
 
             if (createMethodOpt.isPresent()) {
-                final CallableSymbol createMethod = createMethodOpt.get();
+                final JvmOperation createMethod = createMethodOpt.get();
                 final List<IJadescriptType> expectedMethodTypes =
-                    createMethod.parameterTypes();
+                    createMethod.getParameters() == null
+                        ? List.of()
+                        : createMethod.getParameters().stream()
+                        .map(JvmFormalParameter::getParameterType)
+                        .filter(Objects::nonNull)
+                        .map(agentNamespace::resolveType)
+                        .collect(Collectors.toList());
+
                 module.get(ValidationHelper.class).asserting(
                     argumentTypes.size() == expectedMethodTypes.size() - 2,
                     "MissingCreateArguments",
@@ -200,11 +220,23 @@ public class CreateAgentStatementSemantics
         }
 
         if (createMethodOpt.isPresent()) {
-            final CallableSymbol createMethod = createMethodOpt.get();
+            final JvmOperation createMethod = createMethodOpt.get();
+            final List<String> expectedMethodNames = new ArrayList<>();
             final List<IJadescriptType> expectedMethodTypes =
-                createMethod.parameterTypes();
-            final List<String> expectedMethodNames =
-                createMethod.parameterNames();
+                createMethod.getParameters() == null
+                    ? List.of()
+                    : createMethod.getParameters().stream()
+                    .filter(Objects::nonNull)
+                    .peek(par -> {
+                        if (par.getName() != null) {
+                            expectedMethodNames.add(par.getName());
+                        }
+                    })
+                    .map(JvmFormalParameter::getParameterType)
+                    .filter(Objects::nonNull)
+                    .map(agentNamespace::resolveType)
+                    .collect(Collectors.toList());
+
 
             validateCreateArgumentsByNames(
                 expectedMethodNames.subList(
@@ -229,26 +261,33 @@ public class CreateAgentStatementSemantics
     }
 
 
-    private Optional<? extends CallableSymbol> getCreateMethod(
-        IJadescriptType agentType
+    private Optional<? extends JvmOperation> getCreateMethod(
+        JvmTypeNamespace namespace
     ) {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-        return JvmTypeNamespace.fromTypeReference(
-            module,
-            agentType.asJvmTypeReference()
-        ).searchAs(
-            CallableSymbol.Searcher.class,
-            searcher -> searcher.searchCallable(
-                "create",
-                null,
-                (size, names) -> size >= 2,
-                (size, types) -> size >= 2 && typeHelper.isAssignable(
-                    typeHelper.typeRef(ContainerController.class),
-                    types.apply(0).asJvmTypeReference()
-                ) && typeHelper.isAssignable(typeHelper.TEXT, types.apply(1))
-            ).filter(c -> c instanceof JvmOperationSymbol
-                && ((JvmOperationSymbol) c).isStatic())
-        ).findAny();
+        return namespace.searchAs(
+            JvmTypeNamespace.class,
+            searcher -> searcher.searchJvmOperation()
+                .filter(op -> op.getSimpleName().equals("create"))
+                .filter(op -> op.getParameters() != null)
+                .filter(op -> op.getParameters().size() >= 2)
+                .filter(JvmOperation::isStatic)
+                .filter(op -> {
+                    final JvmFormalParameter param0 = op.getParameters().get(0);
+                    final JvmFormalParameter param1 = op.getParameters().get(1);
+                    if (param0 == null || param1 == null) {
+                        return false;
+                    }
+                    final IJadescriptType param0Type =
+                        searcher.resolveType(param0.getParameterType());
+                    final IJadescriptType param1Type =
+                        searcher.resolveType(param1.getParameterType());
+                    return typeHelper.isAssignable(
+                        typeHelper.typeRef(ContainerController.class),
+                        param0Type.asJvmTypeReference()
+                    ) && typeHelper.TEXT.isSupEqualTo(param1Type);
+                })
+        ).findFirst();
     }
 
 
@@ -493,20 +532,33 @@ public class CreateAgentStatementSemantics
             .extract(module.get(TypeExpressionSemantics.class)
                 ::toJadescriptType);
 
-        final Optional<? extends CallableSymbol> createMethodOpt =
-            getCreateMethod(agentType);
+        final JvmTypeNamespace agentNamespace = JvmTypeNamespace.resolve(
+            module,
+            agentType.asJvmTypeReference()
+        );
 
-        if (
-            input.__(CreateAgentStatement::getNamedArgs).isPresent()
-                && createMethodOpt.isPresent()
-        ) {
+        final Optional<? extends JvmOperation> createMethodOpt =
+            getCreateMethod(agentNamespace);
+
+        if (input.__(CreateAgentStatement::getNamedArgs).isPresent()
+            && createMethodOpt.isPresent()) {
+
+            JvmOperation createMethod = createMethodOpt.get();
+            final List<String> paramNames =
+                createMethod.getParameters() == null
+                    ? List.of()
+                    : createMethod.getParameters().stream()
+                    .filter(Objects::nonNull)
+                    .map(JvmFormalParameter::getName)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
             args = CallSemantics.sortToMatchParamNames(
                 args,
                 nullAsEmptyList(input.__(CreateAgentStatement::getNamedArgs)
                     .__(NamedArgumentList::getParameterNames)
                     .__(ArrayList::new)),
-                createMethodOpt.get().parameterNames()
-                    .subList(2, createMethodOpt.get().parameterNames().size())
+                paramNames.subList(2, paramNames.size())
             );
         }
         final Maybe<RValueExpression> nickName =
@@ -533,7 +585,9 @@ public class CreateAgentStatementSemantics
         final String agentTypeCompiled = agentType.compileToJavaTypeReference();
         acceptor.accept(w.simpleStmt(
             agentTypeCompiled +
-                ".create(" + THE_AGENT + "().getContainerController(), " +
+                ".create(" +
+                CompilationHelper.compileAgentReference() +
+                ".getContainerController(), " +
                 compiledNickName + comma + compiledArgs +
                 ")"
         ));

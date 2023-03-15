@@ -47,7 +47,8 @@ public class TemplateCompilationHelper implements SemanticsConsts {
     public static MethodCallExpressionWriter notPercept() {
         return w.callExpr(
             "jadescript.core.percept.NotPerceptMessageTemplate.MatchNotPercept",
-            w.expr(THE_AGENT + "().getContentManager()")
+            w.expr(CompilationHelper.compileAgentReference() +
+                ".getContentManager()")
         );
     }
 
@@ -55,7 +56,8 @@ public class TemplateCompilationHelper implements SemanticsConsts {
     public static MethodCallExpressionWriter isPercept() {
         return w.callExpr(
             "jadescript.lang.acl.ContentMessageTemplate.MatchClass",
-            w.expr(THE_AGENT + "().getContentManager()"),
+            w.expr(CompilationHelper.compileAgentReference() +
+                ".getContentManager()"),
             w.expr("jadescript.core.percept.Percept.class")
         );
     }
@@ -64,7 +66,7 @@ public class TemplateCompilationHelper implements SemanticsConsts {
     public static MethodCallExpressionWriter isStale() {
         return w.callExpr(
             "jadescript.lang.acl.StaleMessageTemplate.matchStale",
-            w.expr("() -> " + THE_AGENT + "()")
+            w.expr("() -> " + CompilationHelper.compileAgentReference())
         );
     }
 

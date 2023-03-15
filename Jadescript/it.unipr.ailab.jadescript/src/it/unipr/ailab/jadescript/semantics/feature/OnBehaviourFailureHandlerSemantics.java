@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -31,8 +32,10 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
 import java.util.function.Function;
 
+import static it.unipr.ailab.maybe.Maybe.some;
+
 public class OnBehaviourFailureHandlerSemantics
-    extends FeatureSemantics<OnBehaviourFailureHandler> {
+    extends DeclarationMemberSemantics<OnBehaviourFailureHandler> {
 
     public OnBehaviourFailureHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -44,7 +47,8 @@ public class OnBehaviourFailureHandlerSemantics
         Maybe<OnBehaviourFailureHandler> input,
         Maybe<FeatureContainer> featureContainer,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
         if (input.isNothing()) {
             return;
@@ -75,10 +79,9 @@ public class OnBehaviourFailureHandlerSemantics
                 it.setVisibility(JvmVisibility.PRIVATE);
                 module.get(CompilationHelper.class).createAndSetInitializer(
                     it,
-                    scb -> {
-                        scb.add("new " + eventClass.getQualifiedName('.') +
-                            "()");
-                    }
+                    scb -> scb.add("new ")
+                        .add(eventClass.getQualifiedName('.'))
+                        .add("()")
                 );
             }
         ));
@@ -212,7 +215,8 @@ public class OnBehaviourFailureHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 propositionUpperBound,
-                pattern
+                pattern,
+                some(ExpressionDescriptor.failureReasonReference)
             );
 
             LValueExpressionSemantics lves =
@@ -303,9 +307,7 @@ public class OnBehaviourFailureHandlerSemantics
 
             wexpNarrowedContentType = afterWhenExprReturnedTrue.inferUpperBound(
                     ed -> ed.equals(
-                        new ExpressionDescriptor.PropertyChain(
-                            "failureReason"
-                        )
+                        ExpressionDescriptor.failureReasonReference
                     ),
                     null
                 ).findFirst()
@@ -404,7 +406,7 @@ public class OnBehaviourFailureHandlerSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnBehaviourFailureHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -449,7 +451,8 @@ public class OnBehaviourFailureHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 propositionUpperBound,
-                pattern
+                pattern,
+                some(ExpressionDescriptor.failureReasonReference)
             );
 
             LValueExpressionSemantics lves =
@@ -515,9 +518,7 @@ public class OnBehaviourFailureHandlerSemantics
                 wexpNarrowedContentType = afterWhenExprReturnedTrue
                     .inferUpperBound(
                         ed -> ed.equals(
-                            new ExpressionDescriptor.PropertyChain(
-                                "failureReason"
-                            )
+                            ExpressionDescriptor.failureReasonReference
                         ),
                         null
                     ).findFirst()
@@ -578,6 +579,16 @@ public class OnBehaviourFailureHandlerSemantics
         );
 
         module.get(ContextManager.class).exit();
+
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<OnBehaviourFailureHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
 
     }
 

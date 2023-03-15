@@ -1,6 +1,9 @@
 package jadescript.core.behaviours;
 
 
+import jadescript.java.AgentEnv;
+import jadescript.java.SideEffectsFlag;
+
 public class CyclicBehaviour<A extends jadescript.core.Agent>
         extends Behaviour<A> implements Cyclic {
     @Override
@@ -8,8 +11,10 @@ public class CyclicBehaviour<A extends jadescript.core.Agent>
         return ExecutionType.Cyclic;
     }
 
-    public CyclicBehaviour() {
-        super();
+    public CyclicBehaviour(
+        AgentEnv<? extends A, SideEffectsFlag.AnySideEffectFlag> _agentEnv
+    ) {
+        super(_agentEnv);
     }
 
     @Override
@@ -37,9 +42,14 @@ public class CyclicBehaviour<A extends jadescript.core.Agent>
         return new EmptyCyclicBehaviour();
     }
 
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({ "rawtypes", "serial" })
     public static class EmptyCyclicBehaviour extends jadescript.core.behaviours.CyclicBehaviour {
-        @Override
+    	
+        public EmptyCyclicBehaviour() {
+			super(null);
+		}
+
+		@Override
         public void doAction(int _tickCount) {
             throw new UninitializedBehaviourException();
         }

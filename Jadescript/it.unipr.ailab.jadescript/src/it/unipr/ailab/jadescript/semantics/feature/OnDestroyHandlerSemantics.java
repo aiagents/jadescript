@@ -1,13 +1,14 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnDestroyHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.maybe.Maybe;
@@ -25,7 +26,7 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
 public class OnDestroyHandlerSemantics
-    extends FeatureSemantics<OnDestroyHandler> {
+    extends DeclarationMemberSemantics<OnDestroyHandler> {
 
     public OnDestroyHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -37,11 +38,16 @@ public class OnDestroyHandlerSemantics
         Maybe<OnDestroyHandler> input,
         Maybe<FeatureContainer> container,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
+
         Maybe<QualifiedName> containerName = input
             .__(EcoreUtil2::getContainerOfType, TopElement.class)
-            .__(module.get(CompilationHelper.class)::getFullyQualifiedName);
+            .__(compilationHelper::getFullyQualifiedName);
+
         if (container.isInstanceOf(Agent.class)) {
             generateOnDestroyHandlerForAgent(input, members, containerName);
         } else { //container is a behaviour
@@ -61,7 +67,7 @@ public class OnDestroyHandlerSemantics
             module.get(JvmTypesBuilder.class);
         input.safeDo(handlerSafe -> members.add(jvmTypesBuilder.toMethod(
             handlerSafe,
-            "takeDown",
+            "__onDestroy",
             module.get(TypeHelper.class).typeRef(void.class),
             itMethod -> {
                 fillTakeDownMethod(
@@ -85,8 +91,9 @@ public class OnDestroyHandlerSemantics
     ) {
         jvmTypesBuilder.setDocumentation(
             itMethod,
-            containerName.__(QualifiedName::toString).extract(
-                nullAsEmptyString) + " TAKEDOWN"
+            containerName
+                .__(QualifiedName::toString)
+                .extract(nullAsEmptyString) + " on destroy"
         );
         itMethod.setVisibility(JvmVisibility.PROTECTED);
 
@@ -94,20 +101,21 @@ public class OnDestroyHandlerSemantics
         module.get(CompilationHelper.class).createAndSetBody(
             itMethod,
             scb -> {
-                w.callStmnt("super.takeDown").writeSonnet(scb);
+                w.callStmnt("super.__onDestroy").writeSonnet(scb);
 
                 scb.line("getContentManager()" +
-                        ".registerLanguage(" + CODEC_VAR_NAME +
-                        ");")
+                        ".registerLanguage(" + CODEC_VAR_NAME + ");")
                     .line();
                 if (!body.isPresent()) {
                     scb.line("//do nothing;");
                     return;
                 }
 
-                module.get(ContextManager.class).restore(savedContext);
+                final ContextManager contextManager =
+                    module.get(ContextManager.class);
+                contextManager.restore(savedContext);
 
-                module.get(ContextManager.class)
+                contextManager
                     .enterProceduralFeature(OnDestroyHandlerContext::new);
 
                 StaticState state = StaticState.beginningOfOperation(module);
@@ -118,7 +126,7 @@ public class OnDestroyHandlerSemantics
 
                 scb.add(encloseInGeneralHandlerTryCatch(blockPSR.result()));
 
-                module.get(ContextManager.class).exit();
+                contextManager.exit();
 
             }
         );
@@ -198,7 +206,7 @@ public class OnDestroyHandlerSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnDestroyHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -213,6 +221,16 @@ public class OnDestroyHandlerSemantics
         module.get(BlockSemantics.class).validate(body, state, acceptor);
 
         module.get(ContextManager.class).exit();
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<OnDestroyHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
+
     }
 
 }

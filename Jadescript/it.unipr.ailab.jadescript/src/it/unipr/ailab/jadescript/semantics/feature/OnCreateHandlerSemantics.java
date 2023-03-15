@@ -1,26 +1,29 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
+import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation;
+import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnCreateHandlerContext;
-import it.unipr.ailab.jadescript.semantics.context.search.UserLocalDefinition;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ActualParameter;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
-import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmMember;
+import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
@@ -30,11 +33,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace.symbolFromJvmParameter;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 public class OnCreateHandlerSemantics
-    extends FeatureSemantics<OnCreateHandler> {
+    extends DeclarationMemberSemantics<OnCreateHandler> {
 
     public OnCreateHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -46,7 +48,8 @@ public class OnCreateHandlerSemantics
         Maybe<OnCreateHandler> input,
         Maybe<FeatureContainer> container,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
         if (container.isInstanceOf(Agent.class)) {
             generateOnCreateHandlerForAgent(input, members);
@@ -80,10 +83,12 @@ public class OnCreateHandlerSemantics
 
         members.add(jvmTypesBuilder.toMethod(
             handlerSafe,
-            "onCreate",
+            "__onCreate",
             typeHelper.typeRef(void.class),
             itMethod -> {
                 Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+                itMethod.setVisibility(JvmVisibility.PRIVATE);
+
                 if (body.isNothing()) {
                     compilationHelper.createAndSetBody(
                         itMethod,
@@ -94,7 +99,6 @@ public class OnCreateHandlerSemantics
 
 
                 compilationHelper.createAndSetBody(itMethod, scb -> {
-                    w.callStmnt("super.onCreate").writeSonnet(scb);
 
                     List<Maybe<FormalParameter>> parameters = toListOfMaybes(
                         input.__(OnCreateHandler::getParameters)
@@ -148,7 +152,7 @@ public class OnCreateHandlerSemantics
         TypeHelper typeHelper = module.get(TypeHelper.class);
         if (isListOfText(parameters)) {
             //if that was true, add a variable in the scope with
-            // type List<String>.
+            // type JadescriptList<String>.
             Maybe<String> paramName = parameters.get(0)
                 .__(FormalParameter::getName);
 
@@ -163,9 +167,9 @@ public class OnCreateHandlerSemantics
             }
 
             w.variable(
-                "java.util.List<java.lang.String>",
+                "jadescript.util.JadescriptList<java.lang.String>",
                 paramNameSafe,
-                w.expr("new java.util.ArrayList<String>()")
+                w.expr("new jadescript.util.JadescriptList<String>()")
             ).writeSonnet(scb);
 
             // inside an if that checks that this .getArguments() is not
@@ -187,7 +191,7 @@ public class OnCreateHandlerSemantics
                 )
             ).writeSonnet(scb);
 
-            extractedParameters.add(new ActualParameter(
+            extractedParameters.add(ActualParameter.actualParameter(
                 paramNameSafe,
                 typeHelper.LIST.apply(
                     Collections.singletonList(typeHelper.TEXT)
@@ -196,7 +200,7 @@ public class OnCreateHandlerSemantics
 
         } else {
             //otherwise, add all the parameters as variables in the scope
-            // with correct types and casts from getArguments' elements.
+            // with correct types and casts from the elements of getArguments.
 
             for (int i = 0; i < parameters.size(); i++) {
                 Maybe<FormalParameter> parameter = parameters.get(i);
@@ -230,7 +234,7 @@ public class OnCreateHandlerSemantics
                     )
                 ).writeSonnet(scb);
 
-                extractedParameters.add(new ActualParameter(
+                extractedParameters.add(ActualParameter.actualParameter(
                     parameterNameSafe,
                     tes.toJadescriptType(parameterType)
                 ));
@@ -262,12 +266,16 @@ public class OnCreateHandlerSemantics
         Maybe<OnCreateHandler> input,
         EList<JvmMember> members
     ) {
-        final SavedContext savedContext =
-            module.get(ContextManager.class).save();
         if (input.isNothing()) {
             return;
         }
+
+        final ContextManager contextManager = module.get(ContextManager.class);
+
+        final SavedContext savedContext = contextManager.save();
+
         OnCreateHandler inputSafe = input.toNullable();
+
         Maybe<EList<FormalParameter>> parameters =
             input.__(OnCreateHandler::getParameters);
 
@@ -276,69 +284,109 @@ public class OnCreateHandlerSemantics
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
 
+        final CompilationHelper compilationHelper = module.get(
+            CompilationHelper.class);
+
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+
         members.add(jvmTB.toConstructor(
             inputSafe,
             itCtor -> {
-                List<JvmFormalParameter> pars = stream(parameters)
-                    .flatMap(Maybe::filterNulls)
-                    .map(p -> jvmTB.toParameter(
-                        p,
-                        p.getName(),
-                        tes.toJadescriptType(
-                                some(p.getType()))
-                            .asJvmTypeReference()
-                    ))
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+                contextManager.restore(savedContext);
 
                 if (itCtor.getParameters() != null) {
-                    itCtor.getParameters().addAll(pars);
+
+                    final Maybe<IJadescriptType> contextAgent =
+                        Maybe.fromOpt(contextManager.currentContext().searchAs(
+                            AgentAssociationComputer.class,
+                            aac -> aac.computeAllAgentAssociations()
+                                .map(AgentAssociation::getAgent)
+                        ).findFirst());
+
+
+                    itCtor.getParameters().add(jvmTB.toParameter(
+                        inputSafe,
+                        AGENT_ENV,
+                        typeHelper.AGENTENV
+                            .apply(List.of(
+                                typeHelper.covariant(
+                                    contextAgent.orElse(typeHelper.AGENT)
+                                ),
+                                typeHelper.jtFromClass(
+                                    AgentEnvType.toSEModeClass(
+                                        AgentEnvType.SEMode.WITH_SE
+                                    )
+                                )
+                            )).asJvmTypeReference()
+                    ));
+
+                    stream(parameters)
+                        .flatMap(Maybe::filterNulls)
+                        .map(p -> jvmTB.toParameter(
+                            p,
+                            p.getName() != null ? p.getName() : "",
+                            tes.toJadescriptType(some(p.getType()))
+                                .asJvmTypeReference()
+                        ))
+                        .filter(Objects::nonNull)
+                        .forEach(itCtor.getParameters()::add);
                 }
 
-                final CompilationHelper compilationHelper =
-                    module.get(CompilationHelper.class);
-                compilationHelper.createAndSetBody(
-                    itCtor,
-                    scb -> {
-                        module.get(ContextManager.class).restore(savedContext);
 
-                        module.get(ContextManager.class).enterProceduralFeature(
-                            (mod, out) -> new OnCreateHandlerContext(
-                                mod,
-                                out,
-                                pars.stream().map(jvmPar ->
-                                    symbolFromJvmParameter(
-                                        mod,
-                                        UserLocalDefinition.getInstance(),
-                                        jvmPar
-                                    )
-                                ).collect(Collectors.toList())
+                compilationHelper.createAndSetBody(itCtor, scb -> {
+                    contextManager.restore(savedContext);
+
+                    final List<ActualParameter> actualParameters =
+                        (itCtor.getParameters() == null
+                            ? List.of()
+                            : itCtor.getParameters().stream()
+                            .filter(jvmPar ->
+                                !AGENT_ENV.equals(jvmPar.getName())
                             )
+                            .map(jvmPar -> ActualParameter.actualParameter(
+                                jvmPar.getName(),
+                                typeHelper.jtFromJvmTypeRef(
+                                    jvmPar.getParameterType()
+                                )
+                            ))
+                            .collect(Collectors.toList()));
+
+                    contextManager.enterProceduralFeature(
+                        (mod, out) -> new OnCreateHandlerContext(
+                            mod,
+                            out,
+                            actualParameters
+                        )
+                    );
+
+
+                    w.callStmnt("super", w.expr(AGENT_ENV)).writeSonnet(scb);
+                    w.callStmnt("__initializeAgentEnv").writeSonnet(scb);
+                    w.callStmnt("__initializeProperties").writeSonnet(scb);
+
+                    StaticState inBody =
+                        StaticState.beginningOfOperation(module);
+
+                    inBody = inBody.enterScope();
+                    final PSR<SourceCodeBuilder> bodyPSR =
+                        compilationHelper.compileBlockToNewSCB(
+                            inBody,
+                            input.__(FeatureWithBody::getBody)
                         );
+                    scb.add(encloseInGeneralHandlerTryCatch(
+                        bodyPSR.result()
+                    ));
 
-                        StaticState inBody =
-                            StaticState.beginningOfOperation(module);
-
-                        inBody = inBody.enterScope();
-                        final PSR<SourceCodeBuilder> bodyPSR =
-                            compilationHelper.compileBlockToNewSCB(
-                                inBody,
-                                input.__(FeatureWithBody::getBody)
-                            );
-                        scb.add(encloseInGeneralHandlerTryCatch(
-                            bodyPSR.result()
-                        ));
-
-                        module.get(ContextManager.class).exit();
-                    }
-                );
+                    contextManager.exit();
+                });
             }
         ));
     }
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnCreateHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -379,7 +427,7 @@ public class OnCreateHandlerSemantics
 
                 if (paramTypeCheck == VALID && parameterName.isPresent()) {
                     String parameterNameSafe = parameterName.toNullable();
-                    extractedParameters.add(new ActualParameter(
+                    extractedParameters.add(ActualParameter.actualParameter(
                         parameterNameSafe,
                         tes.toJadescriptType(
                             parameter.__(FormalParameter::getType)
@@ -389,10 +437,7 @@ public class OnCreateHandlerSemantics
             }
         }
 
-        module.get(ContextManager.class).enterProceduralFeature((
-            mod,
-            out
-        ) ->
+        module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
             new OnCreateHandlerContext(mod, out, extractedParameters));
 
         StaticState inBody = StaticState.beginningOfOperation(module);
@@ -402,6 +447,16 @@ public class OnCreateHandlerSemantics
         module.get(BlockSemantics.class).validate(body, inBody, acceptor);
 
         module.get(ContextManager.class).exit();
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<OnCreateHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
+
     }
 
 }

@@ -28,13 +28,27 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
     protected static final Ontology _instance = new Ontology();
 
 
-    public static void __populateMapSchema(TermSchema keySchema, TermSchema valueSchema, ConceptSchema mapSchema) {
+    public static void __populateMapSchema(
+        TermSchema keySchema,
+        TermSchema valueSchema,
+        ConceptSchema mapSchema
+    ) {
         mapSchema.add(KEYS, keySchema, 0, ObjectSchema.UNLIMITED);
         mapSchema.add(VALUES, valueSchema, 0, ObjectSchema.UNLIMITED);
     }
 
-    public static void __populateSetSchema(TermSchema elementSchema, ConceptSchema setSchema) {
+    public static void __populateSetSchema(
+        TermSchema elementSchema,
+        ConceptSchema setSchema
+    ) {
         setSchema.add(ELEMENTS, elementSchema, 0, ObjectSchema.UNLIMITED);
+    }
+
+    public static void __populateListSchema(
+        TermSchema elementSchema,
+        ConceptSchema listSchema
+    ) {
+        listSchema.add(ELEMENTS, elementSchema, 0, ObjectSchema.UNLIMITED);
     }
 
 
@@ -96,6 +110,7 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
             //Support types for Jadescript collections
             add(new ConceptSchema(MAP_ENTRY), JadescriptMapEntry.class);
             add(new ConceptSchema(SET_ENTRY), JadescriptSetEntry.class);
+            add(new ConceptSchema(LIST_ENTRY), JadescriptListEntry.class);
 
             //Jadescript basic types
             add(new AgentActionSchema(PERFORMATIVE), Performative.class);
@@ -211,8 +226,6 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
         } catch (OntologyException e) {
             e.printStackTrace();
         }
-
-
     }
 
     public static Ontology getInstance() {

@@ -30,8 +30,8 @@ public class JadescriptSetEntry<T> implements Concept {
         return input.stream().map(JadescriptSetEntry::of).collect(Collectors.toList());
     }
 
-    public static <Tt> Set<Tt> fromListOfEntries(List<JadescriptSetEntry<Tt>> input){
-        Set<Tt> result = new JadescriptSet<>();
+    public static <Tt> JadescriptSet<Tt> fromListOfEntries(List<JadescriptSetEntry<Tt>> input){
+        JadescriptSet<Tt> result = new JadescriptSet<>();
         for (JadescriptSetEntry<Tt> entry : input) {
             result.add(entry.getElement());
         }

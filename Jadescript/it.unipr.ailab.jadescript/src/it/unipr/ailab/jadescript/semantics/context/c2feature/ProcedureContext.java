@@ -16,6 +16,7 @@ public class ProcedureContext extends FunctionOrProcedureContext {
         super(module, outer, procedureName, parameters);
     }
 
+
     @Override
     public void debugDump(SourceCodeBuilder scb) {
         super.debugDump(scb);

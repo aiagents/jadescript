@@ -6,8 +6,8 @@ import it.unipr.ailab.jadescript.semantics.context.ScopeType;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.search.UserLocalDefinition;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.SymbolUtils;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.LocalName;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Name;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
 
 /**
  * Immutable implementation of a knowledge base for flow-sensitive analysis
@@ -33,17 +35,14 @@ import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
  */
 public final class StaticState
     implements Searcheable,
-    NamedSymbol.Searcher,
+    LocalName.Namespace,
     FlowSensitiveInferrer,
     SemanticsConsts {
 
-    //TODO change: introduce 'trivially co-referent' semantics
-    // - several expressions could be trivially referring to the same value
-    //   - e.g., 'X' and 'X of this'
 
     private final SemanticsModule module;
     private final Searcheable outer;
-    private final ImmutableMap<String, NamedSymbol> variables;
+    private final ImmutableMap<String, LocalName> variables;
     private final
     ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds;
     private final boolean valid;
@@ -77,7 +76,7 @@ public final class StaticState
         SemanticsModule module,
         Searcheable outer,
         ScopeType scopeType,
-        ImmutableMap<String, NamedSymbol> variables,
+        ImmutableMap<String, LocalName> variables,
         ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds
     ) {
         this.module = module;
@@ -114,6 +113,67 @@ public final class StaticState
     }
 
 
+    public static Optional<LocalName> intersectNamedSymbols(
+        Collection<? extends LocalName> nss,
+        SemanticsModule module
+    ) {
+
+        if (nss.isEmpty()) {
+            return empty();
+        }
+
+        if (nss.size() == 1) {
+            for (LocalName namedSymbol : nss) {
+                return of(namedSymbol);
+            }
+        }
+
+        TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        //All names must be the same
+        String name = null;
+        IJadescriptType lub = null;
+        for (LocalName ns : nss) {
+            if (name == null) {
+                name = ns.name();
+                lub = ns.readingType();
+            } else {
+                if (!name.equals(ns.name())) {
+                    return empty();
+                }
+                lub = typeHelper.getLUB(lub, ns.readingType());
+            }
+        }
+
+        Name.Signature signature = null;
+        boolean allSameSignature = true;
+        for (LocalName ns : nss) {
+            if (signature == null) {
+                signature = ns.getSignature();
+            } else {
+                if (!signature.equals(ns.getSignature())) {
+                    allSameSignature = false;
+                    break;
+                }
+            }
+        }
+
+
+        if (allSameSignature) {
+            for (LocalName namedSymbol : nss) {
+                return of(namedSymbol);
+            }
+        }
+
+        //for now, names are successfully intersected only if they have same
+        // signature.
+        // In the future, we might use representations for names that
+        // come from the intersection of other (source) names, using a
+        // late-binding compilation system.
+        return empty();
+    }
+
+
     @Contract(pure = true)
     public boolean isValid() {
         return valid;
@@ -121,19 +181,11 @@ public final class StaticState
 
 
     @Override
-    @Contract(pure = true)
-    public Stream<? extends NamedSymbol> searchName(
-        Predicate<String> name,
-        Predicate<IJadescriptType> readingType,
-        Predicate<Boolean> canWrite
+    public Stream<? extends LocalName> localNames(
+        @Nullable String name
     ) {
-        Stream<? extends NamedSymbol> result = variables.streamValues();
-
-        result = safeFilter(result, NamedSymbol::name, name);
-        result = safeFilter(result, NamedSymbol::readingType, readingType);
-        result = safeFilter(result, NamedSymbol::canWrite, canWrite);
-
-        return result;
+        return variables.streamValues()
+            .filter(v -> name == null || v.name().equals(name));
     }
 
 
@@ -158,7 +210,7 @@ public final class StaticState
 
 
     @Contract(pure = true)
-    public ImmutableMap<String, NamedSymbol> getLocalScopeNamedSymbols() {
+    public ImmutableMap<String, LocalName> getLocalScopeNamedSymbols() {
         return variables;
     }
 
@@ -234,6 +286,7 @@ public final class StaticState
             )
         );
     }
+
 
     public StaticState assertAllFlowTypingUpperBound(
         ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds
@@ -384,8 +437,8 @@ public final class StaticState
 
 
     @Contract(pure = true)
-    public StaticState assertNamedSymbol(NamedSymbol ns) {
-        final ImmutableMap<String, NamedSymbol> namedSymbols =
+    public StaticState declareName(LocalName ns) {
+        final ImmutableMap<String, LocalName> namedSymbols =
             this.getLocalScopeNamedSymbols();
 
         if (namedSymbols.containsKey(ns.name()) &&
@@ -408,9 +461,10 @@ public final class StaticState
         );
     }
 
+
     public StaticState assertAllNamedSymbols(
-        Collection<? extends NamedSymbol> nss
-    ){
+        Collection<? extends LocalName> nss
+    ) {
 
         return new StaticState(
             true,
@@ -419,7 +473,7 @@ public final class StaticState
             scopeType,
             getLocalScopeNamedSymbols().mergeAddAll(
                 nss,
-                NamedSymbol::name,
+                LocalName::name,
                 (__, n2) -> n2 // Force redeclaration
             ),
             this.getLocalScopeFlowTypingUpperBounds()
@@ -511,20 +565,22 @@ public final class StaticState
     }
 
 
-    private ImmutableMap<String, NamedSymbol> intersectSymbols(
+    private ImmutableMap<String, LocalName> intersectSymbols(
         StaticState other
     ) {
-        ImmutableMap<String, NamedSymbol> a = this.getLocalScopeNamedSymbols();
-        ImmutableMap<String, NamedSymbol> b = other.getLocalScopeNamedSymbols();
+        ImmutableMap<String, LocalName> a =
+            this.getLocalScopeNamedSymbols();
+        ImmutableMap<String, LocalName> b =
+            other.getLocalScopeNamedSymbols();
 
         ImmutableSet<String> keys = a.getKeys().intersection(b.getKeys());
 
 
         return keys.associateOpt(key -> {
-            Set<NamedSymbol> nss = new HashSet<>();
+            Set<LocalName> nss = new HashSet<>();
             nss.add(a.getUnsafe(key));
             nss.add(b.getUnsafe(key));
-            return SymbolUtils.intersectNamedSymbols(nss, module);
+            return intersectNamedSymbols(nss, module);
         });
     }
 
@@ -605,11 +661,12 @@ public final class StaticState
         );
     }
 
+
     @Contract(pure = true)
-    public StaticState copyInnermostContentFrom(StaticState other){
-        final List<? extends NamedSymbol> namedSymbols =
+    public StaticState copyInnermostContentFrom(StaticState other) {
+        final List<? extends LocalName> namedSymbols =
             other.getLocalScopeNamedSymbols().streamValues()
-            .collect(Collectors.toList());
+                .collect(Collectors.toList());
 
         final ImmutableMap<ExpressionDescriptor, IJadescriptType> ubs =
             other.getLocalScopeFlowTypingUpperBounds();
@@ -627,7 +684,7 @@ public final class StaticState
             scb.open("Variables = [");
             for (String key : this.getLocalScopeNamedSymbols().getKeys()) {
                 this.getLocalScopeNamedSymbols().getUnsafe(key)
-                    .debugDumpNamedSymbol(scb);
+                    .debugDumpName(scb);
             }
             scb.close("]");
             scb.open("UpperBounds = [");

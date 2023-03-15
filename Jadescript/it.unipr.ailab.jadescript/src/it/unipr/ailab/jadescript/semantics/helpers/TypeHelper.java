@@ -18,14 +18,18 @@ import jadescript.content.*;
 import jadescript.core.Agent;
 import jadescript.core.behaviours.*;
 import jadescript.core.message.*;
+import jadescript.java.AgentEnv;
+import jadescript.java.SideEffectsFlag;
 import jadescript.lang.Performative;
 import jadescript.lang.Tuple;
+import jadescript.util.JadescriptList;
 import jadescript.util.JadescriptMap;
 import jadescript.util.JadescriptSet;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.naming.IQualifiedNameProvider;
+import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
@@ -51,18 +55,23 @@ public class TypeHelper implements SemanticsConsts {
 
     public static final String builtinPrefix = "BUILTIN#";
     public static final String VOID_TYPEID = builtinPrefix + "JAVAVOID";
-    // Top and bottom
-    //TODO use new TOP when possible
+    // Top and bottom: equal to ANY and NOTHING; but include an error text
+    // message, to explain what caused the erroneous type to result from type
+    // inferring:
+    //TODO use new TOP & BOTTOM when possible
     public final Function<String, UtilityType> TOP;
     public final Function<String, UtilityType> BOTTOM;
+    // ANY = Supertype of all types. NOTHING = Subtype of all types.
     public final UtilityType ANY;
     public final UtilityType NOTHING;
-    // Common useful Jvm types
+    // Common useful Jvm types:
     public final UtilityType VOID;
     public final UtilityType NUMBER;
     public final UtilityType SERIALIZABLE;
     public final UtilityType ANYMESSAGE;
-    // Jadescript basic types
+    public final AgentEnvType ANYAGENTENV;
+    public final Function<List<TypeArgument>, AgentEnvType> AGENTENV;
+    // Jadescript basic types:
     public final BasicType INTEGER;
     public final BasicType BOOLEAN;
     public final BasicType TEXT;
@@ -71,19 +80,19 @@ public class TypeHelper implements SemanticsConsts {
     public final BasicType AID;
     public final BasicType DURATION;
     public final BasicType TIMESTAMP;
-    // Jadescript collection types
+    // Jadescript collection types:
     public final Function<List<TypeArgument>, ListType> LIST;
     public final Function<List<TypeArgument>, MapType> MAP;
     public final Function<List<TypeArgument>, SetType> SET;
     public final Function<List<TypeArgument>, TupleType> TUPLE;
-    // Jadescript Basic Agent type
+    // Jadescript Basic Agent type:
     public final BaseAgentType AGENT;
-    // Jadescript Message types
+    // Jadescript Message types:
     public final Function<List<TypeArgument>, ? extends BaseMessageType>
         MESSAGE;
-    // Jadescript Basic Ontology type
+    // Jadescript Basic Ontology type:
     public final BaseOntologyType ONTOLOGY;
-    // Jadescript Basic Behaviour type
+    // Jadescript Basic Behaviour type:
     public final Function<List<TypeArgument>, BaseBehaviourType> BEHAVIOUR;
     public final Function<List<TypeArgument>, BaseBehaviourType>
         CYCLIC_BEHAVIOUR;
@@ -125,6 +134,7 @@ public class TypeHelper implements SemanticsConsts {
     public final Function<List<TypeArgument>, MessageSubType> PROXY_MESSAGE;
     public final Function<List<TypeArgument>, MessageSubType> PROPAGATE_MESSAGE;
     public final Function<List<TypeArgument>, MessageSubType> UNKNOWN_MESSAGE;
+    public final UnknownJVMType ANY_SE_MODE;
     //Associates JVM fully-qualified-name strings to Jadescript types.
     private final Map<String, IJadescriptType> defaultJVMToDescriptorTable =
         new HashMap<>();
@@ -316,13 +326,12 @@ public class TypeHelper implements SemanticsConsts {
             "\"\""
         );
         defineJVMToDescriptor(String.class, TEXT);
-        TEXT.addProperty(new Property(
+        TEXT.addProperty(Property.readonlyProperty(
             "length",
             INTEGER,
-            true,
-            new JadescriptTypeLocation(TEXT)
-        )
-            .setCompileByCustomJVMMethod("length", "length"));
+            new JadescriptTypeLocation(TEXT),
+            Property.compileGetWithCustomMethod("length")
+        ));
         REAL = new BasicType(
             this.module,
             builtinPrefix + "real",
@@ -353,10 +362,18 @@ public class TypeHelper implements SemanticsConsts {
             "new jade.core.AID()"
         );
         final SearchLocation aidLocation = new JadescriptTypeLocation(AID);
-        AID.addProperty(new Property("name", TEXT, true, aidLocation)
-            .setCompileByJVMAccessors());
-        AID.addProperty(new Property("platform", TEXT, true, aidLocation)
-            .setCompileByCustomJVMMethod("getPlatformID", "setPlatformID"));
+        AID.addProperty(Property.readonlyProperty(
+            "name",
+            TEXT,
+            aidLocation,
+            Property.compileWithJVMGetter("name")
+        ));
+        AID.addProperty(Property.readonlyProperty(
+            "platform",
+            TEXT,
+            aidLocation,
+            Property.compileGetWithCustomMethod("getPlatformID")
+        ));
         defineJVMToDescriptor(jade.core.AID.class, AID);
         DURATION = new BasicType(
             this.module,
@@ -471,7 +488,7 @@ public class TypeHelper implements SemanticsConsts {
 
 
         LIST = (arguments) -> new ListType(module, arguments.get(0));
-        defineJVMToGenericDescriptor(List.class, LIST, 1);
+        defineJVMToGenericDescriptor(JadescriptList.class, LIST, 1);
 
         MAP = (arguments) -> new MapType(
             module,
@@ -487,6 +504,25 @@ public class TypeHelper implements SemanticsConsts {
 
         AGENT = new BaseAgentType(module);
         defineJVMToDescriptor(jadescript.core.Agent.class, AGENT);
+
+        AGENTENV = (args) -> new AgentEnvType(
+            module,
+            args.get(0),
+            args.get(1),
+            AGENT
+        );
+
+        defineJVMToGenericDescriptor(AgentEnv.class, AGENTENV, 2);
+
+        ANY_SE_MODE = new UnknownJVMType(
+            module,
+            typeRef(SideEffectsFlag.AnySideEffectFlag.class),
+            /*permissive = */false
+        );
+
+        ANYAGENTENV = AGENTENV.apply(
+            List.of(covariant(AGENT), covariant(ANY_SE_MODE))
+        );
 
         MESSAGE = (arguments) -> new BaseMessageType(module, arguments.get(0));
         defineJVMToGenericDescriptor(
@@ -1371,11 +1407,11 @@ public class TypeHelper implements SemanticsConsts {
 
 
     private IJadescriptType jtFromJvmTypeRefWithoutReattempts(
-        JvmTypeReference reference
+        JvmTypeReference reference,
+        boolean permissive
     ) {
         final Maybe<IJadescriptType> fromJVMTypeReference =
-            this.getFromJVMTypeReference(
-                reference);
+            this.getFromJVMTypeReference(reference);
 
         IJadescriptType result;
         if (fromJVMTypeReference.isPresent()) {
@@ -1387,7 +1423,7 @@ public class TypeHelper implements SemanticsConsts {
             result =
                 resolveTupleType(((JvmParameterizedTypeReference) reference));
         } else {
-            result = resolveNonBuiltinType(reference);
+            result = resolveNonBuiltinType(reference, permissive);
         }
         return result;
     }
@@ -1396,7 +1432,18 @@ public class TypeHelper implements SemanticsConsts {
     public IJadescriptType jtFromJvmTypeRef(
         JvmTypeReference reference
     ) {
-        IJadescriptType result = jtFromJvmTypeRefWithoutReattempts(reference);
+        return jtFromJvmTypeRef(reference, false);
+    }
+
+
+    public IJadescriptType jtFromJvmTypeRef(
+        JvmTypeReference reference,
+        boolean permissive
+    ) {
+        IJadescriptType result = jtFromJvmTypeRefWithoutReattempts(
+            reference,
+            permissive
+        );
 
         if (result.isJavaVoid()) {
             ICompositeNode node = NodeModelUtils.getNode(reference);
@@ -1417,7 +1464,10 @@ public class TypeHelper implements SemanticsConsts {
                         .findAny()
                         .orElse(typeRef(finalNode.getText()));
 
-                return jtFromJvmTypeRefWithoutReattempts(reattempt);
+                return jtFromJvmTypeRefWithoutReattempts(
+                    reattempt,
+                    permissive
+                );
             }
         }
         return result;
@@ -1455,7 +1505,10 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
-    private IJadescriptType resolveNonBuiltinType(JvmTypeReference reference) {
+    private IJadescriptType resolveNonBuiltinType(
+        JvmTypeReference reference,
+        boolean permissive
+    ) {
         if (isAssignable(JadescriptConcept.class, reference)) {
             return new UserDefinedOntoContentType(
                 module,
@@ -1550,7 +1603,8 @@ public class TypeHelper implements SemanticsConsts {
                 ONTOLOGY
             );
         }
-        return new UnknownJVMType(module, reference);
+
+        return new UnknownJVMType(module, reference, permissive);
 
     }
 
@@ -1561,6 +1615,33 @@ public class TypeHelper implements SemanticsConsts {
     ) {
         return jtFromJvmTypeRef(this.typeRef(itClass, typeArguments));
     }
+
+
+    public IJadescriptType jtFromJvmTypePermissive(
+        JvmDeclaredType itClass,
+        JvmTypeReference... typeArguments
+    ) {
+        return jtFromJvmTypeRef(
+            this.typeRef(itClass, typeArguments),
+            /*permissive = */true
+        );
+    }
+
+
+    public IJadescriptType beingDeclaredAgentType(
+        JvmDeclaredType itClass,
+        Maybe<IJadescriptType> superType
+    ) {
+        return new UserDefinedAgentType(
+            module,
+            typeRef(itClass),
+            superType,
+            AGENT
+        );
+    }
+
+
+
 
 
     public IJadescriptType jtFromClass(
@@ -1662,8 +1743,7 @@ public class TypeHelper implements SemanticsConsts {
                     args.add(typeDescriptor);
                 }
                 final Integer expectedArguments =
-                    expectedGenericDescriptorArguments.get(
-                        noGenericsTypeName);
+                    expectedGenericDescriptorArguments.get(noGenericsTypeName);
                 if (expectedArguments != null
                     && expectedArguments == args.size()) {
                     return some(defaultJVMToGenericDescriptorTable.get(
@@ -1747,7 +1827,8 @@ public class TypeHelper implements SemanticsConsts {
         Maybe<OntologyType> mt1,
         Maybe<OntologyType> mt2,
         List<Maybe<OntologyType>> mts
-    ) {//TODO multiple ontologies
+    ) {
+        //TODO multiple ontologies
         Maybe<OntologyType> result = getOntologyGLB(mt1, mt2);
         for (Maybe<OntologyType> mt : mts) {
             if (result.isNothing()) {
@@ -1762,7 +1843,8 @@ public class TypeHelper implements SemanticsConsts {
     public Maybe<OntologyType> getOntologyGLB(
         Maybe<OntologyType> mt1,
         Maybe<OntologyType> mt2
-    ) {//TODO multiple ontologies
+    ) {
+        //TODO multiple ontologies
         if (mt1.isNothing()) {
             return nothing();
         }
@@ -1984,10 +2066,13 @@ public class TypeHelper implements SemanticsConsts {
         EObject eObject,
         JvmTypeReference... typeParameters
     ) {
-        return typeRef(
+        final @Nullable QualifiedName nullableFQName =
             module.get(IQualifiedNameProvider.class)
-                .getFullyQualifiedName(eObject)
-                .toString("."),
+                .getFullyQualifiedName(eObject);
+        return typeRef(
+            nullableFQName == null
+                ? ""
+                : nullableFQName.toString("."),
             typeParameters
         );
     }
@@ -2317,7 +2402,7 @@ public class TypeHelper implements SemanticsConsts {
                 }
             }
         }
-        return ANY;
+        return TOP.apply("Could not compute LUB between "+t1+ " and "+t2);
     }
 
 

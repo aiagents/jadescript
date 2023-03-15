@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -38,7 +39,8 @@ public class PutBackStatementSemantics
             input.__(PutbackStatement::getMessage);
 
         acceptor.accept(
-            w.callStmnt(THE_AGENT + "().__putBackMessage", w.expr(
+            w.callStmnt(CompilationHelper.compileAgentReference() +
+                ".__putBackMessage", w.expr(
                 rves.compile(message, state, acceptor)
             ))
         );

@@ -7,7 +7,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -75,13 +75,9 @@ public class ClearStatementSemantics
         StaticState afterCollection = rves.advance(collection, state);
         module.get(ValidationHelper.class).asserting(
             collectionType.namespace().searchAs(
-                CallableSymbol.Searcher.class,
-                searcher -> searcher.searchCallable(
-                    "clear",
-                    null,
-                    (s, n) -> s == 0,
-                    (s, t) -> s == 0
-                )
+                MemberCallable.Namespace.class,
+                searcher -> searcher.memberCallables("clear")
+                    .filter(mc -> mc.arity() == 0)
             ).findAny().isPresent(),
             "NotClearableCollection",
             "Cannot perform 'clear' on this type of collection - '" +

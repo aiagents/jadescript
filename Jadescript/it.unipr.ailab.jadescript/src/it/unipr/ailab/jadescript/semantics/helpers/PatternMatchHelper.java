@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.helpers;
 
 import it.unipr.ailab.jadescript.jadescript.LValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.AssignmentDeconstruction;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.HandlerHeader;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.MatchesExpression;
@@ -234,7 +235,8 @@ public class PatternMatchHelper implements SemanticsConsts {
 
     public AssignmentDeconstruction<LValueExpression> assignmentDeconstruction(
         IJadescriptType rightType,
-        Maybe<LValueExpression> pattern
+        Maybe<LValueExpression> pattern,
+        Maybe<ExpressionDescriptor> descriptorMaybe
     ) {
 
         return new AssignmentDeconstruction<>(
@@ -242,48 +244,55 @@ public class PatternMatchHelper implements SemanticsConsts {
             rightType,
             pattern,
             "deconstruct",
-            getPatternMatcherVariableName(pattern)
+            getPatternMatcherVariableName(pattern),
+            descriptorMaybe
         );
     }
 
 
     public WhenMatchesStatement<LValueExpression> whenMatchesStatement(
         IJadescriptType inputExprType,
-        Maybe<LValueExpression> pattern
+        Maybe<LValueExpression> pattern,
+        Maybe<ExpressionDescriptor> descriptorMaybe
     ) {
         return new WhenMatchesStatement<>(
             module,
             inputExprType,
             pattern,
             "whenMatch",
-            getPatternMatcherVariableName(pattern)
+            getPatternMatcherVariableName(pattern),
+            descriptorMaybe
         );
     }
 
 
     public MatchesExpression<LValueExpression> matchesExpression(
         IJadescriptType inputExprType,
-        Maybe<LValueExpression> pattern
+        Maybe<LValueExpression> pattern,
+        Maybe<ExpressionDescriptor> descriptorMaybe
     ) {
         return new MatchesExpression<>(
             module,
             inputExprType,
             pattern,
             "match",
-            getPatternMatcherVariableName(pattern)
+            getPatternMatcherVariableName(pattern),
+            descriptorMaybe
         );
     }
 
     public HandlerHeader<LValueExpression> handlerHeader(
         IJadescriptType contentUpperBound,
-        Maybe<LValueExpression> pattern
+        Maybe<LValueExpression> pattern,
+        Maybe<ExpressionDescriptor> descriptorMaybe
     ) {
         return new HandlerHeader<>(
             module,
             contentUpperBound,
             pattern,
             "headerMatch",
-            getPatternMatcherVariableName(pattern)
+            getPatternMatcherVariableName(pattern),
+            descriptorMaybe
         );
     }
 

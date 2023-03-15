@@ -3,7 +3,6 @@ package it.unipr.ailab.jadescript.semantics.topelement;
 import com.google.common.collect.HashMultimap;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import jadescript.java.NativeValueFactory;
 import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.Semantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -18,10 +17,11 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntoContentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ParametricType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmTypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
+import jadescript.java.NativeValueFactory;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.naming.QualifiedName;
@@ -273,7 +273,7 @@ public class OntologyElementSemantics extends Semantics {
         }
 
 
-        JvmTypeNamespace superNamespace = new JvmTypeNamespace(
+        JvmTypeNamespace superNamespace = JvmTypeNamespace.resolved(
             module,
             (JvmDeclaredType) superTypeDeclaredSafe
         );
@@ -481,7 +481,7 @@ public class OntologyElementSemantics extends Semantics {
             acceptor
         );
 
-        if(slotTypeExprCheck == INVALID){
+        if (slotTypeExprCheck == INVALID) {
             return INVALID;
         }
 
@@ -511,7 +511,7 @@ public class OntologyElementSemantics extends Semantics {
             inputWithSlots.__(FeatureWithSlots::getSlots);
         for (Maybe<SlotDeclaration> slot : iterate(slots)) {
             final Maybe<String> slotName = slot.__(SlotDeclaration::getName);
-            if(slot.isNothing()||slotName.isNothing()){
+            if (slot.isNothing() || slotName.isNothing()) {
                 continue;
             }
 
@@ -577,6 +577,10 @@ public class OntologyElementSemantics extends Semantics {
 
         final QualifiedName fullyQualifiedName =
             compilationHelper.getFullyQualifiedName(inputSafe);
+
+        if (fullyQualifiedName == null) {
+            return Stream.empty();
+        }
 
         return Stream.of(jvmTB.toClass(
             inputSafe,
@@ -681,9 +685,13 @@ public class OntologyElementSemantics extends Semantics {
 
         final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
 
+        if (fqName == null) {
+            return Stream.empty();
+        }
+
         return Stream.of(jvmTB.toClass(
             inputSafe,
-            fqName != null ? fqName.toString() : null,
+            fqName.toString(),
             (JvmGenericType itClass) -> {
                 itClass.setAbstract(true);
                 module.get(ContextManager.class)
@@ -703,7 +711,7 @@ public class OntologyElementSemantics extends Semantics {
             }
         ), jvmTB.toInterface(
             inputSafe,
-            fqName != null ? (fqName + "Factory") : null,
+            fqName.toString() + "Factory",
             itClass -> fillNativeInterface(
                 input,
                 inputSafe,
@@ -953,7 +961,7 @@ public class OntologyElementSemantics extends Semantics {
             }
         }
 
-        final JvmTypeNamespace superTypeNamespace = new JvmTypeNamespace(
+        final JvmTypeNamespace superTypeNamespace = JvmTypeNamespace.resolved(
             module,
             superTypeDeclaredSafe
         );
@@ -1057,12 +1065,21 @@ public class OntologyElementSemantics extends Semantics {
         });
 
 
-        superTypeNamespace.getBiggestCtor().ifPresent(c -> {
-            compiledSuperArguments.addAll(CallSemantics
-                .sortToMatchParamNames(
+        superTypeNamespace.getBiggestCtor().ifPresent((JvmConstructor c) -> {
+            final EList<JvmFormalParameter> parameters = c.getParameters();
+            if (parameters == null) {
+                return;
+            }
+
+
+            compiledSuperArguments.addAll(
+                CallSemantics.sortToMatchParamNames(
                     superArgs,
                     ctorArgNames,
-                    c.parameterNames()
+                    parameters.stream()
+                        .map(JvmFormalParameter::getName)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList())
                 ));
         });
 
@@ -1553,7 +1570,6 @@ public class OntologyElementSemantics extends Semantics {
 
 
     private void fillToStringMethod(
-
         ExtendingFeature inputSafe,
         TypeHelper typeHelper,
         CompilationHelper compilationHelper,
@@ -1568,8 +1584,11 @@ public class OntologyElementSemantics extends Semantics {
         w.callStmnt(
             "_sb.append",
             w.stringLiteral(
-                compilationHelper.getFullyQualifiedName(inputSafe)
-                    .toString()
+                some(inputSafe)
+                    .__(compilationHelper::getFullyQualifiedName)
+                    .__(QualifiedName::toString)
+                    .orElse("")
+
             )
         ).writeSonnet(scb);
 

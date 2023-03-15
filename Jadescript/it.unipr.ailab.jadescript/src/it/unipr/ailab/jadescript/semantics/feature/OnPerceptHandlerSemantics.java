@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
@@ -41,9 +42,10 @@ import java.util.List;
 import java.util.function.Function;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 public class OnPerceptHandlerSemantics
-    extends FeatureSemantics<OnPerceptHandler> {
+    extends DeclarationMemberSemantics<OnPerceptHandler> {
 
     public OnPerceptHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -55,7 +57,8 @@ public class OnPerceptHandlerSemantics
         Maybe<OnPerceptHandler> input,
         Maybe<FeatureContainer> featureContainer,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
 
         if (input.isNothing()) {
@@ -92,7 +95,7 @@ public class OnPerceptHandlerSemantics
     ) {
         members.add(module.get(JvmTypesBuilder.class).toField(
             inputSafe,
-            synthesizeEventVariableName(inputSafe),
+            synthesizeEventFieldName(inputSafe),
             module.get(TypeHelper.class).typeRef(eventClass), it -> {
                 it.setVisibility(JvmVisibility.PRIVATE);
                 module.get(JvmTypesBuilder.class).setInitializer(
@@ -221,7 +224,8 @@ public class OnPerceptHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 contentUpperBound,
-                pattern
+                pattern,
+                some(ExpressionDescriptor.perceptReference)
             );
 
             LValueExpressionSemantics lves =
@@ -310,11 +314,7 @@ public class OnPerceptHandlerSemantics
             );
 
             wexpNarrowedContentType = afterWhenExprRetunedTrue.inferUpperBound(
-                    ed -> ed.equals(
-                        new ExpressionDescriptor.PropertyChain(
-                            "percept"
-                        )
-                    ),
+                    ed -> ed.equals(ExpressionDescriptor.perceptReference),
                     null
                 ).findFirst()
                 .orElse(contentUpperBound);
@@ -365,7 +365,8 @@ public class OnPerceptHandlerSemantics
 
         final BlockWriter tryBlock = w.block();
         tryBlock.addStatement(w.ifStmnt(
-            w.expr("!(((jadescript.core.percept.Percept) " + THE_AGENT + "()" +
+            w.expr("!(((jadescript.core.percept.Percept) " +
+                CompilationHelper.compileAgentReference() +
                 ".getContentManager()" +
                 ".extractContent(" + PERCEPT_VAR_NAME + "))" +
                 ".getContent() instanceof " +
@@ -380,8 +381,9 @@ public class OnPerceptHandlerSemantics
                 finalContentType.compileToJavaTypeReference(),
                 PERCEPT_CONTENT_VAR_NAME,
                 w.expr(finalContentType.compileAsJavaCast() +
-                    "((jadescript.core.percept.Percept)"
-                    + THE_AGENT + "().getContentManager()" +
+                    "((jadescript.core.percept.Percept)" +
+                    CompilationHelper.compileAgentReference() +
+                    ".getContentManager()" +
                     ".extractContent(" + PERCEPT_VAR_NAME + "))" +
                     ".getContent()"
                 )
@@ -471,7 +473,7 @@ public class OnPerceptHandlerSemantics
 //generating => if (__receivedPercept != null) {
 //generating =>     [OUTERCLASS].this.__ignoreMessageHandlers = true;
 //generating =>
-//generating =>     __theAgent().__cleanIgnoredFlagForMessage(__receivedPercept);
+//generating =>    __theAgent().__cleanIgnoredFlagForMessage(__receivedPercept);
 //generating =>     this.__eventFired = true;
 //generating =>
 //generating =>     try {
@@ -487,7 +489,7 @@ public class OnPerceptHandlerSemantics
 //generating =>             __throwable) {
 //generating =>             __handleJadescriptException(__throwable);
 //generating =>         } catch (java.lang.Throwable __throwable) {
-//generating =>             __handleJadescriptException(jadescript.core.exception
+//generating =>            __handleJadescriptException(jadescript.core.exception
 //generating =>             .JadescriptException.wrap(__throwable));
 //generating =>         }
 //generating =>
@@ -508,7 +510,8 @@ public class OnPerceptHandlerSemantics
                     w.expr("true")
                 ))
                 .addStatement(w.callStmnt(
-                    THE_AGENT + "().__cleanIgnoredFlagForMessage",
+                    CompilationHelper.compileAgentReference() +
+                        ".__cleanIgnoredFlagForMessage",
                     w.expr(PERCEPT_VAR_NAME)
                 ))
                 .addStatement(w.assign(
@@ -538,7 +541,7 @@ public class OnPerceptHandlerSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnPerceptHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -580,7 +583,8 @@ public class OnPerceptHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 contentUpperBound,
-                pattern
+                pattern,
+                some(ExpressionDescriptor.perceptReference)
             );
 
             LValueExpressionSemantics lves =
@@ -651,9 +655,7 @@ public class OnPerceptHandlerSemantics
                 wexpNarrowedContentType = afterWhenExprReturnedTrue
                     .inferUpperBound(
                         ed -> ed.equals(
-                            new ExpressionDescriptor.PropertyChain(
-                                "percept"
-                            )
+                            ExpressionDescriptor.perceptReference
                         ),
                         null
                     ).findFirst()
@@ -701,4 +703,12 @@ public class OnPerceptHandlerSemantics
     }
 
 
+    @Override
+    public void validateOnSave(
+        Maybe<OnPerceptHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ){
+
+    }
 }

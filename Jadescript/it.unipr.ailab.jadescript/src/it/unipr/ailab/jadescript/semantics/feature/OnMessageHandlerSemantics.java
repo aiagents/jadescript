@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.feature;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
@@ -26,7 +27,6 @@ import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import jadescript.lang.Performative;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.xtend2.lib.StringConcatenationClient;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmGenericType;
 import org.eclipse.xtext.common.types.JvmMember;
@@ -38,8 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import static it.unipr.ailab.maybe.Maybe.eitherGet;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
  * Created on 26/10/2018.
@@ -47,7 +46,7 @@ import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 @SuppressWarnings("restriction")
 @Singleton
 public class OnMessageHandlerSemantics
-    extends FeatureSemantics<OnMessageHandler> {
+    extends DeclarationMemberSemantics<OnMessageHandler> {
 
     public OnMessageHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -59,7 +58,8 @@ public class OnMessageHandlerSemantics
         Maybe<OnMessageHandler> input,
         Maybe<FeatureContainer> container,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
         if (input.isNothing()) {
             return;
@@ -82,34 +82,43 @@ public class OnMessageHandlerSemantics
 
         members.add(eventClass);
 
-        addEventField(members, inputSafe, eventClass);
+        addEventField(
+            members,
+            inputSafe,
+            eventClass,
+            fieldInitializationAcceptor
+        );
     }
 
 
     private void addEventField(
         EList<JvmMember> members,
         OnMessageHandler inputSafe,
-        JvmGenericType eventClass
+        JvmGenericType eventClass,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
+        final String eventFieldName = synthesizeEventFieldName(inputSafe);
         members.add(module.get(JvmTypesBuilder.class).toField(
             inputSafe,
-            synthesizeEventVariableName(inputSafe),
-            module.get(TypeHelper.class).typeRef(eventClass), it -> {
-                it.setVisibility(JvmVisibility.PRIVATE);
-                module.get(JvmTypesBuilder.class).setInitializer(
-                    it,
-                    new StringConcatenationClient() {
-                        @Override
-                        protected void appendTo(
-                            TargetStringConcatenation target
-                        ) {
-                            target.append(" new ");
-                            target.append(module.get(TypeHelper.class)
-                                .typeRef(eventClass));
-                            target.append("()");
-                        }
-                    }
-                );
+            eventFieldName,
+            module.get(TypeHelper.class).typeRef(eventClass),
+            itField -> {
+                itField.setVisibility(JvmVisibility.PRIVATE);
+                module.get(CompilationHelper.class)
+                    .createAndSetInitializer(itField, scb -> {
+                        scb.add("null");
+                        fieldInitializationAcceptor.accept(
+                            w.assign(
+                                eventFieldName,
+                                w.expr("new " +
+                                    module.get(TypeHelper.class)
+                                        .typeRef(eventClass)
+                                        .getQualifiedName('.') +
+                                    "()"
+                                )
+                            )
+                        );
+                    });
             }
         ));
     }
@@ -194,7 +203,8 @@ public class OnMessageHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 contentUpperBound,
-                pattern
+                pattern,
+                some(ExpressionDescriptor.contentOfMessageReference)
             );
 
             LValueExpressionSemantics lves =
@@ -255,7 +265,8 @@ public class OnMessageHandlerSemantics
 
             part1 = matcher.rootInvocationText(
                 initialMsgType.namespace().getContentProperty()
-                    .compileRead(MESSAGE_VAR_NAME + ".")
+                    .dereference((__) -> MESSAGE_VAR_NAME)
+                    .compileRead((member) -> member.writeSonnet(scb))
             );
         } else {
             prepareBodyState = Function.identity();
@@ -288,9 +299,7 @@ public class OnMessageHandlerSemantics
 
             wexpNarrowedContentType = afterWhenExprRetunedTrue.inferUpperBound(
                     ed -> ed.equals(
-                        new ExpressionDescriptor.PropertyChain(
-                            "content", "message"
-                        )
+                        ExpressionDescriptor.contentOfMessageReference
                     ),
                     null
                 ).findFirst()
@@ -298,9 +307,7 @@ public class OnMessageHandlerSemantics
 
             wexpNarrowedMessageType = afterWhenExprRetunedTrue.inferUpperBound(
                     ed -> ed.equals(
-                        new ExpressionDescriptor.PropertyChain(
-                            "message"
-                        )
+                        ExpressionDescriptor.messageReference
                     ),
                     null
                 ).findFirst()
@@ -479,7 +486,7 @@ public class OnMessageHandlerSemantics
 //generating => if (__receivedMessage != null) {
 //generating =>     [OUTERCLASS].this.__ignoreMessageHandlers = true;
 //generating =>
-//generating =>     __theAgent().__cleanIgnoredFlagForMessage(__receivedMessage);
+//generating =>    __theAgent().__cleanIgnoredFlagForMessage(__receivedMessage);
 //generating =>
 //generating =>     this.__eventFired = true;
 //generating =>
@@ -490,7 +497,7 @@ public class OnMessageHandlerSemantics
 //generating =>             __throwable) {
 //generating =>             __handleJadescriptException(__throwable);
 //generating =>         } catch (java.lang.Throwable __throwable) {
-//generating =>             __handleJadescriptException(jadescript.core.exception
+//generating =>            __handleJadescriptException(jadescript.core.exception
 //generating =>             .JadescriptException.wrap(__throwable));
 //generating =>         }
 //generating =>
@@ -507,7 +514,8 @@ public class OnMessageHandlerSemantics
                 w.assign(Util.getOuterClassThisReference(input) + "."
                     + IGNORE_MSG_HANDLERS_VAR_NAME, w.expr("true"))
             ).addStatement(w.callStmnt(
-                    THE_AGENT + "().__cleanIgnoredFlagForMessage",
+                    CompilationHelper.compileAgentReference() +
+                        ".__cleanIgnoredFlagForMessage",
                     w.expr(MESSAGE_VAR_NAME)
                 )
             ).addStatement(
@@ -590,7 +598,7 @@ public class OnMessageHandlerSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnMessageHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -662,7 +670,8 @@ public class OnMessageHandlerSemantics
             PatternMatchInput<LValueExpression> patternMatchInput
                 = patternMatchHelper.handlerHeader(
                 contentUpperBound,
-                pattern
+                pattern,
+                some(ExpressionDescriptor.contentOfMessageReference)
             );
 
             LValueExpressionSemantics lves =
@@ -733,9 +742,7 @@ public class OnMessageHandlerSemantics
                 wexpNarrowedContentType = afterWhenExprReturnedTrue
                     .inferUpperBound(
                         ed -> ed.equals(
-                            new ExpressionDescriptor.PropertyChain(
-                                "content", "message"
-                            )
+                            ExpressionDescriptor.contentOfMessageReference
                         ),
                         null
                     ).findFirst()
@@ -744,9 +751,7 @@ public class OnMessageHandlerSemantics
                 wexpNarrowedMessageType = afterWhenExprReturnedTrue
                     .inferUpperBound(
                         ed -> ed.equals(
-                            new ExpressionDescriptor.PropertyChain(
-                                "message"
-                            )
+                            ExpressionDescriptor.messageReference
                         ),
                         null
                     ).findFirst()
@@ -836,6 +841,16 @@ public class OnMessageHandlerSemantics
         );
 
         module.get(ContextManager.class).exit();
+
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<OnMessageHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
 
     }
 

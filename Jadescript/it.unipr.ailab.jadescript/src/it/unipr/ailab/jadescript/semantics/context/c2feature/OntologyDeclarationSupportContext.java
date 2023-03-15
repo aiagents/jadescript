@@ -1,88 +1,89 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
-import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.jadescript.ExtendingFeature;
+import it.unipr.ailab.jadescript.jadescript.FeatureContainer;
+import it.unipr.ailab.jadescript.jadescript.NamedElement;
+import it.unipr.ailab.jadescript.jadescript.Ontology;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.c1toplevel.TopLevelDeclarationContext;
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementConstructorSymbol;
+import it.unipr.ailab.jadescript.semantics.context.c1toplevel.TopLevelDeclarationContext;
+import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementConstructor;
+import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementStructuralPattern;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
+import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedOntologyType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import org.eclipse.xtext.common.types.JvmParameterizedTypeReference;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.function.BiPredicate;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.List;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
-public class OntologyDeclarationSupportContext extends TopLevelDeclarationContext
-        implements CallableSymbol.Searcher {
-    private final Maybe<Ontology> input;
+public class OntologyDeclarationSupportContext
+    extends TopLevelDeclarationContext
+    implements GlobalCallable.Namespace, GlobalPattern.Namespace {
 
-    public OntologyDeclarationSupportContext(SemanticsModule module, FileContext outer, Maybe<Ontology> input) {
+    private final Maybe<Ontology> input;
+    private final String ontoFQName;
+
+
+    public OntologyDeclarationSupportContext(
+        SemanticsModule module,
+        FileContext outer,
+        Maybe<Ontology> input,
+        String ontoFQName
+    ) {
         super(module, outer);
         this.input = input;
+        this.ontoFQName = ontoFQName;
     }
 
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(
-            String name,
-            Predicate<IJadescriptType> returnType,
-            BiPredicate<Integer, Function<Integer, String>> parameterNames,
-            BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
+    public Stream<? extends GlobalCallable> globalCallables(
+        @Nullable String name
     ) {
-        Stream<? extends CallableSymbol> stream = Maybe.toListOfMaybes(input.__(Ontology::getFeatures)).stream()
-                .filter(f -> f.__(ff -> ff instanceof ExtendingFeature).extract(nullAsFalse))
-                .map(f -> f.__(ff -> (ExtendingFeature) ff))
-                .filter(f -> f.__(ff -> ff.getName().equals(name)).extract(nullAsFalse))
-                .map(f -> new OntologyElementConstructorSymbol(module, f, currentLocation()));
-        stream = safeFilter(stream, CallableSymbol::returnType, returnType);
-        stream = safeFilter(
-                stream,
-                c -> c.parameterNames().size(),
-                c -> i -> c.parameterNames().get(i),
-                parameterNames
-        );
-        stream = safeFilter(
-                stream,
-                c -> c.parameterTypes().size(),
-                c -> i -> c.parameterTypes().get(i),
-                parameterTypes
-        );
-        return stream;
+        return Maybe.toListOfMaybes(input.__(Ontology::getFeatures)).stream()
+            .filter(f -> f.__(ff -> ff instanceof ExtendingFeature)
+                .extract(nullAsFalse))
+            .map(f -> f.__(ff -> (ExtendingFeature) ff))
+            .filter(f -> f.__(ff -> ff.getName().equals(name))
+                .extract(nullAsFalse))
+            .map(f -> OntologyElementConstructor.fromFeature(
+                module, f, ontoFQName, currentLocation()
+            )).filter(Maybe::isPresent)
+            .map(Maybe::toNullable);
     }
+
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(Predicate<String> name, Predicate<IJadescriptType> returnType, BiPredicate<Integer, Function<Integer, String>> parameterNames, BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes) {
-        Stream<? extends CallableSymbol> stream = Maybe.toListOfMaybes(input.__(Ontology::getFeatures)).stream()
-                .filter(f -> f.__(ff -> ff instanceof ExtendingFeature).extract(nullAsFalse))
-                .map(f -> f.__(ff -> (ExtendingFeature) ff))
-                .map(f -> new OntologyElementConstructorSymbol(module, f, currentLocation()));
-        stream = safeFilter(stream, CallableSymbol::name, name);
-        stream = safeFilter(stream, CallableSymbol::returnType, returnType);
-        stream = safeFilter(
-                stream,
-                c -> c.parameterNames().size(),
-                c -> i -> c.parameterNames().get(i),
-                parameterNames
-        );
-        stream = safeFilter(
-                stream,
-                c -> c.parameterTypes().size(),
-                c -> i -> c.parameterTypes().get(i),
-                parameterTypes
-        );
-        return stream;
+    public Stream<? extends GlobalPattern> globalPatterns(
+        @Nullable String name
+    ) {
+        return Maybe.toListOfMaybes(input.__(Ontology::getFeatures)).stream()
+            .filter(f -> f.__(ff -> ff instanceof ExtendingFeature)
+                .extract(nullAsFalse))
+            .map(f -> f.__(ff -> (ExtendingFeature) ff))
+            .filter(f -> f.__(ff -> ff.getName().equals(name))
+                .extract(nullAsFalse))
+            .map(f -> OntologyElementStructuralPattern.fromFeature(
+                module, f, currentLocation()
+            )).filter(Maybe::isPresent)
+            .map(Maybe::toNullable);
     }
 
-    public String getOntologyName(){
+
+    public String getOntologyName() {
         return input.__(NamedElement::getName).extract(nullAsEmptyString);
     }
+
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {
@@ -92,13 +93,82 @@ public class OntologyDeclarationSupportContext extends TopLevelDeclarationContex
         scb.close("}");
     }
 
+
     @Override
     public String getCurrentOperationLogName() {
         return "<init ontology " + getOntologyName() + ">";
     }
 
+
     @Override
     public boolean canUseAgentReference() {
+        return false;
+    }
+
+
+    private boolean isExtensionOfOntology(
+        UserDefinedOntologyType superOnto,
+        String expectedOntoName
+    ) {
+        if (superOnto.compileToJavaTypeReference().equals(expectedOntoName)) {
+            return true;
+        }
+
+        final OntologyType superSuperOnto = superOnto.getSuperOntologyType();
+
+        if (superSuperOnto instanceof UserDefinedOntologyType) {
+            return isExtensionOfOntology(
+                ((UserDefinedOntologyType) superSuperOnto),
+                expectedOntoName
+            );
+        } else {
+            return false;
+        }
+    }
+
+
+    public boolean isDeclarationOrExtensionOfOntology(
+        String expectedOntoName
+    ) {
+        if (ontoFQName != null && ontoFQName.equals(expectedOntoName)) {
+            return true;
+        }
+
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        final List<Maybe<JvmParameterizedTypeReference>> superOntologies =
+            Maybe.toListOfMaybes(input.__(FeatureContainer::getSuperTypes));
+
+        for (Maybe<JvmParameterizedTypeReference> superOntology :
+            superOntologies) {
+
+            final Maybe<String> name =
+                superOntology.__(s -> s.getQualifiedName('.'));
+
+            if (name.isNothing()) {
+                continue;
+            }
+
+            if (name.toNullable().equals(expectedOntoName)) {
+                return true;
+            }
+
+            if (superOntology.isNothing()) {
+                continue;
+            }
+
+            final IJadescriptType superType = typeHelper.jtFromJvmTypeRef(
+                superOntology.toNullable());
+
+            if (superType instanceof UserDefinedOntologyType &&
+                isExtensionOfOntology(
+                    ((UserDefinedOntologyType) superType),
+                    expectedOntoName
+                )
+            ) {
+                return true;
+            }
+        }
         return false;
     }
 

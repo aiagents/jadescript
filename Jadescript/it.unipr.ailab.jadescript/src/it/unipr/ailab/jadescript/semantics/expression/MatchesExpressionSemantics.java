@@ -59,6 +59,8 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
                 .findFirst();
 
         final IJadescriptType inputExprType = upes.inferType(inputExpr, state);
+        final Maybe<ExpressionDescriptor> inputExprDesc =
+            upes.describeExpression(inputExpr, state);
 
         final PatternMatchHelper patternMatchHelper = module.get(
             PatternMatchHelper.class);
@@ -66,14 +68,17 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
         PatternMatchInput<LValueExpression> pmi;
         if (handlerHeaderContext.isPresent()) {
             //We are in a handler header, probably in a when-expression
+
             pmi = patternMatchHelper.handlerHeader(
                 inputExprType,
-                pattern
+                pattern,
+                inputExprDesc
             );
         } else {
             pmi = patternMatchHelper.matchesExpression(
                 inputExprType,
-                pattern
+                pattern,
+                inputExprDesc
             );
         }
 
@@ -114,19 +119,24 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
 
         final IJadescriptType inputExprType = upes.inferType(inputExpr, state);
 
-        final PatternMatchHelper patternMatchHelper = module.get(
-            PatternMatchHelper.class);
+        final Maybe<ExpressionDescriptor> inputExprDesc =
+            upes.describeExpression(inputExpr, state);
+
+        final PatternMatchHelper patternMatchHelper =
+            module.get(PatternMatchHelper.class);
 
         PatternMatchInput<LValueExpression> pmi;
         if (handlerHeaderContext.isPresent()) {
             pmi = patternMatchHelper.handlerHeader(
                 inputExprType,
-                pattern
+                pattern,
+                inputExprDesc
             );
         } else {
             pmi = patternMatchHelper.matchesExpression(
                 inputExprType,
-                pattern
+                pattern,
+                inputExprDesc
             );
         }
 
@@ -204,6 +214,8 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
         LValueExpressionSemantics lves =
             module.get(LValueExpressionSemantics.class);
 
+        final Maybe<ExpressionDescriptor> inputExprDesc =
+            upes.describeExpression(inputExpr, state);
 
         final PatternMatchInput<LValueExpression> patternMatchInput;
 
@@ -212,14 +224,15 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
             //We are in a handler header, probably in a when-expression
             patternMatchInput = patternMatchHelper.handlerHeader(
                 inputExprType,
-                pattern
+                pattern,
+                inputExprDesc
             );
         } else {
-            patternMatchInput =
-                patternMatchHelper.matchesExpression(
-                    inputExprType,
-                    pattern
-                );
+            patternMatchInput = patternMatchHelper.matchesExpression(
+                inputExprType,
+                pattern,
+                inputExprDesc
+            );
 
         }
 
@@ -340,6 +353,8 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
         }
 
         final IJadescriptType inputExprType = upes.inferType(inputExpr, state);
+        final Maybe<ExpressionDescriptor> inputExprDesc =
+            upes.describeExpression(inputExpr, state);
 
         StaticState afterInputExpr = upes.advance(inputExpr, state);
 
@@ -348,6 +363,8 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
                 .currentContext()
                 .actAs(HandlerWhenExpressionContext.class)
                 .findFirst();
+
+
         PatternMatchInput<LValueExpression> pmi;
         final PatternMatchHelper patternMatchHelper =
             module.get(PatternMatchHelper.class);
@@ -355,12 +372,14 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
             //We are in a handler header, probably in a when-expression
             pmi = patternMatchHelper.handlerHeader(
                 inputExprType,
-                pattern
+                pattern,
+                inputExprDesc
             );
         } else {
             pmi = patternMatchHelper.matchesExpression(
                 inputExprType,
-                pattern
+                pattern,
+                inputExprDesc
             );
         }
 
@@ -424,7 +443,8 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
             input.__(Matches::getPattern).__(i -> (LValueExpression) i);
 
         final IJadescriptType inputExprType = upes.inferType(inputExpr, state);
-
+        final Maybe<ExpressionDescriptor> inputExprDesc =
+            upes.describeExpression(inputExpr, state);
         final StaticState afterInputExpr = upes.advance(inputExpr, state);
 
         final Optional<HandlerWhenExpressionContext> handlerHeaderContext =
@@ -438,12 +458,14 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
         if (handlerHeaderContext.isPresent()) {
             pmi = pmh.handlerHeader(
                 inputExprType,
-                pattern
+                pattern,
+                inputExprDesc
             );
         } else {
             pmi = pmh.matchesExpression(
                 inputExprType,
-                pattern
+                pattern,
+                inputExprDesc
             );
         }
         return module.get(LValueExpressionSemantics.class)
@@ -481,7 +503,7 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
     protected boolean isUnboundInternal(
         PatternMatchInput<Matches> input,
         StaticState state
-    ){
+    ) {
         // MATCHES EXPRESSION CANNOT BE USED AS PATTERN ITSELF
         return false;
     }

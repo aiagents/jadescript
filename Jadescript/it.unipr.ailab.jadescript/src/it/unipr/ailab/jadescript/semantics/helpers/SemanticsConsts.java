@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.helpers;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.sonneteer.WriterFactory;
 import org.eclipse.emf.ecore.EObject;
 
 import java.util.HashMap;
@@ -9,6 +10,9 @@ import java.util.HashMap;
  * Created on 05/11/2018.
  */
 public interface SemanticsConsts {
+
+    WriterFactory w = WriterFactory.getInstance();
+
     HashMap<String, Long> uniqueNameCounterMap = new HashMap<>();
 
     String ISSUE_CODE_PREFIX = "it.unipr.ailab.jadescript.";
@@ -80,9 +84,11 @@ public interface SemanticsConsts {
     String JAVA_TYPE_Byte = "java.lang.Byte";
     String JAVA_TYPE_Object = "java.lang.Object";
 
+    String AGENT_ENV = "_agentEnv";
 
     boolean VALID = true;
     boolean INVALID = false;
+
 
     default String synthesizeReceiverListName(final SendMessageStatement send) {
         return numberedName(RECEIVER_LIST_VAR_NAME, send);
@@ -108,7 +114,7 @@ public interface SemanticsConsts {
         return numberedName(MESSAGE_TEMPLATE_NAME, hf);
     }
 
-    default String synthesizeEventVariableName(Feature behaviourEvent) {
+    default String synthesizeEventFieldName(Feature behaviourEvent) {
         return numberedName(EVENT_VAR_NAME, behaviourEvent);
     }
 

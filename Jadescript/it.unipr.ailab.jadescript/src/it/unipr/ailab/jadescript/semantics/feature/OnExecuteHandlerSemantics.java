@@ -4,12 +4,12 @@ import it.unipr.ailab.jadescript.jadescript.CodeBlock;
 import it.unipr.ailab.jadescript.jadescript.FeatureContainer;
 import it.unipr.ailab.jadescript.jadescript.FeatureWithBody;
 import it.unipr.ailab.jadescript.jadescript.OnExecuteHandler;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnExecuteHandlerContext;
-import it.unipr.ailab.jadescript.semantics.context.c2feature.SimpleHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
@@ -22,7 +22,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
 public class OnExecuteHandlerSemantics
-    extends FeatureSemantics<OnExecuteHandler> {
+    extends DeclarationMemberSemantics<OnExecuteHandler> {
 
     public OnExecuteHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -34,15 +34,17 @@ public class OnExecuteHandlerSemantics
         Maybe<OnExecuteHandler> input,
         Maybe<FeatureContainer> container,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
         if (input == null) return;
         final SavedContext savedContext =
             module.get(ContextManager.class).save();
         final JvmTypesBuilder jvmTypesBuilder =
             module.get(JvmTypesBuilder.class);
-        final CompilationHelper compilationHelper = module.get(
-            CompilationHelper.class);
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
+
 
         input.safeDo(inputSafe -> {
             JvmGenericType eventClass = jvmTypesBuilder.toClass(
@@ -107,12 +109,13 @@ public class OnExecuteHandlerSemantics
     ) {
         Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
         compilationHelper.createAndSetBody(itMethod, scb -> {
-            module.get(ContextManager.class).restore(savedContext);
-            module.get(ContextManager.class).enterProceduralFeature((
-                    mod,
-                    out
-                ) -> new SimpleHandlerContext(mod, out, "execute")
-            );
+            final ContextManager contextManager =
+                module.get(ContextManager.class);
+
+            contextManager.restore(savedContext);
+
+            contextManager
+                .enterProceduralFeature(OnExecuteHandlerContext::new);
 
             StaticState state = StaticState.beginningOfOperation(module);
 
@@ -122,27 +125,39 @@ public class OnExecuteHandlerSemantics
                 blockPSR.result()
             ));
 
-            module.get(ContextManager.class).exit();
+            contextManager.exit();
 
         });
     }
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnExecuteHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
     ) {
         Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
-        module.get(ContextManager.class)
+        final ContextManager contextManager = module.get(ContextManager.class);
+
+        contextManager
             .enterProceduralFeature(OnExecuteHandlerContext::new);
 
         StaticState state = StaticState.beginningOfOperation(module);
 
         module.get(BlockSemantics.class).validate(body, state, acceptor);
 
-        module.get(ContextManager.class).exit();
+        contextManager.exit();
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<OnExecuteHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
+
     }
 
 }

@@ -1,5 +1,6 @@
 module example
 
+
 agent Ping
     uses ontology PingPong 
 
@@ -32,7 +33,6 @@ cyclic behavior WaitAndReply
         inform Received(id) to sender
 
 
-
 one shot behavior SendRequest
     for agent Ping
     uses ontology PingPong
@@ -55,6 +55,3 @@ cyclic behaviour WaitFromPong
         log "received '" + id + "' from agent '" 
             + name of sender + "'"
         activate SendRequest(id+1) after "PT1S" as duration
-            
-
-

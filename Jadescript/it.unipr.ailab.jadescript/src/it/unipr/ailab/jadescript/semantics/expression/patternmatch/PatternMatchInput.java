@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
@@ -11,6 +12,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.function.Function;
 
+import static it.unipr.ailab.maybe.Maybe.some;
+
 public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
     protected final SemanticsModule module;
@@ -18,6 +21,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
     private final Maybe<T> pattern;
     private final String termID;
     private final String rootPatternMatchVariableName;
+    private final Maybe<ExpressionDescriptor> descriptorMaybe;
 
 
     public PatternMatchInput(
@@ -25,13 +29,15 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
         PatternMatchMode patternMatchMode,
         Maybe<T> pattern,
         String termID,
-        String rootPatternMatchVariableName
+        String rootPatternMatchVariableName,
+        Maybe<ExpressionDescriptor> descriptorMaybe
     ) {
         this.module = module;
         this.patternMatchMode = patternMatchMode;
         this.pattern = pattern;
         this.termID = termID;
         this.rootPatternMatchVariableName = rootPatternMatchVariableName;
+        this.descriptorMaybe = descriptorMaybe;
     }
 
 
@@ -52,6 +58,10 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
     public Maybe<T> getPattern() {
         return pattern;
+    }
+
+    public Maybe<ExpressionDescriptor> getInputDescriptor(){
+        return descriptorMaybe;
     }
 
 
@@ -80,7 +90,24 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             providedInputType,
             this,
             pattern.__(extractSubpattern),
-            idSuffix
+            idSuffix,
+            (__) -> Maybe.nothing()
+        );
+    }
+
+    public <T2> SubPattern<T2, T> subPatternForProperty(
+        IJadescriptType providedInputType,
+        Function<T, T2> extractSubpattern,
+        String idSuffix,
+        String propertyName
+    ) {
+        return new SubPattern<>(
+            module,
+            providedInputType,
+            this,
+            pattern.__(extractSubpattern),
+            idSuffix,
+            (owner) -> some(owner.descriptorOfMemberProperty(propertyName))
         );
     }
 
@@ -96,7 +123,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             this,
             pattern.__(extractSubpattern),
             idSuffix,
-            PatternMatchMode.HolesAndGroundness.DOES_NOT_ACCEPT_HOLES
+            PatternMatchMode.HolesAndGroundness.DOES_NOT_ACCEPT_HOLES,
+            (__) -> Maybe.nothing()
         );
     }
 
@@ -220,9 +248,17 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             IJadescriptType inputExprType,
             Maybe<T> pattern,
             String termID,
-            String rootPatternMatchVariableName
+            String rootPatternMatchVariableName,
+            Maybe<ExpressionDescriptor> descriptorMaybe
         ) {
-            super(module, MODE, pattern, termID, rootPatternMatchVariableName);
+            super(
+                module,
+                MODE,
+                pattern,
+                termID,
+                rootPatternMatchVariableName,
+                descriptorMaybe
+            );
             this.inputExprType = inputExprType;
         }
 
@@ -234,7 +270,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 getProvidedInputType(),
                 getPattern().__(function),
                 getTermID(),
-                getRootPatternMatchVariableName()
+                getRootPatternMatchVariableName(),
+                getInputDescriptor()
             );
         }
 
@@ -268,9 +305,17 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             IJadescriptType contentUpperBound,
             Maybe<T> pattern,
             String termID,
-            String rootPatternMatchVariableName
+            String rootPatternMatchVariableName,
+            Maybe<ExpressionDescriptor> descriptorMaybe
         ) {
-            super(module, MODE, pattern, termID, rootPatternMatchVariableName);
+            super(
+                module,
+                MODE,
+                pattern,
+                termID,
+                rootPatternMatchVariableName,
+                descriptorMaybe
+            );
             this.contentUpperBound = contentUpperBound;
         }
 
@@ -282,7 +327,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 contentUpperBound,
                 getPattern().__(function),
                 getTermID(),
-                getRootPatternMatchVariableName()
+                getRootPatternMatchVariableName(),
+                getInputDescriptor()
             );
         }
 
@@ -316,9 +362,17 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             IJadescriptType inputExprType,
             Maybe<T> pattern,
             String termID,
-            String rootPatternMatchVariableName
+            String rootPatternMatchVariableName,
+            Maybe<ExpressionDescriptor> descriptorMaybe
         ) {
-            super(module, MODE, pattern, termID, rootPatternMatchVariableName);
+            super(
+                module,
+                MODE,
+                pattern,
+                termID,
+                rootPatternMatchVariableName,
+                descriptorMaybe
+            );
             this.inputExprType = inputExprType;
         }
 
@@ -330,7 +384,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 inputExprType,
                 getPattern().__(function),
                 getTermID(),
-                getRootPatternMatchVariableName()
+                getRootPatternMatchVariableName(),
+                getInputDescriptor()
             );
         }
 
@@ -366,14 +421,16 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             IJadescriptType rightType,
             Maybe<T> leftPattern,
             String termID,
-            String rootPatternMatchVariableName
+            String rootPatternMatchVariableName,
+            Maybe<ExpressionDescriptor> descriptorMaybe
         ) {
             super(
                 module,
                 MODE,
                 leftPattern,
                 termID,
-                rootPatternMatchVariableName
+                rootPatternMatchVariableName,
+                descriptorMaybe
             );
             this.rightType = rightType;
         }
@@ -387,7 +444,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 rightType,
                 getPattern().__(function),
                 getTermID(),
-                getRootPatternMatchVariableName()
+                getRootPatternMatchVariableName(),
+                getInputDescriptor()
             );
         }
 
@@ -410,7 +468,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             IJadescriptType elementType,
             Maybe<T> pattern,
             String termID,
-            String rootPatternMatchVariableName
+            String rootPatternMatchVariableName,
+            Maybe<ExpressionDescriptor> descriptorMaybe
         ) {
             super(
                 module,
@@ -428,7 +487,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 ),
                 pattern,
                 termID,
-                rootPatternMatchVariableName
+                rootPatternMatchVariableName,
+                descriptorMaybe
             );
             this.elementType = elementType;
         }
@@ -441,7 +501,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 this.getElementType(),
                 this.getPattern().__(function),
                 this.getTermID(),
-                this.getRootPatternMatchVariableName()
+                this.getRootPatternMatchVariableName(),
+                this.getInputDescriptor()
             );
         }
 
@@ -464,7 +525,11 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
         private final PatternMatchInput<RT> rootInput;
         private final String suffixID;
 
+
         private final IJadescriptType inputInfo;
+        private final
+        Function<ExpressionDescriptor, Maybe<ExpressionDescriptor>>
+            generateSubDescriptor;
 
 
         private SubPattern(
@@ -472,9 +537,19 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             IJadescriptType inputInfo,
             PatternMatchInput<RT> rootInput,
             Maybe<T> pattern,
-            String suffixID
+            String suffixID,
+            Function<ExpressionDescriptor, Maybe<ExpressionDescriptor>>
+                generateSubDescriptor
         ) {
-            this(module, inputInfo, rootInput, pattern, suffixID, null);
+            this(
+                module,
+                inputInfo,
+                rootInput,
+                pattern,
+                suffixID,
+                null,
+                generateSubDescriptor
+            );
         }
 
 
@@ -484,18 +559,23 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             PatternMatchInput<RT> rootInput,
             Maybe<T> pattern,
             String suffixID,
-            PatternMatchMode.HolesAndGroundness holesAndGroundnessRequirement
+            PatternMatchMode.HolesAndGroundness holesAndGroundnessRequirement,
+            Function<ExpressionDescriptor, Maybe<ExpressionDescriptor>>
+                generateSubDescriptor
         ) {
             super(
                 module,
                 subPatternMode(rootInput, holesAndGroundnessRequirement),
                 pattern,
                 rootInput.termID + suffixID,
-                rootInput.getRootPatternMatchVariableName()
+                rootInput.getRootPatternMatchVariableName(),
+                rootInput.getInputDescriptor().flatMap(generateSubDescriptor)
             );
             this.rootInput = rootInput;
             this.suffixID = suffixID;
             this.inputInfo = inputInfo;
+            this.generateSubDescriptor = generateSubDescriptor;
+
         }
 
 
@@ -537,7 +617,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 inputInfo,
                 rootInput,
                 getPattern().__(function),
-                suffixID
+                suffixID,
+                generateSubDescriptor
             );
         }
 

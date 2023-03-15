@@ -1,7 +1,8 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
-import com.google.common.collect.Streams;
-import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.jadescript.CodeBlock;
+import it.unipr.ailab.jadescript.jadescript.FormalParameter;
+import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -24,10 +25,12 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.iterate;
+import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
 /**
  * Created on 2019-05-17.
@@ -36,7 +39,96 @@ public interface OperationDeclarationSemantics
     extends SemanticsConsts {
 
 
-    default void validateGenericFunctionOrProcedure(
+    default void validateGenericFunctionOrProcedureOnSave(
+        Maybe<? extends EObject> input,
+        Maybe<String> name,
+        Maybe<EList<FormalParameter>> parameters,
+        Maybe<TypeExpression> type,
+        @SuppressWarnings("unused") Maybe<CodeBlock> body,
+        SemanticsModule module,
+        @SuppressWarnings("unused") boolean isFunction,
+        SearchLocation locationOfThis,
+        ValidationMessageAcceptor acceptor
+    ) {
+
+
+        if (name.isNothing()) {
+            return;
+        }
+
+        String nameSafe = name.toNullable();
+        if (nameSafe.isBlank()) {
+            return;
+        }
+
+        final TypeExpressionSemantics tes =
+            module.get(TypeExpressionSemantics.class);
+
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        IJadescriptType returnType;
+        if (type.isPresent()) {
+            boolean returnTypeCheck = tes.validate(type, acceptor);
+
+            if (returnTypeCheck == VALID) {
+                returnType = tes.toJadescriptType(type);
+            } else {
+                returnType = typeHelper.VOID;
+            }
+        } else {
+            returnType = typeHelper.VOID;
+        }
+
+
+        List<String> paramNames = new ArrayList<>();
+
+        Map<String, IJadescriptType> namesToTypes = new HashMap<>();
+
+        for (Maybe<FormalParameter> parameter : toListOfMaybes(parameters)) {
+            final String paramName =
+                parameter.__(FormalParameter::getName).orElse("");
+            if (paramName.isBlank()) {
+                continue;
+            }
+
+            paramNames.add(paramName);
+
+            final Maybe<TypeExpression> paramTypeExpr =
+                parameter.__(FormalParameter::getType);
+
+            boolean paramTypeCheck = tes.validate(paramTypeExpr, acceptor);
+
+            if (paramTypeCheck == VALID) {
+                namesToTypes.put(
+                    paramName,
+                    tes.toJadescriptType(paramTypeExpr)
+                );
+            } else {
+                namesToTypes.put(
+                    paramName,
+                    typeHelper.ANY
+                );
+            }
+        }
+
+
+        module.get(ValidationHelper.class).validateMethodCompatibility(
+            Operation.operation(
+                returnType,
+                nameSafe,
+                namesToTypes,
+                paramNames,
+                locationOfThis,
+                false
+            ),
+            input,
+            acceptor
+        );
+    }
+
+
+
+    default void validateGenericFunctionOrProcedureOnEdit(
         Maybe<? extends EObject> input,
         Maybe<String> name,
         Maybe<EList<FormalParameter>> parameters,
@@ -44,10 +136,12 @@ public interface OperationDeclarationSemantics
         Maybe<CodeBlock> body,
         SemanticsModule module,
         boolean isFunction,
-        SearchLocation locationOfThis,
+        @SuppressWarnings("unused") SearchLocation locationOfThis,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return;
+        if (input == null) {
+            return;
+        }
         ValidationHelper validationHelper = module.get(ValidationHelper.class);
         TypeHelper typeHelper = module.get(TypeHelper.class);
         TypeExpressionSemantics tes = module.get(TypeExpressionSemantics.class);
@@ -58,7 +152,7 @@ public interface OperationDeclarationSemantics
         }
 
         String nameSafe = name.toNullable();
-        if(nameSafe.isBlank()){
+        if (nameSafe.isBlank()) {
             return;
         }
 
@@ -185,21 +279,9 @@ public interface OperationDeclarationSemantics
         module.get(ContextManager.class).exit();
 
 
-        module.get(ValidationHelper.class).validateMethodCompatibility(
-            new Operation(
-                false,
-                nameSafe,
-                returnType,
-                Streams.zip(
-                    paramNames.stream(),
-                    paramTypes.stream(),
-                    Util.Tuple2::new
-                ).collect(Collectors.toList()),
-                locationOfThis
-            ),
-            input,
-            acceptor
-        );
+
+
+
     }
 
 }

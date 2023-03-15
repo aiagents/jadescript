@@ -7,7 +7,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.namespace.jvm.JvmModelBasedNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -59,6 +59,7 @@ public abstract class JadescriptType implements SemanticsConsts,
     @Override
     public boolean isSupEqualTo(IJadescriptType other) {
         other = other.postResolve();
+
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         if (other.typeEquals(typeHelper.NOTHING)) {
             return true;
@@ -125,7 +126,7 @@ public abstract class JadescriptType implements SemanticsConsts,
     public String compileConversionType() {
 
         return "new jadescript.util.types.JadescriptTypeReference(" +
-            "jadescript.util.types.JadescriptBaseType." + getCategoryName() + ")";
+            "jadescript.util.types.JadescriptBuiltinTypeAtom." + getCategoryName() + ")";
     }
 
 
@@ -152,8 +153,8 @@ public abstract class JadescriptType implements SemanticsConsts,
 
     @Override
     @Nullable
-    public JvmModelBasedNamespace jvmNamespace() {
-        return JvmModelBasedNamespace.fromTypeReference(
+    public JvmTypeNamespace jvmNamespace() {
+        return JvmTypeNamespace.resolve(
             module,
             asJvmTypeReference()
         );

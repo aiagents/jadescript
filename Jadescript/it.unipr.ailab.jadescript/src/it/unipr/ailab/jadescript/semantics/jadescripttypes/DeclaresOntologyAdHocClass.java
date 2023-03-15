@@ -16,7 +16,7 @@ import java.util.function.Function;
 public interface DeclaresOntologyAdHocClass {
     WriterFactory w = WriterFactory.getInstance();
 
-    void declareSpecificOntologyClass(
+    void declareAdHocClass(
             EList<JvmMember> members,
             Maybe<ExtendingFeature> feature,
             HashMap<String, String> generatedSpecificClasses,
@@ -26,4 +26,8 @@ public interface DeclaresOntologyAdHocClass {
             Function<TypeExpression, String> schemaNameForSlotProvider,
             SemanticsModule module
     );
+
+    String getAdHocClassName();
+
+    String getConverterToAdHocClassMethodName();
 }

@@ -1,6 +1,5 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
-import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.MapOrSetLiteral;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
@@ -23,7 +22,6 @@ import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -54,9 +52,6 @@ public class MapLiteralExpressionSemantics
             "s by adding 'of TYPE' after the closing curly bracket, or make " +
             "sure that the input is narrowed to a valid map type.";
     }
-
-
-
 
 
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
@@ -145,22 +140,24 @@ public class MapLiteralExpressionSemantics
         Maybe<MapOrSetLiteral> input,
         StaticState state
     ) {
-        final List<Maybe<RValueExpression>> values =
-            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
         final List<Maybe<RValueExpression>> keys =
             Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
+        final List<Maybe<RValueExpression>> values =
+            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
         final Maybe<TypeExpression> keysTypeParameter =
             input.__(MapOrSetLiteral::getKeyTypeParameter);
         final Maybe<TypeExpression> valuesTypeParameter =
             input.__(MapOrSetLiteral::getValueTypeParameter);
 
 
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
         if (keysTypeParameter.isPresent() && valuesTypeParameter.isPresent()) {
-            return module.get(TypeHelper.class).MAP.apply(Arrays.asList(
-                module.get(TypeExpressionSemantics.class)
-                    .toJadescriptType(keysTypeParameter),
-                module.get(TypeExpressionSemantics.class)
-                    .toJadescriptType(valuesTypeParameter)
+            final TypeExpressionSemantics tes =
+                module.get(TypeExpressionSemantics.class);
+            return typeHelper.MAP.apply(List.of(
+                tes.toJadescriptType(keysTypeParameter),
+                tes.toJadescriptType(valuesTypeParameter)
             ));
         }
 
@@ -170,29 +167,28 @@ public class MapLiteralExpressionSemantics
 
         int assumedSize = Math.min(keys.size(), values.size());
 
-        IJadescriptType lubKeys = rves.inferType(keys.get(0), state);
-        StaticState newState = rves.advance(keys.get(0), state);
-        IJadescriptType lubValues = rves.inferType(values.get(0), newState);
-        newState = rves.advance(values.get(0), newState);
-        for (int i = 1; i < assumedSize; i++) {
+
+        IJadescriptType lubKeys = typeHelper.NOTHING;
+        IJadescriptType lubValues = typeHelper.NOTHING;
+        StaticState newState = state;
+        for (int i = 0; i < assumedSize; i++) {
             final Maybe<RValueExpression> key = keys.get(i);
-            lubKeys = module.get(TypeHelper.class).getLUB(
+            final Maybe<RValueExpression> value = values.get(i);
+
+            lubKeys = typeHelper.getLUB(
                 lubKeys,
                 rves.inferType(key, newState)
             );
             newState = rves.advance(key, newState);
-            final Maybe<RValueExpression> value = values.get(i);
-            lubValues = module.get(TypeHelper.class).getLUB(
+
+            lubValues = typeHelper.getLUB(
                 lubValues,
                 rves.inferType(value, newState)
             );
             newState = rves.advance(value, newState);
         }
 
-        return module.get(TypeHelper.class).MAP.apply(Arrays.asList(
-            lubKeys,
-            lubValues
-        ));
+        return typeHelper.MAP.apply(List.of(lubKeys, lubValues));
     }
 
 
@@ -237,22 +233,28 @@ public class MapLiteralExpressionSemantics
         for (int i = 0; i < assumedSize; i++) {
             final Maybe<RValueExpression> key = keys.get(i);
             final Maybe<RValueExpression> value = values.get(i);
+
             boolean keyCheck = rves.validate(key, newState, acceptor);
             keysLub = module.get(TypeHelper.class).getLUB(
                 keysLub,
                 rves.inferType(key, newState)
             );
             newState = rves.advance(key, newState);
+
             boolean valCheck = rves.validate(value, newState, acceptor);
             valuesLub = module.get(TypeHelper.class).getLUB(
                 valuesLub,
                 rves.inferType(value, newState)
             );
+
             newState = rves.advance(value, newState);
+
             stage1 = stage1 && keyCheck && valCheck;
         }
 
-        stage1 = stage1 && module.get(ValidationHelper.class).asserting(
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+        stage1 = stage1 && validationHelper.asserting(
             !values.isEmpty() && !values.stream().allMatch(Maybe::isNothing)
                 && !keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing)
                 || hasTypeSpecifiers,
@@ -262,7 +264,7 @@ public class MapLiteralExpressionSemantics
             acceptor
         );
 
-        stage1 = stage1 && module.get(ValidationHelper.class).asserting(
+        stage1 = stage1 && validationHelper.asserting(
             values.stream().filter(Maybe::isPresent).count()
                 == keys.stream().filter(Maybe::isPresent).count(),
             "InvalidMapLiteral",
@@ -281,36 +283,24 @@ public class MapLiteralExpressionSemantics
             && !keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing)) {
 
             boolean keysValidation =
-                module.get(ValidationHelper.class).asserting(
-                    !keysLub.isErroneous(),
+                validationHelper.asserting(
+                    hasTypeSpecifiers || !keysLub.isErroneous(),
                     "MapLiteralCannotComputeType",
-                    "Can not find a valid common parent type of the keys in " +
-                        "the map.",
+                    "Can not find a valid common parent type of the keys in" +
+                        " the map.",
                     input,
                     acceptor
                 );
 
+            final TypeExpressionSemantics tes =
+                module.get(TypeExpressionSemantics.class);
             keysValidation = keysValidation
-                && module.get(TypeExpressionSemantics.class)
-                .validate(keysTypeParameter, acceptor);
+                && tes.validate(keysTypeParameter, acceptor);
 
-            if (keysValidation == VALID && hasTypeSpecifiers) {
-                keysValidation =
-                    module.get(ValidationHelper.class).assertExpectedType(
-                        module.get(TypeExpressionSemantics.class)
-                            .toJadescriptType(keysTypeParameter),
-                        keysLub,
-                        "MapLiteralTypeMismatch",
-                        input,
-                        JadescriptPackage.eINSTANCE
-                            .getMapOrSetLiteral_KeyTypeParameter(),
-                        acceptor
-                    );
-            }
 
             boolean valsValidation =
-                module.get(ValidationHelper.class).asserting(
-                    !valuesLub.isErroneous(),
+                validationHelper.asserting(
+                    hasTypeSpecifiers || !valuesLub.isErroneous(),
                     "MapLiteralCannotComputeType",
                     "Can not find a valid common parent type of the values in" +
                         " the map.",
@@ -319,21 +309,41 @@ public class MapLiteralExpressionSemantics
                 );
 
             valsValidation = valsValidation
-                && module.get(TypeExpressionSemantics.class)
-                .validate(valuesTypeParameter, acceptor);
+                && tes.validate(valuesTypeParameter, acceptor);
 
-            if (valsValidation == VALID && hasTypeSpecifiers) {
-                valsValidation =
-                    module.get(ValidationHelper.class).assertExpectedType(
-                        module.get(TypeExpressionSemantics.class)
-                            .toJadescriptType(valuesTypeParameter),
-                        valuesLub,
-                        "MapLiteralTypeMismatch",
-                        input,
-                        JadescriptPackage.eINSTANCE
-                            .getMapOrSetLiteral_ValueTypeParameter(),
+            if (valsValidation == VALID && keysValidation == VALID
+                && hasTypeSpecifiers) {
+                newState = state;
+                final IJadescriptType explicitKeyType =
+                    tes.toJadescriptType(keysTypeParameter);
+                final IJadescriptType explicitValueType =
+                    tes.toJadescriptType(valuesTypeParameter);
+
+                for (int i = 0; i < assumedSize; i++) {
+                    Maybe<RValueExpression> key = keys.get(i);
+                    Maybe<RValueExpression> value = values.get(i);
+
+                    boolean keyConf = validationHelper.assertExpectedType(
+                        explicitKeyType,
+                        rves.inferType(key, newState),
+                        "InvalidMapKey",
+                        key,
                         acceptor
                     );
+                    newState = rves.advance(key, newState);
+
+                    boolean valConf = validationHelper.assertExpectedType(
+                        explicitValueType,
+                        rves.inferType(value, newState),
+                        "InvalidMapValue",
+                        value,
+                        acceptor
+                    );
+                    newState = rves.advance(value, newState);
+
+                    keysValidation = keysValidation && keyConf;
+                    valsValidation = valsValidation && valConf;
+                }
             }
 
             return keysValidation && valsValidation;

@@ -20,14 +20,16 @@ public class SemanticsModule {
     private final JvmAnnotationReferenceBuilder jvmAnnotationReferenceBuilder;
     private final IQualifiedNameProvider iQualifiedNameProvider;
     private final JadescriptCompilerUtils jadescriptCompilerUtils;
-    
+    private final Map<Class<?>, Object> singletonCache = new HashMap<>();
+
+
     public SemanticsModule(
-            String phase,
-            JvmTypesBuilder jvmTypesBuilder,
-            JvmTypeReferenceBuilder jvmTypeReferenceBuilder,
-            JvmAnnotationReferenceBuilder jvmAnnotationReferenceBuilder,
-            IQualifiedNameProvider iQualifiedNameProvider,
-            JadescriptCompilerUtils jadescriptCompilerUtils
+        String phase,
+        JvmTypesBuilder jvmTypesBuilder,
+        JvmTypeReferenceBuilder jvmTypeReferenceBuilder,
+        JvmAnnotationReferenceBuilder jvmAnnotationReferenceBuilder,
+        IQualifiedNameProvider iQualifiedNameProvider,
+        JadescriptCompilerUtils jadescriptCompilerUtils
     ) {
         this.phase = phase;
         this.jvmTypesBuilder = jvmTypesBuilder;
@@ -38,12 +40,11 @@ public class SemanticsModule {
     }
 
 
-    private final Map<Class<?>, Object> singletonCache = new HashMap<>();
-	
-
-    public <T> void bind(Class<? extends T> clazz, T instance){
+    public <T> void bind(Class<? extends T> clazz, T instance) {
         singletonCache.put(clazz, instance);
     }
+
+
     @SuppressWarnings("unchecked")
     public <T> T get(Class<? extends T> clazz) {
         if (clazz.isAssignableFrom(JvmTypesBuilder.class)) {
@@ -52,7 +53,7 @@ public class SemanticsModule {
         if (clazz.isAssignableFrom(JvmTypeReferenceBuilder.class)) {
             return (T) jvmTypeReferenceBuilder;
         }
-        if(clazz.isAssignableFrom(JvmAnnotationReferenceBuilder.class)){
+        if (clazz.isAssignableFrom(JvmAnnotationReferenceBuilder.class)) {
             return (T) jvmAnnotationReferenceBuilder;
         }
         if (clazz.isAssignableFrom(IQualifiedNameProvider.class)) {
@@ -61,7 +62,6 @@ public class SemanticsModule {
         if (clazz.isAssignableFrom(JadescriptCompilerUtils.class)) {
             return (T) jadescriptCompilerUtils;
         }
-        
         if (clazz.isAssignableFrom(SemanticsModule.class)) {
             return (T) this;
         }
@@ -71,22 +71,28 @@ public class SemanticsModule {
         }
 
         try {
-            final T t = clazz.getConstructor(SemanticsModule.class).newInstance(this);
+            final T t = clazz.getConstructor(SemanticsModule.class)
+                .newInstance(this);
             singletonCache.put(clazz, t);
             return t;
         } catch (NoSuchMethodException e) {
             return getNonJadescript(clazz);
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            System.err.println("Error while creating new " + clazz.getSimpleName());
+        } catch (InstantiationException | IllegalAccessException
+                 | InvocationTargetException e) {
+            System.err.println("Error while creating new " +
+                clazz.getSimpleName()
+            );
             e.printStackTrace();
             //noinspection ConstantConditions
             throw Exceptions.sneakyThrow(e);
         }
     }
 
+
     public String getPhase() {
         return phase;
     }
+
 
     @SuppressWarnings("unchecked")
     private <T> T getNonJadescript(Class<? extends T> clazz) {
@@ -98,11 +104,15 @@ public class SemanticsModule {
             final T t = clazz.getConstructor().newInstance();
             singletonCache.put(clazz, t);
             return t;
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            System.err.println("Error while creating new " + clazz.getSimpleName());
+        } catch (InstantiationException | IllegalAccessException |
+                 InvocationTargetException | NoSuchMethodException e) {
+            System.err.println("Error while creating new " +
+                clazz.getSimpleName()
+            );
             e.printStackTrace();
             //noinspection ConstantConditions
             throw Exceptions.sneakyThrow(e);
         }
     }
+
 }

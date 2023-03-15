@@ -11,25 +11,34 @@ ontology MyOntology extends SuperOntology
 agent SuperAgent uses ontology MyOntology
     property sax = 10
     function say as integer do
-        return 10
+        return 11
 
 
 agent MyAgent extends SuperAgent
-    property ax = ""
+    property ax = "test"
     function ay as text do
         return "foo"
         
     on create do
+        log sax
+        log ax
         activate MyBehaviour
 
 
 one shot behaviour SuperBehaviour for agent MyAgent
     property sbx = true
     function sby as boolean do
+        log sax
+        log ax
+        log sbx
         return false
+
 
 agent AnotherAgent extends MyAgent
     property aax = "bar"@
+    
+    on create do
+        log aax
 
 one shot behaviour MyBehaviour extends SuperBehaviour
     property bx = inform
@@ -37,13 +46,15 @@ one shot behaviour MyBehaviour extends SuperBehaviour
         return cfp
         
     on execute do
-        log __d_type__ SuperConcept
-        log __d_type__ MyConcept
-        log __d_type__ sax
-        log __d_type__ say
-        log __d_type__ ax
-        log __d_type__ ay
-        log __d_type__ sbx
-        log __d_type__ sby
-        log __d_type__ bx
-        log __d_type__ by
+        log __dt__ SuperConcept 
+        log __dt__ MyConcept
+        log __dt__ sax
+        log __dt__ say
+        log __dt__ ax
+        log __dt__ ay
+        log __dt__ sbx
+        log __dt__ sby
+        log __dt__ bx
+        log __dt__ by
+
+

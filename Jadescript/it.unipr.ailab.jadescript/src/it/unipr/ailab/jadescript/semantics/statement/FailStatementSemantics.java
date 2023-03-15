@@ -79,7 +79,7 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
             );
             runningState = rves.advance(reason, runningState);
         }
-        //TODO invalidate state for "fail this"
+
         return runningState;
     }
 

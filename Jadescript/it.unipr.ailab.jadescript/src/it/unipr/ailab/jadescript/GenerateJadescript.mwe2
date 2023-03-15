@@ -35,18 +35,23 @@ Workflow {
 				generateStub = false
 			}
 			validator = {
-				// composedCheck = "org.eclipse.xtext.validation.NamesAreUniqueValidator"
-				// Generates checks for @Deprecated grammar annotations, an IssueProvider and a corresponding PropertyPage
+				// Generates checks for @Deprecated grammar annotations
 				generateDeprecationValidation = true
 			}
+			
 			generator = {
 				generateJavaMain = true
+			}
+			
+			formatter = {
+				generateStub = true
 			}
 			
 			newProjectWizardForEclipse = {
 				generate = true
 //				pluginProject=false	
 			}
+			
 			junitSupport = {
 				junitVersion = "5"
 			}

@@ -15,7 +15,6 @@ public abstract class UserDefinedType<T extends JadescriptType>
             SemanticsModule module,
             JvmTypeReference jvmType,
             T rootCategoryType
-
     ) {
         super(
                 module,

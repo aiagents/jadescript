@@ -19,7 +19,7 @@ class JadescriptQualifiedNameProvider extends XbaseQualifiedNameProvider {
 		return conv.toQualifiedName("nullName")
 	}
 	
-	/* */
+	
 	override QualifiedName getFullyQualifiedName(EObject obj) {
 		if(obj === null) return nullName();
 		switch (obj) {
@@ -36,7 +36,12 @@ class JadescriptQualifiedNameProvider extends XbaseQualifiedNameProvider {
 		if(e === null || e.name === null)
 			return nullName()
 		val model = e.getContainerOfType(Model);
-		if (model !== null && model.withModule && model.name !== null && model.fullyQualifiedName !== null) {
+		if (
+			model !== null 
+			&& model.withModule 
+			&& model.name !== null 
+			&& model.fullyQualifiedName !== null
+		) {
 			return model.fullyQualifiedName.append(e.name)
 		} else {
 			return QualifiedName.create(e.name)

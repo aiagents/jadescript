@@ -5,16 +5,15 @@ import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.Util.Tuple2;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import jadescript.util.JadescriptMap;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.xtend2.lib.StringConcatenationClient;
 import org.eclipse.xtext.common.types.JvmMember;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.common.types.JvmVisibility;
@@ -113,45 +112,45 @@ public class MapType extends ParametricType implements EmptyCreatable,
         }
 
         this.addProperty(
-            new Property(
+            Property.readonlyProperty(
                 "size",
                 module.get(TypeHelper.class).INTEGER,
-                true,
-                getLocation()
-            ).setCompileByCustomJVMMethod("size", "size")
+                getLocation(),
+                Property.compileGetWithCustomMethod("size")
+            )
         );
         this.addProperty(
-            new Property(
+            Property.readonlyProperty(
                 "values",
-                module.get(TypeHelper.class).SET.apply(Arrays.asList(
-                    getValueType())),
-                true,
-                getLocation()
-            ).setCompileByCustomJVMMethod("values", "values")
+                module.get(TypeHelper.class).SET.apply(
+                    Arrays.asList(getValueType())
+                ),
+                getLocation(),
+                Property.compileGetWithCustomMethod("values")
+            )
         );
         this.addProperty(
-            new Property(
+            Property.readonlyProperty(
                 "keys",
-                module.get(TypeHelper.class).SET.apply(Arrays.asList(
-                    getKeyType())),
-                true,
-                getLocation()
-            ).setCompileByCustomJVMMethod("keySet", "keySet")
+                module.get(TypeHelper.class).SET.apply(
+                    Arrays.asList(getKeyType())
+                ),
+                getLocation(),
+                Property.compileGetWithCustomMethod("keySet")
+            )
         );
 
-        operations.add(new Operation(
-            false,
-            "__addAt",
+        operations.add(Operation.operation(
             module.get(TypeHelper.class).VOID,
-            List.of(
-                new Tuple2<>("index", getKeyType()),
-                new Tuple2<>("element", getValueType())
+            "__addAt",
+
+            Map.of(
+                "index", getKeyType(),
+                "element", getValueType()
             ),
+            List.of("index", "element"),
             getLocation(),
-            (receiver, namedArgs) -> {
-                return receiver + ".put(" + namedArgs.get("index") + "," +
-                    namedArgs.get("element") + ")";
-            },
+            false,
             (receiver, args) -> {
                 final String e;
                 final String i;
@@ -163,59 +162,70 @@ public class MapType extends ParametricType implements EmptyCreatable,
                     e = "/*internal error: missing arguments*/";
                 }
                 return receiver + ".put(" + i + ", " + e + ")";
+            },
+            (receiver, namedArgs) -> {
+                return receiver + ".put(" + namedArgs.get("index") + "," +
+                    namedArgs.get("element") + ")";
             }
         ));
-        operations.add(new Operation(
-            true, // assuming no exceptions are thrown
+        operations.add(Operation.operation(
+            getValueType(),
             "get",
-            getValueType(),
-            List.of(new Tuple2<>("key", getKeyType())),
-            getLocation()
+            Map.of("key", getKeyType()),
+            List.of("key"),
+            getLocation(),
+            true // assuming no exceptions are thrown
         ));
-        operations.add(new Operation(
-            false,
+        operations.add(Operation.operation(
+            getValueType(),
             "put",
-            getValueType(),
-            List.of(
-                new Tuple2<>("key", getKeyType()),
-                new Tuple2<>("value", getValueType())
+            Map.of(
+                "key", getKeyType(),
+                "value", getValueType()
             ),
-            getLocation()
+            List.of("key", "value"),
+            getLocation(),
+            false
         ));
-        operations.add(new Operation(
-            true,
+        operations.add(Operation.operation(
+            module.get(TypeHelper.class).BOOLEAN,
             "containsKey",
-            module.get(TypeHelper.class).BOOLEAN,
-            List.of(new Tuple2<>("k", getKeyType())),
-            getLocation()
+            Map.of("k", getKeyType()),
+            List.of("k"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
+        operations.add(Operation.operation(
+            module.get(TypeHelper.class).BOOLEAN,
             "containsValue",
-            module.get(TypeHelper.class).BOOLEAN,
-            List.of(new Tuple2<>("v", getValueType())),
-            getLocation()
+            Map.of("v", getValueType()),
+            List.of("v"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
+        operations.add(Operation.operation(
+            module.get(TypeHelper.class).BOOLEAN,
             "containsAll",
-            module.get(TypeHelper.class).BOOLEAN,
-            List.of(new Tuple2<>("m", this)),
-            getLocation()
+            Map.of("m", this),
+            List.of("m"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
+        operations.add(Operation.operation(
+            module.get(TypeHelper.class).BOOLEAN,
             "containsAny",
-            module.get(TypeHelper.class).BOOLEAN,
-            List.of(new Tuple2<>("m", this)),
-            getLocation()
+            Map.of("m", this),
+            List.of("m"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            false,
-            "clear",
+        operations.add(Operation.operation(
             module.get(TypeHelper.class).VOID,
+            "clear",
+            Map.of(),
             List.of(),
-            getLocation()
+            getLocation(),
+            false
         ));
         this.initializedProperties = true;
     }
@@ -299,7 +309,13 @@ public class MapType extends ParametricType implements EmptyCreatable,
 
 
     @Override
-    public void declareSpecificOntologyClass(
+    public boolean requiresAgentEnvParameter() {
+        return false;
+    }
+
+
+    @Override
+    public void declareAdHocClass(
         EList<JvmMember> members,
         Maybe<ExtendingFeature> feature,
         HashMap<String, String> generatedSpecificClasses,
@@ -316,95 +332,113 @@ public class MapType extends ParametricType implements EmptyCreatable,
         IJadescriptType keyType = this.getKeyType();
         IJadescriptType elementType = this.getValueType();
         String className = getAdHocMapClassName(keyType, elementType);
-        if (!generatedSpecificClasses.containsKey(className)) {
-            final JvmTypesBuilder jvmTB =
-                module.get(JvmTypesBuilder.class);
-            members.add(jvmTB.toClass(featureSafe, className, itClass -> {
-                itClass.setStatic(true);
-                itClass.setVisibility(JvmVisibility.PUBLIC);
-                itClass.getSuperTypes().add(asJvmTypeReference());
-                final TypeHelper typeHelper = module.get(TypeHelper.class);
-                itClass.getMembers().add(jvmTB.toMethod(
-                    featureSafe,
-                    "__fromMap",
-                    typeHelper.typeRef(className),
-                    itMeth -> {
-                        itMeth.setVisibility(JvmVisibility.PUBLIC);
-                        itMeth.setStatic(true);
-                        itMeth.getParameters().add(jvmTB.toParameter(
-                            featureSafe,
-                            "map",
-                            typeHelper.typeRef(
-                                Map.class,
-                                keyType.asJvmTypeReference(),
-                                elementType.asJvmTypeReference()
-                            )
-                        ));
-                        jvmTB.setBody(
-                            itMeth,
-                            new StringConcatenationClient() { //TODO use scb
-                                @Override
-                                protected void appendTo(
-                                    TargetStringConcatenation target
-                                ) {
-                                    target.append(className + " " +
-                                        "result = new " + className + "();\n" +
-                                        "  java.util.List<" +
-                                        typeHelper.noGenericsTypeName(
-                                            keyType.compileToJavaTypeReference()
-                                        ) +
-                                        "> keys = new java.util" +
-                                        ".ArrayList<>();\n" +
-                                        "  java.util.List<" +
-                                        typeHelper.noGenericsTypeName(
-                                            elementType
-                                                .compileToJavaTypeReference()) +
-                                        "> values = new java.util" +
-                                        ".ArrayList<>();\n" +
-                                        "  map.forEach((k,v)->{\n" +
-                                        "\t  keys.add(k);\n" +
-                                        "\t  values.add(v);\n" +
-                                        "  });\n" +
-                                        "  result.setKeys(keys);\n" +
-                                        "  result.setValues(values);" +
-                                        "\n" +
-                                        "  return result;");
-                                }
-                            }
-                        );
-                    }
-                ));
-            }));
-            generatedSpecificClasses.put(className, getCategoryName());
-            addSchemaWriters.add(w.simpleStmt(
-                "add(new jade.content.schema.ConceptSchema(\"" + className +
-                    "\"), " +
-                    "" + className + ".class);"));
-            describeSchemaWriters.add(new StatementWriter() {
-                @Override
-                public void writeSonnet(SourceCodeBuilder scb) {
-                    EList<TypeExpression> typeParameters =
-                        slotTypeExpression
-                            .getCollectionTypeExpression().getTypeParameters();
-                    if (typeParameters != null && typeParameters.size() == 2) {
-                        scb.add(
-                            "jadescript.content.onto.Ontology" +
-                                ".__populateMapSchema(" +
-                                "(jade.content.schema.TermSchema) " +
-                                "getSchema(" +
-                                schemaNameForSlotProvider.apply(
-                                    typeParameters.get(0)) + "), " +
-                                "(jade.content.schema.TermSchema) getSchema(" +
-                                schemaNameForSlotProvider.apply(
-                                    typeParameters.get(1)) + "), " +
-                                "(jade.content.schema.ConceptSchema) " +
-                                "getSchema(\"" + className + "\"));");
-                    }
 
-                }
-            });
+        if (generatedSpecificClasses.containsKey(className)) {
+            return;
         }
 
+        final JvmTypesBuilder jvmTB =
+            module.get(JvmTypesBuilder.class);
+
+        members.add(jvmTB.toClass(featureSafe, className, itClass -> {
+            itClass.setStatic(true);
+            itClass.setVisibility(JvmVisibility.PUBLIC);
+            itClass.getSuperTypes().add(asJvmTypeReference());
+
+            final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+            itClass.getMembers().add(jvmTB.toMethod(
+                featureSafe,
+                "__fromMap",
+                typeHelper.typeRef(className),
+                itMeth -> {
+                    itMeth.setVisibility(JvmVisibility.PUBLIC);
+                    itMeth.setStatic(true);
+                    itMeth.getParameters().add(jvmTB.toParameter(
+                        featureSafe,
+                        "map",
+                        typeHelper.typeRef(
+                            Map.class,
+                            keyType.asJvmTypeReference(),
+                            elementType.asJvmTypeReference()
+                        )
+                    ));
+
+                    final CompilationHelper compilationHelper =
+                        module.get(CompilationHelper.class);
+
+                    compilationHelper.createAndSetBody(itMeth, scb -> {
+                        scb.line(className + " result = " +
+                            "new " + className + "();");
+
+                        scb.line("java.util.List<" +
+                            typeHelper.noGenericsTypeName(
+                                keyType.compileToJavaTypeReference()) +
+                            "> keys = new java.util.ArrayList<>();");
+
+                        scb.line("java.util.List<" +
+                            typeHelper.noGenericsTypeName(
+                                elementType.compileToJavaTypeReference()) +
+                            "> values = new java.util.ArrayList<>();");
+
+                        scb.line(
+                            "map.forEach((k,v)->{" +
+                                "keys.add(k); values.add(v);});"
+                        );
+
+                        scb.line("result.setKeys(keys);");
+                        scb.line("result.setValues(values);");
+                        scb.line("return result;");
+                    });
+                }
+            ));
+        }));
+
+        generatedSpecificClasses.put(className, getCategoryName());
+
+        addSchemaWriters.add(SemanticsConsts.w.simpleStmt(
+            "add(new jade.content.schema.ConceptSchema(\"" +
+                className + "\"), " + className + ".class);"
+        ));
+
+        EList<TypeExpression> typeParameters =
+            slotTypeExpression
+                .getCollectionTypeExpression().getTypeParameters();
+
+        String populateMapSchema;
+        if (typeParameters != null && typeParameters.size() == 2) {
+            populateMapSchema = "jadescript.content.onto.Ontology" +
+                ".__populateMapSchema(" +
+                "(jade.content.schema.TermSchema) " +
+                "getSchema(" +
+                schemaNameForSlotProvider.apply(
+                    typeParameters.get(0)) + "), " +
+                "(jade.content.schema.TermSchema) getSchema(" +
+                schemaNameForSlotProvider.apply(
+                    typeParameters.get(1)) + "), " +
+                "(jade.content.schema.ConceptSchema) " +
+                "getSchema(\"" + className + "\"));";
+        } else {
+            populateMapSchema = "";
+        }
+
+        describeSchemaWriters.add(
+            SemanticsConsts.w.simpleStmt(populateMapSchema)
+        );
+
+
+    }
+
+
+    @Override
+    public String getAdHocClassName() {
+        return getAdHocMapClassName(getKeyType(), getValueType());
+    }
+
+
+    @Override
+    public String getConverterToAdHocClassMethodName() {
+        return "__fromMap";
     }
 
 }

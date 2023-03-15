@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.feature;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.GenerationParameters;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -15,8 +16,8 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmMember;
@@ -31,7 +32,7 @@ import static it.unipr.ailab.maybe.Maybe.nothing;
  * Created on 27/04/18.
  */
 @Singleton
-public class FieldSemantics extends FeatureSemantics<Field> {
+public class FieldSemantics extends DeclarationMemberSemantics<Field> {
 
     public FieldSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -43,14 +44,19 @@ public class FieldSemantics extends FeatureSemantics<Field> {
         Maybe<Field> input,
         Maybe<FeatureContainer> container,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
-        if (input == null) return;
-
+        if (input == null) {
+            return;
+        }
+        final ContextManager contextManager = module.get(ContextManager.class);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
 
         Maybe<RValueExpression> right = input.__(Field::getRight);
         final Maybe<TypeExpression> explicitTypeExpr = input.__(Field::getType);
         final IJadescriptType finalType;
+
         if (explicitTypeExpr.isPresent()) {
             final TypeExpressionSemantics tes =
                 module.get(TypeExpressionSemantics.class);
@@ -58,7 +64,7 @@ public class FieldSemantics extends FeatureSemantics<Field> {
             finalType = tes.toJadescriptType(explicitTypeExpr);
 
         } else if (right.isPresent()) {
-            module.get(ContextManager.class)
+            contextManager
                 .enterProceduralFeature(FieldInitializerContext::new);
 
             StaticState beforeInit = StaticState.beginningOfOperation(module);
@@ -66,9 +72,9 @@ public class FieldSemantics extends FeatureSemantics<Field> {
             finalType = module.get(RValueExpressionSemantics.class)
                 .inferType(right, beforeInit);
 
-            module.get(ContextManager.class).exit();
+            contextManager.exit();
         } else {
-            finalType = module.get(TypeHelper.class).TOP.apply(
+            finalType = typeHelper.TOP.apply(
                 "Cannot infer type of field without initializer expression " +
                     "or type specifier."
             );
@@ -82,8 +88,8 @@ public class FieldSemantics extends FeatureSemantics<Field> {
         final Field inputSafe = input.toNullable();
         final String nameSafe = name.toNullable();
 
-        final SavedContext savedContext =
-            module.get(ContextManager.class).save();
+        final SavedContext savedContext = contextManager.save();
+
         final JvmTypeReference typeRef = finalType.asJvmTypeReference();
 
         final boolean isResolved =
@@ -91,30 +97,44 @@ public class FieldSemantics extends FeatureSemantics<Field> {
 
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
+
         members.add(module.get(JvmTypesBuilder.class).toField(
             inputSafe,
             nameSafe,
             typeRef,
             itField -> {
                 itField.setVisibility(JvmVisibility.PROTECTED);
-                if (right.isPresent()) {
-                    compilationHelper.createAndSetInitializer(itField, scb ->
-                        fillFieldInitializer(
+
+
+                compilationHelper.createAndSetInitializer(itField, scb -> {
+                    //Puts null as initializer expression:
+                    scb.add("null");
+
+                    final String dereferencedField =
+                        Util.getOuterClassThisReference(container) +
+                            "." + nameSafe;
+
+                    // But then uses the __initializeProperties() method to
+                    // actually initialize the properties.
+                    if (right.isPresent()) {
+                        generateFieldInitializer(
+                            dereferencedField,
                             savedContext,
                             right,
                             finalType,
                             explicitTypeExpr.isPresent(),
-                            scb
-                        )
-                    );
-                } else {
-                    compilationHelper.createAndSetInitializer(
-                        itField,
-                        scb -> scb.add(CompilationHelper
-                            .compileDefaultValueForType(finalType)
-                        )
-                    );
-                }
+                            fieldInitializationAcceptor
+                        );
+                    } else {
+                        fieldInitializationAcceptor.accept(w.assign(
+                            dereferencedField,
+                            w.expr(CompilationHelper
+                                .compileDefaultValueForType(finalType))
+                        ));
+                    }
+                });
+
+
             }
         ));
 
@@ -164,7 +184,7 @@ public class FieldSemantics extends FeatureSemantics<Field> {
             members.add(module.get(JvmTypesBuilder.class).toField(
                 inputSafe,
                 "__eIsProxy_" + nameSafe + "_" + typeRef.eIsProxy(),
-                module.get(TypeHelper.class).BOOLEAN.asJvmTypeReference(),
+                typeHelper.BOOLEAN.asJvmTypeReference(),
                 itField -> compilationHelper.createAndSetInitializer(
                     itField,
                     scb -> {
@@ -188,12 +208,13 @@ public class FieldSemantics extends FeatureSemantics<Field> {
     }
 
 
-    private void fillFieldInitializer(
+    private void generateFieldInitializer(
+        String dereferencedField,
         SavedContext savedContext,
         Maybe<RValueExpression> right,
         IJadescriptType type,
         boolean isExplicitType,
-        SourceCodeBuilder scb
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
         module.get(ContextManager.class).restore(savedContext);
         module.get(ContextManager.class).enterProceduralFeature(
@@ -223,7 +244,12 @@ public class FieldSemantics extends FeatureSemantics<Field> {
             );
         }
 
-        scb.add(initExpr);
+        fieldInitializationAcceptor.accept(
+            w.assign(
+                dereferencedField,
+                w.expr(initExpr)
+            )
+        );
 
 
         module.get(ContextManager.class).exit();
@@ -231,7 +257,7 @@ public class FieldSemantics extends FeatureSemantics<Field> {
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<Field> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -337,6 +363,7 @@ public class FieldSemantics extends FeatureSemantics<Field> {
             module.get(ContextManager.class).exit();
         }
 
+
         validationHelper.validateFieldCompatibility(
             name,
             finalType,
@@ -344,6 +371,17 @@ public class FieldSemantics extends FeatureSemantics<Field> {
             getLocationOfThis(),
             acceptor
         );
+
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<Field> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
+
 
     }
 

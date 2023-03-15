@@ -30,10 +30,15 @@ public class OntologyDeclarationContext
     ) {
         super(module, outer);
         this.ontology = ontology;
-        this.ontoType = new LazyValue<>(() -> module.get(TypeHelper.class).jtFromJvmType(this.ontology));
-        this.ontoNamespace = new LazyValue<>(() -> this.ontoType.get().namespace());
+        this.ontoType = new LazyValue<>(() ->
+            module.get(TypeHelper.class).jtFromJvmType(this.ontology));
+        this.ontoNamespace = new LazyValue<>(() ->
+            this.ontoType.get().namespace());
     }
 
+    public String getOntologyName(){
+        return ontoType.get().getJadescriptName();
+    }
 
     @Override
     public Maybe<Searcheable> superTypeSearcheable() {
@@ -47,7 +52,8 @@ public class OntologyDeclarationContext
 
     @Override
     public Stream<OntologyAssociation> computeCurrentOntologyAssociations() {
-        return Stream.of(new OntologyAssociation(ontoType.get(), OntologyAssociation.O.INSTANCE));
+        return Stream.of(new OntologyAssociation(ontoType.get(),
+            OntologyAssociation.O.INSTANCE));
     }
 
     @Override
@@ -66,7 +72,7 @@ public class OntologyDeclarationContext
 
     @Override
     public String getCurrentOperationLogName() {
-        return "<init ontology " + ontoType.get().getJadescriptName() + ">";
+        return "<init ontology " + getOntologyName() + ">";
     }
 
     @Override

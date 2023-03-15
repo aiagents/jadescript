@@ -5,12 +5,11 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.NamedArgumentList;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
-import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.PatternSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.Symbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Located;
 import it.unipr.ailab.jadescript.semantics.expression.AssignableExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
@@ -54,27 +53,37 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         List<String> argNames,
         List<String> paramNames
     ) {
-        List<HashMap.SimpleEntry<Integer, T>> tmp = new ArrayList<>();
+        List<Util.Tuple2<Integer, T>> tmp = new ArrayList<>();
         for (int i = 0; i < args.size(); i++) {
             T arg = args.get(i);
-            Integer x = paramNames.indexOf(argNames.get(i));
-            tmp.add(new HashMap.SimpleEntry<>(x, arg));
+            if(argNames.get(i).equals(AGENT_ENV)){
+                tmp.add(new Util.Tuple2<>(-1, arg));
+            }else {
+                Integer x = paramNames.indexOf(argNames.get(i));
+                tmp.add(new Util.Tuple2<>(x, arg));
+            }
         }
         return tmp.stream()
-            .sorted(Comparator.comparingInt(AbstractMap.SimpleEntry::getKey))
-            .map(AbstractMap.SimpleEntry::getValue)
+            .sorted(Comparator.comparingInt(Tuple2::get_1))
+            .map(Tuple2::get_2)
             .collect(Collectors.toList());
     }
+
 
 
     public static <T> List<T> sortToMatchParamNames(
         Map<String, T> namedArgs,
         List<String> paramNames
     ) {
-        return paramNames.stream()
+        final List<T> collect = paramNames.stream()
             .map(namedArgs::get)
-            .collect(Collectors.toList());
+            .collect(Collectors.toCollection(ArrayList::new));
+        if(namedArgs.containsKey(AGENT_ENV)){
+            collect.add(0, namedArgs.get(AGENT_ENV));
+        }
+        return collect;
     }
+
 
 
     private static StaticState advanceCallByNameParameters(
@@ -214,10 +223,9 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         PatternMatchInput<Call> input,
         StaticState state
     ) {
-        final Maybe<? extends CallableSymbol> method = resolve(
+        final Maybe<? extends GlobalPattern> patternSymbol = resolvePattern(
             input.getPattern(),
-            state,
-            false //patterns do not advance on any argument before resolving
+            state
         );
 
         Maybe<SimpleArgumentList> simpleArgs =
@@ -239,16 +247,16 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         }
 
 
-        if (method.isNothing()) {
+        if (patternSymbol.isNothing()) {
             return state;
         }
 
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
-        CallableSymbol m = method.toNullable();
+        GlobalPattern ps = patternSymbol.toNullable();
 
-        List<IJadescriptType> patternTermTypes = m.parameterTypes();
+        List<IJadescriptType> patternTermTypes = ps.termTypes();
 
 
         if (namedArgs.isPresent()) {
@@ -260,19 +268,21 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             argExpressions = sortToMatchParamNames(
                 argExpressions,
                 argNames,
-                m.parameterNames()
+                ps.termNames()
             );
         }
 
         StaticState runningState = state;
         for (int i = 0; i < argExpressions.size(); i++) {
             Maybe<RValueExpression> term = argExpressions.get(i);
+            String termName = ps.termNames().get(i);
             IJadescriptType upperBound = patternTermTypes.get(i);
             final SubPattern<RValueExpression, Call> termSubpattern =
-                input.subPattern(
+                input.subPatternForProperty(
                     upperBound,
                     __ -> term.toNullable(),
-                    "_" + i
+                    "_" + i,
+                    termName
                 );
             runningState = rves.advancePattern(
                 termSubpattern,
@@ -311,7 +321,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         PatternMatchInput<Call> input,
         StaticState state
     ) {
-        final Maybe<? extends PatternSymbol> ps = resolvePattern(
+        final Maybe<? extends GlobalPattern> ps = resolvePattern(
             input.getPattern(),
             state
         );
@@ -343,7 +353,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        PatternSymbol patternSymbol = ps.toNullable();
+        GlobalPattern patternSymbol = ps.toNullable();
 
         List<IJadescriptType> patternTermTypes = patternSymbol.termTypes();
 
@@ -364,12 +374,14 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         StaticState runningState = state;
         for (int i = 0; i < argExpressions.size(); i++) {
             Maybe<RValueExpression> term = argExpressions.get(i);
+            String termName = patternSymbol.termNames().get(i);
             IJadescriptType upperBound = patternTermTypes.get(i);
             final SubPattern<RValueExpression, Call> termSubpattern =
-                input.subPattern(
+                input.subPatternForProperty(
                     upperBound,
                     __ -> term.toNullable(),
-                    "_structterm" + i
+                    "_structterm" + i,
+                    termName
                 );
             runningState = rves.advancePattern(
                 termSubpattern,
@@ -405,14 +417,11 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             args
         );
 
-        Optional<? extends CallableSymbol> methodsFound = newState.searchAs(
-            CallableSymbol.Searcher.class,
-            searcher -> searcher.searchCallable(
-                nameSafe,
-                null,
-                (s, n) -> s == argsize,
-                (s, t) -> s == argsize
-            )
+
+        Optional<? extends CompilableCallable> methodsFound = newState.searchAs(
+            CompilableCallable.Namespace.class,
+            searcher -> searcher.compilableCallables(nameSafe)
+                .filter(cc -> cc.arity() == argsize)
         ).findFirst();
 
         if (methodsFound.isEmpty()) {
@@ -461,23 +470,19 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             args
         );
 
-        Optional<? extends CallableSymbol> methodFound =
-            module.get(ContextManager.class).currentContext()
-                .searchAs(
-                    CallableSymbol.Searcher.class,
-                    searcher -> searcher.searchCallable(
-                        nameSafe,
-                        null,
-                        (s, n) -> namedArgs
-                            .__(NamedArgumentList::getParameterNames)
-                            .__(List::size)
-                            .wrappedEquals(s),
-                        (s, t) -> namedArgs
-                            .__(NamedArgumentList::getParameterValues)
-                            .__(List::size)
-                            .wrappedEquals(s)
-                    )
-                ).findFirst();
+        Optional<? extends CompilableCallable> methodFound = newState.searchAs(
+            CompilableCallable.Namespace.class,
+            searcher -> searcher.compilableCallables(nameSafe)
+                .filter(cc -> namedArgs
+                    .__(NamedArgumentList::getParameterNames)
+                    .__(List::size)
+                    .wrappedEquals(cc.parameterNames().size()))
+                .filter(cc -> namedArgs
+                    .__(NamedArgumentList::getParameterValues)
+                    .__(List::size)
+                    .wrappedEquals(cc.parameterTypes().size())
+                )
+        ).findFirst();
 
         if (methodFound.isEmpty()) {
             return state;
@@ -522,7 +527,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             }
 
 
-            Maybe<? extends CallableSymbol> methodsFound = resolve(
+            Maybe<? extends CompilableCallable> methodsFound = resolve(
                 input,
                 afterArguments,
                 false
@@ -530,7 +535,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
 
             if (methodsFound.isPresent()) {
-                CallableSymbol method = methodsFound.toNullable();
+                CompilableCallable method = methodsFound.toNullable();
                 final List<String> compiledRexprs =
                     module.get(CompilationHelper.class)
                         .adaptAndCompileRValueList(
@@ -539,7 +544,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                             method.parameterTypes()
                         );
 
-                return method.compileInvokeByArity("", compiledRexprs);
+                return method.compileInvokeByArity(compiledRexprs, acceptor);
             }
             // Falling back to common invocation
             return name + "(" + String.join(", ", compiledArgs) + ")";
@@ -571,7 +576,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                 afterArguments = rves.advance(expr, afterArguments);
             }
 
-            Maybe<? extends CallableSymbol> methodsFound = resolve(
+            Maybe<? extends CompilableCallable> methodsFound = resolve(
                 input,
                 afterArguments,
                 false
@@ -597,10 +602,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                 }
 
 
-                return methodsFound.toNullable().compileInvokeByName(
-                    "",
-                    compiledRexprs
-                );
+                return methodsFound.toNullable()
+                    .compileInvokeByName(compiledRexprs, acceptor);
             } else {
                 StringJoiner joiner = new StringJoiner(", ");
                 for (String argName : argNames) {
@@ -621,17 +624,11 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         Maybe<Call> input,
         StaticState state
     ) {
-        return resolve(
-            input,
-            state,
-            true
-        ).__(
-            CallableSymbol::returnType
-        ).orElseGet(
-            () -> module.get(TypeHelper.class).TOP.apply(
+        return resolve(input, state, true)
+            .__(CompilableCallable::returnType)
+            .orElseGet(() -> module.get(TypeHelper.class).TOP.apply(
                 "Unresolved callable symbol."
-            )
-        );
+            ));
     }
 
 
@@ -725,7 +722,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             return INVALID;
         }
 
-        List<? extends CallableSymbol> methodsFound = resolveCandidates(
+        List<? extends CompilableCallable> methodsFound = resolveCandidates(
             input,
             afterArgs,
             false
@@ -751,10 +748,10 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                 signature
             );
         } else {
-            CallableSymbol match = methodsFound.get(0);
+            CompilableCallable match = methodsFound.get(0);
 
-            final ValidationHelper validationHelper = module.get(
-                ValidationHelper.class);
+            final ValidationHelper validationHelper =
+                module.get(ValidationHelper.class);
             boolean isCorrectOperationKind = validationHelper.asserting(
                 isProcedure == module.get(TypeHelper.class)
                     .VOID.typeEquals(match.returnType()),
@@ -845,7 +842,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         }
 
 
-        List<? extends CallableSymbol> methodsFound = resolveCandidates(
+        List<? extends CompilableCallable> methodsFound = resolveCandidates(
             input,
             afterArgs,
             false
@@ -875,7 +872,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                 signature
             );
         } else {
-            CallableSymbol match = methodsFound.get(0);
+            CompilableCallable match = methodsFound.get(0);
 
             boolean isCorrectOperationKind =
                 module.get(ValidationHelper.class).asserting(
@@ -934,11 +931,11 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         ValidationMessageAcceptor acceptor,
         String procOrFunc,
         String errorCode,
-        List<? extends CallableSymbol> methodsFound,
+        List<? extends CompilableCallable> methodsFound,
         String signature
     ) {
         List<String> candidatesMessages = new ArrayList<>();
-        for (CallableSymbol match : methodsFound) {
+        for (CompilableCallable match : methodsFound) {
             candidatesMessages.add(
                 match.getSignature() + " in " + match.sourceLocation() + ";"
             );
@@ -1027,10 +1024,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         PatternMatchInput<Call> input,
         StaticState state, BlockElementAcceptor acceptor
     ) {
-        final Maybe<? extends PatternSymbol> patternSymbol = resolvePattern(
-            input.getPattern(),
-            state
-        );
+        final Maybe<? extends GlobalPattern> patternSymbol =
+            resolvePattern(input.getPattern(), state);
 
         Maybe<SimpleArgumentList> simpleArgs =
             extractSimpleArgs(input.getPattern());
@@ -1054,7 +1049,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         if (patternSymbol.isPresent()) {
             final RValueExpressionSemantics rves =
                 module.get(RValueExpressionSemantics.class);
-            PatternSymbol ps = patternSymbol.toNullable();
+            GlobalPattern ps = patternSymbol.toNullable();
 
             List<IJadescriptType> patternTermTypes = ps.termTypes();
             if (namedArgs.isPresent()) {
@@ -1072,12 +1067,14 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             StaticState runningState = state;
             for (int i = 0; i < argExpressions.size(); i++) {
                 Maybe<RValueExpression> term = argExpressions.get(i);
+                String termName = ps.termNames().get(i);
                 IJadescriptType upperBound = patternTermTypes.get(i);
                 final SubPattern<RValueExpression, Call> termSubpattern =
-                    input.subPattern(
+                    input.subPatternForProperty(
                         upperBound,
                         __ -> term.toNullable(),
-                        "_structterm" + i
+                        "_structterm" + i,
+                        termName
                     );
                 final PatternMatcher termOutput = rves.compilePatternMatch(
                     termSubpattern,
@@ -1149,7 +1146,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             return false;
         } else {
             return resolve(input, runningState.get(), false)
-                .__(CallableSymbol::isWithoutSideEffects)
+                .__(CompilableCallable::isWithoutSideEffects)
                 .extract(nullAsTrue);
         }
     }
@@ -1160,10 +1157,10 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         PatternMatchInput<Call> input,
         StaticState state
     ) {
-        final Maybe<? extends PatternSymbol> resolve =
+        final Maybe<? extends GlobalPattern> resolve =
             resolvePattern(input.getPattern(), state);
 
-        return resolve.__(PatternSymbol::isWithoutSideEffects)
+        return resolve.__(GlobalPattern::isWithoutSideEffects)
             .extract(nullAsTrue)
             && subPatternEvaluationsAllPure(input, state);
     }
@@ -1174,7 +1171,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         PatternMatchInput<Call> input,
         StaticState state
     ) {
-        final Maybe<? extends PatternSymbol> resolve =
+        final Maybe<? extends GlobalPattern> resolve =
             resolvePattern(input.getPattern(), state);
 
         if (resolve.isPresent()) {
@@ -1191,7 +1188,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         PatternMatchInput<Call> input,
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        final List<? extends PatternSymbol> pss = resolvePatternCandidates(
+        final List<? extends GlobalPattern> pss = resolvePatternCandidates(
             input.getPattern(),
             state
         );
@@ -1232,7 +1229,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
         } else if (pss.size() > 1) {
             List<String> candidatesMessage = new ArrayList<>();
-            for (PatternSymbol ps : pss) {
+            for (GlobalPattern ps : pss) {
                 candidatesMessage.add(ps.getSignature() +
                     " in " + ps.sourceLocation() + ";");
             }
@@ -1253,7 +1250,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
             final RValueExpressionSemantics rves =
                 module.get(RValueExpressionSemantics.class);
-            PatternSymbol ps = pss.get(0);
+            GlobalPattern ps = pss.get(0);
 
             List<IJadescriptType> patternTermTypes = ps.termTypes();
 
@@ -1272,12 +1269,14 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             StaticState runningState = state;
             for (int i = 0; i < argExpressions.size(); i++) {
                 Maybe<RValueExpression> term = argExpressions.get(i);
+                String termName = ps.termNames().get(i);
                 IJadescriptType upperBound = patternTermTypes.get(i);
                 final SubPattern<RValueExpression, Call> termSubPattern =
-                    input.subPattern(
+                    input.subPatternForProperty(
                         upperBound,
                         __ -> term.toNullable(),
-                        "_structterm" + i
+                        "_structterm" + i,
+                        termName
                     );
                 boolean argCheck = rves.validatePatternMatch(
                     termSubPattern,
@@ -1303,7 +1302,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     }
 
 
-    public List<? extends CallableSymbol> resolveCandidates(
+    public List<? extends CompilableCallable> resolveCandidates(
         Maybe<Call> input,
         StaticState state,
         boolean advanceStateOnArguments
@@ -1321,8 +1320,6 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             module.get(RValueExpressionSemantics.class);
 
         if (namedArgs.isPresent()) {
-
-
             List<String> names = new ArrayList<>();
             List<Maybe<String>> namesMaybes = toListOfMaybes(
                 namedArgs.__(NamedArgumentList::getParameterNames)
@@ -1353,14 +1350,10 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             }
 
             return afterArguments.searchAs(
-                    CallableSymbol.Searcher.class,
-                    searcher -> searcher.searchCallable(
-                        nameSafe,
-                        CallableSymbol.Searcher.ANY_RETURN_TYPE,
-                        CallableSymbol.Searcher.arityIs(assumedSize),
-                        CallableSymbol.Searcher.arityIs(assumedSize)
-                    )
-                ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                    CompilableCallable.Namespace.class,
+                    searcher -> searcher.compilableCallables(nameSafe)
+                        .filter(cc -> cc.arity() == assumedSize)
+                ).filter(Util.dinstinctBy(Located::sourceLocation))
                 .collect(Collectors.toList());
 
         } else  /*ASSUMING  (noArgs || simpleArgs.isPresent())*/ {
@@ -1379,25 +1372,21 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                 afterArguments = state;
             }
             return afterArguments.searchAs(
-                    CallableSymbol.Searcher.class,
-                    searcher -> searcher.searchCallable(
-                        nameSafe,
-                        CallableSymbol.Searcher.ANY_RETURN_TYPE,
-                        CallableSymbol.Searcher.arityIs(argsize),
-                        CallableSymbol.Searcher.arityIs(argsize)
-                    )
-                ).filter(Util.dinstinctBy(Symbol::sourceLocation))
+                    CompilableCallable.Namespace.class,
+                    searcher -> searcher.compilableCallables(nameSafe)
+                        .filter(cc -> cc.arity() == argsize)
+                ).filter(Util.dinstinctBy(Located::sourceLocation))
                 .collect(Collectors.toList());
         }
     }
 
 
-    public Maybe<? extends CallableSymbol> resolve(
+    public Maybe<? extends CompilableCallable> resolve(
         Maybe<Call> input,
         StaticState state,
         boolean advanceStateOnArguments
     ) {
-        final List<? extends CallableSymbol> callableSymbols =
+        final List<? extends CompilableCallable> callableSymbols =
             resolveCandidates(
                 input,
                 state,
@@ -1420,7 +1409,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     }
 
 
-    public List<? extends PatternSymbol> resolvePatternCandidates(
+    public List<? extends GlobalPattern> resolvePatternCandidates(
         Maybe<Call> input,
         StaticState state
     ) {
@@ -1445,15 +1434,10 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             int assumedSize = Math.min(argsMaybes.size(), namesMaybes.size());
 
             return state.searchAs(
-                    PatternSymbol.Searcher.class,
-                    searcher -> searcher.searchPattern(
-                        nameSafe,
-                        PatternSymbol.Searcher.ANY_INPUT_TYPE,
-                        PatternSymbol.Searcher.termCountIs(assumedSize),
-                        PatternSymbol.Searcher.termCountIs(assumedSize)
-                    )
-                )
-                .filter(Util.dinstinctBy(Symbol::sourceLocation))
+                    GlobalPattern.Namespace.class,
+                    searcher -> searcher.globalPatterns(nameSafe)
+                        .filter(gp -> gp.termCount() == assumedSize)
+                ).filter(Util.dinstinctBy(Located::sourceLocation))
                 .collect(Collectors.toList());
 
         } else  /*ASSUMING  (noArgs || simpleArgs.isPresent())*/ {
@@ -1465,25 +1449,20 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
 
             return state.searchAs(
-                    PatternSymbol.Searcher.class,
-                    searcher -> searcher.searchPattern(
-                        nameSafe,
-                        CallableSymbol.Searcher.ANY_RETURN_TYPE,
-                        CallableSymbol.Searcher.arityIs(argsize),
-                        CallableSymbol.Searcher.arityIs(argsize)
-                    )
-                )
-                .filter(Util.dinstinctBy(Symbol::sourceLocation))
+                    GlobalPattern.Namespace.class,
+                    searcher -> searcher.globalPatterns(nameSafe)
+                        .filter(gp -> gp.termCount() == argsize)
+                ).filter(Util.dinstinctBy(Located::sourceLocation))
                 .collect(Collectors.toList());
         }
     }
 
 
-    public Maybe<? extends PatternSymbol> resolvePattern(
+    public Maybe<? extends GlobalPattern> resolvePattern(
         Maybe<Call> input,
         StaticState state
     ) {
-        final List<? extends PatternSymbol> patternSymbols =
+        final List<? extends GlobalPattern> patternSymbols =
             resolvePatternCandidates(
                 input,
                 state

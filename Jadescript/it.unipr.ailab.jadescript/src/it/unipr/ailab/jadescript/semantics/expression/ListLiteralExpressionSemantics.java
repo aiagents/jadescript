@@ -5,6 +5,7 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.ListLiteral;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -16,7 +17,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.*;
@@ -36,7 +37,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
 public class ListLiteralExpressionSemantics
     extends AssignableExpressionSemantics<ListLiteral> {
 
-
+    //TODO pipe-literal
     private static final String PROVIDED_TYPE_TO_PATTERN_IS_NOT_LIST_MESSAGE =
         "Cannot infer the type of the elements in the pattern - the list " +
             "pattern has no explicit element type specification, the pattern " +
@@ -60,7 +61,6 @@ public class ListLiteralExpressionSemantics
             input.__(ListLiteral::getValues);
 
 
-
         return Streams.concat(
                 Stream.of(input.__(ListLiteral::getRest)),
                 Maybe.toListOfMaybes(values).stream()
@@ -76,46 +76,40 @@ public class ListLiteralExpressionSemantics
         Maybe<ListLiteral> input,
         StaticState state, BlockElementAcceptor acceptor
     ) {
-        //TODO pipe-literal
+
         Maybe<EList<RValueExpression>> values =
             input.__(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter =
             input.__(ListLiteral::getTypeParameter);
         if (values.__(List::isEmpty).extract(Maybe.nullAsTrue)) {
+            final TypeExpressionSemantics tes =
+                module.get(TypeExpressionSemantics.class);
+
             final IJadescriptType elementType =
-                module.get(TypeExpressionSemantics.class)
-                    .toJadescriptType(typeParameter);
-            return "new java.util.ArrayList<" +
-                elementType.compileToJavaTypeReference() + ">()";
+                tes.toJadescriptType(typeParameter);
+            final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+            return typeHelper.LIST.apply(List.of(elementType))
+                .compileNewEmptyInstance();
+
         }
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        StringBuilder sb = new StringBuilder("java.util.Arrays.asList(");
-        List<Maybe<RValueExpression>> valuesList = Maybe.toListOfMaybes(values);
-        StaticState newState = state;
-        for (int i = 0; i < valuesList.size(); i++) {
-            if (i != 0) {
-                sb.append(", ");
-            }
-            sb.append(rves.compile(
-                valuesList.get(i),
-                newState,
+        List<Maybe<RValueExpression>> elements = Maybe.toListOfMaybes(values);
+
+        return "jadescript.util.JadescriptCollections.createList(" +
+            "java.util.List.of(" + mapExpressionsWithState(
+            rves,
+            elements.stream(),
+            state,
+            (elem, runningState) -> rves.compile(
+                elem,
+                runningState,
                 acceptor
-            ));
-
-
-            if (i < valuesList.size() - 1) { //Excluding last
-                newState = rves.advance(
-                    valuesList.get(i),
-                    newState
-                );
-            }
-        }
-        sb.append(")");
-
-        return "new java.util.ArrayList<>(" + sb + ")";
+            )
+        ).collect(Collectors.joining(", ")) + "))";
     }
 
 
@@ -174,9 +168,6 @@ public class ListLiteralExpressionSemantics
     }
 
 
-
-
-
     @Override
     protected StaticState advanceInternal(
         Maybe<ListLiteral> input,
@@ -213,9 +204,9 @@ public class ListLiteralExpressionSemantics
         boolean seen = false;
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
-        IJadescriptType acc = null;
+        IJadescriptType acc = typeHelper.NOTHING;
         StaticState newState = state;
-        for (int i = 1; i < valuesList.size(); i++) {
+        for (int i = 0; i < valuesList.size(); i++) {
             Maybe<RValueExpression> input = valuesList.get(i);
             IJadescriptType jadescriptType = rves.inferType(input, newState);
             if (i < valuesList.size() - 1) { //Excluding last
@@ -230,9 +221,8 @@ public class ListLiteralExpressionSemantics
         }
         return seen ? acc : typeHelper.TOP.apply(
             "Cannot infer the type of the elements of the list from an " +
-                "empty list expression. " +
-                "Please specify it by adding 'of TYPE' after the closed " +
-                "bracket."
+                "empty list expression. Please specify it by adding " +
+                "'of TYPE' after the closed bracket."
         );
     }
 
@@ -286,8 +276,6 @@ public class ListLiteralExpressionSemantics
             module.get(RValueExpressionSemantics.class);
 
 
-
-
         final List<SubPattern<RValueExpression, ListLiteral>> subPatterns
             = new ArrayList<>();
 
@@ -323,7 +311,6 @@ public class ListLiteralExpressionSemantics
                     __ -> rest.toNullable(),
                     "_listrest"
                 );
-
 
 
             subPatterns.add(restSubpattern);

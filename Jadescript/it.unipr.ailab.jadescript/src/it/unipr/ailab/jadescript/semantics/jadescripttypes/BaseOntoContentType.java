@@ -58,6 +58,13 @@ public class BaseOntoContentType extends JadescriptType implements OntoContentTy
         return "jadescript.content.onto.Ontology.empty" + kind.name() + "()";
     }
 
+
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        return false;
+    }
+
+
     @Override
     public void addProperty(Property prop) {
         // no props

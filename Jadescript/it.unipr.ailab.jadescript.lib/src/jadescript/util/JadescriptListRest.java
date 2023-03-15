@@ -2,15 +2,20 @@ package jadescript.util;
 
 import java.util.*;
 
-public class JadescriptListRest<T> implements List<T> {
-    private final List<T> originalList;
+public class JadescriptListRest<T> extends JadescriptList<T> {
+    private final JadescriptList<T> originalList;
     private final int headSkips;
 
 
-    public JadescriptListRest(List<T> originalList, int headSkips) {
+    public JadescriptListRest(
+        JadescriptList<T> originalList,
+        int headSkips
+    ) {
         this.originalList = originalList;
         this.headSkips = headSkips;
     }
+
+
 
 
     @Override
@@ -27,7 +32,8 @@ public class JadescriptListRest<T> implements List<T> {
 	@Override
     public boolean contains(Object o) {
         //noinspection unchecked
-        return originalList.contains(o) && originalList.lastIndexOf((T)o) >= headSkips;
+        return originalList.contains(o)
+            && originalList.lastIndexOf((T)o) >= headSkips;
     }
 
     @Override

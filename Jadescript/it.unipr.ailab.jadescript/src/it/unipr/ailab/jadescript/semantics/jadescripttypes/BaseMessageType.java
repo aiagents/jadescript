@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.maybe.Maybe;
@@ -151,6 +152,12 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
     }
 
 
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        return false;
+    }
+
+
     public static class MessageTypeNamespace extends BuiltinOpsNamespace {
 
 
@@ -195,32 +202,34 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
             final TypeHelper typeHelper = module.get(TypeHelper.class);
             return new MessageTypeNamespace(
                 module,
-                new Property("sender", typeHelper.AID, true, location)
-                    .setCompileByJVMAccessors(),
-
-                new Property(
+                Property.readonlyProperty(
+                    "sender",
+                    typeHelper.AID,
+                    location,
+                    Property.compileWithJVMGetter("sender")
+                ),
+                Property.readonlyProperty(
                     "performative",
                     typeHelper.PERFORMATIVE,
-                    true,
-                    location
-                ).setCompileByCustomJVMMethod(
-                    "getJadescriptPerformative",
-                    "setJadescriptPerformative"
+                    location,
+                    Property.compileGetWithCustomMethod(
+                        "getJadescriptPerformative"
+                    )
                 ),
-
-                new Property(
+                Property.readonlyProperty(
                     "content",
                     contentType.ignoreBound(),
-                    true,
-                    location
-                ).setCustomCompile(
-                    (e) -> e + "getContent(" + THE_AGENT +
-                        "().getContentManager())",
-                    (e, re) -> e + "/*Error trying to set content*/ =" + re
+                    location,
+                    (o, a) -> o + "." + "getContent(" +
+                        CompilationHelper.compileAgentReference() +
+                        ".getContentManager())"
                 ),
-
-                new Property("ontology", typeHelper.ONTOLOGY, true, location)
-                    .setCompileByJVMAccessors(),
+                Property.readonlyProperty(
+                    "ontology",
+                    typeHelper.ONTOLOGY,
+                    location,
+                    Property.compileWithJVMGetter("ontology")
+                ),
                 location
             );
         }

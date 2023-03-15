@@ -36,11 +36,7 @@ public class BasicType extends JadescriptType implements EmptyCreatable{
         this.defaultValue = defaultValue;
     }
 
-    @Override
-    public boolean isSupEqualTo(IJadescriptType other) {
-        other = other.postResolve();
-        return this.typeEquals(other);
-    }
+
 
     @Override
     public void addProperty(Property prop) {
@@ -111,4 +107,11 @@ public class BasicType extends JadescriptType implements EmptyCreatable{
     public String compileNewEmptyInstance() {
         return defaultValue;
     }
+
+
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        return false;
+    }
+
 }

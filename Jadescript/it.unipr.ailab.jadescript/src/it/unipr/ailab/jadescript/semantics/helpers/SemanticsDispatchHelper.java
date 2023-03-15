@@ -16,9 +16,9 @@ public class SemanticsDispatchHelper {
         this.module = module;
     }
 
-    public void dispachFeatureSemantics(
+    public void dispachMemberSemantics(
             Maybe<? extends Feature> f,
-            Consumer<FeatureSemantics<? extends Feature>> action
+            Consumer<DeclarationMemberSemantics<? extends Feature>> action
     ) {
         Feature feature = f.toNullable();
         if (feature instanceof Field) {

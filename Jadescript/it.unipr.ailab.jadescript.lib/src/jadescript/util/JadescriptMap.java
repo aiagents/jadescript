@@ -17,7 +17,7 @@ public class JadescriptMap<K, V> implements Map<K, V>, Concept {
 	private boolean zipped = false;
 	
 	public JadescriptMap() {
-		//empty ctor for jade
+		//empty ctor for JADE
 	}
 	
 
@@ -141,22 +141,15 @@ public class JadescriptMap<K, V> implements Map<K, V>, Concept {
 			}else {
 				sb.append(", ");
 			}
-			sb.append(quoteIfString(key));
+			sb.append(Util.quoteIfString(key));
 			sb.append(":");
-			sb.append(quoteIfString(value));
+			sb.append(Util.quoteIfString(value));
 		}
 		sb.append("}");
 		return sb.toString();
 	}
 
-	protected static String quoteIfString(Object x) {
-		if(x instanceof String) {
-			return "\"" + x + "\"";
-		}else {
-			return String.valueOf(x);
-		}
-	}
-	
+
 	protected void zip() {
 		int size = Math.min(keys.size(), values.size());
 		for(int i = 0; i < size; i++) {

@@ -6,7 +6,7 @@ import jade.wrapper.ControllerException;
 import jade.wrapper.StaleProxyException;
 
 public class JadescriptContainerController  {
-    private ContainerController wrapped;
+    private final ContainerController wrapped;
 
     JadescriptContainerController(ContainerController wrapped){
         this.wrapped = wrapped;

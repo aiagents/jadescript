@@ -7,8 +7,8 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.search.WithSupertype;
-import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedReference;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedName;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
@@ -17,21 +17,21 @@ import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
-import org.eclipse.xtext.common.types.JvmTypeReference;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-public class AgentDeclarationContext extends UsingOntologyDeclarationContext
-    implements AgentAssociated,
-    WithSupertype,
-    NamedSymbol.Searcher {
+public class AgentDeclarationContext
+    extends UsingOntologyDeclarationContext
+    implements AgentAssociated, WithSupertype, CompilableName.Namespace {
+
+
 
     private final JvmDeclaredType agentJvmType;
     private final LazyValue<IJadescriptType> agentType;
     private final LazyValue<TypeNamespace> agentTypeNamespace;
-    private final LazyValue<ContextGeneratedReference> agentReference;
+    private final LazyValue<ContextGeneratedName> agentReference;
 
 
     public AgentDeclarationContext(
@@ -44,7 +44,7 @@ public class AgentDeclarationContext extends UsingOntologyDeclarationContext
         this.agentJvmType = agentType;
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         this.agentType = new LazyValue<>(() ->
-            typeHelper.jtFromJvmType(agentJvmType)
+            typeHelper.jtFromJvmTypePermissive(agentJvmType)
         );
         this.agentTypeNamespace = new LazyValue<>(() ->
             this.agentType.get().namespace()
@@ -92,6 +92,8 @@ public class AgentDeclarationContext extends UsingOntologyDeclarationContext
     }
 
 
+
+
     @Override
     public Stream<OntologyAssociation> computeCurrentOntologyAssociations() {
         return Stream.empty();
@@ -111,16 +113,11 @@ public class AgentDeclarationContext extends UsingOntologyDeclarationContext
 
 
     @Override
-    public Stream<? extends NamedSymbol> searchName(
-        Predicate<String> name,
-        Predicate<IJadescriptType> readingType,
-        Predicate<Boolean> canWrite
+    public Stream<? extends CompilableName> compilableNames(
+        @Nullable String name
     ) {
-        Stream<? extends NamedSymbol> stream = Stream.of(agentReference.get());
-        stream = Util.safeFilter(stream, NamedSymbol::name, name);
-        stream = Util.safeFilter(stream, NamedSymbol::readingType, readingType);
-        stream = Util.safeFilter(stream, NamedSymbol::canWrite, canWrite);
-        return stream;
+        return Util.buildStream(agentReference)
+            .filter((__) -> name == null || name.equals("agent"));
     }
 
 

@@ -1,22 +1,35 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
+import it.unipr.ailab.jadescript.jadescript.ExtendingFeature;
+import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.Util.Tuple2;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import it.unipr.ailab.sonneteer.statement.StatementWriter;
+import jadescript.util.JadescriptList;
+import org.eclipse.emf.common.util.EList;
+import org.eclipse.xtext.common.types.JvmMember;
 import org.eclipse.xtext.common.types.JvmTypeReference;
+import org.eclipse.xtext.common.types.JvmVisibility;
+import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.jadescript.semantics.helpers.TypeHelper.builtinPrefix;
 import static it.unipr.ailab.maybe.Maybe.some;
 
-public class ListType extends ParametricType implements EmptyCreatable {
+public class ListType
+    extends ParametricType
+    implements EmptyCreatable, DeclaresOntologyAdHocClass {
 
 
     private final Map<String, Property> properties = new HashMap<>();
@@ -45,55 +58,73 @@ public class ListType extends ParametricType implements EmptyCreatable {
     }
 
 
+    public static String getAdHocListClassName(IJadescriptType elementType) {
+        return "__ListClass_" + elementType.compileToJavaTypeReference()
+            .replace(".", "_");
+    }
+
+
     private void initBuiltinProperties() {
         if (initializedProperties) {
             return;
         }
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         this.addProperty(
-            new Property(
+            Property.readonlyProperty(
                 "length",
                 typeHelper.INTEGER,
-                true,
-                getLocation()
-            ).setCompileByCustomJVMMethod("size", "size")
+                getLocation(),
+                Property.compileGetWithCustomMethod("size")
+            )
         );
         this.addProperty(
             new Property(
+                true,
                 "head",
                 getElementType(),
+                getLocation(),
+                (o, a) -> o + ".get(0)",
+                (o, r, a) -> a.accept(
+                    SemanticsConsts.w
+                        .simpleStmt(o + ".set(0, " + r + ")")
+                )
+            )
+        );
+        this.addProperty(
+            new Property(
                 false,
-                getLocation()
-            ).setCustomCompile(
-                (e) -> e + ".get(0)",
-                (e, re) -> e + ".set(0, " + re + ")"
-            )
-        );
-        this.addProperty(
-            new Property("tail", this, true, getLocation()).setCustomCompile(
-                (e) -> "jadescript.util.JadescriptCollections" +
+                "tail",
+                this,
+                getLocation(),
+                (e, a) -> "jadescript.util.JadescriptCollections" +
                     ".getRest(" + e + ", 1)",
-                (e, re) -> "jadescript.util.JadescriptCollections" +
-                    ".getRest(" + e + ", 1)"
+                (e, re, a) -> a.accept(
+                    SemanticsConsts.w
+                        .simpleStmt("jadescript.util.JadescriptCollections" +
+                        ".getRest(" + e + ", 1)")
+                )
             )
         );
         this.addProperty(
-            new Property("last", this, true, getLocation()).setCustomCompile(
-                (e) -> e + ".get(" + e + ".size()-1)",
-                (e, re) -> e + ".set(" + e + ".size()-1, " + re + ")"
+            new Property(
+                true,
+                "last",
+                this,
+                getLocation(),
+                (e, a) -> e + ".get(" + e + ".size()-1)",
+                (e, re, a) -> a.accept(
+                    SemanticsConsts.w
+                        .simpleStmt(e + ".set(" + e + ".size()-1, " + re + ")")
+                )
             )
         );
-        operations.add(new Operation(
-            false,
-            "__add",
+        operations.add(Operation.operation(
             typeHelper.VOID,
-            List.of(
-                new Tuple2<>("element", getElementType())
-            ),
+            "__add",
+            Map.of("element", getElementType()),
+            List.of("element"),
             getLocation(),
-            (receiver, namedArgs) -> {
-                return receiver + ".add(" + namedArgs.get("element") + ")";
-            },
+            false,
             (receiver, args) -> {
                 final String s;
                 if (args.size() >= 1) {
@@ -102,21 +133,21 @@ public class ListType extends ParametricType implements EmptyCreatable {
                     s = "/*internal error: missing arguments*/";
                 }
                 return receiver + ".add(" + s + ")";
+            },
+            (receiver, namedArgs) -> {
+                return receiver + ".add(" + namedArgs.get("element") + ")";
             }
         ));
-        operations.add(new Operation(
-            false,
-            "__addAt",
+        operations.add(Operation.operation(
             typeHelper.VOID,
-            List.of(
-                new Tuple2<>("index", typeHelper.INTEGER),
-                new Tuple2<>("element", getElementType())
+            "__addAt",
+            Map.of(
+                "index", typeHelper.INTEGER,
+                "element", getElementType()
             ),
+            List.of("index", "element"),
             getLocation(),
-            (receiver, namedArgs) -> {
-                return receiver + ".add(" + namedArgs.get("index") + ", " +
-                    namedArgs.get("element") + ")";
-            },
+            false,
             (receiver, args) -> {
                 final String e;
                 final String i;
@@ -128,17 +159,19 @@ public class ListType extends ParametricType implements EmptyCreatable {
                     e = "/*internal error: missing arguments*/";
                 }
                 return receiver + ".add(" + i + ", " + e + ")";
+            },
+            (receiver, namedArgs) -> {
+                return receiver + ".add(" + namedArgs.get("index") + ", " +
+                    namedArgs.get("element") + ")";
             }
         ));
-        operations.add(new Operation(
-            false,
-            "__addAll",
+        operations.add(Operation.operation(
             typeHelper.VOID,
-            List.of(new Tuple2<>("elements", this)),
+            "__addAll",
+            Map.of("elements", this),
+            List.of("elements"),
             getLocation(),
-            (receiver, namedArgs) -> {
-                return receiver + ".addAll(" + namedArgs.get("elements") + ")";
-            },
+            false,
             (receiver, args) -> {
                 final String e;
                 if (args.size() >= 1) {
@@ -147,21 +180,21 @@ public class ListType extends ParametricType implements EmptyCreatable {
                     e = "/*internal error: missing arguments*/";
                 }
                 return receiver + ".addAll(" + e + ")";
+            },
+            (receiver, namedArgs) -> {
+                return receiver + ".addAll(" + namedArgs.get("elements") + ")";
             }
         ));
-        operations.add(new Operation(
-            false,
-            "__addAllAt",
+        operations.add(Operation.operation(
             typeHelper.VOID,
-            List.of(
-                new Tuple2<>("index", typeHelper.INTEGER),
-                new Tuple2<>("elements", this)
+            "__addAllAt",
+            Map.of(
+                "index", typeHelper.INTEGER,
+                "elements", this
             ),
+            List.of("index", "elements"),
             getLocation(),
-            (receiver, namedArgs) -> {
-                return receiver + ".addAll(" + namedArgs.get("index") + ", " +
-                    namedArgs.get("elements") + ")";
-            },
+            false,
             (receiver, args) -> {
                 final String e;
                 final String i;
@@ -173,74 +206,83 @@ public class ListType extends ParametricType implements EmptyCreatable {
                     e = "/*internal error: missing arguments*/";
                 }
                 return receiver + ".addAll(" + i + ", " + e + ")";
+            },
+            (receiver, namedArgs) -> {
+                return receiver + ".addAll(" + namedArgs.get("index") + ", " +
+                    namedArgs.get("elements") + ")";
             }
         ));
-        operations.add(new Operation(
-            true,
-            "get",
+        operations.add(Operation.operation(
             getElementType(),
-            List.of(
-                new Tuple2<>("index", typeHelper.INTEGER)
-            ),
-            getLocation()
+            "get",
+            Map.of("index", typeHelper.INTEGER),
+            List.of("index"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            false,
+        operations.add(Operation.operation(
+            typeHelper.VOID,
             "set",
-            typeHelper.VOID,
-            List.of(
-                new Tuple2<>("index", typeHelper.INTEGER),
-                new Tuple2<>("element", getElementType())
+            Map.of(
+                "index", typeHelper.INTEGER,
+                "element", getElementType()
             ),
-            getLocation()
+            List.of("index", "element"),
+            getLocation(),
+            false
         ));
-        operations.add(new Operation(
-            true,
+        operations.add(Operation.operation(
+            typeHelper.BOOLEAN,
             "contains",
-            typeHelper.BOOLEAN,
-            List.of(new Tuple2<>("o", getElementType())),
-            getLocation()
+            Map.of("o", getElementType()),
+            List.of("o"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
-            "containsAll",
+        operations.add(Operation.operation(
             typeHelper.BOOLEAN,
-            List.of(new Tuple2<>("o", this)),
-            getLocation()
+            "containsAll",
+            Map.of("o", this),
+            List.of("o"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
-            "containsAll",
+        operations.add(Operation.operation(
             typeHelper.BOOLEAN,
-            List.of(new Tuple2<>(
+            "containsAll",
+            Map.of(
+                "o", typeHelper.SET.apply(Arrays.asList(getElementType()))
+            ),
+            List.of("o"),
+            getLocation(),
+            true
+        ));
+        operations.add(Operation.operation(
+            typeHelper.BOOLEAN,
+            "containsAny",
+            Map.of("o", this),
+            List.of("o"),
+            getLocation(),
+            true
+        ));
+        operations.add(Operation.operation(
+            typeHelper.BOOLEAN,
+            "containsAny",
+            Map.of(
                 "o",
                 typeHelper.SET.apply(Arrays.asList(getElementType()))
-            )),
-            getLocation()
+            ),
+            List.of("o"),
+            getLocation(),
+            true
         ));
-        operations.add(new Operation(
-            true,
-            "containsAny",
-            typeHelper.BOOLEAN,
-            List.of(new Tuple2<>("o", this)),
-            getLocation()
-        ));
-        operations.add(new Operation(
-            true,
-            "containsAny",
-            typeHelper.BOOLEAN,
-            List.of(new Tuple2<>(
-                "o",
-                typeHelper.SET.apply(Arrays.asList(getElementType()))
-            )),
-            getLocation()
-        ));
-        operations.add(new Operation(
-            false,
-            "clear",
+        operations.add(Operation.operation(
             typeHelper.VOID,
+            "clear",
+            Map.of(),
             List.of(),
-            getLocation()
+            getLocation(),
+            false
         ));
         this.initializedProperties = true;
     }
@@ -260,7 +302,7 @@ public class ListType extends ParametricType implements EmptyCreatable {
     @Override
     public JvmTypeReference asJvmTypeReference() {
         return module.get(TypeHelper.class).typeRef(
-            List.class,
+            JadescriptList.class,
             getTypeArguments().stream()
                 .map(TypeArgument::asJvmTypeReference)
                 .collect(Collectors.toList())
@@ -276,15 +318,17 @@ public class ListType extends ParametricType implements EmptyCreatable {
 
     @Override
     public boolean isSlottable() {
-        return getTypeArguments().stream().map(TypeArgument::ignoreBound).allMatch(
-            IJadescriptType::isSlottable);
+        return getTypeArguments().stream()
+            .map(TypeArgument::ignoreBound)
+            .allMatch(IJadescriptType::isSlottable);
     }
 
 
     @Override
     public boolean isSendable() {
-        return getTypeArguments().stream().map(TypeArgument::ignoreBound).allMatch(
-            IJadescriptType::isSendable);
+        return getTypeArguments().stream()
+            .map(TypeArgument::ignoreBound)
+            .allMatch(IJadescriptType::isSendable);
     }
 
 
@@ -314,7 +358,7 @@ public class ListType extends ParametricType implements EmptyCreatable {
 
     @Override
     public String getSlotSchemaName() {
-        return "jade.content.schema.ContentElementListSchema.BASE_NAME";
+        return "\"" + ListType.getAdHocListClassName(getElementType()) + "\"";
     }
 
 
@@ -338,8 +382,141 @@ public class ListType extends ParametricType implements EmptyCreatable {
 
     @Override
     public String compileNewEmptyInstance() {
-        return "new java.util.ArrayList<" +
-            getElementType().compileToJavaTypeReference() + ">()";
+        return "new jadescript.util.JadescriptList<" +
+            getElementType().compileToJavaTypeReference()
+            + ">()";
+    }
+
+
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        return false;
+    }
+
+
+    @Override
+    public void declareAdHocClass(
+        EList<JvmMember> members,
+        Maybe<ExtendingFeature> feature,
+        HashMap<String, String> generatedSpecificClasses,
+        List<StatementWriter> addSchemaWriters,
+        List<StatementWriter> describeSchemaWriters,
+        TypeExpression slotTypeExpression,
+        Function<TypeExpression, String> schemaNameForSlotProvider,
+        SemanticsModule module
+    ) {
+        if (feature.isNothing()) {
+            return;
+        }
+
+        final ExtendingFeature featureSafe = feature.toNullable();
+
+        IJadescriptType elementType = this.getElementType();
+        String className = getAdHocListClassName(elementType);
+
+        if (generatedSpecificClasses.containsKey(className)) {
+            return;
+        }
+
+        final JvmTypesBuilder jvmTB =
+            module.get(JvmTypesBuilder.class);
+
+        members.add(jvmTB.toClass(
+            featureSafe,
+            className,
+            itClass -> {
+                itClass.setStatic(true);
+                itClass.setVisibility(JvmVisibility.PUBLIC);
+                final TypeHelper typeHelper =
+                    module.get(TypeHelper.class);
+
+                itClass.getSuperTypes().add(typeHelper.typeRef(
+                    JadescriptList.class,
+                    elementType.asJvmTypeReference()
+                ));
+
+                itClass.getMembers().add(jvmTB.toMethod(
+                    featureSafe,
+                    "__fromList",
+                    typeHelper.typeRef(className),
+                    itMeth -> {
+                        itMeth.setVisibility(JvmVisibility.PUBLIC);
+                        itMeth.setStatic(true);
+                        itMeth.getParameters().add(jvmTB.toParameter(
+                            featureSafe,
+                            "list",
+                            typeHelper.typeRef(
+                                JadescriptList.class,
+                                elementType.asJvmTypeReference()
+                            )
+                        ));
+
+                        module.get(CompilationHelper.class).createAndSetBody(
+                            itMeth,
+                            scb -> {
+                                final String typeName = typeHelper
+                                    .noGenericsTypeName(
+                                        elementType.compileToJavaTypeReference()
+                                    );
+                                scb.line(className + " result = " +
+                                    "new " + className + "();");
+                                scb.line(
+                                    "java.util.List<" + typeName +
+                                        "> elements = new java.util" +
+                                        ".ArrayList<>();"
+                                );
+                                scb.line("list.forEach(elements::add);");
+                                scb.line("result.setElements(elements);");
+                                scb.line("return result;");
+                            }
+                        );
+                    }
+
+
+                ));
+
+            }
+        ));
+
+        generatedSpecificClasses.put(className, getCategoryName());
+
+        addSchemaWriters.add(SemanticsConsts.w.simpleStmt(
+            "add(new jade.content.schema.ConceptSchema(\"" +
+                className + "\"), " + className + ".class);"));
+
+        describeSchemaWriters.add(new StatementWriter() {
+            @Override
+            public void writeSonnet(SourceCodeBuilder scb) {
+                EList<TypeExpression> typeParameters = slotTypeExpression
+                    .getCollectionTypeExpression().getTypeParameters();
+
+                if (typeParameters == null || typeParameters.size() != 1) {
+                    return;
+                }
+
+                scb.add(
+                    "jadescript.content.onto.Ontology" +
+                        ".__populateListSchema(" +
+                        "(jade.content.schema.TermSchema) " +
+                        "getSchema(" + schemaNameForSlotProvider
+                        .apply(typeParameters.get(0)) + "), " +
+                        "(jade.content.schema.ConceptSchema) " +
+                        "getSchema(\"" + className + "\"));");
+
+            }
+        });
+    }
+
+
+    @Override
+    public String getAdHocClassName() {
+        return getAdHocListClassName(getElementType());
+    }
+
+
+    @Override
+    public String getConverterToAdHocClassMethodName() {
+        return "__fromList";
     }
 
 }

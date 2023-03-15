@@ -85,11 +85,18 @@ public class DeactivateStatementSemantics
             input.__(DeactivateStatement::getEndTime);
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
-        boolean check = rves.validate(target, state, acceptor);
+
+
         final TypeHelper th = module.get(TypeHelper.class);
+
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
+        boolean check = rves.validate(target, state, acceptor);
+
         StaticState runningState;
         if (check == VALID) {
-            module.get(ValidationHelper.class).assertExpectedType(
+            validationHelper.assertExpectedType(
                 module.get(TypeHelper.class).ANYBEHAVIOUR,
                 rves.inferType(target, state),
                 "InvalidDeactivateStatement",
@@ -104,7 +111,7 @@ public class DeactivateStatementSemantics
         if (delay.isPresent()) {
             check = rves.validate(delay, runningState, acceptor);
             if (check == VALID) {
-                module.get(ValidationHelper.class).assertExpectedType(
+                validationHelper.assertExpectedType(
                     th.DURATION,
                     rves.inferType(delay, runningState),
                     "InvalidDelayType",
@@ -118,7 +125,7 @@ public class DeactivateStatementSemantics
         if (end.isPresent()) {
             check = rves.validate(end, runningState, acceptor);
             if (check == VALID) {
-                module.get(ValidationHelper.class).assertExpectedType(
+                validationHelper.assertExpectedType(
                     th.TIMESTAMP,
                     rves.inferType(end, runningState),
                     "InvalidDelayType",
@@ -129,7 +136,6 @@ public class DeactivateStatementSemantics
             }
         }
 
-        //TODO invalidate state for "deactivate this"
         return runningState;
     }
 

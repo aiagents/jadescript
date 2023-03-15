@@ -3,22 +3,20 @@ package it.unipr.ailab.jadescript.semantics.context.c2feature;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.Context;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.SuperProperty;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
-
 public class SuperSlotInitializerContext extends Context
-    implements NamedSymbol.Searcher {
+    implements CompilableName.Namespace {
 
     private final OntologyElementDeclarationContext outer;
     private final Map<String, IJadescriptType> superSlotsInitPairs;
@@ -42,22 +40,28 @@ public class SuperSlotInitializerContext extends Context
 
 
     @Override
-    public Stream<? extends NamedSymbol> searchName(
-        Predicate<String> name,
-        Predicate<IJadescriptType> readingType,
-        Predicate<Boolean> canWrite
+    public Stream<? extends CompilableName> compilableNames(
+        @Nullable String name
     ) {
 
-        Stream<Map.Entry<String, IJadescriptType>> stream =
-            superSlotsInitPairs.entrySet().stream();
-        stream = safeFilter(stream, Map.Entry::getKey, name);
-        stream = safeFilter(stream, Map.Entry::getValue, readingType);
-        stream = safeFilter(stream, (__) -> true, canWrite);
-        return stream.map(entry -> new SuperProperty(
-            entry.getKey(),
-            entry.getValue(),
-            currentLocation()
-        ));
+        if (name == null) {
+            return superSlotsInitPairs.entrySet().stream()
+                .map(entry -> new SuperProperty(
+                    entry.getKey(),
+                    entry.getValue(),
+                    currentLocation()
+                ));
+        }
+        @Nullable final IJadescriptType type =
+            superSlotsInitPairs.get(name);
+
+        if (type == null) {
+            return Stream.empty();
+        }
+
+        return Stream.of(
+            new SuperProperty(name, type, currentLocation())
+        );
     }
 
 

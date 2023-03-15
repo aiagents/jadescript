@@ -3,10 +3,12 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.namespace.OntologyTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
-public class BaseOntologyType extends JadescriptType implements EmptyCreatable, OntologyType {
+public class BaseOntologyType extends JadescriptType
+    implements EmptyCreatable, OntologyType {
 
 
     public BaseOntologyType(
@@ -73,6 +75,13 @@ public class BaseOntologyType extends JadescriptType implements EmptyCreatable, 
     public String compileNewEmptyInstance() {
         return compileToJavaTypeReference() + ".getInstance()";
     }
+
+
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        return false;
+    }
+
 
     @Override
     public boolean isSuperOrEqualOntology(OntologyType other) {

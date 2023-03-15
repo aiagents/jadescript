@@ -3,6 +3,7 @@ package jadescript.content.onto;
 public interface Ontology_Vocabulary {
     String MAP_ENTRY = "JadescriptMapEntry";
     String SET_ENTRY = "JadescriptSetEntry";
+    String LIST_ENTRY = "JadescriptListEntry";
 
     String KEYS = "keys";
     String VALUES = "values";

@@ -17,6 +17,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class MessageContent {
+
+    /**
+     * Use this main to generate the rest of the contents of this class, of
+     * {@link Ontology} and of {@link Ontology_Vocabulary}.
+     */
     public static void main(String[] argv) {
         List<Class<?>> messageClasses = new ArrayList<>();
         messageClasses.add(AcceptProposalMessage.class);

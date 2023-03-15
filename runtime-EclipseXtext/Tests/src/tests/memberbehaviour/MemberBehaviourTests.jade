@@ -9,7 +9,7 @@ agent MemberBehaviourAgent uses ontology MemberBehaviourOntology
         log "Agent 'TestNewFile' created with arguments: "+args
         
     #  WIP feature: behaviour declarations nested in agent declarations 
-    #   ('for agent' clause is inferred).
+    #   ('for agent' clause is not required and it is implicit).
     cyclic behaviour MemberBehaviourTest
         on execute do
             log "hello" + x + x of agent

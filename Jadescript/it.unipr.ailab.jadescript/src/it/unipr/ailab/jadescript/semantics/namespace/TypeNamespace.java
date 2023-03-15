@@ -6,7 +6,7 @@ import it.unipr.ailab.jadescript.semantics.context.search.WithSupertype;
 import it.unipr.ailab.maybe.Maybe;
 
 public abstract class TypeNamespace
-    extends NamespaceWithSymbols
+    extends NamespaceWithMembers
     implements WithSupertype {
 
     public TypeNamespace(SemanticsModule module) {
@@ -24,7 +24,7 @@ public abstract class TypeNamespace
 
 
     @Override
-    public Maybe<? extends Searcheable> superSearcheable() {
+    public Maybe<? extends TypeNamespace> superSearcheable() {
         return getSuperTypeNamespace();
     }
 

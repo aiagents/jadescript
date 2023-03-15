@@ -11,7 +11,7 @@ ontology Onto
 agent MessageTypesTest uses ontology Onto
     on create do
         log "SENDER!"
-        activate SendMessages
+        activate SendMessages 
 
 
 agent Receiver uses ontology Onto
@@ -23,7 +23,7 @@ agent Receiver uses ontology Onto
 oneshot behaviour SendMessages for agent MessageTypesTest
     
     
-    on execute do 
+    on execute do
         # Sending 16 messages, one for each performative
         # (except for inform_ref, query_ref, subscribe, proxy 
         #  and propagate, which are currently not supported,
@@ -47,7 +47,7 @@ oneshot behaviour SendMessages for agent MessageTypesTest
         send message request_when (A, P) to "Receiver"@
         send message request_whenever (A, P) to "Receiver"@
         # Sending 8 messages using the default values
-        send message accept_proposal A to "Receiver"@ 
+        send message accept_proposal A to "Receiver"@
         send message agree A to "Receiver"@
         send message cfp A to "Receiver"@
         send message failure A to "Receiver"@
@@ -68,7 +68,7 @@ cyclic behaviour ReceiveMessages for agent Receiver
         log "Received count = "+counter
 
     on message agree (A, p as Proposition) do
-        do logMessage with perf= performative of message, content=""+content of message
+        do logMessage with perf=performative of message, content=""+content of message
 
     on message accept_proposal (A, p as Proposition) do
         do logMessage with perf= performative of message, content=""+content of message

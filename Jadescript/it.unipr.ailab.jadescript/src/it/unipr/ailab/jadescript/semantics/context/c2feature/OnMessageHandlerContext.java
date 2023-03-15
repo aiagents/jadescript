@@ -1,32 +1,32 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
-import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.CallableSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.SymbolUtils;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithSymbols;
+import it.unipr.ailab.jadescript.semantics.namespace.ImportedMembersNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithMembers;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import jadescript.lang.Performative;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.function.BiPredicate;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class OnMessageHandlerContext
     extends HandlerWithWhenExpressionContext
-    implements NamedSymbol.Searcher,
-    CallableSymbol.Searcher,
+    implements CompilableName.Namespace,
+    CompilableCallable.Namespace,
     MessageReceivedContext {
 
     private final Maybe<String> performative;
     private final IJadescriptType messageContentType;
     private final IJadescriptType messageType;
-    private final LazyValue<NamespaceWithSymbols> messageNamespace;
+    private final LazyValue<NamespaceWithMembers> messageNamespace;
+    private final LazyValue<ImportedMembersNamespace> importedFromMessage;
 
 
     public OnMessageHandlerContext(
@@ -42,6 +42,14 @@ public class OnMessageHandlerContext
         this.messageType = messageType;
         this.messageNamespace =
             new LazyValue<>(() -> getMessageType().namespace());
+        this.importedFromMessage = new LazyValue<>(() ->
+            ImportedMembersNamespace.importMembersNamespace(
+                module,
+                (__) -> MESSAGE_VAR_NAME,
+                ExpressionDescriptor.messageReference,
+                messageNamespace.get()
+            )
+        );
     }
 
 
@@ -64,72 +72,24 @@ public class OnMessageHandlerContext
 
 
     @Override
-    public Stream<? extends NamedSymbol> searchName(
-        Predicate<String> name,
-        Predicate<IJadescriptType> readingType,
-        Predicate<Boolean> canWrite
+    public Stream<? extends CompilableName> compilableNames(
+        @Nullable String name
     ) {
-
-        final Stream<NamedSymbol> contentStream = getContentStream(
-            name,
-            readingType,
-            canWrite
-        );
-
-        final Stream<NamedSymbol> messageStream = getMessageStream(
-            name,
-            readingType,
-            canWrite
-        );
-
-        return Streams.concat(
-            contentStream,
-            messageStream,
-            messageNamespace.get().searchName(name, readingType, canWrite)
-                .map(ne -> SymbolUtils.setDereferenceByVariable(
-                    ne,
-                    MESSAGE_VAR_NAME
-                ))
+        return Stream.concat(
+            Util.buildStream(
+                this::getMessageName,
+                this::getContentName
+            ).filter(n -> name == null || name.equals(n.name())),
+            importedFromMessage.get().compilableNames(name)
         );
     }
 
 
     @Override
-    public Stream<? extends CallableSymbol> searchCallable(
-        String name,
-        Predicate<IJadescriptType> returnType,
-        BiPredicate<Integer, Function<Integer, String>> parameterNames,
-        BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
+    public Stream<? extends CompilableCallable> compilableCallables(
+        @Nullable String name
     ) {
-        return messageNamespace.get().searchCallable(
-            name,
-            returnType,
-            parameterNames,
-            parameterTypes
-        ).map(ce -> SymbolUtils.setDereferenceByVariable(
-            ce,
-            MESSAGE_VAR_NAME
-        ));
-    }
-
-
-    @Override
-    public Stream<? extends CallableSymbol> searchCallable(
-        Predicate<String> name,
-        Predicate<IJadescriptType> returnType,
-        BiPredicate<Integer, Function<Integer, String>> parameterNames,
-        BiPredicate<Integer, Function<Integer, IJadescriptType>> parameterTypes
-    ) {
-        return messageNamespace.get().searchCallable(
-                name,
-                returnType,
-                parameterNames,
-                parameterTypes
-            )
-            .map(ce -> SymbolUtils.setDereferenceByVariable(
-                ce,
-                MESSAGE_VAR_NAME
-            ));
+        return importedFromMessage.get().compilableCallables(name);
     }
 
 

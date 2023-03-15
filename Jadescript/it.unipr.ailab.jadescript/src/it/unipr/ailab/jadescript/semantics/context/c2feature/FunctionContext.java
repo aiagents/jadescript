@@ -7,7 +7,8 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 import java.util.List;
 
-public class FunctionContext extends FunctionOrProcedureContext implements ReturnExpectedContext {
+public class FunctionContext extends FunctionOrProcedureContext
+    implements ReturnExpectedContext {
 
     private final IJadescriptType returnType;
 

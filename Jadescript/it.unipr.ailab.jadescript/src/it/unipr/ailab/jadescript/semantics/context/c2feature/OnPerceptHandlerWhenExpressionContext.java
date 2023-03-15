@@ -1,17 +1,18 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class OnPerceptHandlerWhenExpressionContext
         extends HandlerWhenExpressionContext
-        implements NamedSymbol.Searcher, PerceptPerceivedContext {
+        implements CompilableName.Namespace, PerceptPerceivedContext {
 
     public OnPerceptHandlerWhenExpressionContext(
             SemanticsModule module,
@@ -26,14 +27,15 @@ public class OnPerceptHandlerWhenExpressionContext
         return module.get(TypeHelper.class).PROPOSITION;
     }
 
-    @Override
-    public Stream<? extends NamedSymbol> searchName(
-            Predicate<String> name,
-            Predicate<IJadescriptType> readingType,
-            Predicate<Boolean> canWrite
+     @Override
+    public Stream<? extends CompilableName> compilableNames(
+        @Nullable String name
     ) {
-        return getPerceptContentStream(name, readingType, canWrite);
+        return Util.buildStream(
+            this::getPerceptContentName
+        ).filter(n -> name == null || name.equals(n.name()));
     }
+
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {

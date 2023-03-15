@@ -7,6 +7,19 @@ import java.util.stream.Collectors;
 
 public interface ExpressionDescriptor {
 
+    final PropertyChain agentReference = new PropertyChain("agent");
+    final PropertyChain thisReference = new PropertyChain("this");
+    final PropertyChain messageReference = new PropertyChain("message");
+    final PropertyChain perceptReference = new PropertyChain("percept");
+    final PropertyChain contentOfMessageReference =
+        new PropertyChain("content", "message");
+    final PropertyChain failureReasonReference =
+        new PropertyChain("failureReason");
+    final PropertyChain exceptionReference = new PropertyChain("exception");
+
+
+    ExpressionDescriptor descriptorOfMemberProperty(String propertyName);
+
     class PropertyChain implements ExpressionDescriptor {
 
         private final ImmutableList<String> properties;
@@ -60,6 +73,15 @@ public interface ExpressionDescriptor {
                 + properties.stream()
                 .collect(Collectors.joining(", "))
                 + "]";
+        }
+
+
+        @Override
+        public ExpressionDescriptor descriptorOfMemberProperty(
+            String propertyName
+        ) {
+            return new PropertyChain(this.properties.insert(0, propertyName));
+
         }
 
     }

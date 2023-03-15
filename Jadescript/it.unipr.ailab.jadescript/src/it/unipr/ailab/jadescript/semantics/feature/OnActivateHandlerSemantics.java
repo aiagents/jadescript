@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -25,7 +26,7 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
 public class OnActivateHandlerSemantics
-    extends FeatureSemantics<OnActivateHandler> {
+    extends DeclarationMemberSemantics<OnActivateHandler> {
 
     public OnActivateHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
@@ -37,11 +38,14 @@ public class OnActivateHandlerSemantics
         Maybe<OnActivateHandler> input,
         Maybe<FeatureContainer> container,
         EList<JvmMember> members,
-        JvmDeclaredType beingDeclared
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     ) {
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
         Maybe<QualifiedName> containerName = input
             .__(EcoreUtil2::getContainerOfType, TopElement.class)
-            .__(module.get(CompilationHelper.class)::getFullyQualifiedName);
+            .__(compilationHelper::getFullyQualifiedName);
         if (container.isInstanceOf(Agent.class)) {
             generateOnActivateHandlerForAgent(
                 input,
@@ -203,7 +207,7 @@ public class OnActivateHandlerSemantics
 
 
     @Override
-    public void validateFeature(
+    public void validateOnEdit(
         Maybe<OnActivateHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
@@ -218,6 +222,16 @@ public class OnActivateHandlerSemantics
         module.get(BlockSemantics.class).validate(body, state, acceptor);
 
         module.get(ContextManager.class).exit();
+    }
+
+
+    @Override
+    public void validateOnSave(
+        Maybe<OnActivateHandler> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
+    ) {
+
     }
 
 }

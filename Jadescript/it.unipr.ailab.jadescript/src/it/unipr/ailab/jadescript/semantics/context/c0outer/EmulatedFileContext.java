@@ -16,8 +16,7 @@ public class EmulatedFileContext extends FileContext{
     ) {
         this(
                 module,
-                outer
-                        .getOuterContextTopLevelDeclaration()
+                outer.getOuterContextTopLevelDeclaration()
                         .getOuterContextFile()
         );
     }

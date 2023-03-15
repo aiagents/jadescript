@@ -6,26 +6,27 @@ import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociation;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociationComputer;
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
-import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedReference;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedName;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
-
-import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
 
 public abstract class ForAgentDeclarationContext
     extends UsingOntologyDeclarationContext
-    implements NamedSymbol.Searcher, AgentAssociated {
+    implements CompilableName.Namespace, AgentAssociated {
 
     private final IJadescriptType agentType;
     private final LazyValue<TypeNamespace> agentNamespace;
-    private final LazyValue<NamedSymbol> agentSymbol;
+    private final LazyValue<CompilableName> agentSymbol;
 
 
     public ForAgentDeclarationContext(
@@ -38,29 +39,23 @@ public abstract class ForAgentDeclarationContext
         this.agentType = agentType;
         this.agentNamespace = new LazyValue<>(agentType::namespace);
         this.agentSymbol = new LazyValue<>(() ->
-            new ContextGeneratedReference(
-                "agent", agentType, (__) -> THE_AGENT + "()"
+            new ContextGeneratedName(
+                "agent",
+                agentType,
+                CompilationHelper::compileAgentReference
             )
         );
     }
 
 
     @Override
-    public Stream<? extends NamedSymbol> searchName(
-        Predicate<String> name,
-        Predicate<IJadescriptType> readingType,
-        Predicate<Boolean> canWrite
+    public Stream<? extends CompilableName> compilableNames(
+        @Nullable String name
     ) {
-
-        Stream<Integer> agentRefStream = Stream.of(0);
-        agentRefStream = safeFilter(agentRefStream, (__) -> "agent", name);
-        agentRefStream = safeFilter(
-            agentRefStream,
-            (__) -> agentType,
-            readingType
-        );
-        agentRefStream = safeFilter(agentRefStream, (__) -> false, canWrite);
-        return agentRefStream.map((__) -> agentSymbol.get());
+        if (name != null && !name.equals("agent")) {
+            return Stream.of();
+        }
+        return Util.buildStream(agentSymbol);
     }
 
 
@@ -72,10 +67,18 @@ public abstract class ForAgentDeclarationContext
 
     @Override
     public Stream<AgentAssociation> computeForClauseAgentAssociations() {
-        return Stream.of(new AgentAssociation(
-            agentType,
-            AgentAssociation.F_A.INSTANCE
-        ));
+        if (agentType instanceof AgentType) {
+            return ((AgentType) agentType).namespace()
+                .computeAllAgentAssociations()
+                .map(AgentAssociation::applyForAgent);
+        } else {
+            return Stream.of(
+                new AgentAssociation(
+                    agentType,
+                    AgentAssociation.F_A.INSTANCE
+                )
+            );
+        }
     }
 
 

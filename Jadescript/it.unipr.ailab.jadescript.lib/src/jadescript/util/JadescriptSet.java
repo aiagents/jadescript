@@ -4,118 +4,137 @@ import jade.content.Concept;
 
 import java.util.*;
 
-public class JadescriptSet<T> implements Set<T>, Concept {
-    private final List<T> elements = new ArrayList<>();
-    private final Set<T> hashSet = new HashSet<>();
+public class JadescriptSet<E> implements Collection<E>, Concept {
+    private final List<E> elements;
+    private final Set<E> hashSet = new HashSet<>();
     private boolean converted = false;
 
     public JadescriptSet() {
-        //empty ctor for jade
+        //empty ctor for JADE
+        this.elements = new ArrayList<>();
+    }
+
+    public JadescriptSet(Collection<? extends E> elements){
+        this.elements = new ArrayList<>(elements);
     }
 
 
-    public List<T> getElements(){
+    public static <T> JadescriptSet<T> empty() {
+        return new JadescriptSet<>();
+    }
+
+    public static <T> JadescriptSet<T> of(){
+        return empty();
+    }
+
+    @SafeVarargs
+    public static <T> JadescriptSet<T> of(T... elements){
+        return fromArray(elements);
+    }
+
+    public static <T> JadescriptSet<T> fromArray(T[] elements){
+        return new JadescriptSet<>(Arrays.asList(elements));
+    }
+
+
+    public List<E> getElements(){
         unzipIfNeeded();
         return elements;
     }
 
-    /**
-     * NOTE: this should be used only in conjunction with setValues by the
-     * ContentManager extractor.
-     */
-    public void setElements(List<T> elements) {
+    public void setElements(List<E> elements) {
         unzipIfNeeded();
         this.elements.clear();
         this.elements.addAll(elements);
     }
 
-    @Override
+
     public int size() {
         zipIfNeeded();
         return hashSet.size();
     }
 
-    @Override
+
     public boolean isEmpty() {
         zipIfNeeded();
         return hashSet.isEmpty();
     }
 
-    @Override
+
     public boolean contains(Object o) {
         zipIfNeeded();
         return hashSet.contains(o);
     }
 
-    @Override
-    public Iterator<T> iterator() {
+
+    public Iterator<E> iterator() {
         zipIfNeeded();
         return hashSet.iterator();
     }
 
-    @Override
+
     public Object[] toArray() {
         zipIfNeeded();
         return hashSet.toArray();
     }
 
-    @Override
+
     public <T1> T1[] toArray(T1[] a) {
         zipIfNeeded();
-        //noinspection SuspiciousToArrayCall
+
         return hashSet.toArray(a);
     }
 
-    @Override
-    public boolean add(T t) {
+
+    public boolean add(E e) {
         zipIfNeeded();
-        return hashSet.add(t);
+        return hashSet.add(e);
     }
 
 
-    @Override
+
     public boolean remove(Object o) {
         zipIfNeeded();
         return hashSet.remove(o);
     }
 
-    @Override
+
     public boolean containsAll(Collection<?> c) {
         zipIfNeeded();
         return hashSet.containsAll(c);
     }
 
-    @Override
-    public boolean addAll(Collection<? extends T> c) {
+
+    public boolean addAll(Collection<? extends E> c) {
         zipIfNeeded();
         return hashSet.addAll(c);
     }
 
-    @Override
+
     public boolean retainAll(Collection<?> c) {
         zipIfNeeded();
         return hashSet.retainAll(c);
     }
 
-    @Override
+
     public boolean removeAll(Collection<?> c) {
         zipIfNeeded();
         return hashSet.removeAll(c);
     }
 
-    @Override
+
     public void clear() {
         zipIfNeeded();
         hashSet.clear();
     }
 
 
-    @Override
+
     public String toString() {
         StringBuilder sb = new StringBuilder("{");
         zipIfNeeded();
         boolean first = true;
-        for(T value:hashSet) {
+        for(E value:hashSet) {
             if(first) {
                 first = false;
             }else {

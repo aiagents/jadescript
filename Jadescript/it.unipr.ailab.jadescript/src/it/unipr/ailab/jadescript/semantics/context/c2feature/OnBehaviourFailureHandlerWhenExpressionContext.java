@@ -1,17 +1,17 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
-import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class OnBehaviourFailureHandlerWhenExpressionContext
     extends HandlerWhenExpressionContext
-    implements NamedSymbol.Searcher, BehaviourFailureHandledContext {
+    implements CompilableName.Namespace, BehaviourFailureHandledContext {
 
 
 
@@ -41,16 +41,14 @@ public class OnBehaviourFailureHandlerWhenExpressionContext
     }
 
 
-    @Override
-    public Stream<? extends NamedSymbol> searchName(
-        Predicate<String> name,
-        Predicate<IJadescriptType> readingType,
-        Predicate<Boolean> canWrite
+     @Override
+    public Stream<? extends CompilableName> compilableNames(
+        @Nullable String name
     ) {
-        return Streams.concat(
-            getFailedBehaviourStream(name, readingType, canWrite),
-            getFailureReasonStream(name, readingType, canWrite)
-        );
+        return Util.buildStream(
+            this::getFailureReasonName,
+            this::getFailedBehaviourName
+        ).filter(n -> name == null || name.equals(n.name()));
     }
 
 }

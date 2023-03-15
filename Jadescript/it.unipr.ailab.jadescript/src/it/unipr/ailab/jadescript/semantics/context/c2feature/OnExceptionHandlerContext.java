@@ -1,16 +1,18 @@
 package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.NamedSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class OnExceptionHandlerContext
     extends HandlerWithWhenExpressionContext
-    implements NamedSymbol.Searcher, ExceptionHandledContext {
+    implements CompilableName.Namespace, ExceptionHandledContext {
 
     private final IJadescriptType exceptionReasonType;
 
@@ -31,18 +33,15 @@ public class OnExceptionHandlerContext
     }
 
 
-    @Override
-    public Stream<? extends NamedSymbol> searchName(
-        Predicate<String> name,
-        Predicate<IJadescriptType> readingType,
-        Predicate<Boolean> canWrite
+     @Override
+    public Stream<? extends CompilableName> compilableNames(
+        @Nullable String name
     ) {
-        return getExceptionReasonStream(
-            name,
-            readingType,
-            canWrite
-        );
+        return Util.buildStream(
+            this::getExceptionReasonName
+        ).filter(n -> name == null || name.equals(n.name()));
     }
+
 
 
     @Override

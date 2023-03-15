@@ -6,6 +6,8 @@ import jadescript.content.JadescriptPredicate;
 public class InternalException implements JadescriptPredicate {
     private String description;
 
+    private transient Throwable cause;
+
     public InternalException() {
         description = "";
     }
@@ -15,12 +17,22 @@ public class InternalException implements JadescriptPredicate {
         this.description = description;
     }
 
+    public InternalException(String description, Throwable cause){
+        this.description = description;
+        this.cause = cause;
+    }
+
     public String getDescription() {
         return description;
     }
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+
+    public Throwable cause(){
+        return cause;
     }
 
     @Override

@@ -66,7 +66,6 @@ public class DestroyStatementSemantics
             return state;
         }
 
-        //TODO invalidate state for "destroy this"
     }
 
 

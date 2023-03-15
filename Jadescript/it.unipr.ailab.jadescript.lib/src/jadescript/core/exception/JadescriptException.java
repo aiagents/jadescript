@@ -15,6 +15,9 @@ public class JadescriptException extends RuntimeException{
     }
 
     public static JadescriptException wrap(Throwable throwable) {
-        return new JadescriptException(new InternalException(throwable.toString()));
+        return new JadescriptException(new InternalException(
+            throwable.toString(),
+            throwable
+        ));
     }
 }

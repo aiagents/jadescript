@@ -10,38 +10,30 @@ import it.unipr.ailab.jadescript.jadescript.Behaviour
 import it.unipr.ailab.jadescript.jadescript.GlobalFunctionOrProcedure
 import it.unipr.ailab.jadescript.jadescript.Model
 import it.unipr.ailab.jadescript.jadescript.Ontology
-import it.unipr.ailab.jadescript.jadescript.TopElement
 import it.unipr.ailab.jadescript.semantics.SemanticsModule
-import it.unipr.ailab.jadescript.semantics.topelement.AgentSemantics
-import it.unipr.ailab.jadescript.semantics.topelement.GlobalOperationSemantics
-import it.unipr.ailab.jadescript.semantics.topelement.OntologySemantics
-import it.unipr.ailab.jadescript.semantics.topelement.TopElementBehaviourSemantics
+import it.unipr.ailab.jadescript.semantics.context.ContextManager
+import it.unipr.ailab.jadescript.semantics.topelement.AgentDeclarationSemantics
+import it.unipr.ailab.jadescript.semantics.topelement.BehaviourTopLevelDeclarationSemantics
+import it.unipr.ailab.jadescript.semantics.topelement.GlobalOperationDeclarationSemantics
+import it.unipr.ailab.jadescript.semantics.topelement.OntologyDeclarationSemantics
 import it.unipr.ailab.maybe.Maybe
 import java.util.ArrayList
 import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.resource.Resource
+import org.eclipse.xtext.EcoreUtil2
 import org.eclipse.xtext.common.types.JvmDeclaredType
 import org.eclipse.xtext.naming.IQualifiedNameProvider
 import org.eclipse.xtext.xbase.jvmmodel.AbstractModelInferrer
 import org.eclipse.xtext.xbase.jvmmodel.IJvmDeclaredTypeAcceptor
-import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder
 import org.eclipse.xtext.xbase.jvmmodel.JvmAnnotationReferenceBuilder
-import it.unipr.ailab.jadescript.semantics.context.ContextManager
-import org.eclipse.xtext.EcoreUtil2
+import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder
+import it.unipr.ailab.jadescript.jadescript.TopElement
 
 /**
- * <p>Infers a JVM model from the source model.</p> 
- * 
- * <p>The JVM model should contain all elements that would appear in the Java code 
- * which is generated from the source model. Other models link against the JVM model rather than the source model.</p>
+ * @author Giuseppe Petrosino - giuseppe.petrosino@unimore.it
  * 
  * @author Eleonora Iotti - eleonora.iotti@studenti.unipr.it
- * 
- * @author Giuseppe Petrosino - giuseppe.petrosino@studenti.unipr.it
  * @author Andrea Segalini - andrea.segalini@studenti.unipr.it
- * 
- * 
- * 
  */
 class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 
@@ -59,7 +51,6 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 	 * Some utilities.
 	 */
 	@Inject extension JadescriptCompilerUtils
-
 	@Inject extension JvmAnnotationReferenceBuilder
 
 	def boolean areAllLinkingErrors(EList<Resource.Diagnostic> errors) {
@@ -68,9 +59,21 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 		]
 	}
 
-	def SemanticsModule createSemanticsModule(Model model, String phase) {
-		var module = new SemanticsModule(phase, _jvmTypesBuilder, _typeReferenceBuilder, _jvmAnnotationReferenceBuilder,
-			_iQualifiedNameProvider, _jadescriptCompilerUtils)
+	def SemanticsModule createSemanticsModuleAndEnterFile(Model model, boolean isPreIndexingPhase) {
+		var String phase
+			if (isPreIndexingPhase) {
+				phase = "Preindexing"
+			} else {
+				phase = "Compile"
+			}
+		var module = new SemanticsModule(
+			phase,
+			_jvmTypesBuilder,
+			_typeReferenceBuilder,
+			_jvmAnnotationReferenceBuilder,
+			_iQualifiedNameProvider,
+			_jadescriptCompilerUtils
+		)
 		var String moduleName
 		if (model.isWithModule) {
 			moduleName = model.name
@@ -115,34 +118,23 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 	def dispatch void infer(Model model, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
 		try {
 			var functionsMap = HashMultimap.create
-			var agents = new ArrayList<Agent>
-			var ontologies = new ArrayList<Ontology>
 			var others = new ArrayList<TopElement>
 
 			for (element : model.elements) {
 				switch (element) {
 					GlobalFunctionOrProcedure:
 						functionsMap.put(element.name, element)
-					Agent:
-						agents.add(element)
-					Ontology:
-						ontologies.add(element)
 					default:
 						others.add(element)
 				}
 			}
 
-			var String phase
-			if (isPreIndexingPhase) {
-				phase = "Preindexing"
-			} else {
-				phase = "Compile"
-			}
+			
 
 			for (k : functionsMap.keySet) {
-				var module = createSemanticsModule(model, phase)
+				var module = createSemanticsModuleAndEnterFile(model, isPreIndexingPhase)
 
-				var gms = module.get(GlobalOperationSemantics)
+				var gms = module.get(GlobalOperationDeclarationSemantics)
 				for (v : functionsMap.get(k)) {
 					gms.addMethod(Maybe.some(v))
 
@@ -150,36 +142,44 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 				gms.generateDeclaredTypes(gms.getOriginalMethod(k), acceptor, isPreIndexingPhase)
 			}
 
-			for (ontology : ontologies) {
-				var module = createSemanticsModule(model, phase)
-				module.get(OntologySemantics).generateDeclaredTypes(Maybe.some(ontology), acceptor, isPreIndexingPhase)
-
-			}
-
-			for (agent : agents) {
-				var module = createSemanticsModule(model, phase)
-				module.get(AgentSemantics).generateDeclaredTypes(Maybe.some(agent), acceptor, isPreIndexingPhase)
-
-			}
 
 			for (element : others) {
-				var module = createSemanticsModule(model, phase)
-				switch (element) {
-					Behaviour:
-						switch (element as Behaviour) {
-							Behaviour:
-								module.get(TopElementBehaviourSemantics).generateDeclaredTypes(
-									Maybe.some(element as Behaviour),
-									acceptor,
-									isPreIndexingPhase
-								)
-						}
-				}
+				infer(element, acceptor, isPreIndexingPhase)
 			}
 
 		} catch (RuntimeException ex) {
 			ex.printStackTrace
 		}
+	}
+	
+	def dispatch void infer(Behaviour behaviour, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
+		val model = EcoreUtil2.getContainerOfType(behaviour, Model)
+		var module = createSemanticsModuleAndEnterFile(model, isPreIndexingPhase)
+		module.get(BehaviourTopLevelDeclarationSemantics).generateDeclaredTypes(
+			Maybe.some(behaviour),
+			acceptor,
+			isPreIndexingPhase
+		)
+	}
+	
+	def dispatch void infer(Ontology ontology, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
+		val model = EcoreUtil2.getContainerOfType(ontology, Model)
+		var module = createSemanticsModuleAndEnterFile(model, isPreIndexingPhase)
+		module.get(OntologyDeclarationSemantics).generateDeclaredTypes(
+			Maybe.some(ontology),
+			acceptor,
+			isPreIndexingPhase
+		)
+	}
+	
+	def dispatch void infer(Agent agent, IJvmDeclaredTypeAcceptor acceptor, boolean isPreIndexingPhase) {
+		val model = EcoreUtil2.getContainerOfType(agent, Model)
+		var module = createSemanticsModuleAndEnterFile(model, isPreIndexingPhase)
+		module.get(AgentDeclarationSemantics).generateDeclaredTypes(
+			Maybe.some(agent),
+			acceptor,
+			isPreIndexingPhase
+		)
 	}
 
 }
