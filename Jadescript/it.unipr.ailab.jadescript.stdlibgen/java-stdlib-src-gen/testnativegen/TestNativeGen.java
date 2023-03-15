@@ -16,6 +16,12 @@ public class TestNativeGen extends Ontology implements TestNativeGen_Vocabulary 
     }
   }
 
+  private void __initializeProperties() {
+    // Initializing properties and event handlers:
+    {
+    }
+  }
+
   private static Ontology _superOntology = null;
 
   private static Ontology __instance = new TestNativeGen();

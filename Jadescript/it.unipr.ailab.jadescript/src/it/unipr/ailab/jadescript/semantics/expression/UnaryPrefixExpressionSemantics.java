@@ -17,6 +17,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableN
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -54,9 +55,9 @@ public class UnaryPrefixExpressionSemantics
             input.__(UnaryPrefix::getOfNotation);
 
         Stream<Maybe<OfNotation>> inputsStream;
-        if(index.isPresent()){
+        if (index.isPresent()) {
             inputsStream = Stream.of(index, ofNotation);
-        }else{
+        } else {
             inputsStream = Stream.of(ofNotation);
         }
 
@@ -87,6 +88,8 @@ public class UnaryPrefixExpressionSemantics
                 .extract(nullAsFalse);
         final Maybe<OfNotation> index = input.__(UnaryPrefix::getIndex);
         final boolean isDebugScope = input.__(UnaryPrefix::isDebugScope)
+            .extract(nullAsFalse);
+        final boolean isDebugType = input.__(UnaryPrefix::isDebugInferredType)
             .extract(nullAsFalse);
         final boolean isDebugSearchName =
             input.__(UnaryPrefix::isDebugSearchName)
@@ -156,6 +159,14 @@ public class UnaryPrefixExpressionSemantics
             String dumpedScope = scb + "\n" + getOntologiesMessage() +
                 "\n" + getAgentsMessage();
             System.out.println(dumpedScope);
+        }
+        if (isDebugType) {
+            final IJadescriptType type = ones.inferType(ofNotation, state);
+            System.out.println(
+                "Type of '" + CompilationHelper.sourceToText(ofNotation) +
+                    "' " + CompilationHelper.sourceToLocationText(ofNotation) +
+                    " is: " + type.getDebugPrint()
+            );
         }
         return afterOp;
 
@@ -270,14 +281,11 @@ public class UnaryPrefixExpressionSemantics
             input.__(UnaryPrefix::getPerformativeConst)
                 .__(PerformativeExpression::getPerformativeValue);
         final boolean isIndexOfElemOperation =
-            input.__(UnaryPrefix::isIndexOfElemOperation)
-                .extract(nullAsFalse);
+            input.__(UnaryPrefix::isIndexOfElemOperation).orElse(false);
         final boolean isDebugSearchName =
-            input.__(UnaryPrefix::isDebugSearchName)
-                .extract(nullAsFalse);
+            input.__(UnaryPrefix::isDebugSearchName).orElse(false);
         final boolean isDebugSearchCall =
-            input.__(UnaryPrefix::isDebugSearchCall)
-                .extract(nullAsFalse);
+            input.__(UnaryPrefix::isDebugSearchCall).orElse(false);
 
         if (isDebugSearchName || isDebugSearchCall) {
             return module.get(TypeHelper.class).TEXT;
@@ -321,28 +329,14 @@ public class UnaryPrefixExpressionSemantics
 
     @Override
     protected boolean mustTraverse(Maybe<UnaryPrefix> input) {
-        final Maybe<String> unaryPrefixOp =
-            input.__(UnaryPrefix::getUnaryPrefixOp);
-        final Maybe<String> performativeConst =
-            input.__(UnaryPrefix::getPerformativeConst)
-                .__(PerformativeExpression::getPerformativeValue);
-        final boolean isIndexOfElemOperation =
-            input.__(UnaryPrefix::isIndexOfElemOperation)
-                .extract(nullAsFalse);
-        final boolean isDebugSearchName =
-            input.__(UnaryPrefix::isDebugSearchName)
-                .extract(nullAsFalse);
-        final boolean isDebugSearchCall =
-            input.__(UnaryPrefix::isDebugSearchCall)
-                .extract(nullAsFalse);
-        final boolean isDebugScope = input.__(UnaryPrefix::isDebugScope)
-            .extract(nullAsFalse);
-        return unaryPrefixOp.isNothing()
-            && !isIndexOfElemOperation
-            && performativeConst.isNothing()
-            && !isDebugSearchName
-            && !isDebugSearchCall
-            && !isDebugScope;
+        return input.__(UnaryPrefix::getUnaryPrefixOp).isNothing()
+            && !input.__(UnaryPrefix::isIndexOfElemOperation).orElse(false)
+            && input.__(UnaryPrefix::getPerformativeConst)
+            .__(PerformativeExpression::getPerformativeValue).isNothing()
+            && !input.__(UnaryPrefix::isDebugSearchName).orElse(false)
+            && !input.__(UnaryPrefix::isDebugSearchCall).orElse(false)
+            && !input.__(UnaryPrefix::isDebugScope).orElse(false)
+            && !input.__(UnaryPrefix::isDebugInferredType).orElse(false);
     }
 
 
@@ -381,23 +375,12 @@ public class UnaryPrefixExpressionSemantics
         }
         final Maybe<OfNotation> ofNotation =
             input.__(UnaryPrefix::getOfNotation);
+
         final Maybe<String> unaryPrefixOp =
             input.__(UnaryPrefix::getUnaryPrefixOp);
-        final boolean isDebugType = input.__(UnaryPrefix::isDebugType).extract(
-            nullAsFalse);
-        final boolean isDebugScope =
-            input.__(UnaryPrefix::isDebugScope).extract(
-                nullAsFalse);
-        final boolean isDebugSearchName =
-            input.__(UnaryPrefix::isDebugSearchName).extract(
-                nullAsFalse);
-        final boolean isDebugSearchCall =
-            input.__(UnaryPrefix::isDebugSearchCall).extract(
-                nullAsFalse);
-        final boolean isIndexOfElemOperation =
-            input.__(UnaryPrefix::isIndexOfElemOperation).extract(
-                nullAsFalse);
+
         final Maybe<OfNotation> index = input.__(UnaryPrefix::getIndex);
+
         final OfNotationExpressionSemantics ones =
             module.get(OfNotationExpressionSemantics.class);
 
@@ -406,7 +389,8 @@ public class UnaryPrefixExpressionSemantics
         final IJadescriptType inferredType;
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
-        if (isIndexOfElemOperation) {
+
+        if (input.__(UnaryPrefix::isIndexOfElemOperation).orElse(false)) {
 
             boolean indexCheck = ones.validate(index, state, acceptor);
             if (indexCheck == INVALID) {
@@ -496,39 +480,31 @@ public class UnaryPrefixExpressionSemantics
             }
         }
 
-        if (isDebugType) {
-            input.safeDo(inputsafe -> {
-                IJadescriptType jadescriptType =
-                    ones.inferType(ofNotation, newState);
-
-                acceptor.acceptInfo(
-                    jadescriptType.getDebugPrint(),
-                    inputsafe,
-                    null,
-                    ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                    "DEBUG"
-                );
-            });
+        if (input.__(UnaryPrefix::isDebugInferredType).orElse(false)) {
+            validationHelper.emitInfo(
+                "DEBUG_INFO",
+                inferredType.getDebugPrint(),
+                input,
+                acceptor
+            );
         }
 
-        if (isDebugScope) {
+        if (input.__(UnaryPrefix::isDebugScope).orElse(false)) {
             SourceCodeBuilder scb = new SourceCodeBuilder("");
             state.debugDump(scb);
             scb.line();
             module.get(ContextManager.class).debugDump(scb);
             String dumpedScope = scb + "\n" + getOntologiesMessage() +
                 "\n" + getAgentsMessage();
-            input.safeDo(inputsafe -> {
-                acceptor.acceptInfo(
-                    dumpedScope,
-                    inputsafe,
-                    null,
-                    -1,
-                    "DEBUG"
-                );
-            });
+            validationHelper.emitInfo(
+                "DEBUG_INFO",
+                dumpedScope,
+                input,
+                acceptor
+            );
         }
-        if (isDebugSearchName) {
+
+        if (input.__(UnaryPrefix::isDebugSearchName).orElse(false)) {
             input.safeDo(inputSafe -> {
                 acceptor.acceptInfo(getSearchNameMessage(
                     state,
@@ -536,13 +512,19 @@ public class UnaryPrefixExpressionSemantics
                 ), inputSafe, null, -1, "DEBUG");
             });
         }
-        if (isDebugSearchCall) {
+
+        if (input.__(UnaryPrefix::isDebugSearchCall).orElse(false)) {
             input.safeDo(inputSafe -> {
                 acceptor.acceptInfo(getSearchCallMessage(
                     state,
                     input.__(UnaryPrefix::getSearchName)
                 ), inputSafe, null, -1, "DEBUG");
             });
+        }
+
+        // ofn can be null if __dsn__, __dsc__ or performatives are there
+        if (ofNotation.isNothing()) {
+            return VALID;
         }
 
         return ones.validate(ofNotation, newState, acceptor);

@@ -23,7 +23,7 @@ agent Exceptions uses ontology ExcOnto
         log "Exception occurred: " + desc
 
     on behaviour failure InternalException(desc) when behaviour is DoSomethingWrong do
-        log "Behaviour failure occurred for behaviour " + __d_type__ behaviour + " :" + desc
+        log "Behaviour failure occurred for behaviour " + (__dt__ behaviour) + " :" + desc
     
 cyclic behaviour DoSomethingWrong for agent Exceptions
     on message inform Hello do

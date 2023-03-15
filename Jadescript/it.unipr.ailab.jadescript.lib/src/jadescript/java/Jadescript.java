@@ -8,9 +8,10 @@ import jade.wrapper.ContainerController;
 import jadescript.lang.Duration;
 import jadescript.lang.Performative;
 import jadescript.lang.Timestamp;
+import jadescript.util.JadescriptList;
 import jadescript.util.JadescriptMap;
 import jadescript.util.JadescriptSet;
-import jadescript.util.types.JadescriptBaseType;
+import jadescript.util.types.JadescriptBuiltinTypeAtom;
 import jadescript.util.types.JadescriptTypeException;
 import jadescript.util.types.JadescriptTypeReference;
 import jadescript.util.types.JadescriptValueAdapter;
@@ -128,7 +129,7 @@ public class Jadescript {
         return asPerformative(x);
     }
 
-    public static <T> List<T> valueOf(List<T> x){
+    public static <T> JadescriptList<T> valueOf(List<T> x){
         return asList(x);
     }
 
@@ -217,8 +218,8 @@ public class Jadescript {
      * @param x the input object
      * @return the Jadescript-compatible list.
      */
-    public static <T> List<T> asList(Object x){
-        return JadescriptValueAdapter.adapt(x, List.class);
+    public static <T> JadescriptList<T> asList(Object x){
+        return JadescriptValueAdapter.adapt(x, JadescriptList.class);
     }
     /**
      * Converts the object into a Jadescript-compatible map.
@@ -226,7 +227,7 @@ public class Jadescript {
      * @return the Jadescript-compatible map.
      */
     public static <K, V> JadescriptMap<K, V> asMap(Object x){
-        return JadescriptValueAdapter.adapt(x, Map.class);
+        return JadescriptValueAdapter.adapt(x, JadescriptMap.class);
     }
     /**
      * Converts the object into a Jadescript-compatible set.
@@ -234,7 +235,7 @@ public class Jadescript {
      * @return the Jadescript-compatible set.
      */
     public static <T> JadescriptSet<T> asSet(Object x){
-        return JadescriptValueAdapter.adapt(x, Set.class);
+        return JadescriptValueAdapter.adapt(x, JadescriptSet.class);
     }
 
 
@@ -251,20 +252,20 @@ public class Jadescript {
         return typeRef(JadescriptValueAdapter.getTypeRefAtom(clazz));
     }
 
-    public static JadescriptTypeReference typeRef(JadescriptBaseType baseType){
+    public static JadescriptTypeReference typeRef(JadescriptBuiltinTypeAtom baseType){
         return new JadescriptTypeReference(baseType);
     }
 
     public static JadescriptTypeReference listTypeRef(JadescriptTypeReference elementType){
-        return new JadescriptTypeReference(JadescriptBaseType.LIST, elementType);
+        return new JadescriptTypeReference(JadescriptBuiltinTypeAtom.LIST, elementType);
     }
 
     public static JadescriptTypeReference setTypeRef(JadescriptTypeReference elementType){
-        return new JadescriptTypeReference(JadescriptBaseType.SET, elementType);
+        return new JadescriptTypeReference(JadescriptBuiltinTypeAtom.SET, elementType);
     }
 
     public static JadescriptTypeReference mapTypeRef(JadescriptTypeReference keyType, JadescriptTypeReference valueType){
-        return new JadescriptTypeReference(JadescriptBaseType.MAP, keyType, valueType);
+        return new JadescriptTypeReference(JadescriptBuiltinTypeAtom.MAP, keyType, valueType);
     }
 
     public static ContainerController newMainContainer(String host, int port, String platformID){

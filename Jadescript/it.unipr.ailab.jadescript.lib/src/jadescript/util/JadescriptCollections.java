@@ -34,7 +34,9 @@ public class JadescriptCollections {
     }
 
 
-    public static <T> JadescriptListRest<T> getRest(JadescriptList<T> list) {
+    public static <T> JadescriptListRest<T> getRest(
+        JadescriptList<T> list
+    ) {
         return new JadescriptListRest<>(list, 0);
     }
 

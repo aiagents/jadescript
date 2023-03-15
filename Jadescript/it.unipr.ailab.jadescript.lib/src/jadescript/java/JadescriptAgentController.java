@@ -9,14 +9,37 @@ import jadescript.core.Agent;
 import jadescript.core.percept.Percept;
 
 public class JadescriptAgentController {
+
     private final AgentController wrapped;
 
-    JadescriptAgentController(AgentController wrapped){
-        this.wrapped=wrapped;
+
+    JadescriptAgentController(AgentController wrapped) {
+        this.wrapped = wrapped;
     }
 
 
-    public String getName(){
+    public static JadescriptAgentController createRaw(
+        ContainerController container,
+        String name,
+        Class<? extends Agent> agentClass,
+        Object... arguments
+    ) {
+        try {
+            final JadescriptAgentController jac =
+                new JadescriptAgentController(container.createNewAgent(
+                    name,
+                    agentClass.getName(),
+                    arguments
+                ));
+            jac.start();
+            return jac;
+        } catch (StaleProxyException e) {
+            throw new JadescriptJavaAPIException(e);
+        }
+    }
+
+
+    public String getName() {
         try {
             return wrapped.getName();
         } catch (StaleProxyException e) {
@@ -24,24 +47,6 @@ public class JadescriptAgentController {
         }
     }
 
-    public static JadescriptAgentController createRaw(
-            ContainerController container,
-            String name,
-            Class<? extends Agent> agentClass,
-            Object... arguments
-    ) {
-        try {
-            final JadescriptAgentController jac = new JadescriptAgentController(container.createNewAgent(
-                    name,
-                    agentClass.getName(),
-                    arguments
-            ));
-            jac.start();
-            return jac;
-        } catch (StaleProxyException e) {
-            throw new JadescriptJavaAPIException(e);
-        }
-    }
 
     public void perceive(JadescriptPredicate predicate, Ontology ontology) {
         try {
@@ -51,7 +56,8 @@ public class JadescriptAgentController {
         }
     }
 
-    private void start(){
+
+    private void start() {
         try {
             wrapped.start();
         } catch (StaleProxyException e) {
@@ -59,11 +65,13 @@ public class JadescriptAgentController {
         }
     }
 
-    public void kill(){
+
+    public void kill() {
         try {
             wrapped.kill();
         } catch (StaleProxyException e) {
             throw new JadescriptJavaAPIException(e);
         }
     }
+
 }

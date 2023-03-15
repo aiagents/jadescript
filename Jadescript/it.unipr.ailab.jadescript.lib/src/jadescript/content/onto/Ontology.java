@@ -28,16 +28,26 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
     protected static final Ontology _instance = new Ontology();
 
 
-    public static void __populateMapSchema(TermSchema keySchema, TermSchema valueSchema, ConceptSchema mapSchema) {
+    public static void __populateMapSchema(
+        TermSchema keySchema,
+        TermSchema valueSchema,
+        ConceptSchema mapSchema
+    ) {
         mapSchema.add(KEYS, keySchema, 0, ObjectSchema.UNLIMITED);
         mapSchema.add(VALUES, valueSchema, 0, ObjectSchema.UNLIMITED);
     }
 
-    public static void __populateSetSchema(TermSchema elementSchema, ConceptSchema setSchema) {
+    public static void __populateSetSchema(
+        TermSchema elementSchema,
+        ConceptSchema setSchema
+    ) {
         setSchema.add(ELEMENTS, elementSchema, 0, ObjectSchema.UNLIMITED);
     }
 
-    public static void __populateListSchema(TermSchema elementSchema, ConceptSchema listSchema) {
+    public static void __populateListSchema(
+        TermSchema elementSchema,
+        ConceptSchema listSchema
+    ) {
         listSchema.add(ELEMENTS, elementSchema, 0, ObjectSchema.UNLIMITED);
     }
 

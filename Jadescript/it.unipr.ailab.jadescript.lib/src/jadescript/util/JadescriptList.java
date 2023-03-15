@@ -7,9 +7,10 @@ import java.util.function.Consumer;
 import java.util.function.IntFunction;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class JadescriptList<E> implements List<E>, Concept {
+public class JadescriptList<E> implements Collection<E>, Concept {
 
     private final List<E> list;
 
@@ -31,6 +32,36 @@ public class JadescriptList<E> implements List<E>, Concept {
     ) {
         this.list = new ArrayList<>(c);
         this.list.addAll(rest);
+    }
+
+
+
+    public static <T> JadescriptList<T> empty() {
+        return new JadescriptList<>();
+    }
+
+    public static <T> JadescriptList<T> of(){
+        return empty();
+    }
+
+    @SafeVarargs
+    public static <T> JadescriptList<T> of(T... elements){
+        return fromArray(elements);
+    }
+
+    public static <T> JadescriptList<T> fromArray(T[] elements){
+        return new JadescriptList<>(Arrays.asList(elements));
+    }
+
+
+    public List<E> getElements() {
+        return list;
+    }
+
+
+    public void setElements(List<E> elements) {
+        this.list.clear();
+        this.list.addAll(elements);
     }
 
 
@@ -72,7 +103,7 @@ public class JadescriptList<E> implements List<E>, Concept {
 
     @Override
     public boolean containsAll(Collection<?> c) {
-        return list.containsAll(c);
+        return new HashSet<>(list).containsAll(c);
     }
 
 
@@ -82,7 +113,7 @@ public class JadescriptList<E> implements List<E>, Concept {
     }
 
 
-    @Override
+
     public boolean addAll(int index, Collection<? extends E> c) {
         return list.addAll(index, c);
     }
@@ -100,13 +131,13 @@ public class JadescriptList<E> implements List<E>, Concept {
     }
 
 
-    @Override
+
     public void replaceAll(UnaryOperator<E> operator) {
         list.replaceAll(operator);
     }
 
 
-    @Override
+
     public void sort(Comparator<? super E> c) {
         list.sort(c);
     }
@@ -118,6 +149,7 @@ public class JadescriptList<E> implements List<E>, Concept {
     }
 
 
+    @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
     @Override
     public boolean equals(Object o) {
         return list.equals(o);
@@ -130,55 +162,57 @@ public class JadescriptList<E> implements List<E>, Concept {
     }
 
 
-    @Override
+
     public E get(int index) {
         return list.get(index);
     }
 
 
-    @Override
+
     public E set(int index, E element) {
         return list.set(index, element);
     }
 
 
-    @Override
+
     public void add(int index, E element) {
         list.add(index, element);
     }
 
 
-    @Override
+
     public E remove(int index) {
         return list.remove(index);
     }
 
 
-    @Override
+
     public int indexOf(Object o) {
+        //noinspection SuspiciousMethodCalls
         return list.indexOf(o);
     }
 
 
-    @Override
+
     public int lastIndexOf(Object o) {
+        //noinspection SuspiciousMethodCalls
         return list.lastIndexOf(o);
     }
 
 
-    @Override
+
     public ListIterator<E> listIterator() {
         return list.listIterator();
     }
 
 
-    @Override
+
     public ListIterator<E> listIterator(int index) {
         return list.listIterator(index);
     }
 
 
-    @Override
+
     public List<E> subList(int fromIndex, int toIndex) {
         return list.subList(fromIndex, toIndex);
     }
@@ -220,20 +254,19 @@ public class JadescriptList<E> implements List<E>, Concept {
     }
 
 
-    public List<E> getElements() {
-        return list;
-    }
-
-
-    public void setElements(List<E> elements) {
-        this.list.clear();
-        this.list.addAll(elements);
+    @Override
+    public int size() {
+        return list.size();
     }
 
 
     @Override
-    public int size() {
-        return list.size();
+    public String toString() {
+        return "[" +
+            this.list.stream()
+                .map(Util::quoteIfString)
+                .collect(Collectors.joining(", "))
+            + "]";
     }
 
 
@@ -242,5 +275,5 @@ public class JadescriptList<E> implements List<E>, Concept {
         return list.isEmpty();
     }
 
-
+    //TODO jadescript's index out of bounds exception
 }

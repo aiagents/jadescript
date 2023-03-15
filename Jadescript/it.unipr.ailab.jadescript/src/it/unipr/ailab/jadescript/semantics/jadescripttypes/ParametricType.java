@@ -55,7 +55,8 @@ public abstract class ParametricType extends JadescriptType {
 
     public String getJadescriptName() {
         String result = simpleName;
-        result += " " + parametricIntroductor + " " + parametricListDelimiterOpen + typeArguments.stream()
+        result += " " + parametricIntroductor + " " +
+            parametricListDelimiterOpen + typeArguments.stream()
             .map(TypeArgument::getJadescriptName)
             .map(s -> "(" + s + ")")
             .reduce((s1, s2) -> s1 + parametricListSeparator + s2).orElse(
@@ -245,7 +246,8 @@ public abstract class ParametricType extends JadescriptType {
     public String compileConversionType() {
 
         return "new jadescript.util.types.JadescriptTypeReference(" +
-            "jadescript.util.types.JadescriptBaseType." + getCategoryName() +
+            "jadescript.util.types.JadescriptBuiltinTypeAtom." +
+            getCategoryName() +
             (getTypeArguments().isEmpty() ? "" :
                 ", " + getTypeArguments().stream()
                     .map(TypeArgument::ignoreBound)

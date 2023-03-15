@@ -302,7 +302,7 @@ public class ListType
     @Override
     public JvmTypeReference asJvmTypeReference() {
         return module.get(TypeHelper.class).typeRef(
-            List.class,
+            JadescriptList.class,
             getTypeArguments().stream()
                 .map(TypeArgument::asJvmTypeReference)
                 .collect(Collectors.toList())
@@ -446,7 +446,7 @@ public class ListType
                             featureSafe,
                             "list",
                             typeHelper.typeRef(
-                                List.class,
+                                JadescriptList.class,
                                 elementType.asJvmTypeReference()
                             )
                         ));
@@ -505,6 +505,18 @@ public class ListType
 
             }
         });
+    }
+
+
+    @Override
+    public String getAdHocClassName() {
+        return getAdHocListClassName(getElementType());
+    }
+
+
+    @Override
+    public String getConverterToAdHocClassMethodName() {
+        return "__fromList";
     }
 
 }

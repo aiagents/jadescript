@@ -20,9 +20,10 @@ cyclic behaviour WaitResponses for agent BuyerAgent uses ontology MusicShopOntol
     on message propose (Sell(_, _), ProposedPrice(price, _)) do
         messageCounter = messageCounter + 1
         
-        log name of agent + ": response NO." + messageCounter + " from " + name of sender of message
-        log name of agent + ": proposal received with price: " + price
-        if bestPrice > price do
+        log name of agent + ": response NO." + messageCounter + " from " + 
+            name of sender of message + ", price: "+price
+            
+        if price < bestPrice do
             log name of agent + ": proposal received has currently the best price."
             bestSeller = sender of message
             bestPrice = price

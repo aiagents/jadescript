@@ -6,7 +6,8 @@ agent Multitasker
         activate Behaviour1
         activate Behaviour2
         activate Behaviour3
-        
+
+
 cyclic behaviour Behaviour1
     property counter = 0
     
@@ -15,8 +16,8 @@ cyclic behaviour Behaviour1
         counter = counter + 1
         if counter = 4 do
             deactivate this
-        
-        
+
+
 cyclic behaviour Behaviour2
     property counter = 0
     
@@ -25,8 +26,8 @@ cyclic behaviour Behaviour2
         counter = counter + 1
         if counter = 4 do
             deactivate this
-            
-            
+
+
 cyclic behaviour Behaviour3
     property counter = 0
     

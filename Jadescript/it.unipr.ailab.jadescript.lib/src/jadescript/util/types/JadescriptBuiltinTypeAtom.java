@@ -1,6 +1,6 @@
 package jadescript.util.types;
 
-public enum JadescriptBaseType {
+public enum JadescriptBuiltinTypeAtom {
     INTEGER("integer"),
     BOOLEAN("boolean"),
     REAL("real"),
@@ -24,7 +24,7 @@ public enum JadescriptBaseType {
 
     private final String typeName;
 
-    JadescriptBaseType(String typeName) {
+    JadescriptBuiltinTypeAtom(String typeName) {
         this.typeName = typeName;
     }
 

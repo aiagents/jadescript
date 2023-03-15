@@ -315,7 +315,7 @@ public class SetType extends ParametricType
                             featureSafe,
                             "set",
                             typeHelper.typeRef(
-                                Set.class,
+                                JadescriptSet.class,
                                 elementType.asJvmTypeReference()
                             )
                         ));
@@ -323,8 +323,8 @@ public class SetType extends ParametricType
                         module.get(CompilationHelper.class).createAndSetBody(
                             itMeth,
                             scb -> {
-                                final String typeName = typeHelper
-                                    .noGenericsTypeName(
+                                final String typeName =
+                                    typeHelper.noGenericsTypeName(
                                         elementType.compileToJavaTypeReference()
                                     );
                                 scb.line(className + " result = " +
@@ -371,6 +371,18 @@ public class SetType extends ParametricType
 
             }
         });
+    }
+
+
+    @Override
+    public String getAdHocClassName() {
+        return getAdHocSetClassName(getElementType());
+    }
+
+
+    @Override
+    public String getConverterToAdHocClassMethodName() {
+        return "__fromSet";
     }
 
 }

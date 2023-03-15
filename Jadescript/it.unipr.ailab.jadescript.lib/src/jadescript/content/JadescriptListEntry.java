@@ -34,10 +34,10 @@ public class JadescriptListEntry<T> implements Concept {
             .collect(Collectors.toList());
     }
 
-    public static <Tt> List<Tt> fromListOfEntries(
+    public static <Tt> JadescriptList<Tt> fromListOfEntries(
         List<JadescriptListEntry<Tt>> input
     ){
-        List<Tt> result = new JadescriptList<>();
+        JadescriptList<Tt> result = new JadescriptList<>();
         for(JadescriptListEntry<Tt> entry: input){
             result.add(entry.getElement());
         }

@@ -692,13 +692,13 @@ UnaryPrefix:
 		|
 		((unaryPrefixOp=UnaryPrefixOp)? ofNotation=OfNotation)
 		|
-		(debugType?='__d_type__' ofNotation=OfNotation)
+		(debugScope?='__ds__' ofNotation=OfNotation)
 		|
-		(debugScope?='__d_scope__' ofNotation=OfNotation)
+		(debugInferredType?='__dt__' ofNotation=OfNotation)
 		|
-		(debugSearchName?='__d_searchname__' (searchName=VarIdentifier|underscore?='_'))
+		(debugSearchName?='__dsn__' (searchName=VarIdentifier|underscore?='_'))
 		|
-		(debugSearchCall?='__d_searchcall__' (searchName=VarIdentifier|underscore?='_'))
+		(debugSearchCall?='__dsc__' (searchName=VarIdentifier|underscore?='_'))
 		| 
 		(performativeConst=PerformativeExpression)
 	);

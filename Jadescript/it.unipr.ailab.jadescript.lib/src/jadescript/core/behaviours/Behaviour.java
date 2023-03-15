@@ -886,6 +886,7 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
     @SuppressWarnings("rawtypes")
     public static class EmptyBehaviour extends Behaviour {
 
+        @SuppressWarnings("unchecked")
         public EmptyBehaviour() {
             super(null);
         }

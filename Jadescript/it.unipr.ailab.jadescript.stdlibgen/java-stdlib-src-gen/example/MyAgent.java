@@ -9,12 +9,26 @@ import jadescript.content.onto.Ontology;
 import jadescript.core.Agent;
 import jadescript.core.exception.ExceptionThrower;
 import jadescript.core.exception.JadescriptException;
+import jadescript.java.AgentEnv;
 import jadescript.java.JadescriptAgentController;
+import jadescript.java.SideEffectsFlag;
 
 @SuppressWarnings("all")
 public class MyAgent extends Agent {
-  public void __onCreate() {
-    super.__onCreate();
+  private MyAgent __theAgent = (example.MyAgent)/*Used as metadata*/null;
+
+  private AgentEnv<MyAgent, SideEffectsFlag.AnySideEffectFlag> _agentEnv = null;
+
+  public Ontology __ontology__jadescript_content_onto_Ontology = (jadescript.content.onto.Ontology) jadescript.content.onto.Ontology.getInstance();
+
+  public void __registerOntologies(final ContentManager cm) {
+    super.__registerOntologies(cm);
+    cm.registerOntology(jadescript.content.onto.Ontology.getInstance());
+  }
+
+  public Codec __codec = new jade.content.lang.leap.LEAPCodec();
+
+  private void __onCreate() {
     try {
     	/* 
     	 * Compiled from source statement at line 4
@@ -48,20 +62,25 @@ public class MyAgent extends Agent {
     }
   }
 
-  public Ontology __ontology__jadescript_content_onto_Ontology = (jadescript.content.onto.Ontology) jadescript.content.onto.Ontology.
-    getInstance();
-
-  public void __registerOntologies(final ContentManager cm) {
-    super.__registerOntologies(cm);
-    cm.registerOntology(__ontology__jadescript_content_onto_Ontology);
+  private void __initializeProperties() {
+    // Initializing properties and event handlers:
+    {
+    }
   }
 
-  public Codec __codec = new jade.content.lang.leap.LEAPCodec();
-
-  private MyAgent __theAgent = this;
+  private void __initializeAgentEnv() {
+    this._agentEnv = jadescript.java.AgentEnv.agentEnv(__theAgent());
+  }
 
   public MyAgent __theAgent() {
     return this;
+  }
+
+  protected void setup() {
+    super.setup();
+    __initializeAgentEnv();
+    __initializeProperties();
+    this.__onCreate();
   }
 
   protected void __registerCodecs(final ContentManager cm) {

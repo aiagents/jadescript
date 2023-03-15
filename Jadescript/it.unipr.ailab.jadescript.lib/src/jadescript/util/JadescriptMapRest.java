@@ -7,13 +7,20 @@ public class JadescriptMapRest<K, V> extends JadescriptMap<K, V> {
 
     private final JadescriptMap<K, V> originalMap;
     private final Set<K> excludedKeys;
+    private List<K> settingKeys = null;
+    private List<V> settingValues = null;
+
 
     @SafeVarargs
-    public JadescriptMapRest(JadescriptMap<K, V> originalMap, K... excludedKey) {
+    public JadescriptMapRest(
+        JadescriptMap<K, V> originalMap,
+        K... excludedKey
+    ) {
         super();
         this.originalMap = originalMap;
         this.excludedKeys = new HashSet<>(Arrays.asList(excludedKey));
     }
+
 
     @Override
     public List<K> getKeys() {
@@ -27,8 +34,6 @@ public class JadescriptMapRest<K, V> extends JadescriptMap<K, V> {
         return result;
     }
 
-    private List<K> settingKeys = null;
-    private List<V> settingValues = null;
 
     @Override
     public void setKeys(List<K> keys) {
@@ -47,7 +52,8 @@ public class JadescriptMapRest<K, V> extends JadescriptMap<K, V> {
             }
             originalMap.clear();
             originalMap.putAll(saved);
-            for (int i = 0; i < Math.min(settingKeys.size(), settingValues.size()); i++) {
+            for (int i = 0; i < Math.min(settingKeys.size(),
+                settingValues.size()); i++) {
                 originalMap.put(settingKeys.get(i), settingValues.get(i));
             }
             settingKeys = null;
@@ -71,6 +77,7 @@ public class JadescriptMapRest<K, V> extends JadescriptMap<K, V> {
         return result;
     }
 
+
     @Override
     public void setValues(List<V> values) {
         settingValues = values;
@@ -79,15 +86,19 @@ public class JadescriptMapRest<K, V> extends JadescriptMap<K, V> {
         }
     }
 
+
     @Override
     public int size() {
         return Math.max(0, originalMap.size() - excludedKeys.size());
     }
 
+
     @Override
     public boolean isEmpty() {
-        return originalMap.isEmpty() || excludedKeys.containsAll(originalMap.getKeys());
+        return originalMap.isEmpty()
+            || excludedKeys.containsAll(originalMap.getKeys());
     }
+
 
     @Override
     public boolean containsKey(Object key) {
@@ -98,18 +109,21 @@ public class JadescriptMapRest<K, V> extends JadescriptMap<K, V> {
         return originalMap.containsKey(key);
     }
 
+
     @Override
     public boolean containsValue(Object value) {
         if (!originalMap.containsValue(value)) {
             return false;
         }
         for (Entry<K, V> kvEntry : originalMap.entrySet()) {
-            if (kvEntry.getValue().equals(value) && !excludedKeys.contains(kvEntry.getKey())) {
+            if (kvEntry.getValue().equals(value)
+                && !excludedKeys.contains(kvEntry.getKey())) {
                 return true;
             }
         }
         return false;
     }
+
 
     @Override
     public V get(Object key) {
@@ -126,10 +140,12 @@ public class JadescriptMapRest<K, V> extends JadescriptMap<K, V> {
         return v;
     }
 
+
     @Override
     public V put(K key, V value) {
         return originalMap.put(key, value);
     }
+
 
     @Override
     public V remove(Object key) {
@@ -140,10 +156,12 @@ public class JadescriptMapRest<K, V> extends JadescriptMap<K, V> {
         return originalMap.remove(key);
     }
 
+
     @Override
     public void putAll(Map<? extends K, ? extends V> m) {
         originalMap.putAll(m);
     }
+
 
     @Override
     public void clear() {
@@ -155,6 +173,7 @@ public class JadescriptMapRest<K, V> extends JadescriptMap<K, V> {
         }
     }
 
+
     @Override
     public Set<K> keySet() {
         HashSet<K> keys = new HashSet<>(originalMap.getKeys());
@@ -163,6 +182,7 @@ public class JadescriptMapRest<K, V> extends JadescriptMap<K, V> {
         }
         return keys;
     }
+
 
     @Override
     public Collection<V> values() {
@@ -173,12 +193,14 @@ public class JadescriptMapRest<K, V> extends JadescriptMap<K, V> {
         return values;
     }
 
+
     @Override
     public Set<Entry<K, V>> entrySet() {
         return originalMap.entrySet().stream()
-                .filter((e) -> !excludedKeys.contains(e.getKey()))
-                .collect(Collectors.toSet());
+            .filter((e) -> !excludedKeys.contains(e.getKey()))
+            .collect(Collectors.toSet());
     }
+
 
     public JadescriptMap<K, V> toNew() {
         JadescriptMap<K, V> result = new JadescriptMap<>();
@@ -201,11 +223,12 @@ public class JadescriptMapRest<K, V> extends JadescriptMap<K, V> {
             } else {
                 sb.append(", ");
             }
-            sb.append(quoteIfString(key));
+            sb.append(Util.quoteIfString(key));
             sb.append(":");
-            sb.append(quoteIfString(value));
+            sb.append(Util.quoteIfString(value));
         }
         sb.append("}");
         return sb.toString();
     }
+
 }

@@ -3,20 +3,23 @@ package jadescript.util;
 import java.util.*;
 
 public class JadescriptSetRest<T> extends JadescriptSet<T> {
-    private final Set<T> originalSet;
+    private final JadescriptSet<T> originalSet;
     private final HashSet<T> excludedValues;
-    private Set<T> cachedSubtraction = null;
+    private JadescriptSet<T> cachedSubtraction = null;
 
 
     @SafeVarargs
-    public JadescriptSetRest(Set<T> originalSet, T... excludedValues) {
+    public JadescriptSetRest(
+        JadescriptSet<T> originalSet,
+        T... excludedValues
+    ) {
         super();
         this.originalSet = originalSet;
         this.excludedValues = new HashSet<>(Arrays.asList(excludedValues));
     }
 
 
-    private Set<T> getSubtraction() {
+    private JadescriptSet<T> getSubtraction() {
         if (cachedSubtraction == null) {
             cachedSubtraction = new JadescriptSet<>();
             cachedSubtraction.addAll(originalSet);
@@ -71,7 +74,6 @@ public class JadescriptSetRest<T> extends JadescriptSet<T> {
 
     @Override
     public <T1> T1[] toArray(T1[] a) {
-        //noinspection SuspiciousToArrayCall
         return getSubtraction().toArray(a);
     }
 
@@ -150,7 +152,7 @@ public class JadescriptSetRest<T> extends JadescriptSet<T> {
         return sb.toString();
     }
 
-    public Set<T> toNew(){
+    public JadescriptSet<T> toNew(){
         return getSubtraction();
     }
 }

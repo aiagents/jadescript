@@ -374,6 +374,18 @@ public class TupleType extends ParametricType
     }
 
 
+    @Override
+    public String getAdHocClassName() {
+        return getAdHocTupleClassName(getElementTypes());
+    }
+
+
+    @Override
+    public String getConverterToAdHocClassMethodName() {
+        return "__fromTuple";
+    }
+
+
     private Map<String, Property> getBuiltinProperties() {
         initBuiltinProperties();
         return properties;

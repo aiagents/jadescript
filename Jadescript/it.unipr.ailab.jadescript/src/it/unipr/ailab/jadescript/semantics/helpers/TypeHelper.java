@@ -22,6 +22,7 @@ import jadescript.java.AgentEnv;
 import jadescript.java.SideEffectsFlag;
 import jadescript.lang.Performative;
 import jadescript.lang.Tuple;
+import jadescript.util.JadescriptList;
 import jadescript.util.JadescriptMap;
 import jadescript.util.JadescriptSet;
 import org.eclipse.emf.common.util.EList;
@@ -487,7 +488,7 @@ public class TypeHelper implements SemanticsConsts {
 
 
         LIST = (arguments) -> new ListType(module, arguments.get(0));
-        defineJVMToGenericDescriptor(List.class, LIST, 1);
+        defineJVMToGenericDescriptor(JadescriptList.class, LIST, 1);
 
         MAP = (arguments) -> new MapType(
             module,

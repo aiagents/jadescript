@@ -81,7 +81,6 @@ public class OntologyDeclarationSemantics extends
         if (input == null) return;
 
 
-
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
@@ -450,7 +449,7 @@ public class OntologyDeclarationSemantics extends
                 case "list": {
                     IJadescriptType elemType =
                         module.get(TypeHelper.class).ANY;
-                    if(typeParameters.size() == 1){
+                    if (typeParameters.size() == 1) {
                         elemType = tes.toJadescriptType(
                             some(typeParameters.get(0))
                         );
@@ -795,90 +794,35 @@ public class OntologyDeclarationSemantics extends
                     if (isWithSlots) {
                         FeatureWithSlots withSlots =
                             (FeatureWithSlots) ontoElementSafe;
+
                         for (int i = 0; i < withSlots.getSlots().size(); i++) {
                             SlotDeclaration slot = withSlots.getSlots().get(i);
-                            if (slot.getType().getSubExprs() != null
-                                && slot.getType().getSubExprs().size() > 1) {
-                                List<IJadescriptType> elementTypes =
-                                    slot.getType().getSubExprs().stream()
-                                        .map(Maybe::some)
-                                        .map(tes::toJadescriptType)
-                                        .collect(Collectors.toList());
-                                String className = TupleType
-                                    .getAdHocTupleClassName(elementTypes);
-                                line.append(className)
-                                    .append(".__fromTuple(")
-                                    .append(withSlots.getSlots().get(
-                                        i).getName())
+
+                            final IJadescriptType slotType =
+                                tes.toJadescriptType(
+                                    some(slot).__(SlotDeclaration::getType));
+
+                            if (slotType
+                                instanceof DeclaresOntologyAdHocClass) {
+                                DeclaresOntologyAdHocClass adHocType =
+                                    (DeclaresOntologyAdHocClass) slotType;
+
+                                final String adHocClassName =
+                                    adHocType.getAdHocClassName();
+
+                                final String converterName = adHocType
+                                    .getConverterToAdHocClassMethodName();
+
+                                line.append(adHocClassName)
+                                    .append(".")
+                                    .append(converterName)
+                                    .append("(")
+                                    .append(slot.getName())
                                     .append(")");
-
-                            } else if (slot.getType()
-                                .getCollectionTypeExpression() != null) {
-                                EList<TypeExpression> typeParameters =
-                                    slot.getType()
-                                        .getCollectionTypeExpression()
-                                        .getTypeParameters();
-                                if (typeParameters != null
-                                    && typeParameters.size() == 2
-                                    && "map".equals(slot.getType()
-                                    .getCollectionTypeExpression()
-                                    .getCollectionType())) {
-
-                                    IJadescriptType keyType =
-                                        tes.toJadescriptType(
-                                            some(typeParameters.get(
-                                                0)));
-
-                                    IJadescriptType valType =
-                                        tes.toJadescriptType(
-                                            some(typeParameters.get(
-                                                1)));
-
-                                    String className =
-                                        MapType.getAdHocMapClassName(
-                                            keyType,
-                                            valType
-                                        );
-
-                                    line.append(className)
-                                        .append(".__fromMap(")
-                                        .append(withSlots.getSlots().get(
-                                            i).getName())
-                                        .append(")");
-
-                                } else if (typeParameters != null
-                                    && typeParameters.size() == 1
-                                    && "set".equals(slot.getType()
-                                    .getCollectionTypeExpression()
-                                    .getCollectionType())) {
-
-                                    IJadescriptType elemType =
-                                        tes.toJadescriptType(
-                                            some(typeParameters.get(0)));
-
-                                    String className =
-                                        SetType.getAdHocSetClassName(elemType);
-
-                                    line.append(className)
-                                        .append(".__fromSet(")
-                                        .append(withSlots.getSlots().get(i)
-                                            .getName())
-                                        .append(")");
-
-                                } else if (typeParameters != null
-                                    && typeParameters.size() == 1
-                                    && "list".equals(slot.getType()
-                                    .getCollectionTypeExpression()
-                                    .getCollectionType())) {
-
-                                    line.append(withSlots.getSlots().get(i)
-                                        .getName());
-
-                                }
                             } else {
-                                line.append(withSlots.getSlots().get(
-                                    i).getName());
+                                line.append(slot.getName());
                             }
+
                             if (i < withSlots.getSlots().size() - 1) {
                                 line.append(", ");
                             }
@@ -900,7 +844,7 @@ public class OntologyDeclarationSemantics extends
     ) {
         final QualifiedName nullableFQName =
             module.get(CompilationHelper.class)
-            .getFullyQualifiedName(ontologyElementSafe);
+                .getFullyQualifiedName(ontologyElementSafe);
         final String ontoElementFqName = nullableFQName == null
             ? ""
             : nullableFQName.toString(".");

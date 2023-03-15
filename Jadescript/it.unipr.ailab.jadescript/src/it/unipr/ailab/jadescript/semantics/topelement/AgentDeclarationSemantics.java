@@ -195,18 +195,61 @@ public class AgentDeclarationSemantics
             }
         ));
 
+
+        Maybe<OnCreateHandler> createHandler = stream(
+            input.__(FeatureContainer::getFeatures)
+        ).filter(maybeF ->
+                //f instanceof OnCreateHandler
+                maybeF.__(f -> f instanceof OnCreateHandler)
+                    .extract(nullAsFalse)
+            ).map(maybeF -> maybeF.__(f -> (OnCreateHandler) f)).findAny()
+            .orElse(Maybe.nothing());
+
+
         input.__(NamedElement::getName).safeDo(nameSafe -> {
-            addCreateMethod(input, members, inputSafe);
+            addCreateMethod(members, inputSafe, createHandler);
         });
+
+
+        if (createHandler.isNothing()) {
+            addDefaultOnCreate(input, members);
+        }
 
 
     }
 
 
-    private void addCreateMethod(
+    private void addDefaultOnCreate(
         Maybe<Agent> input,
+        EList<JvmMember> members
+    ) {
+        if (input.isNothing()) {
+            return;
+        }
+
+        final Agent agent = input.toNullable();
+
+        members.add(module.get(JvmTypesBuilder.class).toMethod(
+            agent,
+            "__onCreate",
+            module.get(TypeHelper.class).VOID.asJvmTypeReference(),
+            itMethod -> {
+                itMethod.setVisibility(JvmVisibility.PRIVATE);
+                module.get(CompilationHelper.class).createAndSetBody(
+                    itMethod,
+                    scb -> {
+                        scb.line("// do nothing;");
+                    }
+                );
+            }
+        ));
+    }
+
+
+    private void addCreateMethod(
         EList<JvmMember> members,
-        Agent inputSafe
+        Agent inputSafe,
+        Maybe<OnCreateHandler> createHandler
     ) {
         final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
@@ -225,85 +268,76 @@ public class AgentDeclarationSemantics
             itMethod.setVisibility(JvmVisibility.PUBLIC);
             itMethod.setStatic(true);
 
-            final Optional<Maybe<OnCreateHandler>> createHandler = stream(
-                input.__(FeatureContainer::getFeatures)
-            ).filter(maybeF ->
-                //f instanceof OnCreateHandler
-                maybeF.__(f -> f instanceof OnCreateHandler)
-                    .extract(nullAsFalse)
-            ).map(maybeF -> maybeF.__(f -> (OnCreateHandler) f)).findAny();
 
             if (createHandler.isPresent()) {
-                Maybe<OnCreateHandler> featureMaybe = createHandler.get();
+
                 // get feature, get params, compile into create's params
-                if (featureMaybe.isPresent()) {
-                    OnCreateHandler createHandlerSafe =
-                        featureMaybe.toNullable();
+                OnCreateHandler createHandlerSafe =
+                    createHandler.toNullable();
 
-                    itMethod.getParameters().add(jvmTB.toParameter(
-                        inputSafe,
-                        "_container",
-                        typeHelper.typeRef(ContainerController.class)
-                    ));
-                    itMethod.getParameters().add(jvmTB.toParameter(
-                        inputSafe,
-                        "_agentName",
-                        typeHelper.typeRef(String.class)
-                    ));
+                itMethod.getParameters().add(jvmTB.toParameter(
+                    inputSafe,
+                    "_container",
+                    typeHelper.typeRef(ContainerController.class)
+                ));
+                itMethod.getParameters().add(jvmTB.toParameter(
+                    inputSafe,
+                    "_agentName",
+                    typeHelper.typeRef(String.class)
+                ));
 
-                    itMethod.getExceptions().add(typeHelper.typeRef(
-                        jade.wrapper.StaleProxyException.class
-                    ));
+                itMethod.getExceptions().add(typeHelper.typeRef(
+                    jade.wrapper.StaleProxyException.class
+                ));
 
-                    List<ExpressionWriter> createArgs = new ArrayList<>();
-                    createArgs.add(w.expr("_container"));
-                    createArgs.add(w.expr("_agentName"));
-                    createArgs.add(w.expr(
-                        compilationHelper.getFullyQualifiedName(inputSafe)
-                            + ".class"
-                    ));
+                List<ExpressionWriter> createArgs = new ArrayList<>();
+                createArgs.add(w.expr("_container"));
+                createArgs.add(w.expr("_agentName"));
+                createArgs.add(w.expr(
+                    compilationHelper.getFullyQualifiedName(inputSafe)
+                        + ".class"
+                ));
 
-                    for (FormalParameter parameter :
-                        createHandlerSafe.getParameters()) {
-                        if (parameter == null) {
-                            continue;
-                        }
-
-                        final String paramName = parameter.getName();
-
-                        if (paramName == null) {
-                            continue;
-                        }
-
-
-                        final TypeExpression paramTypeRef = parameter.getType();
-
-                        if (paramTypeRef == null) {
-                            continue;
-                        }
-
-                        final IJadescriptType paramType =
-                            tes.toJadescriptType(some(paramTypeRef));
-
-                        itMethod.getParameters().add(jvmTB.toParameter(
-                            parameter,
-                            paramName,
-                            paramType.asJvmTypeReference()
-                        ));
-
-                        createArgs.add(w.expr(paramName));
+                for (FormalParameter parameter :
+                    createHandlerSafe.getParameters()) {
+                    if (parameter == null) {
+                        continue;
                     }
 
-                    compilationHelper.createAndSetBody(
-                        itMethod,
-                        scb -> w.returnStmnt(w.callExpr(
-                            "jadescript.java.JadescriptAgentController" +
-                                ".createRaw",
-                            createArgs.toArray(new ExpressionWriter[0])
-                        )).writeSonnet(scb)
+                    final String paramName = parameter.getName();
 
-                    );
+                    if (paramName == null) {
+                        continue;
+                    }
+
+
+                    final TypeExpression paramTypeRef = parameter.getType();
+
+                    if (paramTypeRef == null) {
+                        continue;
+                    }
+
+                    final IJadescriptType paramType =
+                        tes.toJadescriptType(some(paramTypeRef));
+
+                    itMethod.getParameters().add(jvmTB.toParameter(
+                        parameter,
+                        paramName,
+                        paramType.asJvmTypeReference()
+                    ));
+
+                    createArgs.add(w.expr(paramName));
                 }
+
+                compilationHelper.createAndSetBody(
+                    itMethod,
+                    scb -> w.returnStmnt(w.callExpr(
+                        "jadescript.java.JadescriptAgentController" +
+                            ".createRaw",
+                        createArgs.toArray(new ExpressionWriter[0])
+                    )).writeSonnet(scb)
+
+                );
             } else {
                 itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,

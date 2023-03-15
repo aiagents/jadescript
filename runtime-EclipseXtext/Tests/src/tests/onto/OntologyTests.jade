@@ -4,4 +4,9 @@ ontology OntologyTests
     native concept Person(name as text)
     native concept FirstManOnMoon extends Person with name="Neil Armstrong"
     
+agent TestNativeConcepts
+    uses ontology OntologyTests
     
+    on create do
+        p = Person("Hello")
+        neil = FirstManOnMoon()

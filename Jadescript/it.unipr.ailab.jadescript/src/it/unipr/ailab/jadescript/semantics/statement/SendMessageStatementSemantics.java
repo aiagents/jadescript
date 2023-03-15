@@ -677,8 +677,10 @@ public class SendMessageStatementSemantics
                     tryBranch = w.block();
                 }
 
+                //TODO let it throw a jadescript exception
+                // and maybe put the subsequent [agent].send into the try block
                 acceptor.accept(w.tryCatch(tryBranch)
-                    .addCatchBranch("java.lang.Throwable", "_t", //TODO let it throw a jadescript exception
+                    .addCatchBranch("java.lang.Throwable", "_t",
                         w.block().addStatement(w.callStmnt("_t" +
                             ".printStackTrace"))
                     )

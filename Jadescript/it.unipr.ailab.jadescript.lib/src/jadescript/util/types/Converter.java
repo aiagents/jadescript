@@ -15,6 +15,7 @@ import jadescript.lang.Duration;
 import jadescript.lang.Performative;
 import jadescript.lang.Timestamp;
 import jadescript.lang.Tuple;
+import jadescript.util.JadescriptList;
 import jadescript.util.JadescriptMap;
 import jadescript.util.JadescriptSet;
 
@@ -23,44 +24,50 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class Converter {
+
     private Converter() {
     } //Do not instantiate.
 
-    public static void conversionException(Object input, JadescriptBaseType fromType, JadescriptBaseType toType) {
+
+    public static void conversionException(
+        Object input,
+        JadescriptBuiltinTypeAtom fromType,
+        JadescriptBuiltinTypeAtom toType
+    ) {
         throw new JadescriptException(Ontology.CouldNotConvert(
-                String.valueOf(input),
-                fromType.getTypeName(),
-                toType.getTypeName()
+            String.valueOf(input),
+            fromType.getTypeName(),
+            toType.getTypeName()
         ));
     }
 
+
     public static Object checkedIdentityConversion(
-            Object input,
-            Class<?> toClass,
-            JadescriptBaseType fromType,
-            JadescriptBaseType toType
-    ){
-        if(toClass.isInstance(input)){
+        Object input,
+        Class<?> toClass,
+        JadescriptBuiltinTypeAtom fromType,
+        JadescriptBuiltinTypeAtom toType
+    ) {
+        if (toClass.isInstance(input)) {
             try {
                 return toClass.cast(input);
-            }catch (ClassCastException ignored){
+            } catch (ClassCastException ignored) {
                 conversionException(input, fromType, toType);
             }
-        }else{
+        } else {
             conversionException(input, fromType, toType);
         }
         return null; //unreacheable code
     }
 
-    public static class UnsupportedConversionException extends RuntimeException {
-        public UnsupportedConversionException(JadescriptBaseType fromType, JadescriptBaseType toType) {
-            super("Conversion from '" + fromType.getTypeName() + "' to '" + toType.getTypeName() +
-                    "' is currently not supported.");
-        }
-    }
 
-    @SuppressWarnings({"DuplicateBranchesInSwitch", "rawtypes", "unchecked", "ConstantConditions"})
-    public static Object convert(Object o, JadescriptTypeReference from, JadescriptTypeReference to) {
+    @SuppressWarnings({"DuplicateBranchesInSwitch", "rawtypes", "unchecked",
+        "ConstantConditions"})
+    public static Object convert(
+        Object o,
+        JadescriptTypeReference from,
+        JadescriptTypeReference to
+    ) {
         switch (from.getBase()) {
             case INTEGER:
                 switch (to.getBase()) {
@@ -131,7 +138,8 @@ public class Converter {
                         return String.valueOf(o);
                     case DURATION: {
                         long seconds = (long) o;
-                        int millis = (int) (((Float) o - (float) seconds) * 1000);
+                        int millis =
+                            (int) (((Float) o - (float) seconds) * 1000);
                         return Duration.of(seconds, millis);
                     }
                     case TIMESTAMP:
@@ -157,7 +165,9 @@ public class Converter {
                         try {
                             return Integer.parseInt((String) o);
                         } catch (NumberFormatException ignored) {
-                            conversionException(o, from.getBase(), to.getBase());
+                            conversionException(o,
+                                from.getBase(),
+                                to.getBase());
                         }
                     case BOOLEAN:
                         return Boolean.parseBoolean((String) o);
@@ -165,7 +175,9 @@ public class Converter {
                         try {
                             return Float.parseFloat((String) o);
                         } catch (NumberFormatException ignored) {
-                            conversionException(o, from.getBase(), to.getBase());
+                            conversionException(o,
+                                from.getBase(),
+                                to.getBase());
                         }
                     case TEXT:
                         return o;
@@ -174,7 +186,8 @@ public class Converter {
                     case TIMESTAMP:
                         return Timestamp.fromString((String) o);
                     case PERFORMATIVE:
-                        return Performative.performativeByName.getOrDefault((String) o, Performative.UNKNOWN);
+                        return Performative.performativeByName.getOrDefault((String) o,
+                            Performative.UNKNOWN);
                     case AID:
                         return new AID((String) o, ((String) o).contains("@"));
                     case ONTOLOGY:
@@ -189,14 +202,17 @@ public class Converter {
                         try {
                             return ACLParser.create().parse(new StringReader((String) o));
                         } catch (ParseException e) {
-                            conversionException(o, from.getBase(), to.getBase());
+                            conversionException(o,
+                                from.getBase(),
+                                to.getBase());
                         }
                     case LIST:
                     case MAP:
                     case SET:
                     case TUPLE:
                     case OTHER:
-                        throw new UnsupportedConversionException(from.getBase(), to.getBase());
+                        throw new UnsupportedConversionException(from.getBase(),
+                            to.getBase());
                 }
             case DURATION:
                 switch (to.getBase()) {
@@ -206,7 +222,8 @@ public class Converter {
                         conversionException(o, from.getBase(), to.getBase());
                     case REAL: {
                         float secs = (float) (((Duration) o).getSecondsLong());
-                        float millis = (float) (((Duration) o).getMillis()) / 1000f;
+                        float millis =
+                            (float) (((Duration) o).getMillis()) / 1000f;
                         return secs + millis;
                     }
                     case TEXT:
@@ -214,7 +231,8 @@ public class Converter {
                     case DURATION:
                         return o;
                     case TIMESTAMP:
-                        return Timestamp.plus(Timestamp.unixStart(), (Duration) o);
+                        return Timestamp.plus(Timestamp.unixStart(),
+                            (Duration) o);
                     case PERFORMATIVE:
                     case AID:
                     case ONTOLOGY:
@@ -226,9 +244,12 @@ public class Converter {
                     case MESSAGE:
                         conversionException(o, from.getBase(), to.getBase());
                     case LIST: {
-                        if (to.getArg1().getBase() == JadescriptBaseType.TEXT
-                                || to.getArg1().getBase() == JadescriptBaseType.INTEGER
-                                || to.getArg1().getBase() == JadescriptBaseType.REAL) {
+                        if (to.getArg1().getBase()
+                            == JadescriptBuiltinTypeAtom.TEXT
+                            || to.getArg1().getBase()
+                            == JadescriptBuiltinTypeAtom.INTEGER
+                            || to.getArg1().getBase()
+                            == JadescriptBuiltinTypeAtom.REAL) {
                             Duration d = ((Duration) o);
                             java.time.Duration jd = d.toJavaDuration();
                             long days = jd.toDays();
@@ -236,25 +257,34 @@ public class Converter {
                             long minutes = jd.toMinutes() % 60;
                             long seconds = jd.getSeconds();
                             long millis = jd.toMillis();
-                            List<Integer> longs = new ArrayList<>();
+                            List<Integer> longs = new ArrayList<>(5);
                             longs.add((int) days);
                             longs.add((int) hours);
                             longs.add((int) minutes);
                             longs.add((int) seconds);
                             longs.add((int) millis);
-                            if (to.getArg1().getBase() == JadescriptBaseType.TEXT) {
-                                return longs.stream().map(Object::toString).collect(Collectors.toList());
-                            } else if (to.getArg1().getBase() == JadescriptBaseType.INTEGER) {
+                            if (to.getArg1().getBase()
+                                == JadescriptBuiltinTypeAtom.TEXT) {
+                                return longs.stream()
+                                    .map(Object::toString)
+                                    .collect(Collectors.toList());
+                            } else if (to.getArg1().getBase()
+                                == JadescriptBuiltinTypeAtom.INTEGER) {
                                 return longs;
                             } else {
-                                return longs.stream().map(Number::floatValue).collect(Collectors.toList());
+                                return longs.stream()
+                                    .map(Number::floatValue)
+                                    .collect(Collectors.toList());
                             }
                         }
                     }
                     case MAP: {
-                        if (to.getArg1().getBase() == JadescriptBaseType.TEXT
-                                || to.getArg1().getBase() == JadescriptBaseType.INTEGER
-                                || to.getArg1().getBase() == JadescriptBaseType.REAL) {
+                        if (to.getArg1().getBase()
+                            == JadescriptBuiltinTypeAtom.TEXT
+                            || to.getArg1().getBase()
+                            == JadescriptBuiltinTypeAtom.INTEGER
+                            || to.getArg1().getBase()
+                            == JadescriptBuiltinTypeAtom.REAL) {
                             Duration d = ((Duration) o);
                             java.time.Duration jd = d.toJavaDuration();
                             long days = jd.toDays();
@@ -268,15 +298,19 @@ public class Converter {
                             map.put("minutes", (int) minutes);
                             map.put("seconds", (int) seconds);
                             map.put("milliseconds", (int) millis);
-                            if (to.getArg1().getBase() == JadescriptBaseType.TEXT) {
+                            if (to.getArg1().getBase()
+                                == JadescriptBuiltinTypeAtom.TEXT) {
                                 Map<String, String> result = new HashMap<>();
-                                map.forEach((k, v) -> result.put(k, v.toString()));
+                                map.forEach((k, v) -> result.put(k,
+                                    v.toString()));
                                 return result;
-                            } else if (to.getArg1().getBase() == JadescriptBaseType.INTEGER) {
+                            } else if (to.getArg1().getBase()
+                                == JadescriptBuiltinTypeAtom.INTEGER) {
                                 return map;
                             } else {
                                 Map<String, Float> result = new HashMap<>();
-                                map.forEach((k, v) -> result.put(k, v.floatValue()));
+                                map.forEach((k, v) -> result.put(k,
+                                    v.floatValue()));
                                 return result;
                             }
                         }
@@ -295,7 +329,8 @@ public class Converter {
                     case TEXT:
                         return o.toString();
                     case DURATION:
-                        return Timestamp.subtract((Timestamp) o, Timestamp.unixStart());
+                        return Timestamp.subtract((Timestamp) o,
+                            Timestamp.unixStart());
                     case TIMESTAMP:
                         return o;
                     case PERFORMATIVE:
@@ -440,7 +475,8 @@ public class Converter {
                     case AID:
                     case ONTOLOGY:
                         conversionException(o, from.getBase(), to.getBase());
-                    case CONCEPT://allow to upcast to basic 'concept' type, since actions are concepts.
+                    case CONCEPT://allow to upcast to basic 'concept' type,
+                        // since actions are concepts.
                     case ACTION:
                         return o;
                     case PROPOSITION:
@@ -596,11 +632,13 @@ public class Converter {
                         if (fromElement == null) {
                             fromElement = toElement;
                         }
-                        List result = new ArrayList();
-                        List input = (List) o;
+                        JadescriptList result = new JadescriptList();
+
+                        Iterable input = (Iterable) o;
                         for (Object o1 : input) {
                             result.add(convert(o1, fromElement, toElement));
                         }
+
                         return result;
                     }
                     case MAP:
@@ -611,8 +649,8 @@ public class Converter {
                         if (fromElement == null) {
                             fromElement = toElement;
                         }
-                        Set result = new JadescriptSet();
-                        List input = (List) o;
+                        JadescriptSet result = new JadescriptSet();
+                        Iterable input = (Iterable) o;
                         for (Object o1 : input) {
                             result.add(convert(o1, fromElement, toElement));
                         }
@@ -659,8 +697,8 @@ public class Converter {
                         JadescriptTypeReference finalFromKey = fromKey;
                         JadescriptTypeReference finalFromValue = fromValue;
                         input.forEach((k, v) -> result.put(
-                                convert(k, finalFromKey, toKey),
-                                convert(v, finalFromValue, toValue)
+                            convert(k, finalFromKey, toKey),
+                            convert(v, finalFromValue, toValue)
                         ));
                         return result;
                     }
@@ -692,8 +730,8 @@ public class Converter {
                     case LIST: {
                         JadescriptTypeReference fromElement = from.getArg1();
                         JadescriptTypeReference toElement = to.getArg1();
-                        List result = new ArrayList();
-                        Set input = (Set) o;
+                        JadescriptList result = new JadescriptList();
+                        Iterable input = (Iterable) o;
                         for (Object o1 : input) {
                             result.add(convert(o1, fromElement, toElement));
                         }
@@ -704,8 +742,8 @@ public class Converter {
                     case SET: {
                         JadescriptTypeReference fromElement = from.getArg1();
                         JadescriptTypeReference toElement = to.getArg1();
-                        Set result = new JadescriptSet();
-                        Set input = (Set) o;
+                        JadescriptSet result = new JadescriptSet();
+                        Iterable input = (Iterable) o;
                         for (Object o1 : input) {
                             result.add(convert(o1, fromElement, toElement));
                         }
@@ -716,7 +754,7 @@ public class Converter {
                         conversionException(o, from.getBase(), to.getBase());
                 }
             case TUPLE:
-                switch(to.getBase()){
+                switch (to.getBase()) {
                     case INTEGER:
                     case BOOLEAN:
                     case REAL:
@@ -743,66 +781,137 @@ public class Converter {
                         conversionException(o, from.getBase(), to.getBase());
                 }
             case OTHER:
-                if(o == null){
+                if (o == null) {
                     conversionException(o, from.getBase(), to.getBase());
-                }else {
+                } else {
                     try {
-                        switch (to.getBase()){
+                        switch (to.getBase()) {
                             case INTEGER:
-                                return checkedIdentityConversion(o, Integer.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    Integer.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case BOOLEAN:
-                                return checkedIdentityConversion(o, Boolean.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    Boolean.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case REAL:
-                                return checkedIdentityConversion(o, Float.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    Float.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case TEXT:
                                 return o.toString();
                             case DURATION:
-                                return checkedIdentityConversion(o, Duration.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    Duration.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case TIMESTAMP:
-                                return checkedIdentityConversion(o, Timestamp.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    Timestamp.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case PERFORMATIVE:
-                                return checkedIdentityConversion(o, Performative.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    Performative.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case AID:
-                                return checkedIdentityConversion(o, AID.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    AID.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case ONTOLOGY:
                                 return checkedIdentityConversion(
-                                        o,
-                                        jade.content.onto.Ontology.class,
-                                        from.getBase(),
-                                        to.getBase()
+                                    o,
+                                    jade.content.onto.Ontology.class,
+                                    from.getBase(),
+                                    to.getBase()
                                 );
                             case CONCEPT:
-                                return checkedIdentityConversion(o, Concept.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    Concept.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case ACTION:
-                                return checkedIdentityConversion(o, AgentAction.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    AgentAction.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case PROPOSITION:
-                                return checkedIdentityConversion(o, Predicate.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    Predicate.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case BEHAVIOUR:
-                                return checkedIdentityConversion(o, Behaviour.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    Behaviour.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case AGENT:
-                                return checkedIdentityConversion(o, Performative.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    Performative.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case MESSAGE:
-                                return checkedIdentityConversion(o, Message.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    Message.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case LIST:
-                                return checkedIdentityConversion(o, List.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    List.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case MAP:
-                                return checkedIdentityConversion(o, JadescriptMap.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    JadescriptMap.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case SET:
-                                return checkedIdentityConversion(o, JadescriptSet.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    JadescriptSet.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case TUPLE:
-                                return checkedIdentityConversion(o, Tuple.class, from.getBase(), to.getBase());
+                                return checkedIdentityConversion(o,
+                                    Tuple.class,
+                                    from.getBase(),
+                                    to.getBase());
                             case OTHER:
-                                conversionException(o, from.getBase(), to.getBase());
-                                throw new RuntimeException("This portion of code should be unreacheable.");
+                                conversionException(o,
+                                    from.getBase(),
+                                    to.getBase());
+                                throw new RuntimeException(
+                                    "This portion of code should be " +
+                                        "unreacheable.");
                         }
-                    } catch (ClassCastException ignored){
+                    } catch (ClassCastException ignored) {
                         conversionException(o, from.getBase(), to.getBase());
-                        throw new RuntimeException("This portion of code should be unreacheable.");
+                        throw new RuntimeException(
+                            "This portion of code should be unreacheable.");
                     }
                 }
             default:
                 conversionException(o, from.getBase(), to.getBase());
-                throw new RuntimeException("This portion of code should be unreacheable.");
+                throw new RuntimeException(
+                    "This portion of code should be unreacheable.");
         }
     }
+
+
+    public static class UnsupportedConversionException extends RuntimeException {
+
+        public UnsupportedConversionException(
+            JadescriptBuiltinTypeAtom fromType,
+            JadescriptBuiltinTypeAtom toType
+        ) {
+            super("Conversion from '" + fromType.getTypeName() + "' to '" + toType.getTypeName() +
+                "' is currently not supported.");
+        }
+
+    }
+
 }

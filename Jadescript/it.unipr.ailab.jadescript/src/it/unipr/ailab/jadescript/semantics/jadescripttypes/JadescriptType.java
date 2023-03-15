@@ -126,7 +126,7 @@ public abstract class JadescriptType implements SemanticsConsts,
     public String compileConversionType() {
 
         return "new jadescript.util.types.JadescriptTypeReference(" +
-            "jadescript.util.types.JadescriptBaseType." + getCategoryName() + ")";
+            "jadescript.util.types.JadescriptBuiltinTypeAtom." + getCategoryName() + ")";
     }
 
 

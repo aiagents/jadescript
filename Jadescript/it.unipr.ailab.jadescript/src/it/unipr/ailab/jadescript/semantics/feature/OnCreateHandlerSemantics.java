@@ -23,6 +23,7 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmMember;
+import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
@@ -86,6 +87,8 @@ public class OnCreateHandlerSemantics
             typeHelper.typeRef(void.class),
             itMethod -> {
                 Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+                itMethod.setVisibility(JvmVisibility.PRIVATE);
+
                 if (body.isNothing()) {
                     compilationHelper.createAndSetBody(
                         itMethod,
@@ -96,7 +99,6 @@ public class OnCreateHandlerSemantics
 
 
                 compilationHelper.createAndSetBody(itMethod, scb -> {
-                    w.callStmnt("super.__onCreate").writeSonnet(scb);
 
                     List<Maybe<FormalParameter>> parameters = toListOfMaybes(
                         input.__(OnCreateHandler::getParameters)
@@ -150,7 +152,7 @@ public class OnCreateHandlerSemantics
         TypeHelper typeHelper = module.get(TypeHelper.class);
         if (isListOfText(parameters)) {
             //if that was true, add a variable in the scope with
-            // type List<String>.
+            // type JadescriptList<String>.
             Maybe<String> paramName = parameters.get(0)
                 .__(FormalParameter::getName);
 
@@ -165,9 +167,9 @@ public class OnCreateHandlerSemantics
             }
 
             w.variable(
-                "java.util.List<java.lang.String>",
+                "jadescript.util.JadescriptList<java.lang.String>",
                 paramNameSafe,
-                w.expr("new java.util.ArrayList<String>()")
+                w.expr("new jadescript.util.JadescriptList<String>()")
             ).writeSonnet(scb);
 
             // inside an if that checks that this .getArguments() is not

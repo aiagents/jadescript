@@ -429,4 +429,16 @@ public class MapType extends ParametricType implements EmptyCreatable,
 
     }
 
+
+    @Override
+    public String getAdHocClassName() {
+        return getAdHocMapClassName(getKeyType(), getValueType());
+    }
+
+
+    @Override
+    public String getConverterToAdHocClassMethodName() {
+        return "__fromMap";
+    }
+
 }

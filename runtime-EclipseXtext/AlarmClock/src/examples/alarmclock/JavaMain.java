@@ -1,5 +1,6 @@
 package examples.alarmclock;
 
+import java.awt.Dimension;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JButton;
@@ -46,9 +47,10 @@ public class JavaMain {
             gui.add(textField);
             
             
+            
             JButton button = new JButton("Start AlarmClockUser agent");
             AtomicInteger counter = new AtomicInteger(0);
-            JFrame f = new JFrame("Insert date");
+            JFrame f = new JFrame("Insert time of wake up (hh:mm):");
             button.addActionListener((event) -> {
             	
             	System.out.println("Starting agent...");
@@ -69,7 +71,10 @@ public class JavaMain {
            
             f.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
            
-
+            Dimension size = new Dimension(400, 70);
+            f.setMaximumSize(size);
+            f.setMinimumSize(size);
+            
             f.pack();
 
             f.setVisible(true);

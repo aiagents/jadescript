@@ -26,4 +26,8 @@ public interface DeclaresOntologyAdHocClass {
             Function<TypeExpression, String> schemaNameForSlotProvider,
             SemanticsModule module
     );
+
+    String getAdHocClassName();
+
+    String getConverterToAdHocClassMethodName();
 }

@@ -9,6 +9,7 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.util.Logger;
 import jadescript.content.JadescriptProposition;
+import jadescript.content.onto.basic.InternalException;
 import jadescript.core.behaviours.Behaviour;
 import jadescript.core.behaviours.CyclicBehaviour;
 import jadescript.core.exception.JadescriptException;
@@ -252,8 +253,38 @@ public class Agent extends jade.core.Agent {
             this.getClass().getName(),
             this,
             "Exception Escalation",
-            "Exception Stacktrace: " + out
+            "Escalation Stacktrace: " + out
         );
+
+        if (exception.getReason() instanceof InternalException) {
+            InternalException reason =
+                (InternalException) exception.getReason();
+
+            final Throwable cause = reason.cause();
+            if (cause != null) {
+                final String causeMessage = cause.getMessage();
+                if(causeMessage !=null) {
+                    doLog(
+                        Level.INFO,
+                        this.getClass().getName(),
+                        this,
+                        "Internal Exception",
+                        "Internal Exception: " + causeMessage
+                    );
+                }
+
+                StringWriter out2 = new StringWriter();
+                PrintWriter writer2 = new PrintWriter(out2);
+                cause.printStackTrace(writer2);
+                doLog(
+                    Level.INFO,
+                    this.getClass().getName(),
+                    this,
+                    "Internal Exception",
+                    "Internal Stacktrace: " + out2
+                );
+            }
+        }
 
         takeDown();
     }
@@ -275,16 +306,7 @@ public class Agent extends jade.core.Agent {
         __onDestroy();
         super.takeDown();
     }
-
-
-    /**
-     * To be overridden by compiler-generated methods in Jadescript agent
-     * subclasses. Used to execute the 'on create' event handler.
-     */
-    @SuppressWarnings("EmptyMethod")
-    protected void __onCreate() {
-        // Overriden by compiler-generated methods
-    }
+    
 
 
     /**
@@ -385,14 +407,14 @@ public class Agent extends jade.core.Agent {
 
 
     @SuppressWarnings("serial")
-	protected static class __O2APerceptManager extends CyclicBehaviour<Agent> {
+    protected static class __O2APerceptManager extends CyclicBehaviour<Agent> {
+
+        private final Codec __codec = new jade.content.lang.leap.LEAPCodec();
+
 
         public __O2APerceptManager(AgentEnv<Agent, AnySideEffectFlag> _agentEnv) {
-			super(_agentEnv);
-		}
-
-
-		private final Codec __codec = new jade.content.lang.leap.LEAPCodec();
+            super(_agentEnv);
+        }
 
 
         @Override
@@ -428,17 +450,15 @@ public class Agent extends jade.core.Agent {
     }
 
     @SuppressWarnings("serial")
-	protected static class __StaleMessageCleaner extends CyclicBehaviour<Agent> {
+    protected static class __StaleMessageCleaner extends CyclicBehaviour<Agent> {
 
-        public __StaleMessageCleaner(AgentEnv<Agent, AnySideEffectFlag> _agentEnv) {
-			super(_agentEnv);
-		}
-
-
-		private final Codec __codec = new jade.content.lang.leap.LEAPCodec();
-
+        private final Codec __codec = new jade.content.lang.leap.LEAPCodec();
         private final MessageTemplate __mt = StaleMessageTemplate.matchStale(
             this::__theAgent);
+
+        public __StaleMessageCleaner(AgentEnv<Agent, AnySideEffectFlag> _agentEnv) {
+            super(_agentEnv);
+        }
 
 
         @Override
