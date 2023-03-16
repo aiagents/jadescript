@@ -56,7 +56,7 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
 
     private static boolean isRepeateableHandler(Feature feature) {
         return feature instanceof OnMessageHandler
-            || feature instanceof OnPerceptHandler
+            || feature instanceof OnNativeEventHandler
             || feature instanceof OnExecuteHandler
             || feature instanceof OnExceptionHandler
             || feature instanceof OnBehaviourFailureHandler;
@@ -849,8 +849,8 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
             result = ((FunctionOrProcedure) f).getName();
         } else if (f instanceof OnMessageHandler) {
             result = "message";
-        } else if (f instanceof OnPerceptHandler) {
-            result = "percept";
+        } else if (f instanceof OnNativeEventHandler) {
+            result = "native";
         } else if (f instanceof OnCreateHandler) {
             result = "create";
         } else if (f instanceof OnDestroyHandler) {
@@ -887,8 +887,8 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
             result = jp.getFunctionOrProcedure_Name();
         } else if (f instanceof OnMessageHandler) {
             result = jp.getOnMessageHandler_Name();
-        } else if (f instanceof OnPerceptHandler) {
-            result = jp.getOnPerceptHandler_Name();
+        } else if (f instanceof OnNativeEventHandler) {
+            result = jp.getOnNativeEventHandler_Name();
         } else if (f instanceof OnCreateHandler) {
             result = jp.getOnCreateHandler_Name();
         } else if (f instanceof OnDestroyHandler) {

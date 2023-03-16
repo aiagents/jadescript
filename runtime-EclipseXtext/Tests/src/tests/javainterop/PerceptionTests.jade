@@ -1,0 +1,21 @@
+module tests.javainterop
+
+
+
+ontology NativeEventTest
+    predicate ButtonClicked(counter as integer)
+    
+
+agent NativeEventsAgent uses ontology NativeEventTest
+    on create do
+        activate Test
+        
+
+cyclic behaviour Test uses ontology NativeEventTest
+    on activate do 
+        log "Activate Test!"
+        
+    on native ButtonClicked(count) do
+        log "Button Clicked! Counter = " + count
+        
+        

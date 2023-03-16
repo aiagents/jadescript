@@ -1,14 +1,14 @@
-package jadescript.core.percept;
+package jadescript.core.nativeevent;
 
 import jade.content.ContentElement;
 import jade.content.ContentManager;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
-public class NotPerceptMessageTemplate implements MessageTemplate.MatchExpression {
+public class NotNativeEventTemplate implements MessageTemplate.MatchExpression {
     private final ContentManager manager;
 
-    private NotPerceptMessageTemplate(ContentManager manager) {
+    private NotNativeEventTemplate(ContentManager manager) {
         this.manager = manager;
     }
 
@@ -16,14 +16,14 @@ public class NotPerceptMessageTemplate implements MessageTemplate.MatchExpressio
     public boolean match(ACLMessage msg) {
         try {
             ContentElement t = this.manager.extractContent(msg);
-            return !(t instanceof Percept);
+            return !(t instanceof NativeEvent);
         } catch (Throwable var3) {
             var3.printStackTrace();
             return false;
         }
     }
 
-    public static MessageTemplate MatchNotPercept(ContentManager manager) {
-        return new MessageTemplate(new NotPerceptMessageTemplate(manager));
+    public static MessageTemplate MatchNotNative(ContentManager manager) {
+        return new MessageTemplate(new NotNativeEventTemplate(manager));
     }
 }

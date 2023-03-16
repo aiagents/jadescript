@@ -1,18 +1,18 @@
-package jadescript.core.percept;
+package jadescript.core.nativeevent;
 
 
 import jade.content.Predicate;
 import jade.content.onto.Ontology;
 import jadescript.content.JadescriptPredicate;
 
-public class Percept implements Predicate {
+public class NativeEvent implements Predicate {
     private JadescriptPredicate content;
     private Ontology ontology;
 
-    public Percept() {
+    public NativeEvent() {
     }
 
-    public Percept(JadescriptPredicate content, Ontology ontology) {
+    public NativeEvent(JadescriptPredicate content, Ontology ontology) {
         this.content = content;
         this.ontology = ontology;
     }

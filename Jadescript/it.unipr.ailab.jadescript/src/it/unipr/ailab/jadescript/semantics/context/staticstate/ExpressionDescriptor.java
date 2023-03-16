@@ -10,7 +10,7 @@ public interface ExpressionDescriptor {
     final PropertyChain agentReference = new PropertyChain("agent");
     final PropertyChain thisReference = new PropertyChain("this");
     final PropertyChain messageReference = new PropertyChain("message");
-    final PropertyChain perceptReference = new PropertyChain("percept");
+    final PropertyChain nativeEventReference = new PropertyChain("event");
     final PropertyChain contentOfMessageReference =
         new PropertyChain("content", "message");
     final PropertyChain failureReasonReference =

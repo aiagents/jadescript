@@ -2,42 +2,37 @@ package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
+import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-public class OnPerceptHandlerContext
-        extends HandlerWithWhenExpressionContext
-        implements CompilableName.Namespace, PerceptPerceivedContext {
+public class OnNativeEventHandlerWhenExpressionContext
+        extends HandlerWhenExpressionContext
+        implements CompilableName.Namespace, NativeEventHandledContext {
 
-    private final IJadescriptType perceptContentType;
-
-    public OnPerceptHandlerContext(
+    public OnNativeEventHandlerWhenExpressionContext(
             SemanticsModule module,
-            ProceduralFeatureContainerContext outer,
-            IJadescriptType perceptContentType
+            ProceduralFeatureContainerContext outer
     ) {
-        super(module, outer, "percept");
-        this.perceptContentType = perceptContentType;
+        super(module, outer);
     }
 
 
     @Override
-    public IJadescriptType getPerceptContentType() {
-        return perceptContentType;
+    public IJadescriptType getNativeEventType() {
+        return module.get(TypeHelper.class).PROPOSITION;
     }
 
-
-    @Override
+     @Override
     public Stream<? extends CompilableName> compilableNames(
         @Nullable String name
     ) {
         return Util.buildStream(
-            this::getPerceptContentName
+            this::getNativeEventName
         ).filter(n -> name == null || name.equals(n.name()));
     }
 
@@ -45,12 +40,15 @@ public class OnPerceptHandlerContext
     @Override
     public void debugDump(SourceCodeBuilder scb) {
         super.debugDump(scb);
-        scb.line("--> is OnPerceptHandlerContext");
-        debugDumpPerception(scb);
+        scb.open("--> is OnNativeEventHandlerWhenExpressionContext {");
+        scb.line("nativeEventType = " +
+            getNativeEventType().getDebugPrint());
+        scb.close("}");
+        debugDumpNativeEventHandled(scb);
     }
 
     @Override
     public String getCurrentOperationLogName() {
-        return "on percept";
+        return "<evaluating when-expression>";
     }
 }

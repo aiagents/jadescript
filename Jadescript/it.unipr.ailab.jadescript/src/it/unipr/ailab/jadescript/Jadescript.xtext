@@ -177,7 +177,7 @@ BehaviourFeature returns Feature:
 	Field 
 	| FunctionOrProcedure 
 	| OnMessageHandler
-	| OnPerceptHandler 
+	| OnNativeEventHandler 
 	| OnCreateHandler 
 	| OnDestroyHandler
 	| OnActivateHandler
@@ -239,9 +239,9 @@ OnMessageHandler returns FeatureWithBody:
 	);
 	
 	
-OnPerceptHandler returns FeatureWithBody:
-	{OnPerceptHandler}(
-	'on' stale?='stale'? name='percept' pattern=Pattern?
+OnNativeEventHandler returns FeatureWithBody:
+	{OnNativeEventHandler}(
+	'on' stale?='stale'? name='native' pattern=Pattern?
 	('when' whenBody=WhenExpression)?
 	'do' (body=CodeBlock | nothing?='nothing')
 	)
@@ -761,7 +761,7 @@ InvokeExpression:
 
 
 VarIdentifier:
-	Identifier | 'aid' | 'this' | 'agent' | 'percept' | 'exception' | 'behaviour' | 'message'
+	Identifier | 'aid' | 'this' | 'agent' | 'event' | 'exception' | 'behaviour' | 'message'
 ;
 
 

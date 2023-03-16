@@ -18,7 +18,7 @@ import it.unipr.ailab.jadescript.jadescript.OnDestroyHandler;
 import it.unipr.ailab.jadescript.jadescript.OnExceptionHandler;
 import it.unipr.ailab.jadescript.jadescript.OnExecuteHandler;
 import it.unipr.ailab.jadescript.jadescript.OnMessageHandler;
-import it.unipr.ailab.jadescript.jadescript.OnPerceptHandler;
+import it.unipr.ailab.jadescript.jadescript.OnNativeEventHandler;
 import it.unipr.ailab.jadescript.jadescript.Ontology;
 import it.unipr.ailab.jadescript.jadescript.OntologyAction;
 import it.unipr.ailab.jadescript.jadescript.Predicate;
@@ -51,11 +51,11 @@ public class JadescriptLabelProvider extends XbaseLabelProvider {
 		return "redo_edit.png";
 	}
 
-	public String text(final OnPerceptHandler a) {
-		return ("on percept");
+	public String text(final OnNativeEventHandler a) {
+		return ("on native");
 	}
 
-	public String image(final OnPerceptHandler e) {
+	public String image(final OnNativeEventHandler e) {
 		return "redo_edit.png";
 	}
 

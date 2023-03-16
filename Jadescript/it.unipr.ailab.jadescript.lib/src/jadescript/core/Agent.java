@@ -13,7 +13,7 @@ import jadescript.content.onto.basic.InternalException;
 import jadescript.core.behaviours.Behaviour;
 import jadescript.core.behaviours.CyclicBehaviour;
 import jadescript.core.exception.JadescriptException;
-import jadescript.core.percept.Percept;
+import jadescript.core.nativeevent.NativeEvent;
 import jadescript.java.AgentEnv;
 import jadescript.java.SideEffectsFlag;
 import jadescript.java.SideEffectsFlag.AnySideEffectFlag;
@@ -194,12 +194,11 @@ public class Agent extends jade.core.Agent {
             __registerOntologies(cm);
         }
 
-        __O2APerceptManager o2APerceptManager =
-            new __O2APerceptManager(_agentEnv);
+        __O2ANativeEventManager o2aNativeEventManager =
+            new __O2ANativeEventManager(_agentEnv);
         this.setEnabledO2ACommunication(true, __o2aQueueSize);
-        o2APerceptManager.activate(this);
-
-        this.setO2AManager(o2APerceptManager);
+        o2aNativeEventManager.activate(this);
+        this.setO2AManager(o2aNativeEventManager);
 
         __StaleMessageCleaner staleMessageCleaner =
             new __StaleMessageCleaner(_agentEnv);
@@ -407,12 +406,12 @@ public class Agent extends jade.core.Agent {
 
 
     @SuppressWarnings("serial")
-    protected static class __O2APerceptManager extends CyclicBehaviour<Agent> {
+    protected static class __O2ANativeEventManager extends CyclicBehaviour<Agent> {
 
         private final Codec __codec = new jade.content.lang.leap.LEAPCodec();
 
 
-        public __O2APerceptManager(AgentEnv<Agent, AnySideEffectFlag> _agentEnv) {
+        public __O2ANativeEventManager(AgentEnv<Agent, AnySideEffectFlag> _agentEnv) {
             super(_agentEnv);
         }
 
@@ -425,17 +424,17 @@ public class Agent extends jade.core.Agent {
             if (o2AObject == null) {
                 __awaitForEvents();
             } else {
-                if (o2AObject instanceof Percept) {
+                if (o2AObject instanceof NativeEvent) {
                     try {
-                        // Self-informs of the percept
+                        // Self-informs of the native event
                         ACLMessage message = new ACLMessage(ACLMessage.INFORM);
                         message.addReceiver(getJadescriptAgent().getAid());
                         message.setSender(getJadescriptAgent().getAid());
-                        message.setOntology(((Percept) o2AObject).getOntology().getName());
+                        message.setOntology(((NativeEvent) o2AObject).getOntology().getName());
                         message.setLanguage(__codec.getName());
                         getJadescriptAgent().getContentManager().fillContent(
                             message,
-                            ((Percept) o2AObject)
+                            ((NativeEvent) o2AObject)
                         );
                         getJadescriptAgent().postMessage(message);
 

@@ -367,9 +367,9 @@ public class OnMessageHandlerSemantics
             );
         });
 
-        // add "Not a percept" constraint
+        // add "Not a native event" constraint
         messageTemplateExpressions.add(
-            TemplateCompilationHelper.notPercept()
+            TemplateCompilationHelper.notNative()
         );
 
         if (input.__(OnMessageHandler::isStale).extract(nullAsFalse)) {

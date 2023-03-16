@@ -22,8 +22,8 @@ public interface SemanticsConsts {
     String ISSUE_DUPLICATE_ELEMENT = ISSUE_CODE_PREFIX + "DuplicateElement";
 
     String MESSAGE_VAR_NAME = "__receivedMessage";
-    String PERCEPT_VAR_NAME = "__receivedPercept";
-    String PERCEPT_CONTENT_VAR_NAME = "__perceptContent";
+    String NATIVE_EVENT_VAR_NAME = "__receivedNativeEvent";
+    String NATIVE_EVENT_CONTENT_VAR_NAME = "__nativeEvent";
 
     String EVENT_CLASS_NAME = "__Event";
 
@@ -98,16 +98,25 @@ public interface SemanticsConsts {
         return numberedName(EVENT_CLASS_NAME, behaviourEvent);
     }
 
-    default String synthesizeBehaviourExecuteEventClassName(OnExecuteHandler executeHandler) {
+    default String synthesizeBehaviourExecuteEventClassName(
+        OnExecuteHandler executeHandler
+    ) {
         return numberedName(EVENT_CLASS_NAME, executeHandler);
     }
 
-    default String synthesizeExceptionEventClassName(OnExceptionHandler exceptionHandler){
+    default String synthesizeExceptionEventClassName(
+        OnExceptionHandler exceptionHandler
+    ) {
         return numberedName(EXCEPTION_EVENT_CLASS_NAME, exceptionHandler);
     }
 
-    default String synthesizeBehaviourFailureEventClassName(OnBehaviourFailureHandler exceptionHandler){
-        return numberedName(BEHAVIOUR_FAILURE_EVENT_CLASS_NAME, exceptionHandler);
+    default String synthesizeBehaviourFailureEventClassName(
+        OnBehaviourFailureHandler exceptionHandler
+    ) {
+        return numberedName(
+            BEHAVIOUR_FAILURE_EVENT_CLASS_NAME,
+            exceptionHandler
+        );
     }
 
     default String synthesizeMessageTemplateName(EObject hf) {
@@ -118,15 +127,24 @@ public interface SemanticsConsts {
         return numberedName(EVENT_VAR_NAME, behaviourEvent);
     }
 
-    default String synthesizeBehaviourExecuteEventVariableName(OnExecuteHandler executeHandler){
+    default String synthesizeBehaviourExecuteEventVariableName(
+        OnExecuteHandler executeHandler
+    ) {
         return numberedName(EVENT_VAR_NAME, executeHandler);
     }
 
-    default String synthesizeBehaviourFailureEventVariableName(OnBehaviourFailureHandler behaviourFailureHandler) {
-        return numberedName(BEHAVIOUR_FAILURE_VAR_NAME, behaviourFailureHandler);
+    default String synthesizeBehaviourFailureEventVariableName(
+        OnBehaviourFailureHandler behaviourFailureHandler
+    ) {
+        return numberedName(
+            BEHAVIOUR_FAILURE_VAR_NAME,
+            behaviourFailureHandler
+        );
     }
 
-    default String synthesizeExceptionEventVariableName(OnExceptionHandler exceptionHandler){
+    default String synthesizeExceptionEventVariableName(
+        OnExceptionHandler exceptionHandler
+    ) {
         return numberedName(EXCEPTION_VAR_NAME, exceptionHandler);
     }
 
@@ -145,20 +163,24 @@ public interface SemanticsConsts {
 
     default String numberedName(String n, EObject e) {
         if (e == null) return n + "0";
-        if (((e.eContainer() == null) || (e.eContainer().eContents() == null))) {
+        if (((e.eContainer() == null)
+            || (e.eContainer().eContents() == null))) {
             return n + "0";
         }
         return n + e.eContainer().eContents().indexOf(e);
     }
 
-    default String hashBasedName(String prefix, EObject e){
-        if(e == null) return prefix + 0;
+    default String hashBasedName(String prefix, EObject e) {
+        if (e == null) return prefix + 0;
         else return prefix + e.hashCode();
     }
 
     default String uniqueName(String prefix) {
         if (uniqueNameCounterMap.containsKey(prefix)) {
-            uniqueNameCounterMap.put(prefix, uniqueNameCounterMap.get(prefix) + 1L);
+            uniqueNameCounterMap.put(
+                prefix,
+                uniqueNameCounterMap.get(prefix) + 1L
+            );
         } else {
             uniqueNameCounterMap.put(prefix, 0L);
         }

@@ -6,27 +6,27 @@ import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
-public interface PerceptPerceivedContext extends SemanticsConsts {
+public interface NativeEventHandledContext extends SemanticsConsts {
 
-    static ContextGeneratedName perceptContentContextGeneratedReference(
+    static ContextGeneratedName nativeEventContextGeneratedReference(
         IJadescriptType contentType
     ) {
         return new ContextGeneratedName(
-            "percept",
+            "event",
             contentType,
-            () -> PERCEPT_CONTENT_VAR_NAME
+            () -> NATIVE_EVENT_CONTENT_VAR_NAME
         );
     }
 
-    IJadescriptType getPerceptContentType();
+    IJadescriptType getNativeEventType();
 
-    default CompilableName getPerceptContentName() {
-        return perceptContentContextGeneratedReference(getPerceptContentType());
+    default CompilableName getNativeEventName() {
+        return nativeEventContextGeneratedReference(getNativeEventType());
     }
 
-    default void debugDumpPerception(SourceCodeBuilder scb) {
-        scb.open("--> is PerceptPerceivedContext {");
-        scb.line("perceptContentType = " + getPerceptContentType()
+    default void debugDumpNativeEventHandled(SourceCodeBuilder scb) {
+        scb.open("--> is NativeEventHandledContext {");
+        scb.line("nativeEventType = " + getNativeEventType()
             .getDebugPrint());
         scb.close("}");
     }

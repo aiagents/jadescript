@@ -7,8 +7,8 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
-import it.unipr.ailab.jadescript.semantics.context.c2feature.OnPerceptHandlerContext;
-import it.unipr.ailab.jadescript.semantics.context.c2feature.OnPerceptHandlerWhenExpressionContext;
+import it.unipr.ailab.jadescript.semantics.context.c2feature.OnNativeEventHandlerContext;
+import it.unipr.ailab.jadescript.semantics.context.c2feature.OnNativeEventHandlerWhenExpressionContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
@@ -44,17 +44,17 @@ import java.util.function.Function;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.some;
 
-public class OnPerceptHandlerSemantics
-    extends DeclarationMemberSemantics<OnPerceptHandler> {
+public class OnNativeEventHandlerSemantics
+    extends DeclarationMemberSemantics<OnNativeEventHandler> {
 
-    public OnPerceptHandlerSemantics(SemanticsModule semanticsModule) {
+    public OnNativeEventHandlerSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
 
 
     @Override
     public void generateJvmMembers(
-        Maybe<OnPerceptHandler> input,
+        Maybe<OnNativeEventHandler> input,
         Maybe<FeatureContainer> featureContainer,
         EList<JvmMember> members,
         JvmDeclaredType beingDeclared,
@@ -64,7 +64,7 @@ public class OnPerceptHandlerSemantics
         if (input.isNothing()) {
             return;
         }
-        OnPerceptHandler inputSafe = input.toNullable();
+        OnNativeEventHandler inputSafe = input.toNullable();
 
         final SavedContext savedContext =
             module.get(ContextManager.class).save();
@@ -90,7 +90,7 @@ public class OnPerceptHandlerSemantics
 
     private void addEventField(
         EList<JvmMember> members,
-        OnPerceptHandler inputSafe,
+        OnNativeEventHandler inputSafe,
         JvmGenericType eventClass
     ) {
         members.add(module.get(JvmTypesBuilder.class).toField(
@@ -118,8 +118,8 @@ public class OnPerceptHandlerSemantics
 
 
     private JvmGenericType createEventClass(
-        Maybe<OnPerceptHandler> input,
-        OnPerceptHandler inputSafe,
+        Maybe<OnNativeEventHandler> input,
+        OnNativeEventHandler inputSafe,
         SavedContext savedContext,
         String eventClassName
     ) {
@@ -164,7 +164,7 @@ public class OnPerceptHandlerSemantics
 
 
     private void fillRunMethod(
-        Maybe<OnPerceptHandler> input,
+        Maybe<OnNativeEventHandler> input,
         SavedContext savedContext,
         SourceCodeBuilder scb
     ) {
@@ -188,7 +188,7 @@ public class OnPerceptHandlerSemantics
 //generating => MessageTemplate _mt = [...]
 
         final Maybe<WhenExpression> whenBody =
-            input.__(OnPerceptHandler::getWhenBody);
+            input.__(OnNativeEventHandler::getWhenBody);
 
         final Maybe<CodeBlock> body =
             input.__(FeatureWithBody::getBody);
@@ -199,7 +199,7 @@ public class OnPerceptHandlerSemantics
         final TypeHelper typeHelper = module.get(TypeHelper.class);
 
         module.get(ContextManager.class).enterProceduralFeature(
-            OnPerceptHandlerWhenExpressionContext::new
+            OnNativeEventHandlerWhenExpressionContext::new
         );
 
         StaticState beforePattern = StaticState.beginningOfOperation(module);
@@ -210,7 +210,7 @@ public class OnPerceptHandlerSemantics
         IJadescriptType wexpNarrowedContentType = contentUpperBound;
 
         final Maybe<LValueExpression> pattern = input
-            .__(OnPerceptHandler::getPattern)
+            .__(OnNativeEventHandler::getPattern)
             .__(x -> (LValueExpression) x);
 
         Function<StaticState, StaticState> prepareBodyState;
@@ -225,7 +225,7 @@ public class OnPerceptHandlerSemantics
                 = patternMatchHelper.handlerHeader(
                 contentUpperBound,
                 pattern,
-                some(ExpressionDescriptor.perceptReference)
+                some(ExpressionDescriptor.nativeEventReference)
             );
 
             LValueExpressionSemantics lves =
@@ -284,7 +284,7 @@ public class OnPerceptHandlerSemantics
                 s
             );
 
-            part1 = matcher.rootInvocationText(PERCEPT_CONTENT_VAR_NAME);
+            part1 = matcher.rootInvocationText(NATIVE_EVENT_CONTENT_VAR_NAME);
         } else {
             prepareBodyState = Function.identity();
             afterPatternDidMatch = beforePattern;
@@ -314,7 +314,7 @@ public class OnPerceptHandlerSemantics
             );
 
             wexpNarrowedContentType = afterWhenExprRetunedTrue.inferUpperBound(
-                    ed -> ed.equals(ExpressionDescriptor.perceptReference),
+                    ed -> ed.equals(ExpressionDescriptor.nativeEventReference),
                     null
                 ).findFirst()
                 .orElse(contentUpperBound);
@@ -354,10 +354,10 @@ public class OnPerceptHandlerSemantics
         //Building the message template
         List<ExpressionWriter> templateExpressions = new ArrayList<>();
 
-        // add "is a percept" constraint
-        templateExpressions.add(TemplateCompilationHelper.isPercept());
+        // add "is a native event" constraint
+        templateExpressions.add(TemplateCompilationHelper.isNative());
 
-        if (input.__(OnPerceptHandler::isStale).extract(nullAsFalse)) {
+        if (input.__(OnNativeEventHandler::isStale).extract(nullAsFalse)) {
             // add staleness constraint
             templateExpressions.add(TemplateCompilationHelper.isStale());
         }
@@ -365,10 +365,10 @@ public class OnPerceptHandlerSemantics
 
         final BlockWriter tryBlock = w.block();
         tryBlock.addStatement(w.ifStmnt(
-            w.expr("!(((jadescript.core.percept.Percept) " +
+            w.expr("!(((jadescript.core.nativeevent.NativeEvent) " +
                 CompilationHelper.compileAgentReference() +
                 ".getContentManager()" +
-                ".extractContent(" + PERCEPT_VAR_NAME + "))" +
+                ".extractContent(" + NATIVE_EVENT_VAR_NAME + "))" +
                 ".getContent() instanceof " +
                 module.get(TypeHelper.class).noGenericsTypeName(
                     finalContentType.compileToJavaTypeReference()
@@ -376,23 +376,23 @@ public class OnPerceptHandlerSemantics
             w.block().addStatement(w.returnStmnt(w.expr("false")))
         ));
 
-        final VariableDeclarationWriter declarePerceptContentVariable =
+        final VariableDeclarationWriter declareNativeEventContentVariable =
             w.variable(
                 finalContentType.compileToJavaTypeReference(),
-                PERCEPT_CONTENT_VAR_NAME,
+                NATIVE_EVENT_CONTENT_VAR_NAME,
                 w.expr(finalContentType.compileAsJavaCast() +
-                    "((jadescript.core.percept.Percept)" +
+                    "((jadescript.core.nativeevent.NativeEvent)" +
                     CompilationHelper.compileAgentReference() +
                     ".getContentManager()" +
-                    ".extractContent(" + PERCEPT_VAR_NAME + "))" +
+                    ".extractContent(" + NATIVE_EVENT_VAR_NAME + "))" +
                     ".getContent()"
                 )
             );
 
-        templateExpressions.add(TemplateCompilationHelper.customPercept(
+        templateExpressions.add(TemplateCompilationHelper.customNativeEvent(
             w.block().addStatement(
                 w.tryCatch(tryBlock
-                    .addStatements(declarePerceptContentVariable)
+                    .addStatements(declareNativeEventContentVariable)
                     .addStatement(w.returnStmnt(w.expr(compiledExpression)))
                 ).addCatchBranch("java.lang.Throwable", "_e", w.block()
                     .addStatement(w.callStmnt("_e.printStackTrace"))
@@ -416,19 +416,22 @@ public class OnPerceptHandlerSemantics
             composedMT
         ).writeSonnet(scb);
 
-//generating => Message __receivedPercept = null;
-        w.variable("jadescript.core.message.Message", PERCEPT_VAR_NAME, w.Null)
-            .writeSonnet(scb);
+//generating => Message __receivedNativeEvent = null;
+        w.variable(
+            "jadescript.core.message.Message",
+            NATIVE_EVENT_VAR_NAME,
+            w.Null
+        ).writeSonnet(scb);
 
 //generating => if(myAgent!=null) {
-//generating =>     __receivedPercept = jadescript.core.message.Message.wrap
+//generating =>     __receivedNativeEvent = jadescript.core.message.Message.wrap
 //generating =>         (myAgent.receive(__mt));
 //generating => }
         w.ifStmnt(
             w.expr("myAgent!=null"),
             w.block().addStatement(
                 w.assign(
-                    PERCEPT_VAR_NAME,
+                    NATIVE_EVENT_VAR_NAME,
                     w.callExpr(
                         "jadescript.core.message.Message.wrap",
                         w.callExpr(
@@ -446,7 +449,7 @@ public class OnPerceptHandlerSemantics
         );
 
         module.get(ContextManager.class).enterProceduralFeature(
-            (mod, out) -> new OnPerceptHandlerContext(
+            (mod, out) -> new OnNativeEventHandlerContext(
                 mod,
                 out,
                 finalContentType
@@ -470,17 +473,19 @@ public class OnPerceptHandlerSemantics
 
         module.get(ContextManager.class).exit();
 
-//generating => if (__receivedPercept != null) {
+//generating => if (__receivedNativeEvent != null) {
 //generating =>     [OUTERCLASS].this.__ignoreMessageHandlers = true;
 //generating =>
-//generating =>    __theAgent().__cleanIgnoredFlagForMessage(__receivedPercept);
+//generating =>    __theAgent().__cleanIgnoredFlagForMessage(
+//generating =>       __receivedNativeEvent);
 //generating =>     this.__eventFired = true;
 //generating =>
 //generating =>     try {
-//generating =>         [CONTENT_TYPE] __perceptContent = ([CONTENT_TYPE])
-//generating =>             ((jadescript.core.percept.Percept)__theAgent()
+//generating =>         [CONTENT_TYPE] __nativeEvent = ([CONTENT_TYPE])
+//generating =>             ((jadescript.core.nativeevent.NativeEvent)
+//generating =>                 __theAgent()
 //generating =>                 .getContentManager()
-//generating =>                 .extractContent(__receivedPercept)
+//generating =>                 .extractContent(__receivedNativeEvent)
 //generating =>             ).getContent();
 //generating =>         try {
 //generating =>
@@ -493,7 +498,7 @@ public class OnPerceptHandlerSemantics
 //generating =>             .JadescriptException.wrap(__throwable));
 //generating =>         }
 //generating =>
-//generating =>         __receivedPercept = null;
+//generating =>         __receivedNativeEvent = null;
 //generating =>     } catch (Exception _e) {
 //generating =>         _e.printStackTrace();
 //generating =>     }
@@ -502,7 +507,7 @@ public class OnPerceptHandlerSemantics
 //generating => }
 
         w.ifStmnt(
-            w.expr(PERCEPT_VAR_NAME + " != null"),
+            w.expr(NATIVE_EVENT_VAR_NAME + " != null"),
             w.block()
                 .addStatement(w.assign(
                     Util.getOuterClassThisReference(input) + "."
@@ -512,17 +517,17 @@ public class OnPerceptHandlerSemantics
                 .addStatement(w.callStmnt(
                     CompilationHelper.compileAgentReference() +
                         ".__cleanIgnoredFlagForMessage",
-                    w.expr(PERCEPT_VAR_NAME)
+                    w.expr(NATIVE_EVENT_VAR_NAME)
                 ))
                 .addStatement(w.assign(
                     "this." + MESSAGE_RECEIVED_BOOL_VAR_NAME,
                     w.expr("true")
                 ))
                 .addStatement(w.tryCatch(w.block()
-                        .addStatement(declarePerceptContentVariable)
+                        .addStatement(declareNativeEventContentVariable)
                         .addStatement(tryCatchWrappedBody)
                         .addStatement(
-                            w.assign(PERCEPT_VAR_NAME, w.expr("null"))
+                            w.assign(NATIVE_EVENT_VAR_NAME, w.expr("null"))
                         )
                     ).addCatchBranch(
                         "Exception",
@@ -542,20 +547,20 @@ public class OnPerceptHandlerSemantics
 
     @Override
     public void validateOnEdit(
-        Maybe<OnPerceptHandler> input,
+        Maybe<OnNativeEventHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
     ) {
 
         Maybe<WhenExpression> whenBody =
-            input.__(OnPerceptHandler::getWhenBody);
+            input.__(OnNativeEventHandler::getWhenBody);
 
         final Maybe<CodeBlock> body =
             input.__(FeatureWithBody::getBody);
         final Maybe<RValueExpression> whenExpr =
             whenBody.__(WhenExpression::getExpr);
         final Maybe<LValueExpression> pattern = input
-            .__(OnPerceptHandler::getPattern)
+            .__(OnNativeEventHandler::getPattern)
             .__(x -> (LValueExpression) x);
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
@@ -563,7 +568,7 @@ public class OnPerceptHandlerSemantics
         final IJadescriptType contentUpperBound = typeHelper.PROPOSITION;
 
         module.get(ContextManager.class).enterProceduralFeature(
-            OnPerceptHandlerWhenExpressionContext::new
+            OnNativeEventHandlerWhenExpressionContext::new
         );
 
         StaticState beforePattern = StaticState.beginningOfOperation(module);
@@ -584,7 +589,7 @@ public class OnPerceptHandlerSemantics
                 = patternMatchHelper.handlerHeader(
                 contentUpperBound,
                 pattern,
-                some(ExpressionDescriptor.perceptReference)
+                some(ExpressionDescriptor.nativeEventReference)
             );
 
             LValueExpressionSemantics lves =
@@ -655,7 +660,7 @@ public class OnPerceptHandlerSemantics
                 wexpNarrowedContentType = afterWhenExprReturnedTrue
                     .inferUpperBound(
                         ed -> ed.equals(
-                            ExpressionDescriptor.perceptReference
+                            ExpressionDescriptor.nativeEventReference
                         ),
                         null
                     ).findFirst()
@@ -680,7 +685,7 @@ public class OnPerceptHandlerSemantics
         StaticState preparedState = prepareBodyState.apply(
             afterWhenExprReturnedTrue);
         module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
-            new OnPerceptHandlerContext(
+            new OnNativeEventHandlerContext(
                 mod,
                 out,
                 finalContentType
@@ -705,10 +710,11 @@ public class OnPerceptHandlerSemantics
 
     @Override
     public void validateOnSave(
-        Maybe<OnPerceptHandler> input,
+        Maybe<OnNativeEventHandler> input,
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
-    ){
+    ) {
 
     }
+
 }

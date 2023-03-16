@@ -44,21 +44,21 @@ public class TemplateCompilationHelper implements SemanticsConsts {
     }
 
 
-    public static MethodCallExpressionWriter notPercept() {
+    public static MethodCallExpressionWriter notNative() {
         return w.callExpr(
-            "jadescript.core.percept.NotPerceptMessageTemplate.MatchNotPercept",
+            "jadescript.core.nativeevent.NotNativeEventTemplate.MatchNotNative",
             w.expr(CompilationHelper.compileAgentReference() +
                 ".getContentManager()")
         );
     }
 
 
-    public static MethodCallExpressionWriter isPercept() {
+    public static MethodCallExpressionWriter isNative() {
         return w.callExpr(
             "jadescript.lang.acl.ContentMessageTemplate.MatchClass",
             w.expr(CompilationHelper.compileAgentReference() +
                 ".getContentManager()"),
-            w.expr("jadescript.core.percept.Percept.class")
+            w.expr("jadescript.core.nativeevent.NativeEvent.class")
         );
     }
 
@@ -86,7 +86,7 @@ public class TemplateCompilationHelper implements SemanticsConsts {
     }
 
 
-    public static ExpressionWriter customPercept(
+    public static ExpressionWriter customNativeEvent(
         BlockWriter predicateBlock
     ) {
         SourceCodeBuilder scb = new SourceCodeBuilder();
@@ -95,7 +95,7 @@ public class TemplateCompilationHelper implements SemanticsConsts {
             "new jade.lang.acl.MessageTemplate(new jadescript.lang.acl" +
                 ".CustomMessageTemplate(" +
                 "((java.util.function.Predicate<jade.lang.acl.ACLMessage>) (" +
-                PERCEPT_VAR_NAME + ") -> {" + scb + "})))"
+                NATIVE_EVENT_VAR_NAME + ") -> {" + scb + "})))"
         );
     }
 

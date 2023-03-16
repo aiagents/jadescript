@@ -6,7 +6,7 @@ import jade.wrapper.StaleProxyException;
 import jadescript.content.JadescriptPredicate;
 import jadescript.content.onto.Ontology;
 import jadescript.core.Agent;
-import jadescript.core.percept.Percept;
+import jadescript.core.nativeevent.NativeEvent;
 
 public class JadescriptAgentController {
 
@@ -47,10 +47,16 @@ public class JadescriptAgentController {
         }
     }
 
+    public void emit(JadescriptPredicate predicate){
+        emit(predicate, predicate.__getDeclaringOntology());
+    }
 
-    public void perceive(JadescriptPredicate predicate, Ontology ontology) {
+    public void emit(
+        JadescriptPredicate predicate,
+        jade.content.onto.Ontology ontology
+    ) {
         try {
-            wrapped.putO2AObject(new Percept(predicate, ontology), false);
+            wrapped.putO2AObject(new NativeEvent(predicate, ontology), false);
         } catch (StaleProxyException e) {
             throw new JadescriptJavaAPIException(e);
         }

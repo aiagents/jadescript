@@ -42,7 +42,7 @@ public class BehaviourDeclarationSemantics
     private static boolean hasEventClassSystem(Feature input) {
         return input instanceof OnExecuteHandler
             || input instanceof OnMessageHandler
-            || input instanceof OnPerceptHandler;
+            || input instanceof OnNativeEventHandler;
     }
 
 
