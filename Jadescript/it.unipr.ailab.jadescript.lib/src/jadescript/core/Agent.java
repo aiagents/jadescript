@@ -329,19 +329,11 @@ public class Agent extends jade.core.Agent {
     }
 
 
-    public void log(String msg) {
-        this.__myLogger.log(Logger.INFO, msg);
-    }
-
-
-    public void log(Level level, String msg) {
-        this.__myLogger.log(level, msg);
-    }
-
 
     public AID getAid() {
         return super.getAID();
     }
+
 
 
     @SuppressWarnings("EmptyMethod")

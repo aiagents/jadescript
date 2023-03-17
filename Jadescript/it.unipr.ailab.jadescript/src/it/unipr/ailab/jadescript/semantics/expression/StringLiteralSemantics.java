@@ -30,7 +30,7 @@ public class StringLiteralSemantics
     }
 
 
-    private Maybe<String> adaptStringConstant(
+    public static Maybe<String> adaptStringConstant(
         Maybe<String> constant
     ) {
         return constant.__(stringSafe -> {
@@ -79,7 +79,7 @@ public class StringLiteralSemantics
 
 
     @SuppressWarnings("SameParameterValue")
-    private String removePrefixIfPresent(String prefix, String target) {
+    public static String removePrefixIfPresent(String prefix, String target) {
         if (target.startsWith(prefix)) {
             return target.substring(prefix.length());
         } else {
@@ -89,7 +89,7 @@ public class StringLiteralSemantics
 
 
     @SuppressWarnings("SameParameterValue")
-    private String removeSuffixIfPresent(String suffix, String target) {
+    public static String removeSuffixIfPresent(String suffix, String target) {
         if (target.endsWith(suffix)) {
             return target.substring(0, target.length() - suffix.length());
         } else {

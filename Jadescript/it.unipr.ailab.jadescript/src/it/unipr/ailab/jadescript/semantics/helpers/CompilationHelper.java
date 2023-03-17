@@ -255,17 +255,18 @@ public class CompilationHelper implements IQualifiedNameProvider {
     }
 
 
-    public List<String> adaptAndCompileRValueList(
+    public List<String> implicitConversionsOnRValueList(
         List<String> compiledArgs,
         List<IJadescriptType> argTypes,
         List<IJadescriptType> destinationTypes
     ) {
         List<String> result = new ArrayList<>();
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-        for (int i = 0; i < Math.min(
+        final int assumedSize = Math.min(
             compiledArgs.size(),
             Math.min(argTypes.size(), destinationTypes.size())
-        ); i++) {
+        );
+        for (int i = 0; i < assumedSize; i++) {
             result.add(
                 typeHelper.compileWithEventualImplicitConversions(
                     compiledArgs.get(i),

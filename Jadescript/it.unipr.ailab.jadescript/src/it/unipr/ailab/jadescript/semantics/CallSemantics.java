@@ -538,7 +538,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                 CompilableCallable method = methodsFound.toNullable();
                 final List<String> compiledRexprs =
                     module.get(CompilationHelper.class)
-                        .adaptAndCompileRValueList(
+                        .implicitConversionsOnRValueList(
                             compiledArgs,
                             argTypes,
                             method.parameterTypes()

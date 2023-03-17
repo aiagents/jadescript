@@ -1,8 +1,8 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.InvokeExpression;
 import it.unipr.ailab.jadescript.jadescript.Literal;
+import it.unipr.ailab.jadescript.jadescript.NativeExpression;
 import it.unipr.ailab.jadescript.jadescript.Primary;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -249,8 +249,8 @@ public class PrimaryExpressionSemantics
                 .collect(Collectors.toList());
         final Maybe<Literal> literal = input.__(Primary::getLiteral);
         final Maybe<String> identifier = input.__(Primary::getIdentifier);
-        final Maybe<InvokeExpression> invoke =
-            input.__(Primary::getInvokeExpression);
+        final Maybe<NativeExpression> invoke =
+            input.__(Primary::getNativeExpression);
         return exprs.size() > 1 // tuple
             || isPlaceholder
             || literal.isPresent()
@@ -277,8 +277,8 @@ public class PrimaryExpressionSemantics
         }
         final Maybe<Literal> literal = input.__(Primary::getLiteral);
         final Maybe<String> identifier = input.__(Primary::getIdentifier);
-        final Maybe<InvokeExpression> invoke =
-            input.__(Primary::getInvokeExpression);
+        final Maybe<NativeExpression> invoke =
+            input.__(Primary::getNativeExpression);
         if (mustTraverse(input)) {
             if (isPlaceholder) {
                 return Optional.of(new SemanticsBoundToAssignableExpression<>(
@@ -302,7 +302,7 @@ public class PrimaryExpressionSemantics
                 ));
             } else if (invoke.isPresent()) {
                 return Optional.of(new SemanticsBoundToAssignableExpression<>(
-                    module.get(InvokeExpressionSemantics.class),
+                    module.get(NativeExpressionSemantics.class),
                     invoke
                 ));
             }

@@ -4,7 +4,6 @@ import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 import jadescript.content.JadescriptPredicate;
-import jadescript.content.onto.Ontology;
 import jadescript.core.Agent;
 import jadescript.core.nativeevent.NativeEvent;
 
@@ -26,11 +25,13 @@ public class JadescriptAgentController {
     ) {
         try {
             final JadescriptAgentController jac =
-                new JadescriptAgentController(container.createNewAgent(
-                    name,
-                    agentClass.getName(),
-                    arguments
-                ));
+                new JadescriptAgentController(
+                    container.createNewAgent(
+                        name,
+                        agentClass.getName(),
+                        arguments
+                    )
+                );
             jac.start();
             return jac;
         } catch (StaleProxyException e) {
@@ -47,9 +48,11 @@ public class JadescriptAgentController {
         }
     }
 
-    public void emit(JadescriptPredicate predicate){
+
+    public void emit(JadescriptPredicate predicate) {
         emit(predicate, predicate.__getDeclaringOntology());
     }
+
 
     public void emit(
         JadescriptPredicate predicate,

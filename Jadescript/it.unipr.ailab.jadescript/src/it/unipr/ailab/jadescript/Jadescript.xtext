@@ -732,8 +732,7 @@ Trailer:
 	(isACall?='('
 	((=> namedArgs=NamedArgumentList) | simpleArgs=SimpleArgumentList)?
 	')')
-	|
-	(isASubscription?='['
+	|(isASubscription?='['
 	key=RValueExpression
 	']');
 
@@ -747,17 +746,25 @@ Primary:
 	| literal=Literal 
 	| identifier=VarIdentifier 
 	| placeholder?='_'
-	| invokeExpression=InvokeExpression)
+	| nativeExpression=NativeExpression)
 	;
 
-InvokeExpression:
-	{InvokeExpression}(
-		'invoke' name=(ID|STRINGSIMPLE)
-		((static?='in' className=STRINGSIMPLE)|('on' expr=RValueExpression)) 
-		(args?='with'  argumentValues+=RValueExpression (',' argumentValues+=RValueExpression)*)?
-	)
-;
+NativeExpression:{NativeExpression}(
+	(
+		'native' resolveDynamically?='[' nameExpr=RValueExpression ']'
+		'('simpleArguments=SimpleArgumentList?')'
+	 	withAsClause?='as' type=TypeExpression
+ 	)|(
+ 		'native' javaFQName=JavaFullyQualifiedName
+		'('simpleArguments=SimpleArgumentList?')'
+	 	( => withAsClause?='as' type=TypeExpression)?
+ 	)
+);
 
+
+JavaFullyQualifiedName:{JavaFullyQualifiedName}(
+	segments+=VarIdentifier ('.' segments+=VarIdentifier)*
+);
 
 
 VarIdentifier:
@@ -934,7 +941,7 @@ StringLiteralSimple:
 
 
 Identifier:
-	'content' | 'performative' | 'ontology' | ID;
+   'content' | 'performative' | 'ontology' | ID;
 
 NumberLiteral:
 	Number;
