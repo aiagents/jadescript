@@ -470,11 +470,22 @@ NamedArgumentList:
 ;
 
 
-ProcedureCallStatement:
-	{ProcedureCallStatement}
-	'do' ((name=ID
-	(hasParameters?='with' ((=> namedArgs=NamedArgumentList) | simpleArgs=SimpleArgumentList))?)
-	| isNothing?='nothing');
+ProcedureCallStatement:{ProcedureCallStatement} (
+	'do' (
+	  (
+	  	    name=ID (hasParameters?='with' 
+	  	    	((=> namedArgs=NamedArgumentList) | simpleArgs=SimpleArgumentList)
+	  	    )?	
+	  ) | (
+	  	    nothing?='nothing'
+	  ) | (
+			native?='native' (
+				resolveDynamically?='['nameExpr=RValueExpression']'
+				| javaFQName=JavaFullyQualifiedName
+			) ('with' => simpleArgs=SimpleArgumentList)?
+	  )
+	)
+);
 
 
 ClearStatement:
@@ -630,58 +641,6 @@ Matches:
 Pattern:
 	LValueExpression
 ;
-//	 listPattern = ListPattern
-//	 | mapOrSetPattern = MapOrSetPattern
-//	 | structPattern = StructurePattern
-//	 | tuplePattern = TuplePattern
-//;
-
-TuplePattern: {TuplePattern}
-	 '('terms+=PatternTerm (',' terms+=PatternTerm)+ ')'
-	 (=> withTypeSpecifiers?='as' '(' typeSpecifiers+=TypeExpression (',' typeSpecifiers+=TypeExpression)+ ')')?
-;
-
-StructurePattern:
-	name = Identifier
-	(-> (withParentheses?='('
-	(terms+=PatternTerm (',' terms+=PatternTerm)*)?
-	')') | (withAs?='as' expectedType=TypeExpression))? 
-;
-
-
-ListPattern: {ListPattern}
-	'['
-	(terms+=PatternTerm (',' terms+=PatternTerm)*)?
-	(isPipe?='|' restPattern=PatternTerm)?
-	']'
-	(withTypeSpecifier?='of' typeParameter=TypeExpression)?
-	
-;
-
-
-MapOrSetPattern: {MapOrSetPattern}
-	'{'
-	(termsKey+=MapPatternKeyTerm(=>isMap?=':'termsValue+=PatternTerm)? (',' termsKey+=MapPatternKeyTerm (=>':'termsValue+=PatternTerm)?)*)?
-	(isPipe?='|' restPattern=PatternTerm)?
-	'}'
-	(withTypeSpecifiers?='of' keyTypeParameter=TypeExpression (=>isMapT?=':' valueTypeParameter=TypeExpression)?)?
-;
-
-MapPatternKeyTerm:
-	  number = NumberLiteral
-	| boolean = BooleanLiteral
-	| text = StringLiteralSimple
-	| identifier = Identifier  
-;
-
-PatternTerm:
-	  number = NumberLiteral
-	| boolean = BooleanLiteral
-	| text = StringLiteralSimple
-	| (underscore ?= '_' (withAs?='as' expectedType=TypeExpression)?)
-	| subPattern = Pattern
-;
-
 
 
     
@@ -737,9 +696,6 @@ Trailer:
 	']');
 
 
-
-
-	
 Primary:
 	{Primary}( //level 0
 	('(' exprs+=RValueExpression (',' exprs+=RValueExpression)* ')')

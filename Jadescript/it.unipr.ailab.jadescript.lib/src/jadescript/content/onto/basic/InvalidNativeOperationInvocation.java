@@ -16,8 +16,8 @@ public class InvalidNativeOperationInvocation implements JadescriptPredicate {
 
 
     public InvalidNativeOperationInvocation(
-        String operationName,
-        String reason
+        String reason,
+        String operationName
     ) {
         this.reason = reason;
         this.operationName = operationName;

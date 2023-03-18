@@ -13,6 +13,16 @@ import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 
 public class NativeEventsFromJava {
+	
+	public static String nativeInvocationTest(Integer count) {
+		System.out.println("Hello!");
+		return "The counter is "+count;
+	}
+	
+	public static void doExit() {
+		System.exit(0);
+	}
+	
 	public static void main(String[] args) throws StaleProxyException {
 		ContainerController container = Jadescript.newMainContainer();
 		JadescriptAgentController agent = NativeEventsAgent.create(container, "PerceptionTestAgent");

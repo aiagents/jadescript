@@ -4,11 +4,13 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.NamedArgumentList;
 import it.unipr.ailab.jadescript.jadescript.ProcedureCallStatement;
 import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
-import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.CallSemantics;
+import it.unipr.ailab.jadescript.semantics.NativeCallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
+import it.unipr.ailab.jadescript.semantics.proxyeobjects.NativeCall;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -32,10 +34,28 @@ public class ProcedureCallStatementSemantics
         BlockElementAcceptor acceptor
     ) {
 
-        if (input.__(ProcedureCallStatement::isIsNothing)
-            .extract(Maybe.nullAsTrue)) {
+        if (input.__(ProcedureCallStatement::isNothing)
+            .orElse(true)) {
             acceptor.accept(w.commentStmt("do nothing;"));
             return state;
+        }
+
+        if (input.__(ProcedureCallStatement::isNative)
+            .orElse(false)) {
+            final NativeCallSemantics ncs =
+                module.get(NativeCallSemantics.class);
+            final Maybe<NativeCall> nativeCall =
+                NativeCall.fromStatement(input);
+
+            acceptor.accept(w.simpleStmt(
+                ncs.compile(
+                    nativeCall,
+                    state,
+                    acceptor
+                )
+            ));
+
+            return ncs.advance(nativeCall, state);
         }
 
         Maybe<String> name =
@@ -70,11 +90,28 @@ public class ProcedureCallStatementSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input.__(ProcedureCallStatement::isIsNothing)
+        if (input.__(ProcedureCallStatement::isNothing)
             .extract(Maybe.nullAsTrue)) {
             //do nothing
             return state;
         }
+
+        if (input.__(ProcedureCallStatement::isNative)
+            .orElse(false)) {
+            final NativeCallSemantics ncs =
+                module.get(NativeCallSemantics.class);
+            final Maybe<NativeCall> nativeCall =
+                NativeCall.fromStatement(input);
+
+            boolean callCheck = ncs.validate(nativeCall, state, acceptor);
+
+            if(callCheck == INVALID){
+                return state;
+            }
+
+            return ncs.advance(nativeCall, state);
+        }
+
         Maybe<String> name = input.__(ProcedureCallStatement::getName);
         Maybe<SimpleArgumentList> simpleArgs = input.__(
             ProcedureCallStatement::getSimpleArgs);
