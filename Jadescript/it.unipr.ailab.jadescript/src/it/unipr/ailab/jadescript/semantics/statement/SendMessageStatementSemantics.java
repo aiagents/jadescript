@@ -625,7 +625,7 @@ public class SendMessageStatementSemantics
         BlockElementAcceptor acceptor
     ) {
 
-        Maybe<UsesOntologyElement> container = input.__(
+        Maybe<UsesOntologyElement> container = input.__partial2(
             EcoreUtil2::getContainerOfType,
             UsesOntologyElement.class
         );

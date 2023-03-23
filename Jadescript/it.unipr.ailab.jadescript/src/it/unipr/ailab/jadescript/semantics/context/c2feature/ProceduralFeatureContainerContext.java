@@ -13,20 +13,17 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedName;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.common.types.JvmDeclaredType;
 
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
+import static it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils.safeFilter;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public class ProceduralFeatureContainerContext
@@ -62,7 +59,7 @@ public class ProceduralFeatureContainerContext
             some(new ContextGeneratedName(
                 THIS,
                 thisReferenceType,
-                () -> Util.getOuterClassThisReference(featureContainer)
+                () -> SemanticsUtils.getOuterClassThisReference(featureContainer)
                     .orElse(THIS)
             ))
         );

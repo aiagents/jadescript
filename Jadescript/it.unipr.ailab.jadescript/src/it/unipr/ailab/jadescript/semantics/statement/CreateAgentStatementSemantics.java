@@ -13,8 +13,9 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import jade.wrapper.ContainerController;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
@@ -24,6 +25,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsEmptyList;
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 public class CreateAgentStatementSemantics
     extends StatementSemantics<CreateAgentStatement> {
@@ -39,26 +41,26 @@ public class CreateAgentStatementSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        final List<Maybe<RValueExpression>> namedArgsValues =
-            Maybe.toListOfMaybes(input
+        final MaybeList<RValueExpression> namedArgsValues =
+            someStream(input
                     .__(CreateAgentStatement::getNamedArgs)
                     .__(NamedArgumentList::getParameterValues))
-                .stream().filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+                .filter(Maybe::isPresent)
+                .collect(MaybeList.collectFromStreamOfMaybes());
 
-        final List<Maybe<String>> namedArgsKeys =
-            Maybe.toListOfMaybes(input
+        final MaybeList<String> namedArgsKeys =
+            someStream(input
                     .__(CreateAgentStatement::getNamedArgs)
                     .__(NamedArgumentList::getParameterNames))
-                .stream().filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+                .filter(Maybe::isPresent)
+                .collect(MaybeList.collectFromStreamOfMaybes());
 
-        final List<Maybe<RValueExpression>> simpleArgs =
-            Maybe.toListOfMaybes(input
+        final MaybeList<RValueExpression> simpleArgs =
+            someStream(input
                     .__(CreateAgentStatement::getSimpleArgs)
                     .__(SimpleArgumentList::getExpressions))
-                .stream().filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+                .filter(Maybe::isPresent)
+                .collect(MaybeList.collectFromStreamOfMaybes());
 
 
         final RValueExpressionSemantics rves =
@@ -294,10 +296,10 @@ public class CreateAgentStatementSemantics
     private void validateCreateArguments(
         List<IJadescriptType> paramTypes,
         List<IJadescriptType> argTypes,
-        List<Maybe<RValueExpression>> argExprs,
+        MaybeList<RValueExpression> argExprs,
         ValidationMessageAcceptor acceptor
     ) {
-        final int size = Util.min(
+        final int size = SemanticsUtils.min(
             paramTypes.size(),
             argTypes.size(),
             argExprs.size()
@@ -321,7 +323,7 @@ public class CreateAgentStatementSemantics
         List<String> paramNames,
         List<IJadescriptType> paramTypes,
         List<String> argNames,
-        List<Maybe<RValueExpression>> argExprs,
+        MaybeList<RValueExpression> argExprs,
         List<IJadescriptType> argTypes,
         Maybe<CreateAgentStatement> input,
         ValidationMessageAcceptor acceptor
@@ -381,7 +383,7 @@ public class CreateAgentStatementSemantics
         }
 
 
-        int size = Util.min(
+        int size = SemanticsUtils.min(
             paramNames.size(),
             paramTypes.size(),
             argNames.size(),
@@ -389,7 +391,7 @@ public class CreateAgentStatementSemantics
             argTypes.size()
         );
 
-        final int argMin = Util.min(
+        final int argMin = SemanticsUtils.min(
             argNames.size(),
             argExprs.size(),
             argTypes.size()
@@ -499,7 +501,7 @@ public class CreateAgentStatementSemantics
         validateCreateArguments(
             newParamTypes,
             newArgTypes,
-            newArgExprs,
+            MaybeList.fromListOfMaybesFinalize(newArgExprs),
             acceptor
         );
 
@@ -512,30 +514,27 @@ public class CreateAgentStatementSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        List<Maybe<RValueExpression>> args;
+        MaybeList<RValueExpression> args;
         if (input.__(CreateAgentStatement::getNamedArgs).isPresent()) {
-            args = Maybe.toListOfMaybes(input
+            args = input
                 .__(CreateAgentStatement::getNamedArgs)
-                .__(NamedArgumentList::getParameterValues)
-            );
+                .__toList(NamedArgumentList::getParameterValues);
 
         } else {
-            args = Maybe.toListOfMaybes(input
+            args = input
                 .__(CreateAgentStatement::getSimpleArgs)
-                .__(SimpleArgumentList::getExpressions)
-            );
+                .__toList(SimpleArgumentList::getExpressions);
         }
 
 
         final IJadescriptType agentType = input
             .__(CreateAgentStatement::getAgentType)
-            .extract(module.get(TypeExpressionSemantics.class)
-                ::toJadescriptType);
+            .extract(
+                module.get(TypeExpressionSemantics.class)::toJadescriptType
+            );
 
-        final JvmTypeNamespace agentNamespace = JvmTypeNamespace.resolve(
-            module,
-            agentType.asJvmTypeReference()
-        );
+        final JvmTypeNamespace agentNamespace =
+            JvmTypeNamespace.resolve(module, agentType.asJvmTypeReference());
 
         final Optional<? extends JvmOperation> createMethodOpt =
             getCreateMethod(agentNamespace);

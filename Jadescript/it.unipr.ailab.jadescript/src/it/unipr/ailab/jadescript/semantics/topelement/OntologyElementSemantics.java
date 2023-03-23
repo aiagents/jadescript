@@ -19,6 +19,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.ParametricType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import jadescript.java.NativeValueFactory;
@@ -132,7 +133,7 @@ public class OntologyElementSemantics extends Semantics {
         )) {
             // then at least a slot is required
             validationHelper.asserting(
-                Maybe.stream(input
+                Maybe.someStream(input
                         .__(i -> (Predicate) i)
                         .__(FeatureWithSlots::getSlots))
                     .anyMatch(Maybe::isPresent),
@@ -192,8 +193,8 @@ public class OntologyElementSemantics extends Semantics {
                 input.__(i -> (FeatureWithSlots) i);
 
             //Validation of each single slot, independently
-            List<Maybe<SlotDeclaration>> slots =
-                toListOfMaybes(inputWithSlots.__(FeatureWithSlots::getSlots));
+            MaybeList<SlotDeclaration> slots =
+                inputWithSlots.__toList(FeatureWithSlots::getSlots);
 
             TypeExpressionSemantics tes =
                 module.get(TypeExpressionSemantics.class);
@@ -212,7 +213,8 @@ public class OntologyElementSemantics extends Semantics {
                 checkDuplicateDeclaredSlots(acceptor, inputWithSlots);
 
                 for (Maybe<SlotDeclaration> slot : slots) {
-                    Maybe<String> slotName = slot.__(SlotDeclaration::getName);
+                    Maybe<String> slotName =
+                        slot.__(SlotDeclaration::getName);
                     boolean slotTypeCheck = tes.validate(
                         slot.__(SlotDeclaration::getType),
                         acceptor
@@ -287,19 +289,18 @@ public class OntologyElementSemantics extends Semantics {
             new HashMap<>();
 
 
-        boolean isWithSuperSlots = input.__(ExtendingFeature::isWithSuperSlots)
-            .extract(nullAsFalse);
+        boolean isWithSuperSlots =
+            input.__(ExtendingFeature::isWithSuperSlots)
+                .extract(nullAsFalse);
 
         if (isWithSuperSlots) {
             Maybe<NamedArgumentList> superSlots =
                 input.__(ExtendingFeature::getNamedSuperSlots);
 
-            List<Maybe<String>> argNames = toListOfMaybes(
-                superSlots.__(NamedArgumentList::getParameterNames)
-            );
-            List<Maybe<RValueExpression>> args = toListOfMaybes(
-                superSlots.__(NamedArgumentList::getParameterValues)
-            );
+            MaybeList<String> argNames =
+                superSlots.__toList(NamedArgumentList::getParameterNames);
+            MaybeList<RValueExpression> args =
+                superSlots.__toList(NamedArgumentList::getParameterValues);
 
             HashMap<String, IJadescriptType> superSlotsInitScope
                 = new HashMap<>();
@@ -355,6 +356,11 @@ public class OntologyElementSemantics extends Semantics {
             }
         }
 
+        Maybe<NamedArgumentList> superSlots =
+            input.__(ExtendingFeature::getNamedSuperSlots);
+
+        MaybeList<RValueExpression> superSlotsNamedArgumentValues =
+            superSlots.__toList(NamedArgumentList::getParameterValues);
 
         superProperties.forEach((propName, propType) -> {
             boolean isInitialized =
@@ -410,12 +416,11 @@ public class OntologyElementSemantics extends Semantics {
                 // we can now assume isInitialized XOR isRedeclared
                 if (isInitialized) {
 
-                    Maybe<NamedArgumentList> superSlots =
-                        input.__(ExtendingFeature::getNamedSuperSlots);
 
-                    Maybe<RValueExpression> argExpression = toListOfMaybes(
-                        superSlots.__(NamedArgumentList::getParameterValues)
-                    ).get(superSlotPositionSet.get(propName));
+                    Maybe<RValueExpression> argExpression =
+                        superSlotsNamedArgumentValues.get(
+                            superSlotPositionSet.get(propName)
+                        );
 
                     IJadescriptType argType = superSlotTypeSet.get(propName);
 
@@ -544,7 +549,7 @@ public class OntologyElementSemantics extends Semantics {
         Maybe<QualifiedName> ontoFullQualifiedName,
         boolean isPreIndexingPhase
     ) {
-        return input.toList().stream().flatMap(inputSafe -> {
+        return input.toSingleList().stream().flatMap(inputSafe -> {
             if (input.__(ExtendingFeature::isNative).extract(nullAsFalse)) {
                 return generateNativeTypes(
                     input,
@@ -632,7 +637,8 @@ public class OntologyElementSemantics extends Semantics {
 
 
         final Boolean hasSlots =
-            input.__(i -> i instanceof FeatureWithSlots).extract(nullAsFalse);
+            input.__(i -> i instanceof FeatureWithSlots)
+                .orElse(false);
 
         if (hasSlots) {
             final Maybe<EList<SlotDeclaration>> slots = input
@@ -711,7 +717,7 @@ public class OntologyElementSemantics extends Semantics {
             }
         ), jvmTB.toInterface(
             inputSafe,
-            fqName.toString() + "Factory",
+            fqName + "Factory",
             itClass -> fillNativeInterface(
                 input,
                 inputSafe,
@@ -939,7 +945,7 @@ public class OntologyElementSemantics extends Semantics {
 
 
         final boolean hasSlots =
-            input.__(i -> i instanceof FeatureWithSlots).extract(nullAsFalse);
+            input.__(i -> i instanceof FeatureWithSlots).orElse(false);
 
         if (hasSlots) {
             final Maybe<EList<SlotDeclaration>> slots = input
@@ -972,19 +978,17 @@ public class OntologyElementSemantics extends Semantics {
         HashMap<String, String> superSlotCompilationMap = new HashMap<>();
 
         boolean isWithSuperSlots =
-            input.__(ExtendingFeature::isWithSuperSlots).extract(nullAsFalse);
+            input.__(ExtendingFeature::isWithSuperSlots).orElse(false);
 
         if (isWithSuperSlots) {
             Maybe<NamedArgumentList> superSlots =
                 input.__(ExtendingFeature::getNamedSuperSlots);
 
-            List<Maybe<String>> argNames = toListOfMaybes(
-                superSlots.__(NamedArgumentList::getParameterNames)
-            );
+            MaybeList<String> argNames =
+                superSlots.__toList(NamedArgumentList::getParameterNames);
 
-            List<Maybe<RValueExpression>> args = new ArrayList<>(toListOfMaybes(
-                superSlots.__(NamedArgumentList::getParameterValues)
-            ));
+            MaybeList<RValueExpression> args =
+                superSlots.__toListCopy(NamedArgumentList::getParameterValues);
 
             HashMap<String, IJadescriptType> superSlotsInitPairs =
                 new HashMap<>();
@@ -1130,7 +1134,7 @@ public class OntologyElementSemantics extends Semantics {
                     final TypeExpressionSemantics typeExpressionSemantics =
                         module.get(TypeExpressionSemantics.class);
 
-                    for (Maybe<SlotDeclaration> slot : toListOfMaybes(slots)) {
+                    for (Maybe<SlotDeclaration> slot : iterate(slots)) {
                         final Maybe<String> slotName =
                             slot.__(SlotDeclaration::getName);
 
@@ -1205,7 +1209,9 @@ public class OntologyElementSemantics extends Semantics {
                     scb.open("if(obj instanceof " + typeName + ") {");
                     scb.line(typeName + " o = (" + typeName + ") obj;");
                     scb.add("return ");
-                    if (input.__(ExtendingFeature::getSuperType).isPresent()) {
+                    if (input
+                        .__(ExtendingFeature::getSuperType)
+                        .isPresent()) {
                         scb.add("super.equals(obj)");
                     } else {
                         scb.add("true");
@@ -1358,8 +1364,8 @@ public class OntologyElementSemantics extends Semantics {
 
         Maybe<FeatureWithSlots> inputWithSlots =
             input.__(i -> (FeatureWithSlots) i);
-        List<Maybe<SlotDeclaration>> slots =
-            toListOfMaybes(inputWithSlots.__(FeatureWithSlots::getSlots));
+        MaybeList<SlotDeclaration> slots =
+            inputWithSlots.__toList(FeatureWithSlots::getSlots);
 
         if (slots.isEmpty()) {
             return;

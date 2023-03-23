@@ -14,7 +14,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -162,7 +162,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
             .extract(nullAsFalse);
 
         boolean putInCheck = module.get(ValidationHelper.class).asserting(
-            Util.implication(putOrAdd.equals("put"), inOrTo.equals("in")),
+            SemanticsUtils.implication(putOrAdd.equals("put"), inOrTo.equals("in")),
             "InvalidPutStatement",
             "use 'in' when using 'put'",
             input,
@@ -170,7 +170,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
         );
 
         boolean addToCheck = module.get(ValidationHelper.class).asserting(
-            Util.implication(putOrAdd.equals("add"), inOrTo.equals("to")),
+            SemanticsUtils.implication(putOrAdd.equals("add"), inOrTo.equals("to")),
             "InvalidAddStatement",
             "use 'to' when using 'add'",
             input,
@@ -210,7 +210,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
             final IJadescriptType elementType = rves.inferType(element, state);
 
             module.get(ValidationHelper.class).asserting(
-                Util.implication(
+                SemanticsUtils.implication(
                     collectionType instanceof SetType,
                     !isWithIndex
                 ),

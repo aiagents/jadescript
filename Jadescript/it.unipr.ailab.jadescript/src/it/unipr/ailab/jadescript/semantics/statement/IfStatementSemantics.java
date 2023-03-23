@@ -15,6 +15,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import it.unipr.ailab.sonneteer.statement.controlflow.IfStatementWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -23,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
-import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
 /**
  * Created on 26/04/18.
@@ -43,15 +43,15 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        Maybe<RValueExpression> condition = input.__(IfStatement::getCondition);
-        Maybe<OptionalBlock> thenBranch = input.__(IfStatement::getThenBranch);
+        Maybe<RValueExpression> condition =
+            input.__(IfStatement::getCondition);
+        Maybe<OptionalBlock> thenBranch =
+            input.__(IfStatement::getThenBranch);
 
-        List<Maybe<RValueExpression>> elseIfConditions = toListOfMaybes(
-            input.__(IfStatement::getElseIfConditions)
-        );
-        List<Maybe<OptionalBlock>> elseIfBranches = toListOfMaybes(
-            input.__(IfStatement::getElseIfBranches)
-        );
+        MaybeList<RValueExpression> elseIfConditions =
+            input.__toList(IfStatement::getElseIfConditions);
+        MaybeList<OptionalBlock> elseIfBranches =
+            input.__toList(IfStatement::getElseIfBranches);
 
         Maybe<OptionalBlock> elseBranch = input.__(IfStatement::getElseBranch);
 
@@ -208,13 +208,15 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        Maybe<RValueExpression> condition = input.__(IfStatement::getCondition);
-        Maybe<OptionalBlock> thenBranch = input.__(IfStatement::getThenBranch);
+        Maybe<RValueExpression> condition =
+            input.__(IfStatement::getCondition);
+        Maybe<OptionalBlock> thenBranch =
+            input.__(IfStatement::getThenBranch);
 
-        List<Maybe<RValueExpression>> elseIfConditions =
-            toListOfMaybes(input.__(IfStatement::getElseIfConditions));
-        List<Maybe<OptionalBlock>> elseIfBranches =
-            toListOfMaybes(input.__(IfStatement::getElseIfBranches));
+        MaybeList<RValueExpression> elseIfConditions =
+            input.__toList(IfStatement::getElseIfConditions);
+        MaybeList<OptionalBlock> elseIfBranches =
+            input.__toList(IfStatement::getElseIfBranches);
 
         Maybe<OptionalBlock> elseBranch = input.__(IfStatement::getElseBranch);
 
@@ -229,8 +231,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
         StaticState runningState;
         List<StaticState> afterBranches = new ArrayList<>();
-        List<Maybe<RValueExpression>> prevConditions =
-            new ArrayList<>();
+        List<Maybe<RValueExpression>> prevConditions = new ArrayList<>();
 
         StaticState inThenBranch;
         if (conditionCheck == VALID) {

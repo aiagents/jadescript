@@ -13,7 +13,7 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.WriterFactory;
@@ -88,7 +88,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
     public static Maybe<String> sourceToLocationText(
         Maybe<? extends EObject> input
     ) {
-        return Util.extractEObject(input).__(eObject -> {
+        return SemanticsUtils.extractEObject(input).__(eObject -> {
             final ICompositeNode node = NodeModelUtils.getNode(eObject);
             int startLine = node.getStartLine();
             int endLine = node.getEndLine();
@@ -116,7 +116,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
 
 
     public static Maybe<String> sourceToText(Maybe<? extends EObject> input) {
-        return Util.extractEObject(input).__(eObject -> {
+        return SemanticsUtils.extractEObject(input).__(eObject -> {
             final ICompositeNode node = NodeModelUtils.getNode(eObject);
             return node.getText();
         });
@@ -194,7 +194,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
     public static String compileAgentReference(
         Maybe<? extends EObject> container
     ) {
-        return Util.getOuterClassThisReference(container).orElse(THIS)
+        return SemanticsUtils.getOuterClassThisReference(container).orElse(THIS)
             + "." + compileAgentReference();
     }
 

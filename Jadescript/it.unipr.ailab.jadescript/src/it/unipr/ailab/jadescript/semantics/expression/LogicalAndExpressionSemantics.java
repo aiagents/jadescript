@@ -14,12 +14,15 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 
 /**
@@ -41,8 +44,7 @@ public class LogicalAndExpressionSemantics
     ) {
         final EqualityComparisonExpressionSemantics eces = module.get(
             EqualityComparisonExpressionSemantics.class);
-        return Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison))
-            .stream()
+        return someStream(input.__(LogicalAnd::getEqualityComparison))
             .filter(Maybe::isPresent)
             .map(sbte -> new SemanticsBoundToExpression<>(
                 eces,
@@ -58,9 +60,8 @@ public class LogicalAndExpressionSemantics
     ) {
         if (input == null) return "";
         StringBuilder result = new StringBuilder();
-        List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(
-            input.__(LogicalAnd::getEqualityComparison)
-        );
+        MaybeList<EqualityComparison> equs =
+            input.__toList(LogicalAnd::getEqualityComparison);
 
         final EqualityComparisonExpressionSemantics eces =
             module.get(EqualityComparisonExpressionSemantics.class);
@@ -106,9 +107,8 @@ public class LogicalAndExpressionSemantics
         Maybe<LogicalAnd> input,
         StaticState state
     ) {
-        List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(
-            input.__(LogicalAnd::getEqualityComparison)
-        );
+        MaybeList<EqualityComparison> equs =
+            input.__toList(LogicalAnd::getEqualityComparison);
 
         if (equs.isEmpty()) {
             return state;
@@ -148,11 +148,10 @@ public class LogicalAndExpressionSemantics
     ) {
         // If it is asserted that the overall expression is true, it
         // means that all the operands returned true, and we can
-        // compute the consequences one after the other.
+        // incorporate the consequences, one after the other, in the state.
 
-        List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(
-            input.__(LogicalAnd::getEqualityComparison)
-        );
+        MaybeList<EqualityComparison> equs =
+            input.__toList(LogicalAnd::getEqualityComparison);
 
         if (equs.isEmpty()) {
             return state;
@@ -180,9 +179,8 @@ public class LogicalAndExpressionSemantics
         // used to compute an alternative final state, wich is used to
         // compute the overall final state with an intersection.
 
-        List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(
-            input.__(LogicalAnd::getEqualityComparison)
-        );
+        MaybeList<EqualityComparison> equs =
+            input.__toList(LogicalAnd::getEqualityComparison);
 
         final EqualityComparisonExpressionSemantics eces =
             module.get(EqualityComparisonExpressionSemantics.class);
@@ -225,8 +223,8 @@ public class LogicalAndExpressionSemantics
 
     @Override
     protected boolean mustTraverse(Maybe<LogicalAnd> input) {
-        List<Maybe<EqualityComparison>> equs =
-            Maybe.toListOfMaybes(input.__(LogicalAnd::getEqualityComparison));
+        MaybeList<EqualityComparison> equs =
+            input.__toList(LogicalAnd::getEqualityComparison);
         return equs.size() == 1;
     }
 
@@ -235,9 +233,9 @@ public class LogicalAndExpressionSemantics
     protected Optional<? extends SemanticsBoundToExpression<?>>
     traverseInternal(Maybe<LogicalAnd> input) {
         if (mustTraverse(input)) {
-            List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(
-                input.__(LogicalAnd::getEqualityComparison)
-            );
+            MaybeList<EqualityComparison> equs =
+                input.__toList(LogicalAnd::getEqualityComparison);
+
             return Optional.of(new SemanticsBoundToExpression<>(
                 module.get(EqualityComparisonExpressionSemantics.class),
                 equs.get(0)
@@ -271,9 +269,8 @@ public class LogicalAndExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        List<Maybe<EqualityComparison>> equs = Maybe.toListOfMaybes(
-            input.__(LogicalAnd::getEqualityComparison)
-        );
+        MaybeList<EqualityComparison> equs =
+            input.__toList(LogicalAnd::getEqualityComparison);
         final EqualityComparisonExpressionSemantics eces =
             module.get(EqualityComparisonExpressionSemantics.class);
 

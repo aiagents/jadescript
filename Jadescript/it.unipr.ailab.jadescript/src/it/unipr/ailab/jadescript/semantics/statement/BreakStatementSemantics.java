@@ -51,11 +51,11 @@ public class BreakStatementSemantics
         }
 
         acceptor.accept(result);
-        boolean inLoop = input.__(
+        boolean inLoop = input.__partial2(
             EcoreUtil2::getContainerOfType,
             WhileStatement.class
         ).isPresent()
-            || input.__(
+            || input.__partial2(
             EcoreUtil2::getContainerOfType,
             ForStatement.class
         ).isPresent();
@@ -75,11 +75,11 @@ public class BreakStatementSemantics
         final String keyword = input.__(BreakStatement::getKeyword)
             .extract(Maybe.nullAsEmptyString);
         boolean inLoop = module.get(ValidationHelper.class).asserting(
-            input.__(
+            input.__partial2(
                 EcoreUtil2::getContainerOfType,
                 WhileStatement.class
             ).isPresent()
-                || input.__(
+                || input.__partial2(
                 EcoreUtil2::getContainerOfType,
                 ForStatement.class
             ).isPresent(),

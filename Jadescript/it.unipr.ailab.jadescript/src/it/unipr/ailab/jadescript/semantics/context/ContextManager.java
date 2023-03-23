@@ -10,6 +10,7 @@ import it.unipr.ailab.jadescript.semantics.context.c1toplevel.TopLevelDeclaratio
 import it.unipr.ailab.jadescript.semantics.context.c2feature.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.xtype.XImportDeclaration;
@@ -48,7 +49,7 @@ public class ContextManager {
     public void enterFile(
         String fileURI,
         String fileName,
-        List<Maybe<XImportDeclaration>> importDeclarations
+        MaybeList<XImportDeclaration> importDeclarations
     ) {
         if (this.innerContext instanceof ModuleContext) {
             this.outerContexts.push(this.innerContext);

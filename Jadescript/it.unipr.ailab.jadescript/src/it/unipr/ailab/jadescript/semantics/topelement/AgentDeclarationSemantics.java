@@ -47,7 +47,7 @@ public class AgentDeclarationSemantics
 
         return typeHelper.beingDeclaredAgentType(
             beingDeclared,
-            Maybe.toListOfMaybes(input.__(Agent::getSuperTypes)).stream()
+            Maybe.someStream(input.__(Agent::getSuperTypes))
                 .findFirst()
                 .orElse(nothing())
                 .__(JvmParameterizedTypeReference::getType)
@@ -196,7 +196,7 @@ public class AgentDeclarationSemantics
         ));
 
 
-        Maybe<OnCreateHandler> createHandler = stream(
+        Maybe<OnCreateHandler> createHandler = someStream(
             input.__(FeatureContainer::getFeatures)
         ).filter(maybeF ->
                 //f instanceof OnCreateHandler

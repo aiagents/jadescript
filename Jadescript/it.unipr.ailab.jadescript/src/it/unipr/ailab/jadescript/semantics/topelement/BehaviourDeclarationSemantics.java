@@ -29,7 +29,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 public class BehaviourDeclarationSemantics
     extends ForAgentTopLevelDeclarationSemantics<BehaviourDeclaration> {
@@ -126,7 +127,7 @@ public class BehaviourDeclarationSemantics
 
         if (Maybe.nullAsFalse(input
             .__(BehaviourDeclaration::getType)
-            .__(String::equals, "cyclic"))) {
+            .__partial2(String::equals, "cyclic"))) {
 
             return Collections.singletonList(typeHelper.jtFromClass(
                 jadescript.core.behaviours.CyclicBehaviour.class,
@@ -157,10 +158,7 @@ public class BehaviourDeclarationSemantics
         if (typeArg.isPresent()) {
             typeArgs.add(typeHelper.jtFromJvmTypeRef(typeArg.toNullable()));
         }
-        if (Maybe.nullAsFalse(input
-            .__(BehaviourDeclaration::getType)
-            .__(String::equals, "cyclic"))) {
-
+        if (input.__(BehaviourDeclaration::getType).wrappedEquals("cyclic")) {
             final IJadescriptType value = typeHelper.jtFromClass(
                 CyclicBehaviour.class,
                 typeArgs
@@ -193,7 +191,7 @@ public class BehaviourDeclarationSemantics
         final BehaviourDeclaration inputSafe = input.toNullable();
 
         final Optional<OnCreateHandler> onCreateHandler =
-            stream(input.__(BehaviourDeclaration::getFeatures))
+            someStream(input.__(BehaviourDeclaration::getFeatures))
                 .filter(j -> j.__(f -> f instanceof OnCreateHandler)
                     .extract(nullAsFalse))
                 .map(Maybe::toOpt)
@@ -210,13 +208,12 @@ public class BehaviourDeclarationSemantics
 
 
         if (onCreateHandler.isPresent()) {
-            final List<Maybe<FormalParameter>> formalParameters =
-                toListOfMaybes(onCreateHandler.get().getParameters());
+
 
             final TypeExpressionSemantics tes =
                 module.get(TypeExpressionSemantics.class);
 
-            formalParameters.stream()
+            Maybe.someStream(onCreateHandler.get().getParameters())
                 .map(m -> m.__(FormalParameter::getType))
                 .map(tes::toJadescriptType)
                 .map(t -> {
@@ -330,13 +327,13 @@ public class BehaviourDeclarationSemantics
 
                     scb.line("super.doAction(_tickCount);");
 
-                    toListOfMaybes(input.__(FeatureContainer::getFeatures))
-                        .stream()
+                    someStream(input.__(FeatureContainer::getFeatures))
                         .filter(Maybe::isPresent)
                         .map(Maybe::toNullable)
                         .filter(
                             BehaviourDeclarationSemantics::hasEventClassSystem
-                        ).map(this::synthesizeEventFieldName)
+                        )
+                        .map(this::synthesizeEventFieldName)
                         .forEach(eventName -> scb.line(eventName + ".run();"));
 
                     w.ifStmnt(
@@ -347,8 +344,7 @@ public class BehaviourDeclarationSemantics
                     ).writeSonnet(scb);
 
                     scb.add("if ( true ");
-                    toListOfMaybes(input.__(FeatureContainer::getFeatures))
-                        .stream()
+                    someStream(input.__(FeatureContainer::getFeatures))
                         .filter(Maybe::isPresent)
                         .map(Maybe::toNullable)
                         .filter(
@@ -381,7 +377,7 @@ public class BehaviourDeclarationSemantics
             typeHelper.BOOLEAN.asJvmTypeReference(),
             itMethod -> {
                 boolean result =
-                    Maybe.stream(input.__(BehaviourDeclaration::getFeatures))
+                    someStream(input.__(BehaviourDeclaration::getFeatures))
                         .anyMatch(featureMaybe -> {
                             if (featureMaybe.isPresent()) {
                                 Feature f = featureMaybe.toNullable();

@@ -137,7 +137,7 @@ public abstract class ExtendingTopLevelDeclarationSemantics<T extends ExtendingE
             final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
 
             superTypes.addAll(
-                Maybe.stream(input.__(ExtendingElement::getSuperTypes))
+                Maybe.someStream(input.__(ExtendingElement::getSuperTypes))
                     .map(j -> j.__(jvmTB::cloneWithProxies))
                     .filter(Maybe::isPresent)
                     .map(Maybe::toNullable)

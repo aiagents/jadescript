@@ -16,11 +16,11 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Functional.QuadFunction;
 import it.unipr.ailab.maybe.Functional.TriFunction;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyValue;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -52,7 +52,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         StaticState startingState,
         BiFunction<Maybe<S>, StaticState, R> map
     ) {
-        return Util.accumulateAndMap(
+        return SemanticsUtils.accumulateAndMap(
             inputs,
             startingState,
             map,
@@ -68,7 +68,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         StaticState state,
         TriFunction<ExpressionSemantics<S>, Maybe<S>, StaticState, R> getR
     ) {
-        return Util.accumulateAndMap(
+        return SemanticsUtils.accumulateAndMap(
             expressions.map(
                 sbte -> (SemanticsBoundToExpression<S>) sbte
             ),
@@ -340,7 +340,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
             StaticState,
             StaticState> enrichState
     ) {
-        return Util.accumulateAndMap(
+        return SemanticsUtils.accumulateAndMap(
             getSubExpressions(input.getPattern()).map(
                 sbte -> (SemanticsBoundToExpression<S>) sbte
             ),
@@ -1161,7 +1161,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         }
 
         final Maybe<? extends EObject> eObject =
-            Util.extractEObject(input.getPattern());
+            SemanticsUtils.extractEObject(input.getPattern());
         boolean holesCheck;
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
@@ -1260,7 +1260,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
         if (patternGroundForEquality) {
 
-
             // This is a non-holed sub pattern: validate it as expression.
             boolean asRExpressionCheck = validate(
                 input.getPattern(),
@@ -1313,14 +1312,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
                 );
                 final IJadescriptType solvedPattType = patternType
                     .solve(input.getProvidedInputType());
-
-                final String src =
-                    CompilationHelper.sourceToTextAny(
-                        input.getPattern()).orElse("");
-                final String sem = deepTraverse(input.getPattern())
-                    .getSemantics().getClass().getSimpleName();
-
-                final String ptName = patternType.toString();
 
 
                 //TODO change order of validation for better explanation: an
@@ -1379,7 +1370,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
                 + providedInputType.getJadescriptName()
                 + " to a pattern which expects an input of type "
                 + solvedType.getJadescriptName(),
-            Util.extractEObject(pattern),
+            SemanticsUtils.extractEObject(pattern),
             acceptor
         );
     }

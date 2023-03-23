@@ -20,7 +20,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TemplateCompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
@@ -173,7 +173,7 @@ public class OnNativeEventHandlerSemantics
 //generating =>     return;
 //generating => }
         w.ifStmnt(
-            w.expr(Util.getOuterClassThisReference(input) +
+            w.expr(SemanticsUtils.getOuterClassThisReference(input) +
                 "." + IGNORE_MSG_HANDLERS_VAR_NAME),
             w.block().addStatement(
                 w.assign(
@@ -510,7 +510,7 @@ public class OnNativeEventHandlerSemantics
             w.expr(NATIVE_EVENT_VAR_NAME + " != null"),
             w.block()
                 .addStatement(w.assign(
-                    Util.getOuterClassThisReference(input) + "."
+                    SemanticsUtils.getOuterClassThisReference(input) + "."
                         + IGNORE_MSG_HANDLERS_VAR_NAME,
                     w.expr("true")
                 ))

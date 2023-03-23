@@ -18,7 +18,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
 import it.unipr.ailab.maybe.Maybe;
-import org.eclipse.emf.common.util.EList;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
-import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
 public class SetLiteralExpressionSemantics
     extends AssignableExpressionSemantics<MapOrSetLiteral> {
@@ -54,15 +53,18 @@ public class SetLiteralExpressionSemantics
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<MapOrSetLiteral> input
     ) {
-        final List<Maybe<RValueExpression>> keys =
-            toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
+        final MaybeList<RValueExpression> keys =
+            input.__toList(MapOrSetLiteral::getKeys);
 
-        final Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
+        final Maybe<RValueExpression> rest =
+            input.__(MapOrSetLiteral::getRest);
 
         return Streams.concat(keys.stream(), Stream.of(rest))
             .filter(Maybe::isPresent)
-            .map(k -> new SemanticsBoundToExpression<>(module.get(
-                RValueExpressionSemantics.class), k));
+            .map(k -> new SemanticsBoundToExpression<>(
+                module.get(RValueExpressionSemantics.class),
+                k
+            ));
 
     }
 
@@ -90,8 +92,8 @@ public class SetLiteralExpressionSemantics
         Maybe<MapOrSetLiteral> input,
         StaticState state, BlockElementAcceptor acceptor
     ) {
-        final List<Maybe<RValueExpression>> elements =
-            toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
+        final MaybeList<RValueExpression> elements =
+            input.__toList(MapOrSetLiteral::getKeys);
         final Maybe<TypeExpression> explicitElementType =
             input.__(MapOrSetLiteral::getKeyTypeParameter);
 
@@ -122,7 +124,7 @@ public class SetLiteralExpressionSemantics
 
 
     private IJadescriptType computeElementsTypeLUB(
-        List<Maybe<RValueExpression>> valuesList,
+        MaybeList<RValueExpression> valuesList,
         StaticState state
     ) {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
@@ -158,8 +160,6 @@ public class SetLiteralExpressionSemantics
         Maybe<MapOrSetLiteral> input,
         StaticState state
     ) {
-        Maybe<EList<RValueExpression>> values =
-            input.__(MapOrSetLiteral::getKeys);
         Maybe<TypeExpression> typeParameter =
             input.__(MapOrSetLiteral::getKeyTypeParameter);
 
@@ -176,7 +176,10 @@ public class SetLiteralExpressionSemantics
             );
         } else {
             final IJadescriptType elementsTypePrePipe =
-                computeElementsTypeLUB(toListOfMaybes(values), state);
+                computeElementsTypeLUB(
+                    input.__toList(MapOrSetLiteral::getKeys),
+                    state
+                );
             if (isWithPipe) {
                 IJadescriptType restType =
                     module.get(RValueExpressionSemantics.class)
@@ -205,8 +208,8 @@ public class SetLiteralExpressionSemantics
         ValidationMessageAcceptor acceptor
     ) {
         if (input == null) return VALID;
-        final List<Maybe<RValueExpression>> elements =
-            toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
+        final MaybeList<RValueExpression> elements =
+            input.__toList(MapOrSetLiteral::getKeys);
         final boolean hasTypeSpecifiers =
             input.__(MapOrSetLiteral::isWithTypeSpecifiers)
                 .extract(nullAsFalse);
@@ -264,7 +267,6 @@ public class SetLiteralExpressionSemantics
         }
 
 
-
         if (hasTypeSpecifiers) {
             return module.get(ValidationHelper.class).assertExpectedType(
                 module.get(TypeExpressionSemantics.class)
@@ -297,8 +299,8 @@ public class SetLiteralExpressionSemantics
         PatternMatchInput<MapOrSetLiteral> input,
         StaticState state
     ) {
-        final List<Maybe<RValueExpression>> elements =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
+        final MaybeList<RValueExpression> elements =
+            input.getPattern().__toList(MapOrSetLiteral::getKeys);
         final Maybe<RValueExpression> rest =
             input.getPattern().__(MapOrSetLiteral::getRest);
         final boolean isWithPipe =
@@ -401,9 +403,8 @@ public class SetLiteralExpressionSemantics
         PatternMatchInput<MapOrSetLiteral> input,
         StaticState state
     ) {
-        final List<Maybe<RValueExpression>> elements = toListOfMaybes(
-            input.getPattern().__(MapOrSetLiteral::getKeys)
-        );
+        final MaybeList<RValueExpression> elements =
+            input.getPattern().__toList(MapOrSetLiteral::getKeys);
         final Maybe<RValueExpression> rest =
             input.getPattern().__(MapOrSetLiteral::getRest);
 
@@ -433,8 +434,9 @@ public class SetLiteralExpressionSemantics
     ) {
         //NOTE: set patterns cannot have holes before the pipe sign (enforced
         // by validator)
-        boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe)
-            .extract(nullAsFalse);
+        boolean isWithPipe =
+            input.getPattern().__(MapOrSetLiteral::isWithPipe)
+                .extract(nullAsFalse);
 
         Maybe<RValueExpression> rest = input.getPattern().
             __(MapOrSetLiteral::getRest);
@@ -446,8 +448,8 @@ public class SetLiteralExpressionSemantics
             return false;
         }
 
-        final List<Maybe<RValueExpression>> elements =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
+        final MaybeList<RValueExpression> elements =
+            input.getPattern().__toList(MapOrSetLiteral::getKeys);
         StaticState afterElements =
             advanceAllExpressions(rves, elements.stream(), state);
         final SubPattern<RValueExpression, MapOrSetLiteral> restTerm =
@@ -468,8 +470,9 @@ public class SetLiteralExpressionSemantics
     ) {
         //NOTE: set patterns cannot have holes before the pipe sign (enforced
         // by validator)
-        boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe)
-            .extract(nullAsFalse);
+        boolean isWithPipe =
+            input.getPattern().__(MapOrSetLiteral::isWithPipe)
+                .extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.getPattern()
             .__(MapOrSetLiteral::getRest);
         final Maybe<TypeExpression> typeParameter =
@@ -488,8 +491,8 @@ public class SetLiteralExpressionSemantics
             return false;
         }
 
-        final List<Maybe<RValueExpression>> elements =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
+        final MaybeList<RValueExpression> elements =
+            input.getPattern().__toList(MapOrSetLiteral::getKeys);
         StaticState afterElements =
             advanceAllExpressions(rves, elements.stream(), state);
         final SubPattern<RValueExpression, MapOrSetLiteral> restTerm =
@@ -511,8 +514,9 @@ public class SetLiteralExpressionSemantics
     ) {
         //NOTE: set patterns cannot have holes before the pipe sign (enforced
         // by validator)
-        boolean isWithPipe = input.getPattern().__(MapOrSetLiteral::isWithPipe)
-            .extract(nullAsFalse);
+        boolean isWithPipe =
+            input.getPattern().__(MapOrSetLiteral::isWithPipe)
+                .extract(nullAsFalse);
 
         Maybe<RValueExpression> rest = input.getPattern()
             .__(MapOrSetLiteral::getRest);
@@ -524,8 +528,8 @@ public class SetLiteralExpressionSemantics
             return false;
         }
 
-        final List<Maybe<RValueExpression>> elements =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
+        final MaybeList<RValueExpression> elements =
+            input.getPattern().__toList(MapOrSetLiteral::getKeys);
         StaticState afterElements =
             advanceAllExpressions(rves, elements.stream(), state);
         final SubPattern<RValueExpression, MapOrSetLiteral> restTerm =
@@ -548,8 +552,8 @@ public class SetLiteralExpressionSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
+        MaybeList<RValueExpression> values =
+            input.getPattern().__toList(MapOrSetLiteral::getKeys);
         boolean isWithPipe = input.getPattern()
             .__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.getPattern()
@@ -694,9 +698,8 @@ public class SetLiteralExpressionSemantics
         PatternMatchInput<MapOrSetLiteral> input,
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(
-                MapOrSetLiteral::getKeys));
+        MaybeList<RValueExpression> values =
+            input.getPattern().__toList(MapOrSetLiteral::getKeys);
         boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe).extract(
                 nullAsFalse);

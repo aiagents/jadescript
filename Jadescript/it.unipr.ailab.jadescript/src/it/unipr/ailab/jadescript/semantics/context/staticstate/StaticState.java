@@ -11,8 +11,8 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Name;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.ImmutableMap;
-import it.unipr.ailab.jadescript.semantics.utils.ImmutableSet;
+import it.unipr.ailab.maybe.utils.ImmutableMap;
+import it.unipr.ailab.maybe.utils.ImmutableSet;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.jetbrains.annotations.Contract;
@@ -25,7 +25,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
+import static it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils.safeFilter;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 

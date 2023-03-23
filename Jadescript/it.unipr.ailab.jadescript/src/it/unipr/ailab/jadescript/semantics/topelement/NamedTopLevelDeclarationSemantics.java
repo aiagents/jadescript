@@ -68,7 +68,7 @@ public abstract class NamedTopLevelDeclarationSemantics<T extends NamedElement>
 
         if (nameShouldStartWithCapital()) {
             validationHelper.advice(
-                name.__(String::charAt, 0).__(Character::isUpperCase),
+                name.__partial2(String::charAt, 0).__(Character::isUpperCase),
                 "LowerCaseElementName",
                 "Names here should start with a capital letter",
                 input,

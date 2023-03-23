@@ -4,7 +4,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.stream.Stream;
@@ -45,7 +45,7 @@ public class OnBehaviourFailureHandlerWhenExpressionContext
     public Stream<? extends CompilableName> compilableNames(
         @Nullable String name
     ) {
-        return Util.buildStream(
+        return SemanticsUtils.buildStream(
             this::getFailureReasonName,
             this::getFailedBehaviourName
         ).filter(n -> name == null || name.equals(n.name()));

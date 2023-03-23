@@ -14,6 +14,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Arrays;
@@ -48,9 +49,8 @@ public class MultiplicativeExpressionSemantics
         Maybe<Multiplicative> input,
         StaticState state
     ) {
-        final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(
-            input.__(Multiplicative::getMatches)
-        );
+        final MaybeList<Matches> matches =
+            input.__toList(Multiplicative::getMatches);
         return advanceAssociative(matches, state);
     }
 
@@ -92,8 +92,8 @@ public class MultiplicativeExpressionSemantics
 
 
     private String associativeCompile(
-        List<Maybe<Matches>> operands,
-        List<Maybe<String>> operators,
+        MaybeList<Matches> operands,
+        MaybeList<String> operators,
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
@@ -131,7 +131,7 @@ public class MultiplicativeExpressionSemantics
 
 
     private StaticState advanceAssociative(
-        List<Maybe<Matches>> operands,
+        MaybeList<Matches> operands,
         StaticState state
     ) {
         final MatchesExpressionSemantics mes =
@@ -157,8 +157,8 @@ public class MultiplicativeExpressionSemantics
 
 
     private IJadescriptType associativeInfer(
-        List<Maybe<Matches>> operands,
-        List<Maybe<String>> operators,
+        MaybeList<Matches> operands,
+        MaybeList<String> operators,
         StaticState state
     ) {
         if (operands.isEmpty()) {
@@ -298,8 +298,7 @@ public class MultiplicativeExpressionSemantics
     ) {
         final MatchesExpressionSemantics mes =
             module.get(MatchesExpressionSemantics.class);
-        return Maybe.toListOfMaybes(input.__(Multiplicative::getMatches))
-            .stream()
+        return Maybe.someStream(input.__(Multiplicative::getMatches))
             .filter(Maybe::isPresent)
             .map(x -> new SemanticsBoundToExpression<>(mes, x));
     }
@@ -312,12 +311,10 @@ public class MultiplicativeExpressionSemantics
         BlockElementAcceptor acceptor
     ) {
         if (input == null) return "";
-        final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(
-            input.__(Multiplicative::getMatches)
-        );
-        final List<Maybe<String>> multiplicativeOps = Maybe.toListOfMaybes(
-            input.__(Multiplicative::getMultiplicativeOp)
-        );
+        final MaybeList<Matches> matches =
+            input.__toList(Multiplicative::getMatches);
+        final MaybeList<String> multiplicativeOps =
+            input.__toList(Multiplicative::getMultiplicativeOp);
         return associativeCompile(matches, multiplicativeOps, state, acceptor);
     }
 
@@ -327,21 +324,18 @@ public class MultiplicativeExpressionSemantics
         Maybe<Multiplicative> input,
         StaticState state
     ) {
-        final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(
-            input.__(Multiplicative::getMatches)
-        );
-        final List<Maybe<String>> multiplicativeOps = Maybe.toListOfMaybes(
-            input.__(Multiplicative::getMultiplicativeOp)
-        );
+        final MaybeList<Matches> matches =
+            input.__toList(Multiplicative::getMatches);
+        final MaybeList<String> multiplicativeOps =
+            input.__toList(Multiplicative::getMultiplicativeOp);
         return associativeInfer(matches, multiplicativeOps, state);
     }
 
 
     @Override
     protected boolean mustTraverse(Maybe<Multiplicative> input) {
-        final List<Maybe<Matches>> matches = Maybe.toListOfMaybes(
-            input.__(Multiplicative::getMatches)
-        );
+        final MaybeList<Matches> matches =
+            input.__toList(Multiplicative::getMatches);
         return matches.size() == 1;
     }
 
@@ -350,8 +344,8 @@ public class MultiplicativeExpressionSemantics
     protected Optional<? extends SemanticsBoundToExpression<?>>
     traverseInternal(Maybe<Multiplicative> input) {
         if (mustTraverse(input)) {
-            final List<Maybe<Matches>> matches =
-                Maybe.toListOfMaybes(input.__(Multiplicative::getMatches));
+            final MaybeList<Matches> matches =
+                input.__toList(Multiplicative::getMatches);
 
             return Optional.of(new SemanticsBoundToExpression<>(
                 module.get(MatchesExpressionSemantics.class),
@@ -373,8 +367,8 @@ public class MultiplicativeExpressionSemantics
 
 
     public boolean validateAssociative(
-        List<Maybe<Matches>> operands,
-        List<Maybe<String>> operators,
+        MaybeList<Matches> operands,
+        MaybeList<String> operators,
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
@@ -527,10 +521,10 @@ public class MultiplicativeExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        final List<Maybe<Matches>> operands = Maybe.toListOfMaybes(input.__(
-            Multiplicative::getMatches));
-        final List<Maybe<String>> operators = Maybe.toListOfMaybes(input.__(
-            Multiplicative::getMultiplicativeOp));
+        final MaybeList<Matches> operands =
+            input.__toList(Multiplicative::getMatches);
+        final MaybeList<String> operators =
+            input.__toList(Multiplicative::getMultiplicativeOp);
         return validateAssociative(operands, operators, state, acceptor);
     }
 

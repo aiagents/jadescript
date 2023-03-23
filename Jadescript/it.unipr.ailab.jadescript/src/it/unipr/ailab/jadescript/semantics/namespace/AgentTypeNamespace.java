@@ -13,7 +13,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseAgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedAgentType;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import org.jetbrains.annotations.Nullable;
 

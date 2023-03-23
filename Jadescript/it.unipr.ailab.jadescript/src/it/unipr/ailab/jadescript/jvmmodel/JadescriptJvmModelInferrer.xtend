@@ -84,9 +84,9 @@ class JadescriptJvmModelInferrer extends AbstractModelInferrer {
 		module.get(ContextManager).enterFile(
 			model.eResource.URI.toString,
 			model.eResource.URI.trimFileExtension.lastSegment,
-			Maybe.toListOfMaybes(
-				Maybe.some(model.importSection).__[it.importSection].__[it.importDeclarations]
-			)
+			Maybe.some(model.importSection)
+				.__[it.importSection]
+				.__toList[it.importDeclarations]
 		)
 
 		return module

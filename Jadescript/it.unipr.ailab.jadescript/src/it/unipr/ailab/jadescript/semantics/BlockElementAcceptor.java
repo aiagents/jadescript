@@ -1,6 +1,6 @@
 package it.unipr.ailab.jadescript.semantics;
 
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;
 import it.unipr.ailab.sonneteer.statement.BlockWriterElement;
@@ -34,7 +34,7 @@ public interface BlockElementAcceptor {
         String compiledExpression
     ) {
         final Maybe<Integer> hash =
-            Util.extractEObject(eObject).__(EObject::hashCode);
+            SemanticsUtils.extractEObject(eObject).__(EObject::hashCode);
 
         final String finalName = "__auxvar_" + codeName + "_" + hash.orElse(0);
         accept(w.variable(

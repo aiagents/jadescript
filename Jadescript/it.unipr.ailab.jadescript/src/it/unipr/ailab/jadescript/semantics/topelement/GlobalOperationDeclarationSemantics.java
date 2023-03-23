@@ -27,6 +27,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import jade.content.onto.Ontology;
@@ -49,6 +50,9 @@ import static it.unipr.ailab.maybe.Maybe.*;
 public class GlobalOperationDeclarationSemantics
     extends UsesOntologyTopLevelDeclarationSemantics<GlobalFunctionOrProcedure>
     implements OperationDeclarationSemantics {
+
+
+    //TODO implement nativeness
 
     private final Map<String, List<Maybe<GlobalFunctionOrProcedure>>>
         methodsMap = new HashMap<>();
@@ -134,7 +138,7 @@ public class GlobalOperationDeclarationSemantics
         final boolean allSameNature = methodsMap.get(name).stream()
             .allMatch(funcOrProc ->
                 funcOrProc.__(GlobalFunctionOrProcedure::isFunction)
-                    .__(Boolean::equals, mustBeFunction)
+                    .__partial2(Boolean::equals, mustBeFunction)
                     .extract(nullAsTrue));
 
         if (!allSameNature) {
@@ -156,10 +160,8 @@ public class GlobalOperationDeclarationSemantics
             Maybe<GlobalFunctionOrProcedure> method =
                 methodsMap.get(name).get(mI);
 
-            final List<Maybe<JvmTypeReference>> ontologies =
-                Maybe.toListOfMaybes(
-                    input.__(UsesOntologyElement::getOntologies)
-                );
+            final MaybeList<JvmTypeReference> ontologies =
+                input.__toList(UsesOntologyElement::getOntologies);
 
 
             for (int i = 0; i < ontologies.size(); i++) {
@@ -309,10 +311,8 @@ public class GlobalOperationDeclarationSemantics
                     itMethod.setVisibility(JvmVisibility.PUBLIC);
                     itMethod.setStatic(true);
 
-                    final List<Maybe<FormalParameter>> parameters =
-                        toListOfMaybes(
-                            method.__(GlobalFunctionOrProcedure::getParameters)
-                        );
+                    final MaybeList<FormalParameter> parameters = method
+                        .__toList(GlobalFunctionOrProcedure::getParameters);
 
                     final Optional<IJadescriptType> contextAgent =
                         contextManager.currentContext().searchAs(

@@ -1,4 +1,4 @@
-package it.unipr.ailab.jadescript.semantics.utils;
+package it.unipr.ailab.maybe.utils;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;

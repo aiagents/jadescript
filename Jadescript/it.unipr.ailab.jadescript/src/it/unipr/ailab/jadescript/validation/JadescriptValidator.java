@@ -15,6 +15,7 @@ import it.unipr.ailab.jadescript.semantics.topelement.BehaviourTopLevelDeclarati
 import it.unipr.ailab.jadescript.semantics.topelement.GlobalOperationDeclarationSemantics;
 import it.unipr.ailab.jadescript.semantics.topelement.OntologyDeclarationSemantics;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.EcoreUtil2;
@@ -34,6 +35,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static it.unipr.ailab.maybe.Maybe.some;
 
 
 /*Suppressing "unused" because methods with @Check annotation are invoked with
@@ -80,15 +83,15 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
 
         contextManager.enterModule(
             moduleName,
-            Maybe.some(model)
+            some(model)
         );
 
         contextManager.enterFile(
             model.eResource().getURI().toString(),
             model.eResource().getURI().trimFileExtension().lastSegment(),
-            Maybe.toListOfMaybes(Maybe.some(model.getImportSection())
+            some(model.getImportSection())
                 .__(ImportSection::getImportSection)
-                .__(XImportSection::getImportDeclarations))
+                .__toList(XImportSection::getImportDeclarations)
         );
         return module;
     }
@@ -183,7 +186,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
                 this._jvmAnnotationReferenceBuilder
             );
 
-            Maybe<String> maybeName = Maybe.some(model.getName());
+            Maybe<String> maybeName = some(model.getName());
             boolean _isReservedName =
                 ValidationHelper.isReservedName(maybeName);
 
@@ -215,7 +218,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
                         GlobalOperationDeclarationSemantics.class);
                     for (final GlobalFunctionOrProcedure v :
                         functionsMap.get(k)) {
-                        gms.addMethod(Maybe.some(v));
+                        gms.addMethod(some(v));
                     }
 
                     gms.validateOnEdit(gms.getOriginalMethod(k), this);
@@ -242,7 +245,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
             SemanticsModule module = createSemanticsModule(model);
 
             module.get(OntologyDeclarationSemantics.class).validateOnEdit(
-                Maybe.some(ontology), this
+                some(ontology), this
             );
         } catch (final Throwable _t) {
             if (_t instanceof RuntimeException) {
@@ -265,7 +268,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
 
             module.get(BehaviourTopLevelDeclarationSemantics.class)
                 .validateOnEdit(
-                    Maybe.some(behaviour),
+                    some(behaviour),
                     this
                 );
         } catch (final Throwable _t) {
@@ -288,7 +291,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
             SemanticsModule module = createSemanticsModule(model);
 
             module.get(AgentDeclarationSemantics.class).validateOnEdit(
-                Maybe.some(agent),
+                some(agent),
                 this
             );
         } catch (final Throwable _t) {
@@ -310,7 +313,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
                 this._jvmAnnotationReferenceBuilder
             );
 
-            Maybe<String> maybeName = Maybe.some(model.getName());
+            Maybe<String> maybeName = some(model.getName());
             boolean _isReservedName =
                 ValidationHelper.isReservedName(maybeName);
 
@@ -342,7 +345,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
                         GlobalOperationDeclarationSemantics.class);
                     for (final GlobalFunctionOrProcedure v :
                         functionsMap.get(k)) {
-                        gms.addMethod(Maybe.some(v));
+                        gms.addMethod(some(v));
                     }
 
                     gms.validateOnSave(gms.getOriginalMethod(k), this);
@@ -369,7 +372,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
             SemanticsModule module = createSemanticsModule(model);
 
             module.get(OntologyDeclarationSemantics.class).validateOnSave(
-                Maybe.some(ontology), this
+                some(ontology), this
             );
         } catch (final Throwable _t) {
             if (_t instanceof RuntimeException) {
@@ -392,7 +395,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
 
             module.get(BehaviourTopLevelDeclarationSemantics.class)
                 .validateOnSave(
-                    Maybe.some(behaviour),
+                    some(behaviour),
                     this
                 );
         } catch (final Throwable _t) {
@@ -415,7 +418,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
             SemanticsModule module = createSemanticsModule(model);
 
             module.get(AgentDeclarationSemantics.class).validateOnSave(
-                Maybe.some(agent),
+                some(agent),
                 this
             );
         } catch (final Throwable _t) {
@@ -437,7 +440,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
                 this._jvmAnnotationReferenceBuilder
             );
 
-            Maybe<String> maybeName = Maybe.some(model.getName());
+            Maybe<String> maybeName = some(model.getName());
             boolean _isReservedName =
                 ValidationHelper.isReservedName(maybeName);
 
@@ -469,7 +472,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
                         GlobalOperationDeclarationSemantics.class);
                     for (final GlobalFunctionOrProcedure v :
                         functionsMap.get(k)) {
-                        gms.addMethod(Maybe.some(v));
+                        gms.addMethod(some(v));
                     }
 
                     gms.validateOnRequest(gms.getOriginalMethod(k), this);
@@ -496,7 +499,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
             SemanticsModule module = createSemanticsModule(model);
 
             module.get(OntologyDeclarationSemantics.class).validateOnRequest(
-                Maybe.some(ontology), this
+                some(ontology), this
             );
         } catch (final Throwable _t) {
             if (_t instanceof RuntimeException) {
@@ -519,7 +522,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
 
             module.get(BehaviourTopLevelDeclarationSemantics.class)
                 .validateOnRequest(
-                    Maybe.some(behaviour),
+                    some(behaviour),
                     this
                 );
         } catch (final Throwable _t) {
@@ -542,7 +545,7 @@ public class JadescriptValidator extends AbstractJadescriptValidator {
             SemanticsModule module = createSemanticsModule(model);
 
             module.get(AgentDeclarationSemantics.class).validateOnRequest(
-                Maybe.some(agent),
+                some(agent),
                 this
             );
         } catch (final Throwable _t) {

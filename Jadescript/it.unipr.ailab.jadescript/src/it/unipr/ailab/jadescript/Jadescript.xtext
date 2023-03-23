@@ -134,29 +134,57 @@ Ontology returns FeatureContainer:
 	(ENDLINE)*
 	DEDENT;
 
-GlobalFunctionOrProcedure returns UsesOntologyElement:
-	{GlobalFunctionOrProcedure}
-	((function?='function' name=Identifier
-	('('
-	(parameters+=FormalParameter
-	(',' parameters+=FormalParameter)*)?
-	')')?
-	'as' type=TypeExpression 
-	('uses'
-		(('ontology' ontologies+=JvmTypeReference) | ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*)))
-	)?
-	'do'
-	body=CodeBlock)
-	|
-	(procedure?='procedure' name=Identifier
-	('with'
-	(parameters+=FormalParameter
-	(',' parameters+=FormalParameter)*)?)? 
-	('uses'
-		(('ontology' ontologies+=JvmTypeReference) | ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*)))
-	)?
-	'do'
-	body=CodeBlock));
+GlobalFunctionOrProcedure returns UsesOntologyElement: {GlobalFunctionOrProcedure}(
+	(
+		// Native Global Function
+		native?='native' function?='function' name=Identifier
+		('('
+			(parameters+=FormalParameter (',' parameters+=FormalParameter)*)?
+		')')?
+		'as' type=TypeExpression
+		('uses'
+			(('ontology' ontologies+=JvmTypeReference) 
+				| ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*))
+			)
+		)?
+	) | (
+		// Concrete Global Function
+		function?='function' name=Identifier
+		('('
+			(parameters+=FormalParameter (',' parameters+=FormalParameter)*)?
+		')')?
+		'as' type=TypeExpression
+		('uses'
+			(('ontology' ontologies+=JvmTypeReference) 
+				| ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*))
+			)
+		)?
+		'do' body=CodeBlock
+	) | (	
+		// Native Global Procedure	
+		native?='native' procedure?='procedure' name=Identifier
+		('with'
+			(parameters+=FormalParameter (',' parameters+=FormalParameter)*)?
+		)?
+		('uses'
+			(('ontology' ontologies+=JvmTypeReference) 
+				| ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*))
+			)
+		)?	
+	) | (
+		// Concrete Global Procedure	
+		procedure?='procedure' name=Identifier
+		('with'
+			(parameters+=FormalParameter (',' parameters+=FormalParameter)*)?
+		)?
+		('uses'
+			(('ontology' ontologies+=JvmTypeReference) 
+				| ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*))
+			)
+		)?	
+		'do' body=CodeBlock
+	)
+);
 
 	/**
  * FEATURES

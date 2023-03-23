@@ -18,7 +18,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 
 import static it.unipr.ailab.maybe.Maybe.iterate;
-import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
 /**
  * Created on 2019-05-17.
@@ -84,7 +83,7 @@ public interface OperationDeclarationSemantics
 
         Map<String, IJadescriptType> namesToTypes = new HashMap<>();
 
-        for (Maybe<FormalParameter> parameter : toListOfMaybes(parameters)) {
+        for (Maybe<FormalParameter> parameter : iterate(parameters)) {
             final String paramName =
                 parameter.__(FormalParameter::getName).orElse("");
             if (paramName.isBlank()) {
@@ -188,7 +187,7 @@ public interface OperationDeclarationSemantics
         List<String> paramNames = new ArrayList<>();
         List<IJadescriptType> paramTypes = new ArrayList<>();
 
-        for (Maybe<FormalParameter> parameter : toListOfMaybes(parameters)) {
+        for (Maybe<FormalParameter> parameter : iterate(parameters)) {
             final String paramName =
                 parameter.__(FormalParameter::getName).orElse("");
             if (paramName.isBlank()) {
@@ -257,7 +256,7 @@ public interface OperationDeclarationSemantics
             );
 
             validationHelper.asserting(
-                Util.implication(
+                SemanticsUtils.implication(
                     type.isPresent(),
                     !endOfBody.isValid()
                 ),

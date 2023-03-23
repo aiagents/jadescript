@@ -19,6 +19,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -100,9 +101,8 @@ public class OnCreateHandlerSemantics
 
                 compilationHelper.createAndSetBody(itMethod, scb -> {
 
-                    List<Maybe<FormalParameter>> parameters = toListOfMaybes(
-                        input.__(OnCreateHandler::getParameters)
-                    );
+                    MaybeList<FormalParameter> parameters =
+                        input.__toList(OnCreateHandler::getParameters);
 
                     List<ActualParameter> extractedParameters =
                         new ArrayList<>();
@@ -140,7 +140,7 @@ public class OnCreateHandlerSemantics
 
     private void prepareStartupArguments(
         SourceCodeBuilder scb,
-        List<Maybe<FormalParameter>> parameters,
+        MaybeList<FormalParameter> parameters,
         List<ActualParameter> extractedParameters
     ) {
 
@@ -247,13 +247,12 @@ public class OnCreateHandlerSemantics
      * Returns true if the list of formal parameters is just a single parameter
      * of type 'list of text'.
      */
-    private boolean isListOfText(List<Maybe<FormalParameter>> parameters) {
+    private boolean isListOfText(MaybeList<FormalParameter> parameters) {
         Maybe<CollectionTypeExpression> typeExpr = parameters.get(0)
             .__(FormalParameter::getType)
             .__(TypeExpression::getCollectionTypeExpression);
-        List<Maybe<TypeExpression>> typeParameters = toListOfMaybes(
-            typeExpr.__(CollectionTypeExpression::getTypeParameters)
-        );
+        MaybeList<TypeExpression> typeParameters =
+            typeExpr.__toList(CollectionTypeExpression::getTypeParameters);
         return parameters.size() == 1
             && typeExpr.__(CollectionTypeExpression::getCollectionType)
             .wrappedEquals("list")
@@ -321,7 +320,7 @@ public class OnCreateHandlerSemantics
                             )).asJvmTypeReference()
                     ));
 
-                    stream(parameters)
+                    someStream(parameters)
                         .flatMap(Maybe::filterNulls)
                         .map(p -> jvmTB.toParameter(
                             p,

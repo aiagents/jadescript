@@ -20,6 +20,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.NativeCall;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
@@ -30,9 +31,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static it.unipr.ailab.maybe.Maybe.stream;
-import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
 public class NativeCallSemantics
     extends AssignableExpressionSemantics<NativeCall> {
@@ -112,7 +110,7 @@ public class NativeCallSemantics
 
         return Stream.concat(
                 Stream.of(input.__(NativeCall::getNameExpr)),
-                stream(simpleArguments.__(
+                Maybe.someStream(simpleArguments.__(
                     SimpleArgumentList::getExpressions))
             ).filter(Maybe::isPresent)
             .map(i -> new SemanticsBoundToExpression<>(rves, i));
@@ -144,12 +142,10 @@ public class NativeCallSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        final Maybe<SimpleArgumentList> simpleArguments =
-            input.__(NativeCall::getSimpleArguments);
 
-        List<Maybe<RValueExpression>> args = Maybe.toListOfMaybes(
-            simpleArguments.__(SimpleArgumentList::getExpressions)
-        );
+        MaybeList<RValueExpression> args = input
+            .__(NativeCall::getSimpleArguments)
+            .__toList(SimpleArgumentList::getExpressions);
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -316,12 +312,10 @@ public class NativeCallSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        final Maybe<SimpleArgumentList> simpleArguments =
-            input.__(NativeCall::getSimpleArguments);
 
-        List<Maybe<RValueExpression>> args = Maybe.toListOfMaybes(
-            simpleArguments.__(SimpleArgumentList::getExpressions)
-        );
+        MaybeList<RValueExpression> args = input
+            .__(NativeCall::getSimpleArguments)
+            .__toList(SimpleArgumentList::getExpressions);
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -331,9 +325,8 @@ public class NativeCallSemantics
             input.__(NativeCall::getJavaFQName);
 
 
-        final List<Maybe<String>> fqnSegments = toListOfMaybes(
-            javaFQN.__(JavaFullyQualifiedName::getSegments)
-        );
+        final MaybeList<String> fqnSegments =
+            javaFQN.__toList(JavaFullyQualifiedName::getSegments);
 
         if (fqnSegments.size() < 2) {
             return "/*Error: not enough segments in fully-qualified " +
@@ -480,12 +473,9 @@ public class NativeCallSemantics
         }
 
 
-        final Maybe<SimpleArgumentList> simpleArguments =
-            input.__(NativeCall::getSimpleArguments);
-
-        List<Maybe<RValueExpression>> args = Maybe.toListOfMaybes(
-            simpleArguments.__(SimpleArgumentList::getExpressions)
-        );
+        MaybeList<RValueExpression> args = input
+                .__(NativeCall::getSimpleArguments)
+                .__toList(SimpleArgumentList::getExpressions);
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -495,9 +485,8 @@ public class NativeCallSemantics
             input.__(NativeCall::getJavaFQName);
 
 
-        final List<Maybe<String>> fqnSegments = toListOfMaybes(
-            javaFQN.__(JavaFullyQualifiedName::getSegments)
-        );
+        final MaybeList<String> fqnSegments =
+            javaFQN.__toList(JavaFullyQualifiedName::getSegments);
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
 
@@ -591,12 +580,10 @@ public class NativeCallSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        final Maybe<SimpleArgumentList> simpleArguments =
-            input.__(NativeCall::getSimpleArguments);
 
-        List<Maybe<RValueExpression>> args = Maybe.toListOfMaybes(
-            simpleArguments.__(SimpleArgumentList::getExpressions)
-        );
+        MaybeList<RValueExpression> args = input
+            .__(NativeCall::getSimpleArguments)
+            .__toList(SimpleArgumentList::getExpressions);
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -657,7 +644,6 @@ public class NativeCallSemantics
             input.__(NativeCall::getType);
 
 
-
         if (!isStatement && !hasTypeClause) {
             return validationHelper.emitError(
                 "InvalidNativeCall",
@@ -690,12 +676,10 @@ public class NativeCallSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        final Maybe<SimpleArgumentList> simpleArguments =
-            input.__(NativeCall::getSimpleArguments);
 
-        List<Maybe<RValueExpression>> args = Maybe.toListOfMaybes(
-            simpleArguments.__(SimpleArgumentList::getExpressions)
-        );
+        MaybeList<RValueExpression> args = input
+            .__(NativeCall::getSimpleArguments)
+            .__toList(SimpleArgumentList::getExpressions);
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -705,9 +689,8 @@ public class NativeCallSemantics
             input.__(NativeCall::getJavaFQName);
 
 
-        final List<Maybe<String>> fqnSegments = toListOfMaybes(
-            javaFQN.__(JavaFullyQualifiedName::getSegments)
-        );
+        final MaybeList<String> fqnSegments =
+            javaFQN.__toList(JavaFullyQualifiedName::getSegments);
 
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
@@ -724,7 +707,7 @@ public class NativeCallSemantics
         }
 
 
-        if(fqnValidation == INVALID){
+        if (fqnValidation == INVALID) {
             return INVALID;
         }
 
@@ -738,7 +721,7 @@ public class NativeCallSemantics
             );
         }
 
-        if(fqnValidation == INVALID){
+        if (fqnValidation == INVALID) {
             return INVALID;
         }
 
@@ -973,12 +956,9 @@ public class NativeCallSemantics
     ) {
         boolean resolveDynamically = isDynamicResolution(input);
 
-        final Maybe<SimpleArgumentList> simpleArguments =
-            input.__(NativeCall::getSimpleArguments);
-
-        List<Maybe<RValueExpression>> args = Maybe.toListOfMaybes(
-            simpleArguments.__(SimpleArgumentList::getExpressions)
-        );
+        MaybeList<RValueExpression> args = input
+            .__(NativeCall::getSimpleArguments)
+            .__toList(SimpleArgumentList::getExpressions);
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);

@@ -11,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -36,7 +36,7 @@ public class PlaceholderExpressionSemantics
         Maybe<Primary> input,
         ValidationMessageAcceptor acceptor
     ) {
-        Util.extractEObject(input).safeDo(inputSafe -> {
+        SemanticsUtils.extractEObject(input).safeDo(inputSafe -> {
             acceptor.acceptError(
                 "'_' placeholder cannot be evaluated as expression to " +
                     "produce a value.",

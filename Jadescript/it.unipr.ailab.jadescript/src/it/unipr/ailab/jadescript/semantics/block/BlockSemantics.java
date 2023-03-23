@@ -11,6 +11,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.SemanticsDispatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsClassState;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.emf.common.util.EList;
@@ -169,9 +170,8 @@ public class BlockSemantics extends Semantics {
             return state;
         }
 
-        List<Maybe<Statement>> statements = toListOfMaybes(
-            input.__(CodeBlock::getStatements)
-        );
+        MaybeList<Statement> statements =
+            input.__toList(CodeBlock::getStatements);
 
 
         final AtomicReference<StaticState> runningState =

@@ -18,6 +18,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
 import it.unipr.ailab.sonneteer.statement.controlflow.IfStatementWriter;
@@ -25,10 +26,8 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
-import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
  * Created on 22/08/2021.
@@ -52,14 +51,13 @@ public class WhenMatchesStatementSemantics
         final Maybe<RValueExpression> inputExpr =
             input.__(WhenMatchesStatement::getInputExpr);
 
-        final List<Maybe<LValueExpression>> patterns =
-            toListOfMaybes(input.__(WhenMatchesStatement::getPatterns))
-                .stream()
+        final MaybeList<LValueExpression> patterns =
+            someStream(input.__(WhenMatchesStatement::getPatterns))
                 .map(maybe -> maybe.__(i -> (LValueExpression) i))
-                .collect(Collectors.toList());
+                .collect(MaybeList.collectFromStreamOfMaybes());
 
-        final List<Maybe<OptionalBlock>> branches =
-            toListOfMaybes(input.__(WhenMatchesStatement::getBranches));
+        final MaybeList<OptionalBlock> branches =
+            input.__toList(WhenMatchesStatement::getBranches);
 
         final Maybe<OptionalBlock> elseBranch =
             input.__(WhenMatchesStatement::getElseBranch);
@@ -220,14 +218,13 @@ public class WhenMatchesStatementSemantics
         final Maybe<RValueExpression> inputExpr =
             input.__(WhenMatchesStatement::getInputExpr);
 
-        final List<Maybe<LValueExpression>> patterns =
-            toListOfMaybes(input.__(WhenMatchesStatement::getPatterns))
-                .stream()
+        final MaybeList<LValueExpression> patterns =
+            someStream(input.__(WhenMatchesStatement::getPatterns))
                 .map(maybe -> maybe.__(i -> (LValueExpression) i))
-                .collect(Collectors.toList());
+                .collect(MaybeList.collectFromStreamOfMaybes());
 
-        final List<Maybe<OptionalBlock>> branches =
-            toListOfMaybes(input.__(WhenMatchesStatement::getBranches));
+        final MaybeList<OptionalBlock> branches =
+            input.__toList(WhenMatchesStatement::getBranches);
 
         final Maybe<OptionalBlock> elseBranch =
             input.__(WhenMatchesStatement::getElseBranch);

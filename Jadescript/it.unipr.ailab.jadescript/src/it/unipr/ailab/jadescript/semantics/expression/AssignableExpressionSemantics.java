@@ -12,8 +12,8 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -247,7 +247,7 @@ public abstract class AssignableExpressionSemantics<T>
         String customMessage,
         ValidationMessageAcceptor acceptor
     ) {
-        Util.extractEObject(input).safeDo(inputSafe -> {
+        SemanticsUtils.extractEObject(input).safeDo(inputSafe -> {
             acceptor.acceptError(
                 customMessage,
                 inputSafe,
@@ -269,7 +269,7 @@ public abstract class AssignableExpressionSemantics<T>
         Maybe<T> input,
         ValidationMessageAcceptor acceptor
     ) {
-        Util.extractEObject(input).safeDo(inputSafe -> {
+        SemanticsUtils.extractEObject(input).safeDo(inputSafe -> {
             acceptor.acceptError(
                 "Not a statement.",
                 inputSafe,

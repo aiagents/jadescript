@@ -8,7 +8,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.*;
 import org.jetbrains.annotations.Nullable;

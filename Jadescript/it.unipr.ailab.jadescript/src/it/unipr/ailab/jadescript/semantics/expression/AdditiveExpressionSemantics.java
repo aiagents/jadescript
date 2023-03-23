@@ -4,6 +4,7 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.Additive;
 import it.unipr.ailab.jadescript.jadescript.Multiplicative;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -13,13 +14,14 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -40,10 +42,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<Additive> input
     ) {
-        final List<Maybe<Multiplicative>> operands = Maybe.toListOfMaybes(
-            input.__(Additive::getMultiplicative)
-        );
-        return operands.stream()
+        return Maybe.someStream(input.__(Additive::getMultiplicative))
             .filter(Maybe::isPresent)
             .map(x -> new ExpressionSemantics.SemanticsBoundToExpression<>(
                 module.get(MultiplicativeExpressionSemantics.class),
@@ -53,8 +52,8 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
 
     private String associativeCompile(
-        List<Maybe<Multiplicative>> operands,
-        List<Maybe<String>> operators,
+        MaybeList<Multiplicative> operands,
+        MaybeList<String> operators,
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
@@ -92,7 +91,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
 
     private StaticState advanceAssociative(
-        List<Maybe<Multiplicative>> operands,
+        MaybeList<Multiplicative> operands,
         StaticState state
     ) {
         final MultiplicativeExpressionSemantics mes =
@@ -110,8 +109,8 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
 
     private IJadescriptType associativeInfer(
-        List<Maybe<Multiplicative>> operands,
-        List<Maybe<String>> operators,
+        MaybeList<Multiplicative> operands,
+        MaybeList<String> operators,
         StaticState state
     ) {
         if (operands.isEmpty()) return module.get(TypeHelper.class).BOTTOM
@@ -238,10 +237,10 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        final List<Maybe<Multiplicative>> operands =
-            Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
-        final List<Maybe<String>> operators =
-            Maybe.toListOfMaybes(input.__(Additive::getAdditiveOp));
+        final MaybeList<Multiplicative> operands =
+            input.__toList(Additive::getMultiplicative);
+        final MaybeList<String> operators =
+            input.__toList(Additive::getAdditiveOp);
         return associativeCompile(operands, operators, state, acceptor);
     }
 
@@ -251,10 +250,10 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         Maybe<Additive> input,
         StaticState state
     ) {
-        final List<Maybe<Multiplicative>> operands =
-            Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
-        final List<Maybe<String>> operators =
-            Maybe.toListOfMaybes(input.__(Additive::getAdditiveOp));
+        final MaybeList<Multiplicative> operands =
+            input.__toList(Additive::getMultiplicative);
+        final MaybeList<String> operators =
+            input.__toList(Additive::getAdditiveOp);
         return associativeInfer(operands, operators, state);
 
     }
@@ -262,8 +261,8 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
     @Override
     protected boolean mustTraverse(Maybe<Additive> input) {
-        final List<Maybe<Multiplicative>> operands =
-            Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
+        final MaybeList<Multiplicative> operands =
+            input.__toListNullsRemoved(Additive::getMultiplicative);
         return operands.size() == 1;
     }
 
@@ -271,15 +270,14 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     @Override
     protected Optional<? extends SemanticsBoundToExpression<?>>
     traverseInternal(Maybe<Additive> input) {
-        final List<Maybe<Multiplicative>> operands =
-            Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
         if (!mustTraverse(input)) {
             return Optional.empty();
         }
 
         return Optional.of(new ExpressionSemantics.SemanticsBoundToExpression<>(
             module.get(MultiplicativeExpressionSemantics.class),
-            operands.get(0)
+            input.__(Additive::getMultiplicative)
+                .__(ms -> !ms.isEmpty() ? ms.get(0) : null)
         ));
     }
 
@@ -407,8 +405,8 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
 
 
     private boolean validateAssociative(
-        List<Maybe<Multiplicative>> operands,
-        List<Maybe<String>> operators,
+        MaybeList<Multiplicative> operands,
+        MaybeList<String> operators,
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
@@ -595,7 +593,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         }
 
         boolean cannotSumTimestamps = validationHelper.asserting(
-            Util.implication(
+            SemanticsUtils.implication(
                 t1.typeEquals(typeHelper.TIMESTAMP)
                     && t2.typeEquals(typeHelper.TIMESTAMP),
                 op.wrappedEquals("-")
@@ -620,10 +618,10 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        final List<Maybe<Multiplicative>> operands =
-            Maybe.toListOfMaybes(input.__(Additive::getMultiplicative));
-        final List<Maybe<String>> operators =
-            Maybe.toListOfMaybes(input.__(Additive::getAdditiveOp));
+        final MaybeList<Multiplicative> operands =
+            input.__toList(Additive::getMultiplicative);
+        final MaybeList<String> operators =
+            input.__toList(Additive::getAdditiveOp);
         return validateAssociative(operands, operators, state, acceptor);
     }
 
@@ -642,10 +640,10 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         Maybe<Additive> input,
         StaticState state
     ) {
-        final List<Maybe<Multiplicative>> mults = Maybe.toListOfMaybes(
-            input.__(Additive::getMultiplicative)
+        return advanceAssociative(
+            input.__toList(Additive::getMultiplicative),
+            state
         );
-        return advanceAssociative(mults, state);
     }
 
 

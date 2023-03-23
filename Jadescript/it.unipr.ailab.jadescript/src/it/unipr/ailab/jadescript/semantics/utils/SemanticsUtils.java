@@ -2,7 +2,6 @@ package it.unipr.ailab.jadescript.semantics.utils;
 
 import it.unipr.ailab.jadescript.jadescript.FeatureContainer;
 import it.unipr.ailab.jadescript.jadescript.NamedFeature;
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
@@ -24,9 +23,9 @@ import java.util.stream.Stream;
 import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.some;
 
-public class Util implements SemanticsConsts {
+public class SemanticsUtils implements SemanticsConsts {
 
-    private Util() {
+    private SemanticsUtils() {
     } // do not instantiate
 
 
@@ -159,7 +158,7 @@ public class Util implements SemanticsConsts {
     public static Maybe<String> getOuterClassThisReference(
         Maybe<? extends EObject> input
     ) {
-        input = Util.extractEObject(input);
+        input = SemanticsUtils.extractEObject(input);
 
         if (input.isNothing()) {
             return nothing();

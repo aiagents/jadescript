@@ -1,4 +1,4 @@
-package it.unipr.ailab.jadescript.semantics.utils;
+package it.unipr.ailab.maybe.utils;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -8,7 +8,7 @@ import java.util.function.BinaryOperator;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
+import static it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils.safeFilter;
 
 public class ImmutableMultiMap<K, V> {
 

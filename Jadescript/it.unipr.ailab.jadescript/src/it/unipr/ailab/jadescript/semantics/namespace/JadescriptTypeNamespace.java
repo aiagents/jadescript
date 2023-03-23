@@ -18,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.utils.Util.buildStream;
+import static it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils.buildStream;
 
 public abstract class JadescriptTypeNamespace extends TypeNamespace {
 

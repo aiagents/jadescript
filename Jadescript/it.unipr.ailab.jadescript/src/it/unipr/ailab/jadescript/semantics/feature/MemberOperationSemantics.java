@@ -20,6 +20,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -33,7 +34,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
-import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
 /**
  * Created on 27/04/18.
@@ -94,10 +94,8 @@ public class MemberOperationSemantics
             returnType.asJvmTypeReference(),
             itMethod -> {
                 itMethod.setVisibility(JvmVisibility.PUBLIC);
-                List<Maybe<FormalParameter>> parameters = toListOfMaybes(
-                    input.__(ParameterizedFeature::getParameters)
-                );
-
+                MaybeList<FormalParameter> parameters =
+                    input.__toList(ParameterizedFeature::getParameters);
 
                 contextManager.restore(savedContext);
 
@@ -142,6 +140,7 @@ public class MemberOperationSemantics
                     ));
 
                 }
+
                 List<String> paramNames = new ArrayList<>();
                 List<IJadescriptType> paramTypes = new ArrayList<>();
 

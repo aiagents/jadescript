@@ -1,10 +1,10 @@
 package it.unipr.ailab.maybe;
 
+import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -55,6 +55,7 @@ public class Maybe<OfType> {
     }
 
 
+    //TODO remove-> use orElse/orElseGet
     public static <T1, T2 extends List<T1>> List<T1> nullAsEmptyList(
         Maybe<T2> maybeList
     ) {
@@ -65,6 +66,7 @@ public class Maybe<OfType> {
     }
 
 
+    //TODO remove-> use orElse/orElseGet
     public static <T1, T2 extends Iterable<T1>> Iterable<T1> nullAsEmpty(
         Maybe<T2> maybeCollection
     ) {
@@ -76,6 +78,7 @@ public class Maybe<OfType> {
     }
 
 
+    //TODO remove-> use orElse/orElseGet
     public static Boolean nullAsFalse(Maybe<Boolean> maybeABoolean) {
         if (maybeABoolean.isPresent()) {
             return maybeABoolean.o;
@@ -85,6 +88,7 @@ public class Maybe<OfType> {
     }
 
 
+    //TODO remove-> use orElse/orElseGet
     public static Boolean nullAsTrue(Maybe<Boolean> maybeABoolean) {
         if (maybeABoolean.isPresent()) {
             return maybeABoolean.o;
@@ -94,6 +98,7 @@ public class Maybe<OfType> {
     }
 
 
+    //TODO remove-> use orElse/orElseGet
     public static String nullAsEmptyString(Maybe<String> maybeAString) {
         if (maybeAString.isPresent()) {
             return maybeAString.o;
@@ -111,6 +116,7 @@ public class Maybe<OfType> {
     }
 
 
+    //TODO when possible, renounce to usages of this in favor of Maybe.stream
     public static <T1> Iterable<Maybe<T1>> iterate(
         Maybe<?
             extends Iterable<T1>> maybeCollection
@@ -132,46 +138,36 @@ public class Maybe<OfType> {
     }
 
 
-    public static <T> List<Maybe<T>> toListOfMaybes(
-        Maybe<? extends List<T>> maybeAList
-    ) {
-        if (maybeAList.isPresent()) {
-            return maybeAList.o.stream()
-                .map(Maybe::some)
-                .collect(Collectors.toCollection(ArrayList::new));
-        } else {
-            return Collections.emptyList();
-        }
-    }
 
 
-    //TODO when possible, renounce to usages of this in favor of Maybe.stream
-    public static <T> List<Maybe<T>> toListOfMaybes(
+
+    public static <T> MaybeList<T> toListOfMaybes(
         List<T> list
     ) {
-        return list.stream()
-            .map(Maybe::some)
-            .collect(Collectors.toList());
+        return MaybeList.someList(list);
     }
 
 
-    public static <T> Stream<Maybe<T>> stream(
+    //TODO some usages do:
+    // someStream(...).filter(Maybe::isPresent).collect(MaybeList...)
+    //  -> change to specific method that uses MaybeList.collectFromNullables
+    public static <T> Stream<Maybe<T>> someStream(
         Maybe<? extends List<T>> maybeList
     ) {
-        if(maybeList.isPresent()){
-            return stream(maybeList.toNullable());
-        }else{
+        if (maybeList.isPresent()) {
+            return someStream(maybeList.toNullable());
+        } else {
             return Stream.empty();
         }
     }
 
 
-    public static <T> Stream<Maybe<T>> stream(
+    public static <T> Stream<Maybe<T>> someStream(
         @Nullable List<T> listOfNullables
     ) {
-        if(listOfNullables == null){
+        if (listOfNullables == null) {
             return Stream.empty();
-        }else{
+        } else {
             return listOfNullables.stream()
                 .map(Maybe::some);
         }
@@ -199,8 +195,6 @@ public class Maybe<OfType> {
     ) {
         return eitherCall(j1, j2, j -> j, j -> j);
     }
-
-
 
 
     public static <T> Stream<T> filterNulls(Maybe<T> maybe) {
@@ -231,9 +225,8 @@ public class Maybe<OfType> {
 
     /**
      * Maybe's equivalent of {@link Optional#map(Function)}.
-     * Named __ because while identifying the operation done, the focus of
-     * the programmer should be in the argument
-     * of this method.
+     * Called {@code __} because the name {@code map} created confusion
+     * when usages of Maybe are nested in usages of Stream API.
      */
     public <OfType2> Maybe<OfType2> __(
         Function<? super OfType, ? extends OfType2> function
@@ -247,13 +240,57 @@ public class Maybe<OfType> {
     }
 
 
+    public <OfType2> MaybeList<OfType2> __toList(
+        Function<? super OfType, ? extends Collection<OfType2>> toList
+    ) {
+        Objects.requireNonNull(toList);
+        if (isNothing()) {
+            return MaybeList.empty();
+        }
 
-    public <OfType2, ParType> Maybe<OfType2> __(
-        BiFunction<? super OfType, ? super ParType, ? extends OfType2> function,
-        ParType arg1
+        return MaybeList.someList(toList.apply(o));
+    }
+
+    public <OfType2> MaybeList<OfType2> __toListCopy(
+        Function<? super OfType, ? extends Collection<OfType2>> toList
+    ) {
+        Objects.requireNonNull(toList);
+        if (isNothing()) {
+            return MaybeList.empty();
+        }
+
+        return MaybeList.someList(new ArrayList<>(toList.apply(o)));
+    }
+
+    public <OfType2> MaybeList<OfType2> __toListNullsRemoved(
+        Function<? super OfType, ? extends Collection<OfType2>> toList
+    ) {
+        Objects.requireNonNull(toList);
+        if(isNothing()){
+            return MaybeList.empty();
+        }
+
+        return MaybeList.someListNullsRemoved(toList.apply(o));
+    }
+
+    public <OfType2, ArgType> Maybe<OfType2> __partial1(
+        BiFunction<? super ArgType, ? super OfType, ? extends OfType2> function,
+        ArgType arg1
     ) {
         if (isPresent()) {
-            return some(function.apply(o, arg1));
+            return some(function.apply(arg1, o));
+        } else {
+            return nothing();
+        }
+    }
+
+
+    public <OfType2, ArgType> Maybe<OfType2> __partial2(
+        BiFunction<? super OfType, ? super ArgType, ? extends OfType2> function,
+        ArgType arg2
+    ) {
+        if (isPresent()) {
+            return some(function.apply(o, arg2));
         } else {
             return nothing();
         }
@@ -290,10 +327,7 @@ public class Maybe<OfType> {
     }
 
 
-
-
-
-    public List<OfType> toList() {
+    public List<OfType> toSingleList() {
         return isPresent()
             ? Collections.singletonList(o)
             : Collections.emptyList();
@@ -366,7 +400,7 @@ public class Maybe<OfType> {
     }
 
 
-    public <U> Maybe<U> flatMap(
+    public <U> Maybe<U> flatApp(
         Function<? super OfType, ? extends Maybe<? extends U>> function
     ) {
         Objects.requireNonNull(function);
@@ -405,8 +439,6 @@ public class Maybe<OfType> {
             return alternative;
         }
     }
-
-
 
 
     public Maybe<OfType> nullIf(Predicate<OfType> predicate) {
@@ -463,12 +495,15 @@ public class Maybe<OfType> {
     }
 
 
-    public Stream<OfType> stream() {
+    public Stream<OfType> someStream() {
         if (isPresent()) {
             return Stream.of(o);
         } else {
             return Stream.empty();
         }
     }
+
+
+
 
 }

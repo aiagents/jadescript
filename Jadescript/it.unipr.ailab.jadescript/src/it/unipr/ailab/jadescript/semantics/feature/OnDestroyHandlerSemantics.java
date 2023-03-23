@@ -45,7 +45,7 @@ public class OnDestroyHandlerSemantics
             module.get(CompilationHelper.class);
 
         Maybe<QualifiedName> containerName = input
-            .__(EcoreUtil2::getContainerOfType, TopElement.class)
+            .__partial2(EcoreUtil2::getContainerOfType, TopElement.class)
             .__(compilationHelper::getFullyQualifiedName);
 
         if (container.isInstanceOf(Agent.class)) {

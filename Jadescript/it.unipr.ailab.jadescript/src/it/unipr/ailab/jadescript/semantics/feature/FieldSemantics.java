@@ -16,7 +16,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -111,7 +111,7 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
                     scb.add("null");
 
                     final String dereferencedField =
-                        Util.getOuterClassThisReference(container) +
+                        SemanticsUtils.getOuterClassThisReference(container) +
                             "." + nameSafe;
 
                     // But then uses the __initializeProperties() method to

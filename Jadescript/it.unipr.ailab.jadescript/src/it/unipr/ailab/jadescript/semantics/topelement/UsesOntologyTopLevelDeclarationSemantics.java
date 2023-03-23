@@ -10,6 +10,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import jade.content.ContentManager;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -64,9 +65,8 @@ public abstract class UsesOntologyTopLevelDeclarationSemantics
         Maybe<T> input,
         ValidationMessageAcceptor acceptor
     ) {
-        final List<Maybe<JvmTypeReference>> ontologies = Maybe.toListOfMaybes(
-            input.__(UsesOntologyElement::getOntologies)
-        );
+        final MaybeList<JvmTypeReference> ontologies =
+            input.__toList(UsesOntologyElement::getOntologies);
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         final ValidationHelper validationHelper =
@@ -197,8 +197,8 @@ public abstract class UsesOntologyTopLevelDeclarationSemantics
 
     @NotNull
     private List<JvmTypeReference> getUsedOntologiesTypeRefs(Maybe<T> input) {
-        List<Maybe<JvmTypeReference>> ontologies =
-            Maybe.toListOfMaybes(input.__(UsesOntologyElement::getOntologies));
+        MaybeList<JvmTypeReference> ontologies =
+            input.__toList(UsesOntologyElement::getOntologies);
 
         List<JvmTypeReference> ontologyTypes = ontologies.stream()
             .filter(Maybe::isPresent)

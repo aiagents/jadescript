@@ -8,7 +8,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.MatchesExpression;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.WhenMatchesStatement;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;
 import it.unipr.ailab.sonneteer.classmember.ClassMemberWriter;
@@ -211,7 +211,7 @@ public class PatternMatchHelper implements SemanticsConsts {
 
     @NotNull
     public String getPatternMatcherClassName(Maybe<LValueExpression> pattern) {
-        return "__PatternMatcher" + Util.extractEObject(pattern).hashCode();
+        return "__PatternMatcher" + SemanticsUtils.extractEObject(pattern).hashCode();
     }
 
 

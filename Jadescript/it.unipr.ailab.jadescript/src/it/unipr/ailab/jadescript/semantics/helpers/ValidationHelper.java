@@ -20,7 +20,7 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;
 import jadescript.lang.Performative;
@@ -309,7 +309,7 @@ public class ValidationHelper implements SemanticsConsts {
                 .flatMap(ccv -> ccv.checkCallableClash(module, toBeAdded))
                 .filter(dc -> !dc.getAlreadyPresentSymbol().sourceLocation()
                     .equals(dc.getToBeAddedSymbol().sourceLocation())
-                ).filter(Util.dinstinctBy(dc -> Util.tuple(
+                ).filter(SemanticsUtils.dinstinctBy(dc -> SemanticsUtils.tuple(
                     dc.getAlreadyPresentSymbol().getSignature(),
                     dc.getAlreadyPresentSymbol().sourceLocation()
                 )))
@@ -353,7 +353,7 @@ public class ValidationHelper implements SemanticsConsts {
                 ))
                 .filter(dc -> !dc.getAlreadyPresentSymbol().sourceLocation()
                     .equals(dc.getToBeAddedSymbol().sourceLocation())
-                ).filter(Util.dinstinctBy(dc -> Util.tuple(
+                ).filter(SemanticsUtils.dinstinctBy(dc -> SemanticsUtils.tuple(
                     dc.getAlreadyPresentSymbol().getSignature(),
                     dc.getAlreadyPresentSymbol().sourceLocation()
                 )))
@@ -715,7 +715,7 @@ public class ValidationHelper implements SemanticsConsts {
         int index,
         ValidationMessageAcceptor acceptor
     ){
-        final Maybe<? extends EObject> eobject = Util.extractEObject(object);
+        final Maybe<? extends EObject> eobject = SemanticsUtils.extractEObject(object);
         if (eobject.isNothing()) {
             return;
         }
@@ -740,7 +740,7 @@ public class ValidationHelper implements SemanticsConsts {
         ValidationMessageAcceptor acceptor
     ) {
         if (!isTrue) {
-            Util.extractEObject(object).safeDo(value -> {
+            SemanticsUtils.extractEObject(object).safeDo(value -> {
                 acceptor.acceptError(
                     description,
                     value,
@@ -820,7 +820,7 @@ public class ValidationHelper implements SemanticsConsts {
         ValidationMessageAcceptor acceptor
     ) {
 
-        Maybe<? extends EObject> eObject = Util.extractEObject(object);
+        Maybe<? extends EObject> eObject = SemanticsUtils.extractEObject(object);
         if (!isTrue.orElse(true) && eObject.isPresent()) {
             acceptor.acceptError(
                 description,
@@ -884,7 +884,7 @@ public class ValidationHelper implements SemanticsConsts {
         int index,
         ValidationMessageAcceptor acceptor
     ) {
-        Maybe<? extends EObject> eObject = Util.extractEObject(object);
+        Maybe<? extends EObject> eObject = SemanticsUtils.extractEObject(object);
 
         if (!isTrue && eObject.isPresent()) {
             acceptor.acceptWarning(
@@ -949,7 +949,7 @@ public class ValidationHelper implements SemanticsConsts {
         int index,
         ValidationMessageAcceptor acceptor
     ) {
-        Maybe<? extends EObject> eObject = Util.extractEObject(object);
+        Maybe<? extends EObject> eObject = SemanticsUtils.extractEObject(object);
 
         if (!isTrue.orElse(true) && eObject.isPresent()) {
             acceptor.acceptWarning(

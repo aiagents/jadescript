@@ -5,7 +5,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;
 import org.eclipse.emf.common.util.EList;
@@ -44,7 +44,7 @@ public interface AgentAssociatedDeclarationSemantics<T> {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
 
         final WriterFactory w = SemanticsConsts.w;
-        Util.extractEObject(input).safeDo(inputsafe -> {
+        SemanticsUtils.extractEObject(input).safeDo(inputsafe -> {
             members.add(0, jvmTB.toField(
                 inputsafe,
                 SemanticsConsts.AGENT_ENV,
@@ -61,7 +61,7 @@ public interface AgentAssociatedDeclarationSemantics<T> {
             ));
         });
 
-        Util.extractEObject(input).safeDo(inputsafe -> {
+        SemanticsUtils.extractEObject(input).safeDo(inputsafe -> {
                 members.add(0, jvmTB.toField(
                     inputsafe,
                     SemanticsConsts.THE_AGENT,
@@ -79,7 +79,7 @@ public interface AgentAssociatedDeclarationSemantics<T> {
             }
         );
 
-        Util.extractEObject(input).safeDo(inputSafe -> {
+        SemanticsUtils.extractEObject(input).safeDo(inputSafe -> {
             members.add(jvmTB.toMethod(
                 inputSafe,
                 "__initializeAgentEnv",

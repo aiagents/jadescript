@@ -16,8 +16,9 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.TupledExpressions;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
@@ -25,6 +26,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
+
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 
 /**
@@ -89,9 +92,8 @@ public class TupleExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        List<Maybe<RValueExpression>> exprs =
-            input.__(TupledExpressions::getTuples).extract(
-                Maybe::nullAsEmptyList);
+        MaybeList<RValueExpression> exprs =
+            input.__toList(TupledExpressions::getTuples);
         RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
         boolean result = VALID;
@@ -124,7 +126,7 @@ public class TupleExpressionSemantics
             size <= 20,
             "TupleTooBig",
             "Tuples with more than 20 elements are not supported.",
-            Util.extractEObject(input),
+            SemanticsUtils.extractEObject(input),
             acceptor
         );
     }
@@ -193,12 +195,10 @@ public class TupleExpressionSemantics
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<TupledExpressions> input
     ) {
-        List<Maybe<RValueExpression>> exprs =
-            input.__(TupledExpressions::getTuples).extract(
-                Maybe::nullAsEmptyList);
-        final RValueExpressionSemantics rves = module.get(
-            RValueExpressionSemantics.class);
-        return exprs.stream()
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+
+        return someStream(input.__(TupledExpressions::getTuples))
             .filter(Maybe::isPresent)
             .map(e -> new SemanticsBoundToExpression<>(rves, e));
     }
@@ -211,9 +211,8 @@ public class TupleExpressionSemantics
     ) {
         final Integer initialCapacity =
             input.__(TupledExpressions::getSize).orElse(2);
-        List<Maybe<RValueExpression>> exprs =
-            input.__(TupledExpressions::getTuples)
-                .extract(Maybe::nullAsEmptyList);
+        MaybeList<RValueExpression> exprs =
+            input.__toList(TupledExpressions::getTuples);
         List<String> elements = new ArrayList<>(initialCapacity);
         List<TypeArgument> types = new ArrayList<>(initialCapacity);
         RValueExpressionSemantics rves =
@@ -233,9 +232,9 @@ public class TupleExpressionSemantics
         Maybe<TupledExpressions> input,
         StaticState state
     ) {
-        List<Maybe<RValueExpression>> exprs =
-            input.__(TupledExpressions::getTuples).extract(
-                Maybe::nullAsEmptyList);
+        MaybeList<RValueExpression> exprs =
+            input.__toList(TupledExpressions::getTuples);
+
         RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
         final List<TypeArgument> typeArguments = new ArrayList<>();
@@ -297,9 +296,8 @@ public class TupleExpressionSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        List<Maybe<RValueExpression>> terms = input.getPattern().__(
-                TupledExpressions::getTuples)
-            .extract(Maybe::nullAsEmptyList);
+        MaybeList<RValueExpression> terms = input.getPattern()
+            .__toList(TupledExpressions::getTuples);
 
         PatternType patternType = inferPatternType(input, state);
 
@@ -392,9 +390,8 @@ public class TupleExpressionSemantics
             final RValueExpressionSemantics rves = module.get(
                 RValueExpressionSemantics.class);
             List<TypeArgument> elementTypes = new ArrayList<>();
-            List<Maybe<RValueExpression>> exprs =
-                input.getPattern().__(TupledExpressions::getTuples)
-                    .extract(Maybe::nullAsEmptyList);
+            MaybeList<RValueExpression> exprs =
+                input.getPattern().__toList(TupledExpressions::getTuples);
             final List<IJadescriptType> inputElementTypes;
             if (inputType instanceof TupleType) {
                 inputElementTypes = ((TupleType) inputType).getElementTypes();
@@ -443,9 +440,8 @@ public class TupleExpressionSemantics
         PatternMatchInput<TupledExpressions> input,
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        List<Maybe<RValueExpression>> terms = input.getPattern()
-            .__(TupledExpressions::getTuples)
-            .extract(Maybe::nullAsEmptyList);
+        MaybeList<RValueExpression> terms = input.getPattern()
+            .__toList(TupledExpressions::getTuples);
 
         IJadescriptType solvedPatternType = inferPatternType(input, state)
             .solve(input.getProvidedInputType());
@@ -514,9 +510,9 @@ public class TupleExpressionSemantics
         PatternMatchInput<TupledExpressions> input,
         StaticState state
     ) {
-        List<Maybe<RValueExpression>> terms = input.getPattern()
-            .__(TupledExpressions::getTuples)
-            .extract(Maybe::nullAsEmptyList);
+        MaybeList<RValueExpression> terms = input.getPattern()
+            .__toList(TupledExpressions::getTuples);
+
         IJadescriptType solvedPatternType = inferPatternType(input, state)
             .solve(input.getProvidedInputType());
         int elementCount = terms.size();
@@ -575,9 +571,9 @@ public class TupleExpressionSemantics
         PatternMatchInput<TupledExpressions> input,
         StaticState state
     ) {
-        List<Maybe<RValueExpression>> terms = input.getPattern()
-            .__(TupledExpressions::getTuples)
-            .extract(Maybe::nullAsEmptyList);
+        MaybeList<RValueExpression> terms = input.getPattern()
+            .__toList(TupledExpressions::getTuples);
+
         IJadescriptType solvedPatternType = inferPatternType(input, state)
             .solve(input.getProvidedInputType());
         int elementCount = terms.size();
@@ -664,10 +660,9 @@ public class TupleExpressionSemantics
         PatternMatchInput<TupledExpressions> input,
         StaticState state
     ) {
+        MaybeList<RValueExpression> terms = input.getPattern()
+            .__toList(TupledExpressions::getTuples);
 
-        List<Maybe<RValueExpression>> terms = input.getPattern()
-            .__(TupledExpressions::getTuples)
-            .extract(Maybe::nullAsEmptyList);
         IJadescriptType solvedPatternType = inferPatternType(input, state)
             .solve(input.getProvidedInputType());
         int elementCount = terms.size();

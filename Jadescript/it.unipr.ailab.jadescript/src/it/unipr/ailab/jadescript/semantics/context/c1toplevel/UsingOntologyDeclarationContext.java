@@ -8,7 +8,7 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyValue;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 import java.util.List;

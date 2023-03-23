@@ -125,7 +125,7 @@ public class OntologyDeclarationSemantics extends
             validationHelper.assertExpectedType(
                 jade.content.onto.Ontology.class,
                 superTypes//TODO multiple ontologies
-                    .__(EList::get, 0)
+                    .__partial2(EList::get, 0)
                     .__(st -> module.get(TypeHelper.class).jtFromJvmTypeRef(st))
                     .orElse(module.get(TypeHelper.class).ANY),
                 "NotAValidOntologyTypeReference",
@@ -149,7 +149,7 @@ public class OntologyDeclarationSemantics extends
         JvmTypeReference superOntologyType = input//TODO multiple ontologies
             .__(FeatureContainer::getSuperTypes)
             .nullIf(List::isEmpty)
-            .__(List::get, 0)
+            .__partial2(List::get, 0)
             .__(t -> (JvmTypeReference) t)
             .orElse(typeHelper.typeRef(jadescript.content.onto.Ontology.class));
 
@@ -331,7 +331,7 @@ public class OntologyDeclarationSemantics extends
         List<StatementWriter> addSchemaWriters,
         List<StatementWriter> descriptionSchemaWriters
     ) {
-        Optional<FeatureWithSlots> featureWithSlots = feature.stream()
+        Optional<FeatureWithSlots> featureWithSlots = feature.someStream()
             .flatMap(filterAndCast(FeatureWithSlots.class))
             .findAny();
 
@@ -975,7 +975,7 @@ public class OntologyDeclarationSemantics extends
                         JvmTypeReference superOntologyType = input
                             .__(FeatureContainer::getSuperTypes)
                             .nullIf(List::isEmpty)
-                            .__(List::get, 0)
+                            .__partial2(List::get, 0)
                             .__(t -> (JvmTypeReference) t)
                             .orElse(typeHelper.typeRef(
                                 jadescript.content.onto.Ontology.class

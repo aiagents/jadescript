@@ -1,6 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.context.staticstate;
 
-import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
+import it.unipr.ailab.maybe.utils.ImmutableList;
 
 import java.util.Objects;
 import java.util.stream.Collectors;

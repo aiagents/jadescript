@@ -14,6 +14,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.List;
@@ -21,7 +22,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 
 /**
@@ -138,9 +139,8 @@ public class TypeCastExpressionSemantics
     ) {
         if (input == null) return "";
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
-        final List<Maybe<TypeExpression>> typeCasts =
-            Maybe.toListOfMaybes(input.__(
-                TypeCast::getTypeCasts));
+        final MaybeList<TypeExpression> typeCasts =
+            input.__toList(TypeCast::getTypeCasts);
         final AtomWithTrailersExpressionSemantics awtes =
             module.get(AtomWithTrailersExpressionSemantics.class);
         String result = awtes.compile(atomExpr, state, acceptor);
@@ -178,8 +178,7 @@ public class TypeCastExpressionSemantics
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
         final List<IJadescriptType> castsTypes =
-            toListOfMaybes(input.getPattern().__(
-                TypeCast::getTypeCasts)).stream()
+            someStream(input.getPattern().__(TypeCast::getTypeCasts))
                 .map(tes::toJadescriptType)
                 .collect(Collectors.toList());
 
@@ -260,9 +259,9 @@ public class TypeCastExpressionSemantics
         if (input == null)
             return module.get(TypeHelper.class).ANY;
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
-        final List<Maybe<TypeExpression>> typeCasts =
-            Maybe.toListOfMaybes(input.__(
-                TypeCast::getTypeCasts));
+        final MaybeList<TypeExpression> typeCasts =
+            input.__toList(TypeCast::getTypeCasts);
+
         if (!typeCasts.isEmpty()) {
             // This can be assumed to be true, but we will include it for more
             // safety.
@@ -282,7 +281,7 @@ public class TypeCastExpressionSemantics
 
     @Override
     protected boolean mustTraverse(Maybe<TypeCast> input) {
-        return Maybe.toListOfMaybes(input.__(TypeCast::getTypeCasts)).isEmpty();
+        return input.__toList(TypeCast::getTypeCasts).isEmpty();
     }
 
 
@@ -307,8 +306,7 @@ public class TypeCastExpressionSemantics
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
         final List<IJadescriptType> castsTypes =
-            toListOfMaybes(input.getPattern().__(
-                TypeCast::getTypeCasts)).stream()
+            someStream(input.getPattern().__(TypeCast::getTypeCasts))
                 .map(tes::toJadescriptType)
                 .collect(Collectors.toList());
 
@@ -387,8 +385,7 @@ public class TypeCastExpressionSemantics
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
         final List<IJadescriptType> castsTypes =
-            toListOfMaybes(input.getPattern().__(
-                TypeCast::getTypeCasts)).stream()
+            someStream(input.getPattern().__(TypeCast::getTypeCasts))
                 .map(tes::toJadescriptType)
                 .collect(Collectors.toList());
 
@@ -445,8 +442,9 @@ public class TypeCastExpressionSemantics
         PatternMatchInput<TypeCast> input,
         StaticState state
     ) {
-        final List<Maybe<TypeExpression>> casts = toListOfMaybes(
-            input.getPattern().__(TypeCast::getTypeCasts));
+        final MaybeList<TypeExpression> casts =
+            input.getPattern().__toList(TypeCast::getTypeCasts);
+
         if (casts.isEmpty()) {
             //The if condition can be assumed to be false, but included
             // for extra safety.
@@ -468,11 +466,9 @@ public class TypeCastExpressionSemantics
         PatternMatchInput<TypeCast> input,
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        final List<Maybe<TypeExpression>> casts = toListOfMaybes(
-            input.getPattern()
-                .__(TypeCast::getTypeCasts)
-        );
-        final List<IJadescriptType> castsTypes = casts.stream()
+        final List<IJadescriptType> castsTypes = someStream(
+            input.getPattern().__(TypeCast::getTypeCasts)
+        )
             .map(module.get(TypeExpressionSemantics.class)::toJadescriptType)
             .collect(Collectors.toList());
 
@@ -534,9 +530,9 @@ public class TypeCastExpressionSemantics
     ) {
         if (input == null) return VALID;
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
-        final List<Maybe<TypeExpression>> typeCasts =
-            Maybe.toListOfMaybes(input.__(
-                TypeCast::getTypeCasts));
+        final MaybeList<TypeExpression> typeCasts =
+            input.__toList(TypeCast::getTypeCasts);
+
         final AtomWithTrailersExpressionSemantics awtes = module.get(
             AtomWithTrailersExpressionSemantics.class);
         boolean exprCheck = awtes.validate(

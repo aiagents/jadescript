@@ -569,7 +569,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 pattern,
                 rootInput.termID + suffixID,
                 rootInput.getRootPatternMatchVariableName(),
-                rootInput.getInputDescriptor().flatMap(generateSubDescriptor)
+                rootInput.getInputDescriptor().flatApp(generateSubDescriptor)
             );
             this.rootInput = rootInput;
             this.suffixID = suffixID;

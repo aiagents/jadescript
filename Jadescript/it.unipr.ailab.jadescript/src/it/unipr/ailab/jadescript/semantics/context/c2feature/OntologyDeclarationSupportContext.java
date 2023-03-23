@@ -16,6 +16,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedOntologyType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmParameterizedTypeReference;
 import org.jetbrains.annotations.Nullable;
@@ -23,8 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 public class OntologyDeclarationSupportContext
     extends TopLevelDeclarationContext
@@ -50,7 +50,7 @@ public class OntologyDeclarationSupportContext
     public Stream<? extends GlobalCallable> globalCallables(
         @Nullable String name
     ) {
-        return Maybe.toListOfMaybes(input.__(Ontology::getFeatures)).stream()
+        return someStream(input.__(Ontology::getFeatures))
             .filter(f -> f.__(ff -> ff instanceof ExtendingFeature)
                 .extract(nullAsFalse))
             .map(f -> f.__(ff -> (ExtendingFeature) ff))
@@ -67,7 +67,7 @@ public class OntologyDeclarationSupportContext
     public Stream<? extends GlobalPattern> globalPatterns(
         @Nullable String name
     ) {
-        return Maybe.toListOfMaybes(input.__(Ontology::getFeatures)).stream()
+        return someStream(input.__(Ontology::getFeatures))
             .filter(f -> f.__(ff -> ff instanceof ExtendingFeature)
                 .extract(nullAsFalse))
             .map(f -> f.__(ff -> (ExtendingFeature) ff))
@@ -136,8 +136,8 @@ public class OntologyDeclarationSupportContext
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
 
-        final List<Maybe<JvmParameterizedTypeReference>> superOntologies =
-            Maybe.toListOfMaybes(input.__(FeatureContainer::getSuperTypes));
+        final MaybeList<JvmParameterizedTypeReference> superOntologies =
+            input.__toList(FeatureContainer::getSuperTypes);
 
         for (Maybe<JvmParameterizedTypeReference> superOntology :
             superOntologies) {

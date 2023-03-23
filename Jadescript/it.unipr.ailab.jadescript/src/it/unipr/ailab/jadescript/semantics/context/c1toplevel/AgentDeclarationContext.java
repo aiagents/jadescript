@@ -12,8 +12,8 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableN
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -116,7 +116,7 @@ public class AgentDeclarationContext
     public Stream<? extends CompilableName> compilableNames(
         @Nullable String name
     ) {
-        return Util.buildStream(agentReference)
+        return SemanticsUtils.buildStream(agentReference)
             .filter((__) -> name == null || name.equals("agent"));
     }
 

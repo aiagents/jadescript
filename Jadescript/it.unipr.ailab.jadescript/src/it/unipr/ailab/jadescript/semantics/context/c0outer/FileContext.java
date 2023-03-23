@@ -6,13 +6,13 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCalla
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.xtype.XImportDeclaration;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -27,7 +27,7 @@ public class FileContext
     private final String fileURI;
     private final ModuleContext outer;
 
-    private final List<Maybe<XImportDeclaration>> importDeclarations;
+    private final MaybeList<XImportDeclaration> importDeclarations;
 
 
     public FileContext(
@@ -35,7 +35,7 @@ public class FileContext
         ModuleContext outer,
         String fileName,
         String fileURI,
-        List<Maybe<XImportDeclaration>> importDeclarations
+        MaybeList<XImportDeclaration> importDeclarations
     ) {
         super(module);
         this.outer = outer;
@@ -95,7 +95,7 @@ public class FileContext
     }
 
 
-    public List<Maybe<XImportDeclaration>> getImportDeclarations() {
+    public MaybeList<XImportDeclaration> getImportDeclarations() {
         return importDeclarations;
     }
 

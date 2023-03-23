@@ -12,6 +12,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.naming.QualifiedName;
 
 import java.util.ArrayList;
@@ -63,10 +64,8 @@ public class OntologyElementStructuralPattern implements GlobalPattern {
 
             final TypeExpressionSemantics typeExpressionSemantics =
                 module.get(TypeExpressionSemantics.class);
-            final List<Maybe<SlotDeclaration>> slots =
-                Maybe.toListOfMaybes(f.__(
-                    i -> ((FeatureWithSlots) i).getSlots()
-                ));
+            final MaybeList<SlotDeclaration> slots =
+                f.__toList(i -> ((FeatureWithSlots) i).getSlots());
             termNames = new ArrayList<>(slots.size());
             termTypesByName = new HashMap<>(slots.size());
 

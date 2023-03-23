@@ -17,7 +17,7 @@ cyclic behaviour Test uses ontology NativeEventTest
         log "Exiting from JVM process..."
         do native tests.javainterop.NativeEventsFromJava.doExit
         
-    on native ButtonClicked(count) do
+    on native ButtonClicked(count ) do
         log "Button Clicked! Text = "
             + native["tests.javainterop.NativeEventsFromJava.nativeInvocationTest"](count) as text
 

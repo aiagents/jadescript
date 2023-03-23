@@ -21,10 +21,11 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
-import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
-import it.unipr.ailab.jadescript.semantics.utils.Util.Tuple2;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils.Tuple2;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
+import it.unipr.ailab.maybe.utils.ImmutableList;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -53,14 +54,14 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         List<String> argNames,
         List<String> paramNames
     ) {
-        List<Util.Tuple2<Integer, T>> tmp = new ArrayList<>();
+        List<SemanticsUtils.Tuple2<Integer, T>> tmp = new ArrayList<>();
         for (int i = 0; i < args.size(); i++) {
             T arg = args.get(i);
-            if(argNames.get(i).equals(AGENT_ENV)){
-                tmp.add(new Util.Tuple2<>(-1, arg));
-            }else {
+            if (argNames.get(i).equals(AGENT_ENV)) {
+                tmp.add(new SemanticsUtils.Tuple2<>(-1, arg));
+            } else {
                 Integer x = paramNames.indexOf(argNames.get(i));
-                tmp.add(new Util.Tuple2<>(x, arg));
+                tmp.add(new SemanticsUtils.Tuple2<>(x, arg));
             }
         }
         return tmp.stream()
@@ -70,6 +71,27 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     }
 
 
+    public static <T> MaybeList<T> sortToMatchParamNames(
+        MaybeList<T> args,
+        List<String> argNames,
+        List<String> paramNames
+    ) {
+        List<SemanticsUtils.Tuple2<Integer, Maybe<T>>> tmp = new ArrayList<>();
+        for (int i = 0; i < args.size(); i++) {
+            Maybe<T> arg = args.get(i);
+            if (argNames.get(i).equals(AGENT_ENV)) {
+                tmp.add(new SemanticsUtils.Tuple2<>(-1, arg));
+            } else {
+                Integer x = paramNames.indexOf(argNames.get(i));
+                tmp.add(new SemanticsUtils.Tuple2<>(x, arg));
+            }
+        }
+        return tmp.stream()
+            .sorted(Comparator.comparingInt(Tuple2::get_1))
+            .map(Tuple2::get_2)
+            .collect(MaybeList.collectFromStreamOfMaybes());
+    }
+
 
     public static <T> List<T> sortToMatchParamNames(
         Map<String, T> namedArgs,
@@ -78,12 +100,11 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         final List<T> collect = paramNames.stream()
             .map(namedArgs::get)
             .collect(Collectors.toCollection(ArrayList::new));
-        if(namedArgs.containsKey(AGENT_ENV)){
+        if (namedArgs.containsKey(AGENT_ENV)) {
             collect.add(0, namedArgs.get(AGENT_ENV));
         }
         return collect;
     }
-
 
 
     private static StaticState advanceCallByNameParameters(
@@ -233,17 +254,15 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         Maybe<NamedArgumentList> namedArgs =
             extractNamedArgs(input.getPattern());
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
-        List<Maybe<RValueExpression>> argExpressions;
+        MaybeList<RValueExpression> argExpressions;
         if (noArgs) {
-            argExpressions = Collections.emptyList();
+            argExpressions = MaybeList.empty();
         } else if (simpleArgs.isPresent()) {
-            argExpressions = toListOfMaybes(
-                simpleArgs.__(SimpleArgumentList::getExpressions)
-            );
+            argExpressions =
+                simpleArgs.__toList(SimpleArgumentList::getExpressions);
         } else /*(namedArgs.isPresent())*/ {
-            argExpressions = toListOfMaybes(
-                namedArgs.__(NamedArgumentList::getParameterValues)
-            );
+            argExpressions =
+                namedArgs.__toList(NamedArgumentList::getParameterValues);
         }
 
 
@@ -260,11 +279,10 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
 
         if (namedArgs.isPresent()) {
-            List<String> argNames = toListOfMaybes(
-                namedArgs.__(NamedArgumentList::getParameterNames)
-            ).stream()
-                .map(Maybe::toNullable)
-                .collect(Collectors.toList());
+            List<String> argNames =
+                someStream(namedArgs.__(NamedArgumentList::getParameterNames))
+                    .map(Maybe::toNullable)
+                    .collect(Collectors.toList());
             argExpressions = sortToMatchParamNames(
                 argExpressions,
                 argNames,
@@ -331,17 +349,15 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         Maybe<NamedArgumentList> namedArgs =
             extractNamedArgs(input.getPattern());
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
-        List<Maybe<RValueExpression>> argExpressions;
+        MaybeList<RValueExpression> argExpressions;
         if (noArgs) {
-            argExpressions = Collections.emptyList();
+            argExpressions = MaybeList.empty();
         } else if (simpleArgs.isPresent()) {
-            argExpressions = toListOfMaybes(
-                simpleArgs.__(SimpleArgumentList::getExpressions)
-            );
+            argExpressions =
+                simpleArgs.__toList(SimpleArgumentList::getExpressions);
         } else /*(namedArgs.isPresent())*/ {
-            argExpressions = toListOfMaybes(
-                namedArgs.__(NamedArgumentList::getParameterValues)
-            );
+            argExpressions =
+                namedArgs.__toList(NamedArgumentList::getParameterValues);
         }
 
 
@@ -359,9 +375,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
 
         if (namedArgs.isPresent()) {
-            List<String> argNames = toListOfMaybes(
-                namedArgs.__(NamedArgumentList::getParameterNames)
-            ).stream()
+            List<String> argNames =
+                someStream(namedArgs.__(NamedArgumentList::getParameterNames))
                 .map(Maybe::toNullable)
                 .collect(Collectors.toList());
             argExpressions = sortToMatchParamNames(
@@ -406,9 +421,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         RValueExpressionSemantics rves,
         String nameSafe
     ) {
-        final List<Maybe<RValueExpression>> args = toListOfMaybes(
-            simpleArgs.__(SimpleArgumentList::getExpressions)
-        );
+        final MaybeList<RValueExpression> args =
+            simpleArgs.__toList(SimpleArgumentList::getExpressions);
         int argsize = noArgs ? 0 : args.size();
 
         StaticState newState = advanceCallByArityParameters(
@@ -435,7 +449,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     private StaticState advanceCallByArityParameters(
         StaticState state,
         RValueExpressionSemantics rves,
-        List<Maybe<RValueExpression>> args
+        MaybeList<RValueExpression> args
     ) {
         StaticState newState = state;
         for (Maybe<RValueExpression> arg : args) {
@@ -454,9 +468,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             .extract(Maybe::nullAsEmptyList);
         Map<String, Maybe<RValueExpression>> args = Streams.zip(
             argNames.stream(),
-            toListOfMaybes(
-                namedArgs.__(NamedArgumentList::getParameterValues)
-            ).stream(),
+            someStream(namedArgs.__(NamedArgumentList::getParameterValues)),
             Tuple2::new
         ).collect(Collectors.toMap(
             Tuple2::get_1,
@@ -511,9 +523,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             module.get(RValueExpressionSemantics.class);
 
         if (noArgs || simpleArgs.isPresent()) {
-            final List<Maybe<RValueExpression>> args = toListOfMaybes(
-                simpleArgs.__(SimpleArgumentList::getExpressions)
-            );
+            final MaybeList<RValueExpression> args =
+                simpleArgs.__toList(SimpleArgumentList::getExpressions);
 
             int argsize = noArgs ? 0 : args.size();
 
@@ -700,9 +711,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             module.get(RValueExpressionSemantics.class);
 
         boolean allArgsCheck = VALID;
-        final List<Maybe<RValueExpression>> args = toListOfMaybes(
-            simpleArgs.__(SimpleArgumentList::getExpressions)
-        );
+        final MaybeList<RValueExpression> args =
+            simpleArgs.__toList(SimpleArgumentList::getExpressions);
 
         int argsize = noArgs ? 0 : args.size();
         StaticState afterArgs = state;
@@ -728,7 +738,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             false
         );
 
-        String signature = Util.getSignature(nameSafe, argsize);
+        String signature = SemanticsUtils.getSignature(nameSafe, argsize);
 
         if (methodsFound.isEmpty()) {
             return emitUnresolvedError(
@@ -810,9 +820,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         Map<String, Maybe<RValueExpression>> argsByName =
             Streams.zip(
                 argNames.stream(),
-                toListOfMaybes(
-                    namedArgs.__(NamedArgumentList::getParameterValues)
-                ).stream(),
+                someStream(namedArgs
+                    .__(NamedArgumentList::getParameterValues)),
                 Tuple2::new
             ).collect(Collectors.toMap(
                 Tuple2::get_1,
@@ -849,7 +858,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         );
 
 
-        String signature = Util.getSignature(
+        String signature = SemanticsUtils.getSignature(
             nameSafe,
             argTypes,
             argNames
@@ -974,11 +983,11 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         Maybe<Call> input
     ) {
         //only arguments can be sub-expressions
-        return Maybe.toListOfMaybes(eitherCall(
+        return Maybe.someStream(eitherCall(
                 extractSimpleArgs(input), extractNamedArgs(input),
                 SimpleArgumentList::getExpressions,
                 NamedArgumentList::getParameterValues
-            )).stream()
+            ))
             .filter(Maybe::isPresent)
             .map(x -> new SemanticsBoundToExpression<>(
                 module.get(RValueExpressionSemantics.class), x
@@ -1002,7 +1011,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     ) {
         /*
         Functional-notation patterns are identified by name and number of
-        arguments, and, when resolved, have alwaysa compile-time-known
+        arguments, and, when resolved, have always a compile-time-known
         non-holed type. Therefore, they are never typely-holed, even when
         their arguments are/have holes.
         */
@@ -1032,17 +1041,15 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         Maybe<NamedArgumentList> namedArgs =
             extractNamedArgs(input.getPattern());
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
-        List<Maybe<RValueExpression>> argExpressions;
+        MaybeList<RValueExpression> argExpressions;
         if (noArgs) {
-            argExpressions = Collections.emptyList();
+            argExpressions = MaybeList.empty();
         } else if (simpleArgs.isPresent()) {
-            argExpressions = toListOfMaybes(
-                simpleArgs.__(SimpleArgumentList::getExpressions)
-            );
+            argExpressions =
+                simpleArgs.__toList(SimpleArgumentList::getExpressions);
         } else /*(namedArgs.isPresent())*/ {
-            argExpressions = toListOfMaybes(
-                namedArgs.__(NamedArgumentList::getParameterValues)
-            );
+            argExpressions =
+                namedArgs.__toList(NamedArgumentList::getParameterValues);
         }
 
 
@@ -1053,12 +1060,13 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
             List<IJadescriptType> patternTermTypes = ps.termTypes();
             if (namedArgs.isPresent()) {
-                List<String> argNames = toListOfMaybes(
+                List<String> argNames = someStream(
                     namedArgs.__(NamedArgumentList::getParameterNames)
-                ).stream()
+                )
                     .map(Maybe::toNullable)
                     .collect(Collectors.toList());
-                argExpressions = sortToMatchParamNames(argExpressions,
+                argExpressions = sortToMatchParamNames(
+                    argExpressions,
                     argNames, ps.termNames()
                 );
             }
@@ -1200,17 +1208,15 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             extractNamedArgs(input.getPattern());
         Maybe<String> name = input.getPattern().__(Call::getName);
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
-        List<Maybe<RValueExpression>> argExpressions;
+        MaybeList<RValueExpression> argExpressions;
         if (noArgs) {
-            argExpressions = Collections.emptyList();
+            argExpressions = MaybeList.empty();
         } else if (simpleArgs.isPresent()) {
-            argExpressions = toListOfMaybes(
-                simpleArgs.__(SimpleArgumentList::getExpressions)
-            );
+            argExpressions =
+                simpleArgs.__toList(SimpleArgumentList::getExpressions);
         } else /*(namedArgs.isPresent())*/ {
-            argExpressions = toListOfMaybes(
-                namedArgs.__(NamedArgumentList::getParameterValues)
-            );
+            argExpressions =
+                namedArgs.__toList(NamedArgumentList::getParameterValues);
         }
 
         final ValidationHelper validationHelper =
@@ -1220,7 +1226,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             return validationHelper.emitError(
                 "InvalidPattern",
                 "Cannot resolve structural pattern: "
-                    + Util.getSignature(
+                    + SemanticsUtils.getSignature(
                     name.orElse(""), argExpressions.size()
                 ),
                 patternCall,
@@ -1236,7 +1242,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
             return validationHelper.emitError(
                 "InvalidPattern",
-                "Ambiguous pattern resolution: " + Util.getSignature(
+                "Ambiguous pattern resolution: " + SemanticsUtils.getSignature(
                     name.orElse(""),
                     argExpressions.size()
                 ) + ". Candidates: \n• " + String.join(
@@ -1255,13 +1261,15 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             List<IJadescriptType> patternTermTypes = ps.termTypes();
 
             if (namedArgs.isPresent()) {
-                List<String> argNames = toListOfMaybes(
+                List<String> argNames = someStream(
                     namedArgs.__(NamedArgumentList::getParameterNames)
-                ).stream()
+                )
                     .map(an -> an.orElse(""))
                     .collect(Collectors.toList());
-                argExpressions = sortToMatchParamNames(argExpressions,
-                    argNames, ps.termNames()
+                argExpressions = sortToMatchParamNames(
+                    argExpressions,
+                    argNames,
+                    ps.termNames()
                 );
             }
 
@@ -1321,14 +1329,14 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
         if (namedArgs.isPresent()) {
             List<String> names = new ArrayList<>();
-            List<Maybe<String>> namesMaybes = toListOfMaybes(
-                namedArgs.__(NamedArgumentList::getParameterNames)
-            );
+            MaybeList<String> namesMaybes =
+                namedArgs.__toList(NamedArgumentList::getParameterNames);
             Map<String, Maybe<RValueExpression>> args = new HashMap<>();
-            final List<Maybe<RValueExpression>> argsMaybes = toListOfMaybes(
-                namedArgs.__(NamedArgumentList::getParameterValues)
-            );
+            final MaybeList<RValueExpression> argsMaybes =
+                namedArgs.__toList(NamedArgumentList::getParameterValues);
+
             int assumedSize = Math.min(argsMaybes.size(), namesMaybes.size());
+
             for (int i = 0; i < assumedSize; i++) {
                 Maybe<String> mn = namesMaybes.get(i);
                 final String argName = mn.orElse("_" + i);
@@ -1353,21 +1361,18 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                     CompilableCallable.Namespace.class,
                     searcher -> searcher.compilableCallables(nameSafe)
                         .filter(cc -> cc.arity() == assumedSize)
-                ).filter(Util.dinstinctBy(Located::sourceLocation))
+                ).filter(SemanticsUtils.dinstinctBy(Located::sourceLocation))
                 .collect(Collectors.toList());
 
         } else  /*ASSUMING  (noArgs || simpleArgs.isPresent())*/ {
-            List<Maybe<RValueExpression>> args = toListOfMaybes(
-                simpleArgs.__(SimpleArgumentList::getExpressions)
-            );
+            MaybeList<RValueExpression> args =
+                simpleArgs.__toList(SimpleArgumentList::getExpressions);
+
             int argsize = noArgs ? 0 : args.size();
             final StaticState afterArguments;
             if (!noArgs && advanceStateOnArguments) {
-                afterArguments = advanceCallByArityParameters(
-                    state,
-                    rves,
-                    args
-                );
+                afterArguments =
+                    advanceCallByArityParameters(state, rves, args);
             } else {
                 afterArguments = state;
             }
@@ -1375,7 +1380,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                     CompilableCallable.Namespace.class,
                     searcher -> searcher.compilableCallables(nameSafe)
                         .filter(cc -> cc.arity() == argsize)
-                ).filter(Util.dinstinctBy(Located::sourceLocation))
+                ).filter(SemanticsUtils.dinstinctBy(Located::sourceLocation))
                 .collect(Collectors.toList());
         }
     }
@@ -1415,6 +1420,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     ) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
+
         Maybe<String> name = input.__(Call::getName);
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
 
@@ -1424,26 +1430,22 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         String nameSafe = name.toNullable();
 
         if (namedArgs.isPresent()) {
-
-            List<Maybe<String>> namesMaybes = toListOfMaybes(
-                namedArgs.__(NamedArgumentList::getParameterNames)
-            );
-            final List<Maybe<RValueExpression>> argsMaybes = toListOfMaybes(
-                namedArgs.__(NamedArgumentList::getParameterValues)
-            );
+            MaybeList<String> namesMaybes =
+                namedArgs.__toList(NamedArgumentList::getParameterNames);
+            final MaybeList<RValueExpression> argsMaybes =
+                namedArgs.__toList(NamedArgumentList::getParameterValues);
             int assumedSize = Math.min(argsMaybes.size(), namesMaybes.size());
 
             return state.searchAs(
                     GlobalPattern.Namespace.class,
                     searcher -> searcher.globalPatterns(nameSafe)
                         .filter(gp -> gp.termCount() == assumedSize)
-                ).filter(Util.dinstinctBy(Located::sourceLocation))
+                ).filter(SemanticsUtils.dinstinctBy(Located::sourceLocation))
                 .collect(Collectors.toList());
 
         } else  /*ASSUMING  (noArgs || simpleArgs.isPresent())*/ {
-            List<Maybe<RValueExpression>> args = toListOfMaybes(
-                simpleArgs.__(SimpleArgumentList::getExpressions)
-            );
+            MaybeList<RValueExpression> args =
+                simpleArgs.__toList(SimpleArgumentList::getExpressions);
 
             int argsize = noArgs ? 0 : args.size();
 
@@ -1452,7 +1454,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                     GlobalPattern.Namespace.class,
                     searcher -> searcher.globalPatterns(nameSafe)
                         .filter(gp -> gp.termCount() == argsize)
-                ).filter(Util.dinstinctBy(Located::sourceLocation))
+                ).filter(SemanticsUtils.dinstinctBy(Located::sourceLocation))
                 .collect(Collectors.toList());
         }
     }

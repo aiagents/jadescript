@@ -12,8 +12,8 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,7 +55,7 @@ public abstract class ForAgentDeclarationContext
         if (name != null && !name.equals("agent")) {
             return Stream.of();
         }
-        return Util.buildStream(agentSymbol);
+        return SemanticsUtils.buildStream(agentSymbol);
     }
 
 

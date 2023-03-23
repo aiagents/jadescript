@@ -1,4 +1,4 @@
-package it.unipr.ailab.jadescript.semantics.utils;
+package it.unipr.ailab.maybe.utils;
 
 import java.util.Objects;
 import java.util.function.Supplier;

@@ -18,6 +18,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.MaybeList.fromMaybeList;
 
 /**
  * Created on 31/03/18.
@@ -63,7 +65,7 @@ public class ListLiteralExpressionSemantics
 
         return Streams.concat(
                 Stream.of(input.__(ListLiteral::getRest)),
-                Maybe.toListOfMaybes(values).stream()
+                someStream(values)
             )
             .filter(Maybe::isPresent)
             .map(x -> new SemanticsBoundToExpression<>(
@@ -97,7 +99,7 @@ public class ListLiteralExpressionSemantics
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        List<Maybe<RValueExpression>> elements = Maybe.toListOfMaybes(values);
+        MaybeList<RValueExpression> elements = fromMaybeList(values);
 
         return "jadescript.util.JadescriptCollections.createList(" +
             "java.util.List.of(" + mapExpressionsWithState(
@@ -118,8 +120,8 @@ public class ListLiteralExpressionSemantics
         Maybe<ListLiteral> input,
         StaticState state
     ) {
-        Maybe<EList<RValueExpression>> values =
-            input.__(ListLiteral::getValues);
+        MaybeList<RValueExpression> values =
+            input.__toList(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter =
             input.__(ListLiteral::getTypeParameter);
         boolean hasTypeSpecifier =
@@ -137,7 +139,7 @@ public class ListLiteralExpressionSemantics
             );
         } else {
             final IJadescriptType elementsTypePrePipe =
-                computeElementsTypeLUB(toListOfMaybes(values), state);
+                computeElementsTypeLUB(values, state);
             if (isWithPipe) {
                 IJadescriptType restType =
                     module.get(RValueExpressionSemantics.class)
@@ -182,7 +184,7 @@ public class ListLiteralExpressionSemantics
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        List<Maybe<RValueExpression>> valuesList = Maybe.toListOfMaybes(values);
+        MaybeList<RValueExpression> valuesList = fromMaybeList(values);
         StaticState newState = state;
 
         for (Maybe<RValueExpression> rValueExpressionMaybe : valuesList) {
@@ -197,7 +199,7 @@ public class ListLiteralExpressionSemantics
 
 
     private IJadescriptType computeElementsTypeLUB(
-        List<Maybe<RValueExpression>> valuesList,
+        MaybeList<RValueExpression> valuesList,
         StaticState state
     ) {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
@@ -254,8 +256,8 @@ public class ListLiteralExpressionSemantics
         PatternMatchInput<ListLiteral> input,
         StaticState state
     ) {
-        List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
+        MaybeList<RValueExpression> values =
+            input.getPattern().__toList(ListLiteral::getValues);
         Maybe<RValueExpression> rest =
             input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe =
@@ -394,8 +396,8 @@ public class ListLiteralExpressionSemantics
         StaticState state
     ) {
 
-        List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
+        MaybeList<RValueExpression> values =
+            input.getPattern().__toList(ListLiteral::getValues);
         Maybe<RValueExpression> rest =
             input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe =
@@ -499,8 +501,8 @@ public class ListLiteralExpressionSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
+        MaybeList<RValueExpression> values =
+            input.getPattern().__toList(ListLiteral::getValues);
         Maybe<RValueExpression> rest =
             input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe =
@@ -669,8 +671,8 @@ public class ListLiteralExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
+        MaybeList<RValueExpression> values =
+            input.getPattern().__toList(ListLiteral::getValues);
         Maybe<RValueExpression> rest =
             input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe = input.getPattern()
@@ -757,9 +759,11 @@ public class ListLiteralExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
-        Maybe<EList<RValueExpression>> values =
-            input.__(ListLiteral::getValues);
+        if (input == null) {
+            return VALID;
+        }
+        MaybeList<RValueExpression> values =
+            input.__toList(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter =
             input.__(ListLiteral::getTypeParameter);
         boolean hasTypeSpecifier =
@@ -769,7 +773,7 @@ public class ListLiteralExpressionSemantics
         StaticState newState = state;
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
-        for (Maybe<RValueExpression> element : iterate(values)) {
+        for (Maybe<RValueExpression> element : values) {
             final boolean elementCheck = rves.validate(
                 element,
                 newState,
@@ -780,10 +784,10 @@ public class ListLiteralExpressionSemantics
             newState = rves.advance(element, newState);
         }
 
-        List<Maybe<RValueExpression>> valuesList = Maybe.toListOfMaybes(values);
+
         stage1 = stage1 && module.get(ValidationHelper.class).asserting(
-            (!valuesList.isEmpty()
-                && !valuesList.stream().allMatch(Maybe::isNothing))
+            (!values.isEmpty()
+                && !values.stream().allMatch(Maybe::isNothing))
                 || hasTypeSpecifier,
             "ListLiteralCannotComputeType",
             "Missing type specification for empty list literal",
@@ -792,9 +796,9 @@ public class ListLiteralExpressionSemantics
         );
 
         if (stage1 == VALID
-            && !valuesList.isEmpty()
-            && !valuesList.stream().allMatch(Maybe::isNothing)) {
-            IJadescriptType lub = computeElementsTypeLUB(valuesList, state);
+            && !values.isEmpty()
+            && !values.stream().allMatch(Maybe::isNothing)) {
+            IJadescriptType lub = computeElementsTypeLUB(values, state);
 
             boolean typeValidation =
                 module.get(ValidationHelper.class).asserting(

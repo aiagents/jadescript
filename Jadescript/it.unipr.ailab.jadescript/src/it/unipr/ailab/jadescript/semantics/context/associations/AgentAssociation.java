@@ -6,16 +6,12 @@ import it.unipr.ailab.jadescript.semantics.namespace.ImportedMembersNamespace;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithCompilables;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.ecore.EObject;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Comparator;
-
-import static it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts.THE_AGENT;
-import static it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts.THIS;
 
 public class AgentAssociation implements Comparable<AgentAssociation>,
     Association {

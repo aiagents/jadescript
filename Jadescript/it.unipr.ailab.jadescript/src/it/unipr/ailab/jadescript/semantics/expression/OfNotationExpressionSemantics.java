@@ -16,7 +16,8 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
+import it.unipr.ailab.maybe.MaybeList;
+import it.unipr.ailab.maybe.utils.ImmutableList;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -27,8 +28,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
-import static it.unipr.ailab.maybe.Maybe.some;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 
 /**
@@ -80,12 +80,12 @@ public class OfNotationExpressionSemantics
         Maybe<OfNotation> input,
         StaticState state
     ) {
-        final List<Maybe<String>> properties = Maybe.toListOfMaybes(
-            input.__(OfNotation::getProperties));
         final Maybe<AidLiteral> aidLiteral =
             input.__(OfNotation::getAidLiteral);
 
-        List<String> result = properties.stream()
+        List<String> result = someStream(
+            input.__(OfNotation::getProperties)
+        )
             .filter(Maybe::isPresent)
             .map(Maybe::toNullable)
             .collect(Collectors.toCollection(ArrayList::new));
@@ -142,8 +142,8 @@ public class OfNotationExpressionSemantics
         Maybe<OfNotation> input,
         StaticState state, BlockElementAcceptor acceptor
     ) {
-        final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(
-            OfNotation::getProperties));
+        final MaybeList<String> properties =
+            input.__toList(OfNotation::getProperties);
         final Maybe<AidLiteral> aidLiteral =
             input.__(OfNotation::getAidLiteral);
         StringBuilder r = new StringBuilder(
@@ -194,8 +194,8 @@ public class OfNotationExpressionSemantics
         BlockElementAcceptor acceptor
     ) {
 
-        final List<Maybe<String>> properties =
-            Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
+        final MaybeList<String> properties =
+            input.__toList(OfNotation::getProperties);
         final Maybe<AidLiteral> aidLiteral =
             input.__(OfNotation::getAidLiteral);
         final AidLiteralExpressionSemantics ales =
@@ -303,16 +303,15 @@ public class OfNotationExpressionSemantics
         Maybe<OfNotation> input,
         StaticState state
     ) {
-        final List<Maybe<String>> properties = Maybe.toListOfMaybes(
-            input.__(OfNotation::getProperties)
-        );
+        final MaybeList<String> properties =
+            input.__toList(OfNotation::getProperties);
         final Maybe<AidLiteral> aidLiteral =
             input.__(OfNotation::getAidLiteral);
 
-        List<Maybe<String>> props = new ArrayList<>(properties);
+        List<Maybe<String>> props = properties.toListOfMaybes();
         IJadescriptType prevType =
-            module.get(AidLiteralExpressionSemantics.class).inferType(
-                aidLiteral, state);
+            module.get(AidLiteralExpressionSemantics.class)
+                .inferType(aidLiteral, state);
         //NOT NEEDED:
 //        StaticState afterSubExpr = ales.advance(aidLiteral, state);
         for (int i = props.size() - 1; i >= 0; i--) {
@@ -325,9 +324,7 @@ public class OfNotationExpressionSemantics
 
     @Override
     protected boolean mustTraverse(Maybe<OfNotation> input) {
-        final List<Maybe<String>> properties = Maybe.toListOfMaybes(
-            input.__(OfNotation::getProperties));
-        return properties.isEmpty();
+        return input.__toList(OfNotation::getProperties).isEmpty();
     }
 
 
@@ -374,8 +371,8 @@ public class OfNotationExpressionSemantics
     ) {
         if (input == null) return VALID;
 
-        final List<Maybe<String>> properties = Maybe.toListOfMaybes(input.__(
-            OfNotation::getProperties));
+        final MaybeList<String> properties =
+            input.__toList(OfNotation::getProperties);
         final Maybe<AidLiteral> aidLiteral =
             input.__(OfNotation::getAidLiteral);
 
@@ -391,7 +388,7 @@ public class OfNotationExpressionSemantics
         StaticState afterRExpression = rves.advance(expression, state);
 
 
-        List<Maybe<String>> props = new ArrayList<>(properties);
+        List<Maybe<String>> props = properties.toListOfMaybes();
         final AidLiteralExpressionSemantics ales =
             module.get(AidLiteralExpressionSemantics.class);
 
@@ -603,8 +600,8 @@ public class OfNotationExpressionSemantics
     ) {
         if (input == null) return VALID;
 
-        final List<Maybe<String>> properties =
-            Maybe.toListOfMaybes(input.__(OfNotation::getProperties));
+        final MaybeList<String> properties =
+            input.__toList(OfNotation::getProperties);
         final Maybe<AidLiteral> aidLiteral =
             input.__(OfNotation::getAidLiteral);
 
@@ -621,7 +618,7 @@ public class OfNotationExpressionSemantics
 
         IJadescriptType afterLastOfType = module.get(
             AidLiteralExpressionSemantics.class).inferType(aidLiteral, state);
-        List<Maybe<String>> props = new ArrayList<>(properties);
+        List<Maybe<String>> props = properties.toListOfMaybes();
         if (!props.isEmpty()) {
             IJadescriptType prevType = afterLastOfType;
             for (int i = props.size() - 1; i >= 0; i--) { //reverse

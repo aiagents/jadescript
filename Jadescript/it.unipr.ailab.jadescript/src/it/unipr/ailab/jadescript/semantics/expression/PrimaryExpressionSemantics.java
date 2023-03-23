@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.Literal;
 import it.unipr.ailab.jadescript.jadescript.NativeExpression;
 import it.unipr.ailab.jadescript.jadescript.Primary;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -15,18 +16,15 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.TupledExpressions;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
  * Created on 28/12/16.
@@ -44,13 +42,11 @@ public class PrimaryExpressionSemantics
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<Primary> input
     ) {
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.__toListNullsRemoved(Primary::getExprs);
 
         if (exprs.size() == 1) {
-            return Util.buildStream(() -> exprs.get(0)
+            return SemanticsUtils.buildStream(() -> exprs.get(0)
                 .<SemanticsBoundToExpression<?>>extract(
                     x -> new SemanticsBoundToExpression<>(
                         module.get(RValueExpressionSemantics.class),
@@ -66,10 +62,8 @@ public class PrimaryExpressionSemantics
         Maybe<Primary> input,
         StaticState state
     ) {
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.__toListNullsRemoved(Primary::getExprs);
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -87,10 +81,8 @@ public class PrimaryExpressionSemantics
         Maybe<Primary> input,
         StaticState state
     ) {
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.__toListNullsRemoved(Primary::getExprs);
 
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class)
@@ -106,11 +98,8 @@ public class PrimaryExpressionSemantics
         PatternMatchInput<Primary> input,
         StaticState state
     ) {
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.getPattern().__(Primary::getExprs))
-                .stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.getPattern().__toListNullsRemoved(Primary::getExprs);
 
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class).assertDidMatch(
@@ -128,10 +117,8 @@ public class PrimaryExpressionSemantics
         Maybe<Primary> input,
         StaticState state
     ) {
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.__toListNullsRemoved(Primary::getExprs);
 
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class)
@@ -147,10 +134,8 @@ public class PrimaryExpressionSemantics
         Maybe<Primary> input,
         StaticState state
     ) {
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.__toListNullsRemoved(Primary::getExprs);
 
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class)
@@ -166,11 +151,9 @@ public class PrimaryExpressionSemantics
         PatternMatchInput<Primary> input,
         StaticState state
     ) {
-        final List<Maybe<RValueExpression>> exprs = Maybe.toListOfMaybes(
-                input.getPattern().__(Primary::getExprs)
-            ).stream()
-            .filter(Maybe::isPresent)
-            .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.getPattern().__toListNullsRemoved(Primary::getExprs);
+
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class)
                 .advancePattern(
@@ -195,10 +178,8 @@ public class PrimaryExpressionSemantics
         BlockElementAcceptor acceptor
     ) {
 
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.__toListNullsRemoved(Primary::getExprs);
 
         if (exprs.size() == 1) {
             final String result = module.get(RValueExpressionSemantics.class)
@@ -225,10 +206,8 @@ public class PrimaryExpressionSemantics
             return typeHelper.ANY;
         }
 
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.__toListNullsRemoved(Primary::getExprs);
 
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class)
@@ -243,10 +222,9 @@ public class PrimaryExpressionSemantics
     protected boolean mustTraverse(Maybe<Primary> input) {
         final boolean isPlaceholder = input.__(Primary::isPlaceholder)
             .extract(nullAsFalse);
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.__toListNullsRemoved(Primary::getExprs);
+
         final Maybe<Literal> literal = input.__(Primary::getLiteral);
         final Maybe<String> identifier = input.__(Primary::getIdentifier);
         final Maybe<NativeExpression> invoke =
@@ -264,10 +242,9 @@ public class PrimaryExpressionSemantics
     traverseInternal(Maybe<Primary> input) {
         final boolean isPlaceholder =
             input.__(Primary::isPlaceholder).extract(nullAsFalse);
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.__toListNullsRemoved(Primary::getExprs);
+
         final Maybe<TupledExpressions> tuple;
 
         if (exprs.size() > 1) {
@@ -318,10 +295,8 @@ public class PrimaryExpressionSemantics
         ValidationMessageAcceptor acceptor
     ) {
         if (input == null) return VALID;
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.__toListNullsRemoved(Primary::getExprs);
 
 
         if (exprs.size() == 1) {
@@ -427,11 +402,9 @@ public class PrimaryExpressionSemantics
         PatternMatchInput<Primary> input,
         StaticState state, BlockElementAcceptor acceptor
     ) {
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.getPattern()
-                    .__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.getPattern().__toListNullsRemoved(Primary::getExprs);
+
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class)
                 .compilePatternMatch(
@@ -455,19 +428,19 @@ public class PrimaryExpressionSemantics
         PatternMatchInput<Primary> input,
         StaticState state
     ) {
-        final List<Maybe<RValueExpression>> exprs = Maybe.toListOfMaybes(
-                input.getPattern().__(Primary::getExprs)
-            ).stream()
+        final MaybeList<RValueExpression> exprs = someStream(
+            input.getPattern().__(Primary::getExprs)
+        )
             .filter(Maybe::isPresent)
-            .collect(Collectors.toList());
+            .collect(MaybeList.collectFromStreamOfMaybes());
 
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class).inferPatternType(
                 input.subPattern(
-                        input.getProvidedInputType(),
-                        __ -> exprs.get(0).toNullable(),
-                        "__paren"
-                    ),
+                    input.getProvidedInputType(),
+                    __ -> exprs.get(0).toNullable(),
+                    "__paren"
+                ),
                 state
             );
         }
@@ -481,11 +454,9 @@ public class PrimaryExpressionSemantics
         PatternMatchInput<Primary> input,
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.getPattern()
-                    .__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.getPattern().__toListNullsRemoved(Primary::getExprs);
+
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class)
                 .validatePatternMatch(
@@ -523,11 +494,9 @@ public class PrimaryExpressionSemantics
         PatternMatchInput<Primary> input,
         StaticState state
     ) {
-        final List<Maybe<RValueExpression>> exprs =
-            Maybe.toListOfMaybes(input.getPattern()
-                    .__(Primary::getExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> exprs =
+            input.getPattern().__toListNullsRemoved(Primary::getExprs);
+
         if (exprs.size() == 1) {
             return module.get(RValueExpressionSemantics.class)
                 .isPredictablePatternMatchSuccess(

@@ -17,6 +17,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import jadescript.content.JadescriptOntoElement;
 import org.eclipse.xtext.common.types.JvmOperation;
 import org.eclipse.xtext.common.types.JvmTypeReference;
@@ -54,10 +55,9 @@ public final class TypeExpressionSemantics extends Semantics {
             input.__(TypeExpression::getJvmType);
         final Maybe<CollectionTypeExpression> collectionType =
             input.__(TypeExpression::getCollectionTypeExpression);
-        final List<Maybe<TypeExpression>> subExprs =
-            Maybe.toListOfMaybes(input.__(TypeExpression::getSubExprs)).stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<TypeExpression> subExprs =
+            input.__toListNullsRemoved(TypeExpression::getSubExprs);
+
         final Maybe<BuiltinHierarchicType> builtinHierarchicType =
             input.__(TypeExpression::getBuiltinHiearchic);
 
@@ -99,7 +99,7 @@ public final class TypeExpressionSemantics extends Semantics {
     private boolean validateTupleType(
         Maybe<TypeExpression> input,
         ValidationMessageAcceptor acceptor,
-        List<Maybe<TypeExpression>> subExprs,
+        MaybeList<TypeExpression> subExprs,
         ValidationHelper validationHelper
     ) {
         boolean result = validationHelper.asserting(
@@ -346,12 +346,8 @@ public final class TypeExpressionSemantics extends Semantics {
             TypeExpression::getBuiltinHiearchic);
         final Maybe<CollectionTypeExpression> collectionType = input.__(
             TypeExpression::getCollectionTypeExpression);
-        final List<Maybe<TypeExpression>> subExprs =
-            Maybe.toListOfMaybes(input.__(
-                    TypeExpression::getSubExprs))
-                .stream()
-                .filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<TypeExpression> subExprs =
+            input.__toListNullsRemoved(TypeExpression::getSubExprs);
 
         final Function<List<TypeArgument>, BaseBehaviourType>
             baseBehaviourTypeFunction =
@@ -414,7 +410,7 @@ public final class TypeExpressionSemantics extends Semantics {
             return getMessageType(hierarchicType
                 .__(BuiltinHierarchicType::getMessageType));
         } else if (collectionType.isPresent()) {
-            List<TypeArgument> typeParameters = stream(
+            List<TypeArgument> typeParameters = someStream(
                 collectionType.__(CollectionTypeExpression::getTypeParameters)
             ).map(this::toJadescriptType)
                 .collect(Collectors.toList());

@@ -15,8 +15,9 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -25,12 +26,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.google.common.collect.Streams.zip;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
-import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 public class MapLiteralExpressionSemantics
     extends AssignableExpressionSemantics<MapOrSetLiteral> {
@@ -57,17 +56,15 @@ public class MapLiteralExpressionSemantics
     protected Stream<SemanticsBoundToExpression<?>> getSubExpressionsInternal(
         Maybe<MapOrSetLiteral> input
     ) {
-        final List<Maybe<RValueExpression>> values =
-            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
-        final List<Maybe<RValueExpression>> keys =
-            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
         return Stream.concat(
             zip(
-                keys.stream().filter(Maybe::isPresent),
-                values.stream().filter(Maybe::isPresent),
-                (k, v) -> Util.buildStream(
+                someStream(input.__(MapOrSetLiteral::getKeys))
+                    .filter(Maybe::isPresent),
+                someStream(input.__(MapOrSetLiteral::getValues))
+                    .filter(Maybe::isPresent),
+                (k, v) -> SemanticsUtils.buildStream(
                     () -> new SemanticsBoundToExpression<>(rves, k),
                     () -> new SemanticsBoundToExpression<>(rves, v)
                 )
@@ -86,10 +83,10 @@ public class MapLiteralExpressionSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        final List<Maybe<RValueExpression>> values =
-            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
-        final List<Maybe<RValueExpression>> keys =
-            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
+        final MaybeList<RValueExpression> values =
+            input.__toList(MapOrSetLiteral::getValues);
+        final MaybeList<RValueExpression> keys =
+            input.__toList(MapOrSetLiteral::getKeys);
         final Maybe<TypeExpression> keysTypeParameter =
             input.__(MapOrSetLiteral::getKeyTypeParameter);
         final Maybe<TypeExpression> valuesTypeParameter =
@@ -140,10 +137,10 @@ public class MapLiteralExpressionSemantics
         Maybe<MapOrSetLiteral> input,
         StaticState state
     ) {
-        final List<Maybe<RValueExpression>> keys =
-            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
-        final List<Maybe<RValueExpression>> values =
-            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
+        final MaybeList<RValueExpression> keys =
+            input.__toList(MapOrSetLiteral::getKeys);
+        final MaybeList<RValueExpression> values =
+            input.__toList(MapOrSetLiteral::getValues);
         final Maybe<TypeExpression> keysTypeParameter =
             input.__(MapOrSetLiteral::getKeyTypeParameter);
         final Maybe<TypeExpression> valuesTypeParameter =
@@ -199,10 +196,10 @@ public class MapLiteralExpressionSemantics
         ValidationMessageAcceptor acceptor
     ) {
         if (input == null) return VALID;
-        final List<Maybe<RValueExpression>> values =
-            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
-        final List<Maybe<RValueExpression>> keys =
-            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
+        final MaybeList<RValueExpression> values =
+            input.__toList(MapOrSetLiteral::getValues);
+        final MaybeList<RValueExpression> keys =
+            input.__toList(MapOrSetLiteral::getKeys);
         final boolean hasTypeSpecifiers =
             input.__(MapOrSetLiteral::isWithTypeSpecifiers)
                 .extract(Maybe.nullAsFalse);
@@ -369,10 +366,10 @@ public class MapLiteralExpressionSemantics
     ) {
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
-        final List<Maybe<RValueExpression>> values =
-            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues));
-        final List<Maybe<RValueExpression>> keys =
-            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys));
+        final MaybeList<RValueExpression> values =
+            input.__toList(MapOrSetLiteral::getValues);
+        final MaybeList<RValueExpression> keys =
+            input.__toList(MapOrSetLiteral::getKeys);
         StaticState newState = state;
         int assumedSize = Math.min(keys.size(), values.size());
         for (int i = 0; i < assumedSize; i++) {
@@ -420,8 +417,8 @@ public class MapLiteralExpressionSemantics
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        final List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
+        final MaybeList<RValueExpression> values =
+            input.getPattern().__toList(MapOrSetLiteral::getValues);
 
         IJadescriptType solvedPatternType =
             inferPatternType(input, state)
@@ -439,6 +436,7 @@ public class MapLiteralExpressionSemantics
 
         StaticState newState = state;
         boolean isHoled;
+
         for (Maybe<RValueExpression> value : values) {
             final SubPattern<RValueExpression, MapOrSetLiteral> valueTerm =
                 input.subPattern(
@@ -485,8 +483,8 @@ public class MapLiteralExpressionSemantics
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        final List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
+        final MaybeList<RValueExpression> values =
+            input.getPattern().__toList(MapOrSetLiteral::getValues);
 
         final Maybe<TypeExpression> valueTypeParameter =
             input.getPattern().__(MapOrSetLiteral::getValueTypeParameter);
@@ -558,8 +556,8 @@ public class MapLiteralExpressionSemantics
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        final List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
+        final MaybeList<RValueExpression> values =
+            input.getPattern().__toList(MapOrSetLiteral::getValues);
 
         IJadescriptType solvedPatternType =
             inferPatternType(input, state)
@@ -618,10 +616,10 @@ public class MapLiteralExpressionSemantics
             .__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
         Maybe<RValueExpression> rest = input.getPattern()
             .__(MapOrSetLiteral::getRest);
-        final List<Maybe<RValueExpression>> keys =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
-        final List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
+        final MaybeList<RValueExpression> keys =
+            input.getPattern().__toList(MapOrSetLiteral::getKeys);
+        final MaybeList<RValueExpression> values =
+            input.getPattern().__toList(MapOrSetLiteral::getValues);
         int prePipeElementCount = Math.min(keys.size(), values.size());
         PatternType patternType = inferPatternType(input, state);
         IJadescriptType solvedPatternType =
@@ -839,10 +837,10 @@ public class MapLiteralExpressionSemantics
         boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
                 .extract(nullAsFalse);
-        final List<Maybe<RValueExpression>> keys =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
-        final List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
+        final MaybeList<RValueExpression> keys =
+            input.getPattern().__toList(MapOrSetLiteral::getKeys);
+        final MaybeList<RValueExpression> values =
+            input.getPattern().__toList(MapOrSetLiteral::getValues);
         int prePipeElementCount = Math.min(keys.size(), values.size());
         PatternType patternType = inferPatternType(input, state);
         IJadescriptType solvedPatternType =
@@ -956,10 +954,10 @@ public class MapLiteralExpressionSemantics
         boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
                 .extract(nullAsFalse);
-        final List<Maybe<RValueExpression>> keys =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getKeys));
-        final List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
+        final MaybeList<RValueExpression> keys =
+            input.getPattern().__toList(MapOrSetLiteral::getKeys);
+        final MaybeList<RValueExpression> values =
+            input.getPattern().__toList(MapOrSetLiteral::getValues);
         int prePipeElementCount = Math.min(keys.size(), values.size());
         PatternType patternType = inferPatternType(input, state);
         IJadescriptType solvedPatternType =
@@ -1054,8 +1052,8 @@ public class MapLiteralExpressionSemantics
         boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
                 .extract(nullAsFalse);
-        final List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(MapOrSetLiteral::getValues));
+        final MaybeList<RValueExpression> values =
+            input.getPattern().__toList(MapOrSetLiteral::getValues);
         PatternType patternType = inferPatternType(input, state);
 
         IJadescriptType solvedPatternType =
@@ -1123,12 +1121,11 @@ public class MapLiteralExpressionSemantics
         String literalOrPattern,
         ValidationMessageAcceptor acceptor
     ) {
-        final List<Maybe<RValueExpression>> values =
-            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getValues))
-                .stream().filter(Maybe::isPresent).collect(Collectors.toList());
-        final List<Maybe<RValueExpression>> keys =
-            Maybe.toListOfMaybes(input.__(MapOrSetLiteral::getKeys))
-                .stream().filter(Maybe::isPresent).collect(Collectors.toList());
+        final MaybeList<RValueExpression> values =
+            input.__toListNullsRemoved(MapOrSetLiteral::getValues);
+        final MaybeList<RValueExpression> keys =
+            input.__toListNullsRemoved(MapOrSetLiteral::getKeys);
+
         final boolean isMapV = isMapV(input);
         final boolean isMapT = isMapT(input);
 

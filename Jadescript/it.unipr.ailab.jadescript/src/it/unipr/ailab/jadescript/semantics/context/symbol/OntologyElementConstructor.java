@@ -14,7 +14,8 @@ import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
+import it.unipr.ailab.maybe.MaybeList;
+import it.unipr.ailab.maybe.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
@@ -135,10 +136,8 @@ public class OntologyElementConstructor implements GlobalCallable {
 
             final TypeExpressionSemantics typeExpressionSemantics =
                 module.get(TypeExpressionSemantics.class);
-            final List<Maybe<SlotDeclaration>> slots =
-                Maybe.toListOfMaybes(f.__(
-                    i -> ((FeatureWithSlots) i).getSlots()
-                ));
+            final MaybeList<SlotDeclaration> slots =
+                f.__toList(i -> ((FeatureWithSlots) i).getSlots());
             paramNames = new ArrayList<>(slots.size());
             paramTypesByName = new HashMap<>(slots.size());
 

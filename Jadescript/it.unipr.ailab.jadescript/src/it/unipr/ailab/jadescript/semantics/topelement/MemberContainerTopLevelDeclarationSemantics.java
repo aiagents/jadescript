@@ -15,9 +15,10 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsDispatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Functional;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import org.eclipse.emf.common.util.EList;
@@ -83,9 +84,8 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
 
         super.validateOnEdit(input, acceptor);
 
-        List<Maybe<Feature>> features = Maybe.toListOfMaybes(
-            input.__(FeatureContainer::getFeatures)
-        );
+        MaybeList<Feature> features =
+            input.__toList(FeatureContainer::getFeatures);
 
         if (input.isNothing()) {
             return;
@@ -146,9 +146,8 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
         ValidationMessageAcceptor acceptor
     ) {
         super.validateOnSave(input, acceptor);
-        List<Maybe<Feature>> features = Maybe.toListOfMaybes(
-            input.__(FeatureContainer::getFeatures)
-        );
+        MaybeList<Feature> features =
+            input.__toList(FeatureContainer::getFeatures);
 
         validateDuplicateMembers(input, acceptor, features);
 
@@ -546,9 +545,8 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
         w.variable("boolean", "__handled", w.False)
             .writeSonnet(scb);
 
-        final List<Maybe<Feature>> features =
-            toListOfMaybes(
-                input.__(FeatureContainer::getFeatures));
+        final MaybeList<Feature> features =
+            input.__toList(FeatureContainer::getFeatures);
 
         final boolean thereIsAtLeastOneBFH = features.stream()
             .anyMatch(m -> m.__(f -> f instanceof OnBehaviourFailureHandler)
@@ -687,7 +685,7 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
                     ".ExceptionThrower" +
                     ".__getExceptionEscalator",
                 w.expr(
-                    Util.getOuterClassThisReference(input).orElse(THIS))
+                    SemanticsUtils.getOuterClassThisReference(input).orElse(THIS))
             )
         ).writeSonnet(scb);
 
@@ -695,8 +693,8 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
         w.variable("boolean", "__handled", w.False).writeSonnet(scb);
 
 
-        final List<Maybe<Feature>> features =
-            toListOfMaybes(input.__(FeatureContainer::getFeatures));
+        final MaybeList<Feature> features =
+            input.__toList(FeatureContainer::getFeatures);
 
         final boolean thereIsAtLeastOneEH = features.stream()
             .anyMatch(m -> m.__(f -> f instanceof OnExceptionHandler)

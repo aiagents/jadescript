@@ -19,7 +19,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.helpers.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseMessageType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
@@ -134,7 +134,7 @@ public class OnMessageHandlerSemantics
 //generating =>     return;
 //generating => }
         w.ifStmnt(
-            w.expr(Util.getOuterClassThisReference(input)
+            w.expr(SemanticsUtils.getOuterClassThisReference(input)
                 + "." + IGNORE_MSG_HANDLERS_VAR_NAME),
             w.block().addStatement(
                 w.assign(
@@ -511,7 +511,7 @@ public class OnMessageHandlerSemantics
         w.ifStmnt(
             w.expr(MESSAGE_VAR_NAME + " != null"),
             w.block().addStatement(
-                w.assign(Util.getOuterClassThisReference(input) + "."
+                w.assign(SemanticsUtils.getOuterClassThisReference(input) + "."
                     + IGNORE_MSG_HANDLERS_VAR_NAME, w.expr("true"))
             ).addStatement(w.callStmnt(
                     CompilationHelper.compileAgentReference() +

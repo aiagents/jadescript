@@ -9,8 +9,8 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.ImportedMembersNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithMembers;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import jadescript.lang.Performative;
@@ -64,7 +64,7 @@ public class OnMessageHandlerWhenExpressionContext
         @Nullable String name
     ) {
         return Stream.concat(
-            Util.buildStream(
+            SemanticsUtils.buildStream(
                 this::getMessageName,
                 this::getContentName
             ).filter(n -> name == null || name.equals(n.name())),

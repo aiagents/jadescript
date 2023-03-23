@@ -11,10 +11,7 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescrip
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.LocalVariable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.PatternMatchUnifiedVariable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.FlowSensitiveSymbol;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.*;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchMode;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
@@ -25,7 +22,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Either;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -184,7 +181,7 @@ public class SingleIdentifierExpressionSemantics
         if (input == null) return "";
         Maybe<String> ident = input.__(SingleIdentifier::getIdent);
         if (ident.wrappedEquals(THIS)) {
-            return Util.getOuterClassThisReference(
+            return SemanticsUtils.getOuterClassThisReference(
                 input.__(ProxyEObject::getProxyEObject)
             ).orElse("");
         }

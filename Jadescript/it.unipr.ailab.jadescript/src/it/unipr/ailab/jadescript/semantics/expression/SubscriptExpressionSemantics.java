@@ -61,7 +61,7 @@ public class SubscriptExpressionSemantics
     ) {
         return input
             .__(Subscript::getRest)
-            .flatMap(ReversedTrailerChain::resolveChain);
+            .flatApp(ReversedTrailerChain::resolveChain);
     }
 
 
@@ -119,7 +119,7 @@ public class SubscriptExpressionSemantics
         //NOT NEEDED
 //        final StaticState afterKey =
 //            module.get(RValueExpressionSemantics.class)
-//                .advance(input.__(Subscript::getKey), afterRest);
+//                .advance(input.mapPartial2(Subscript::getKey), afterRest);
 
         if (restType instanceof ListType) {
             acceptor.accept(w.simpleStmt(

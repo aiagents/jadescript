@@ -7,7 +7,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import org.jetbrains.annotations.Nullable;
 

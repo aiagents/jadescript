@@ -11,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -126,12 +126,12 @@ public class StringLiteralSemantics
                                 break;
                             default:
                                 int finalI = i;
-                                Util.extractEObject(input)
+                                SemanticsUtils.extractEObject(input)
                                     .safeDo(inputSafe -> acceptor.acceptError(
                                         "Invalid escape sequence '" + c +
                                             nextC + "'.",
                                         inputSafe,
-                                        Util.getLocationForEObject(inputSafe)
+                                        SemanticsUtils.getLocationForEObject(inputSafe)
                                             .getOffset() + finalI,
                                         2,
                                         "InvalidTextEscape"

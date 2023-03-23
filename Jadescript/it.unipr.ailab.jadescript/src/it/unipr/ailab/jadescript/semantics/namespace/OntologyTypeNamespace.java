@@ -9,7 +9,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementStructu
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedOntologyType;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.jetbrains.annotations.Nullable;

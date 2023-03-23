@@ -15,6 +15,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -22,6 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 
 /**
@@ -47,7 +50,7 @@ public class LogicalOrExpressionSemantics
         final LogicalAndExpressionSemantics laes =
             module.get(
             LogicalAndExpressionSemantics.class);
-        return Maybe.toListOfMaybes(logicalAnds).stream()
+        return someStream(logicalAnds)
             .filter(Maybe::isPresent)
             .map(x -> new SemanticsBoundToExpression<>(laes, x));
     }
@@ -61,9 +64,7 @@ public class LogicalOrExpressionSemantics
     ) {
         if (input == null) return "";
         StringBuilder result = new StringBuilder();
-        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(
-            input.__(LogicalOr::getLogicalAnd)
-        );
+        MaybeList<LogicalAnd> ands = input.__toList(LogicalOr::getLogicalAnd);
 
         final LogicalAndExpressionSemantics laes =
             module.get(LogicalAndExpressionSemantics.class);
@@ -106,9 +107,7 @@ public class LogicalOrExpressionSemantics
         Maybe<LogicalOr> input,
         StaticState state
     ) {
-        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(
-            input.__(LogicalOr::getLogicalAnd)
-        );
+        MaybeList<LogicalAnd> ands = input.__toList(LogicalOr::getLogicalAnd);
 
         if (ands.isEmpty()) {
             return state;
@@ -152,9 +151,7 @@ public class LogicalOrExpressionSemantics
         // means that all the operands returned false, and we can
         // compute the consequences one after the other.
 
-        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(
-            input.__(LogicalOr::getLogicalAnd)
-        );
+        MaybeList<LogicalAnd> ands = input.__toList(LogicalOr::getLogicalAnd);
 
         if (ands.isEmpty()) {
             return state;
@@ -182,9 +179,7 @@ public class LogicalOrExpressionSemantics
         // used to compute an alternative final state, wich is used to
         // compute the overall final state with an intersection.
 
-        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(
-            input.__(LogicalOr::getLogicalAnd)
-        );
+        MaybeList<LogicalAnd> ands = input.__toList(LogicalOr::getLogicalAnd);
 
         final LogicalAndExpressionSemantics laes =
             module.get(LogicalAndExpressionSemantics.class);
@@ -236,9 +231,7 @@ public class LogicalOrExpressionSemantics
 
     @Override
     protected boolean mustTraverse(Maybe<LogicalOr> input) {
-        Maybe<EList<LogicalAnd>> logicalAnds =
-            input.__(LogicalOr::getLogicalAnd);
-        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(logicalAnds);
+        MaybeList<LogicalAnd> ands = input.__toList(LogicalOr::getLogicalAnd);
         return ands.size() == 1;
     }
 
@@ -247,8 +240,8 @@ public class LogicalOrExpressionSemantics
     protected Optional<? extends SemanticsBoundToExpression<?>>
     traverseInternal(Maybe<LogicalOr> input) {
         if (mustTraverse(input)) {
-            List<Maybe<LogicalAnd>> ands =
-                Maybe.toListOfMaybes(input.__(LogicalOr::getLogicalAnd));
+            MaybeList<LogicalAnd> ands =
+                input.__toList(LogicalOr::getLogicalAnd);
             return Optional.of(new SemanticsBoundToExpression<>(
                 module.get(LogicalAndExpressionSemantics.class), ands.get(0)
             ));
@@ -272,9 +265,7 @@ public class LogicalOrExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        List<Maybe<LogicalAnd>> ands = Maybe.toListOfMaybes(
-            input.__(LogicalOr::getLogicalAnd)
-        );
+        MaybeList<LogicalAnd> ands = input.__toList(LogicalOr::getLogicalAnd);
         final LogicalAndExpressionSemantics laes =
             module.get(LogicalAndExpressionSemantics.class);
 

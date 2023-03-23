@@ -1,4 +1,4 @@
-package it.unipr.ailab.jadescript.semantics.utils;
+package it.unipr.ailab.maybe.utils;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -16,6 +16,8 @@ public class ImmutableList<E> implements Iterable<E> {
     private ImmutableList() {
 
     }
+
+
 
 
     @SuppressWarnings("unchecked")
@@ -36,6 +38,9 @@ public class ImmutableList<E> implements Iterable<E> {
         return ts;
     }
 
+    public int size(){
+        return this.inner.size();
+    }
 
     public ImmutableList<E> add(E e) {
         return change(l -> l.add(e));
@@ -94,6 +99,11 @@ public class ImmutableList<E> implements Iterable<E> {
 
     public ImmutableList<E> insert(int i, E e) {
         return change(l -> l.add(i, e));
+    }
+
+
+    public E get(int i) {
+        return inner.get(i);
     }
 
 }
