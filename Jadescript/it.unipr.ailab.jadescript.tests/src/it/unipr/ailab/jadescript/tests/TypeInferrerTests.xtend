@@ -43,7 +43,11 @@ class TypeInferrerTests {
                     } of Proposition
                     do proc with s
 		'''.compile [
-			Assert.assertTrue(errorsAndWarnings.isNullOrEmpty)
+			var msg = ""
+	 		if(!errorsAndWarnings.isNullOrEmpty){
+	 			msg = errorsAndWarnings.get(0).message
+	 		}
+			Assert.assertTrue(msg, errorsAndWarnings.isNullOrEmpty)
 		]
 	}
 	
@@ -69,7 +73,7 @@ class TypeInferrerTests {
 	 		if(!errorsAndWarnings.isNullOrEmpty){
 	 			msg = errorsAndWarnings.get(0).message
 	 		}
-	 		Assert.assertTrue(msg,errorsAndWarnings.isNullOrEmpty)
+	 		Assert.assertTrue(msg, errorsAndWarnings.isNullOrEmpty)
 	 	]
 	 }
 

@@ -1721,6 +1721,8 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+
+
     private Maybe<IJadescriptType> getFromJVMTypeReference(
         JvmTypeReference typeReference
     ) {
@@ -2061,21 +2063,6 @@ public class TypeHelper implements SemanticsConsts {
         return module.get(JvmTypeReferenceBuilder.class).typeRef(Object.class);
     }
 
-
-    public JvmTypeReference typeRef(
-        EObject eObject,
-        JvmTypeReference... typeParameters
-    ) {
-        final @Nullable QualifiedName nullableFQName =
-            module.get(IQualifiedNameProvider.class)
-                .getFullyQualifiedName(eObject);
-        return typeRef(
-            nullableFQName == null
-                ? ""
-                : nullableFQName.toString("."),
-            typeParameters
-        );
-    }
 
 
     public JvmTypeReference typeRef(

@@ -2,13 +2,13 @@ package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnActivateHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.maybe.Maybe;
@@ -22,8 +22,6 @@ import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
-
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
 public class OnActivateHandlerSemantics
     extends DeclarationMemberSemantics<OnActivateHandler> {
@@ -43,9 +41,10 @@ public class OnActivateHandlerSemantics
     ) {
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
-        Maybe<QualifiedName> containerName = input
+        Maybe<String> containerName = input
             .__partial2(EcoreUtil2::getContainerOfType, TopElement.class)
-            .__(compilationHelper::getFullyQualifiedName);
+            .__(compilationHelper::getFullyQualifiedName)
+            .__(QualifiedName::toString);
         if (container.isInstanceOf(Agent.class)) {
             generateOnActivateHandlerForAgent(
                 input,
@@ -65,7 +64,7 @@ public class OnActivateHandlerSemantics
     public void generateOnActivateHandlerForAgent(
         Maybe<OnActivateHandler> input,
         EList<JvmMember> members,
-        Maybe<QualifiedName> containerName
+        Maybe<String> containerName
     ) {
         final ContextManager contextManager = module.get(ContextManager.class);
         final SavedContext savedContext =
@@ -93,7 +92,7 @@ public class OnActivateHandlerSemantics
 
     private void fillOnStartMethod(
         Maybe<OnActivateHandler> input,
-        Maybe<QualifiedName> containerName,
+        Maybe<String> containerName,
         ContextManager contextManager,
         SavedContext savedContext,
         JvmTypesBuilder jvmTypesBuilder,
@@ -101,8 +100,7 @@ public class OnActivateHandlerSemantics
     ) {
         jvmTypesBuilder.setDocumentation(
             itMethod,
-            containerName.__(QualifiedName::toString)
-                .extract(nullAsEmptyString) + " onStart"
+            containerName.orElse("") + " onStart"
         );
 
         itMethod.setVisibility(JvmVisibility.PUBLIC);
@@ -124,7 +122,7 @@ public class OnActivateHandlerSemantics
 
                     final PSR<SourceCodeBuilder> blockPSR =
                         module.get(CompilationHelper.class)
-                        .compileBlockToNewSCB(state, body);
+                            .compileBlockToNewSCB(state, body);
 
                     final SourceCodeBuilder blockCompiled =
                         blockPSR.result();
@@ -141,7 +139,7 @@ public class OnActivateHandlerSemantics
     public void generateOnActivateHandlerForBehaviour(
         Maybe<OnActivateHandler> input,
         EList<JvmMember> members,
-        Maybe<QualifiedName> containerName
+        Maybe<String> containerName
     ) {
         final SavedContext savedContext =
             module.get(ContextManager.class).save();
@@ -167,15 +165,14 @@ public class OnActivateHandlerSemantics
 
     private void fillDoOnActivateMethod(
         Maybe<OnActivateHandler> input,
-        Maybe<QualifiedName> containerName,
+        Maybe<String> containerName,
         SavedContext savedContext,
         JvmTypesBuilder jvmTypesBuilder,
         JvmOperation itMethod
     ) {
         jvmTypesBuilder.setDocumentation(
             itMethod,
-            containerName.__(QualifiedName::toString).extract(
-                nullAsEmptyString) + " doOnActivate"
+            containerName.orElse("") + " doOnActivate"
         );
         itMethod.setVisibility(JvmVisibility.PUBLIC);
 

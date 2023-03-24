@@ -242,8 +242,15 @@ public class BehaviourDeclarationSemantics
             module.get(IQualifiedNameProvider.class);
 
 
+        final Maybe<String> fqn =
+            input.__(qnProvider::getFullyQualifiedName)
+                .__(f -> f.toString("."))
+                .nullIf(String::isBlank);
+
+
         members.add(jvmTB.toMethod(inputSafe, "__createEmpty",
-            typeHelper.typeRef(inputSafe),
+            fqn.__(typeHelper::typeRef)
+                .orElseGet(typeHelper.ANYBEHAVIOUR::asJvmTypeReference),
             itMethod -> {
 
                 contextManager.restore(savedContext);
@@ -271,9 +278,20 @@ public class BehaviourDeclarationSemantics
                 compilationHelper.createAndSetBody(
                     itMethod,
                     scb -> {
+                        final Maybe<String> fqnMaybe = input
+                            .__(qnProvider::getFullyQualifiedName)
+                            .__(qn -> qn.toString("."))
+                            .nullIf(String::isBlank);
+
+                        if (fqnMaybe.isNothing()) {
+                            scb.line("/* Fully qualified name of behaviour" +
+                                " resulted empty or null */");
+                            scb.line("return null;");
+                            return;
+                        }
+
                         scb.line("return new " +
-                            input.__(qnProvider::getFullyQualifiedName)
-                                .__(qn -> qn.toString(".")) +
+                            fqnMaybe +
                             "(" +
                             AGENT_ENV +
                             (paramDefaultValues.isEmpty() ? "" : ", ") +

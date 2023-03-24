@@ -19,9 +19,9 @@ import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmParameterizedTypeReference;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.*;
@@ -31,14 +31,14 @@ public class OntologyDeclarationSupportContext
     implements GlobalCallable.Namespace, GlobalPattern.Namespace {
 
     private final Maybe<Ontology> input;
-    private final String ontoFQName;
+    private final @NotNull Maybe<String> ontoFQName;
 
 
     public OntologyDeclarationSupportContext(
         SemanticsModule module,
         FileContext outer,
         Maybe<Ontology> input,
-        String ontoFQName
+        @NotNull Maybe<String> ontoFQName
     ) {
         super(module, outer);
         this.input = input;
@@ -56,9 +56,14 @@ public class OntologyDeclarationSupportContext
             .map(f -> f.__(ff -> (ExtendingFeature) ff))
             .filter(f -> f.__(ff -> ff.getName().equals(name))
                 .extract(nullAsFalse))
-            .map(f -> OntologyElementConstructor.fromFeature(
-                module, f, ontoFQName, currentLocation()
-            )).filter(Maybe::isPresent)
+            .map(f ->
+                OntologyElementConstructor.fromFeature(
+                    module,
+                    f,
+                    ontoFQName,
+                    currentLocation()
+                )
+            ).filter(Maybe::isPresent)
             .map(Maybe::toNullable);
     }
 
@@ -130,7 +135,8 @@ public class OntologyDeclarationSupportContext
     public boolean isDeclarationOrExtensionOfOntology(
         String expectedOntoName
     ) {
-        if (ontoFQName != null && ontoFQName.equals(expectedOntoName)) {
+        if (ontoFQName.isPresent()
+            && ontoFQName.wrappedEquals(expectedOntoName)) {
             return true;
         }
 

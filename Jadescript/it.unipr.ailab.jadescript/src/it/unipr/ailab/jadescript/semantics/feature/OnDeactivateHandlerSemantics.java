@@ -2,13 +2,13 @@ package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnDeactivateHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.maybe.Maybe;
@@ -22,8 +22,6 @@ import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
-
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
 public class OnDeactivateHandlerSemantics
     extends DeclarationMemberSemantics<OnDeactivateHandler> {
@@ -44,9 +42,10 @@ public class OnDeactivateHandlerSemantics
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
-        Maybe<QualifiedName> containerName = input
+        Maybe<String> containerName = input
             .__partial2(EcoreUtil2::getContainerOfType, TopElement.class)
-            .__(compilationHelper::getFullyQualifiedName);
+            .__(compilationHelper::getFullyQualifiedName)
+            .__(QualifiedName::toString);
 
         final SavedContext savedContext =
             module.get(ContextManager.class).save();
@@ -72,16 +71,14 @@ public class OnDeactivateHandlerSemantics
 
     private void fillDoOnDeactivateMethod(
         Maybe<OnDeactivateHandler> input,
-        Maybe<QualifiedName> containerName,
+        Maybe<String> containerName,
         SavedContext savedContext,
         JvmTypesBuilder jvmTypesBuilder,
         JvmOperation itMethod
     ) {
         jvmTypesBuilder.setDocumentation(
             itMethod,
-            containerName
-                .__(QualifiedName::toString)
-                .extract(nullAsEmptyString) + " doOnDeactivate"
+            containerName.orElse("") + " doOnDeactivate"
         );
         itMethod.setVisibility(JvmVisibility.PUBLIC);
 

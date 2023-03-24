@@ -23,7 +23,6 @@ import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
 public class OnDestroyHandlerSemantics
     extends DeclarationMemberSemantics<OnDestroyHandler> {
@@ -44,9 +43,10 @@ public class OnDestroyHandlerSemantics
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
-        Maybe<QualifiedName> containerName = input
+        Maybe<String> containerName = input
             .__partial2(EcoreUtil2::getContainerOfType, TopElement.class)
-            .__(compilationHelper::getFullyQualifiedName);
+            .__(compilationHelper::getFullyQualifiedName)
+            .__(QualifiedName::toString);
 
         if (container.isInstanceOf(Agent.class)) {
             generateOnDestroyHandlerForAgent(input, members, containerName);
@@ -59,7 +59,7 @@ public class OnDestroyHandlerSemantics
     public void generateOnDestroyHandlerForAgent(
         Maybe<OnDestroyHandler> input,
         EList<JvmMember> members,
-        Maybe<QualifiedName> containerName
+        Maybe<String> containerName
     ) {
         final SavedContext savedContext =
             module.get(ContextManager.class).save();
@@ -84,16 +84,14 @@ public class OnDestroyHandlerSemantics
 
     private void fillTakeDownMethod(
         Maybe<OnDestroyHandler> input,
-        Maybe<QualifiedName> containerName,
+        Maybe<String> containerName,
         SavedContext savedContext,
         JvmTypesBuilder jvmTypesBuilder,
         JvmOperation itMethod
     ) {
         jvmTypesBuilder.setDocumentation(
             itMethod,
-            containerName
-                .__(QualifiedName::toString)
-                .extract(nullAsEmptyString) + " on destroy"
+            containerName.orElse("") + " on destroy"
         );
         itMethod.setVisibility(JvmVisibility.PROTECTED);
 
@@ -136,7 +134,7 @@ public class OnDestroyHandlerSemantics
     public void generateOnDestroyHandlerForBehaviour(
         Maybe<OnDestroyHandler> input,
         EList<JvmMember> members,
-        Maybe<QualifiedName> containerName
+        Maybe<String> containerName
     ) {
         final SavedContext savedContext =
             module.get(ContextManager.class).save();
@@ -162,14 +160,13 @@ public class OnDestroyHandlerSemantics
 
     private void fillDoOnDestroyMethod(
         Maybe<OnDestroyHandler> input,
-        Maybe<QualifiedName> containerName,
+        Maybe<String> containerName,
         SavedContext savedContext,
         JvmOperation itMethod
     ) {
         module.get(JvmTypesBuilder.class).setDocumentation(
             itMethod,
-            containerName.__(QualifiedName::toString)
-                .extract(nullAsEmptyString) + " doOnDestroy"
+            containerName.orElse("") + " doOnDestroy"
         );
         itMethod.setVisibility(JvmVisibility.PROTECTED);
 

@@ -13,7 +13,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
-import org.eclipse.xtext.naming.QualifiedName;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public class OntologyElementStructuralPattern implements GlobalPattern {
@@ -89,21 +89,34 @@ public class OntologyElementStructuralPattern implements GlobalPattern {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
-        final QualifiedName nullableQN =
-            compilationHelper.getFullyQualifiedName(
-            ontologyElement);
-        final String ontoElementName = ontologyElement.getName() == null
-            ? ""
-            : ontologyElement.getName();
-        return some(nullableQN).__(qnSafe -> new OntologyElementStructuralPattern(
-            ontoElementName,
-            typeHelper.jtFromJvmTypeRef(
-                typeHelper.typeRef(qnSafe.toString("."))
-            ),
-            termNames,
-            termTypesByName,
-            currentLocation
-        ));
+
+        final Maybe<String> ontoElementFQN =
+            f.__(compilationHelper::getFullyQualifiedName)
+                .__(fqn -> fqn.toString("."));
+
+        compilationHelper.getFullyQualifiedName(ontologyElement);
+
+        final String ontoElementName = ontologyElement.getName();
+
+        if (ontoElementName == null) {
+            return nothing();
+        }
+
+        if (ontoElementFQN.isNothing()) {
+            return nothing();
+        }
+
+        return some(
+            new OntologyElementStructuralPattern(
+                ontoElementName,
+                typeHelper.jtFromFullyQualifiedName(
+                    ontoElementFQN.toNullable()
+                ),
+                termNames,
+                termTypesByName,
+                currentLocation
+            )
+        );
     }
 
 

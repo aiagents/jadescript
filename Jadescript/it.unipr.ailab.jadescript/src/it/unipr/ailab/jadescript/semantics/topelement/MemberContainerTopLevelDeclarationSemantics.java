@@ -685,7 +685,8 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
                     ".ExceptionThrower" +
                     ".__getExceptionEscalator",
                 w.expr(
-                    SemanticsUtils.getOuterClassThisReference(input).orElse(THIS))
+                    SemanticsUtils.getOuterClassThisReference(input)
+                        .orElse(THIS))
             )
         ).writeSonnet(scb);
 

@@ -583,7 +583,8 @@ public class OntologyElementSemantics extends Semantics {
         final QualifiedName fullyQualifiedName =
             compilationHelper.getFullyQualifiedName(inputSafe);
 
-        if (fullyQualifiedName == null) {
+
+        if (fullyQualifiedName == null || fullyQualifiedName.isEmpty()) {
             return Stream.empty();
         }
 
@@ -697,7 +698,7 @@ public class OntologyElementSemantics extends Semantics {
 
         return Stream.of(jvmTB.toClass(
             inputSafe,
-            fqName.toString(),
+            fqName,
             (JvmGenericType itClass) -> {
                 itClass.setAbstract(true);
                 module.get(ContextManager.class)
@@ -1593,8 +1594,8 @@ public class OntologyElementSemantics extends Semantics {
                 some(inputSafe)
                     .__(compilationHelper::getFullyQualifiedName)
                     .__(QualifiedName::toString)
+                    .nullIf(String::isBlank)
                     .orElse("")
-
             )
         ).writeSonnet(scb);
 

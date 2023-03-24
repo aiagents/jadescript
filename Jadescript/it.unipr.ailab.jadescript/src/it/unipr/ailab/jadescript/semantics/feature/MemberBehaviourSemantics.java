@@ -74,6 +74,7 @@ public class MemberBehaviourSemantics
             agentTypeRef = featureContainer
                 .__(module.get(CompilationHelper.class)::getFullyQualifiedName)
                 .__(QualifiedName::toString)
+                .nullIf(String::isBlank)
                 .__(module.get(TypeHelper.class)::typeRef);
         }
         return agentTypeRef;

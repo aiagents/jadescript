@@ -200,7 +200,8 @@ public final class TypeExpressionSemantics extends Semantics {
                     ontologyAccessible = validationHelper.asserting(
                         isInDeclaration,
                         "OntologyNotUsed",
-                        "The type " + jdType + "is defined in the ontology " +
+                        "The type " + jdType
+                            + "is defined in the ontology " +
                             ontoType.getJadescriptName() + " which is not" +
                             " accessible in this context.",
                         input,

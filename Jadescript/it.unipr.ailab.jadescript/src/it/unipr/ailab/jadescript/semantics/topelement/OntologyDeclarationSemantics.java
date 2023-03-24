@@ -84,11 +84,9 @@ public class OntologyDeclarationSemantics extends
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
-        final String ontoFqName = input
+        final Maybe<String> ontoFqName = input
             .__(compilationHelper::getFullyQualifiedName)
-            .__(qn -> qn.toString("."))
-            .or(input.__(NamedElement::getName))
-            .orElse("");
+            .__(qn -> qn.toString("."));
 
         module.get(ContextManager.class).enterTopLevelDeclaration((mod, out) ->
             new OntologyDeclarationSupportContext(mod, out, input, ontoFqName));
@@ -842,12 +840,12 @@ public class OntologyDeclarationSemantics extends
     private String retrieveNativeTypeFactory(
         ExtendingFeature ontologyElementSafe
     ) {
-        final QualifiedName nullableFQName =
-            module.get(CompilationHelper.class)
-                .getFullyQualifiedName(ontologyElementSafe);
-        final String ontoElementFqName = nullableFQName == null
-            ? ""
-            : nullableFQName.toString(".");
+        final String ontoElementFqName =
+            some(module.get(CompilationHelper.class)
+                .getFullyQualifiedName(ontologyElementSafe))
+                .__(fqn -> fqn.toString("."))
+                .orElse("");
+
 
         return "((" + ontoElementFqName + "Factory) " +
             "(jadescript.java.Jadescript." +
@@ -865,11 +863,9 @@ public class OntologyDeclarationSemantics extends
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
-        final String ontoFqName = input
+        final Maybe<String> ontoFqName = input
             .__(compilationHelper::getFullyQualifiedName)
-            .__(qn -> qn.toString("."))
-            .or(input.__(NamedElement::getName))
-            .orElse("");
+            .__(qn -> qn.toString("."));
 
         //creates all the classes of the elements of the ontology:
         module.get(ContextManager.class).enterTopLevelDeclaration(
@@ -903,6 +899,7 @@ public class OntologyDeclarationSemantics extends
 
             Maybe<QualifiedName> ontoFullQualifiedName =
                 input.__(compilationHelper::getFullyQualifiedName);
+
             List<JvmDeclaredType> pojoTypes = oes.declareTypes(
                 feature.__(f -> (ExtendingFeature) f),
                 ontoFullQualifiedName,
@@ -952,22 +949,22 @@ public class OntologyDeclarationSemantics extends
         }
         final CompilationHelper compilationHelper = module.get(
             CompilationHelper.class);
-        final Maybe<QualifiedName> qualifiedNameMaybe =
+        final Maybe<QualifiedName> fqn =
             input.__(compilationHelper::getFullyQualifiedName);
 
-        if (qualifiedNameMaybe.isNothing()) {
+        if (fqn.isNothing()) {
             return;
         }
 
-        final QualifiedName fullyQualifiedNameSafe =
-            qualifiedNameMaybe.toNullable();
+        final QualifiedName fqnSafe =
+            fqn.toNullable();
 
         final JvmTypesBuilder jvmTypesBuilder =
             module.get(JvmTypesBuilder.class);
 
         acceptor.accept(jvmTypesBuilder.toInterface(
                 inputSafe,
-                fullyQualifiedNameSafe + "_Vocabulary",
+                fqnSafe + "_Vocabulary",
                 itInterf -> {
                     if (!isPreIndexingPhase) {
                         final TypeHelper typeHelper =

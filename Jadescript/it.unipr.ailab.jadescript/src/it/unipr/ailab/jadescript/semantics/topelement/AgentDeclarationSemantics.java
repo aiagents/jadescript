@@ -269,6 +269,12 @@ public class AgentDeclarationSemantics
             itMethod.setStatic(true);
 
 
+            final Maybe<String> inputFQN =
+                some(compilationHelper.getFullyQualifiedName(inputSafe))
+                    .__(fqn -> fqn.toString("."))
+                    .nullIf(String::isBlank);
+
+
             if (createHandler.isPresent()) {
 
                 // get feature, get params, compile into create's params
@@ -294,8 +300,7 @@ public class AgentDeclarationSemantics
                 createArgs.add(w.expr("_container"));
                 createArgs.add(w.expr("_agentName"));
                 createArgs.add(w.expr(
-                    compilationHelper.getFullyQualifiedName(inputSafe)
-                        + ".class"
+                    inputFQN.orElse("jadescript.core.Agent") + ".class"
                 ));
 
                 for (FormalParameter parameter :
@@ -359,8 +364,7 @@ public class AgentDeclarationSemantics
                 createArgs.add(w.expr("_container"));
                 createArgs.add(w.expr("_agentName"));
                 createArgs.add(w.expr(
-                    compilationHelper.getFullyQualifiedName(inputSafe)
-                        + ".class"
+                    inputFQN.orElse("jadescript.core.Agent") + ".class"
                 ));
 
 

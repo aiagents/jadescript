@@ -1,6 +1,5 @@
 package it.unipr.ailab.maybe;
 
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -116,7 +115,7 @@ public class Maybe<OfType> {
     }
 
 
-    //TODO when possible, renounce to usages of this in favor of Maybe.stream
+    
     public static <T1> Iterable<Maybe<T1>> iterate(
         Maybe<?
             extends Iterable<T1>> maybeCollection
@@ -138,19 +137,6 @@ public class Maybe<OfType> {
     }
 
 
-
-
-
-    public static <T> MaybeList<T> toListOfMaybes(
-        List<T> list
-    ) {
-        return MaybeList.someList(list);
-    }
-
-
-    //TODO some usages do:
-    // someStream(...).filter(Maybe::isPresent).collect(MaybeList...)
-    //  -> change to specific method that uses MaybeList.collectFromNullables
     public static <T> Stream<Maybe<T>> someStream(
         Maybe<? extends List<T>> maybeList
     ) {
@@ -451,6 +437,10 @@ public class Maybe<OfType> {
     }
 
 
+    /**
+     * Collapses the maybe object to {@link Maybe#nothing()} if the predicate
+     * returns false.
+     */
     public Maybe<OfType> require(Predicate<OfType> predicate) {
         if (isNothing()) return this;
         if (predicate.test(o)) {

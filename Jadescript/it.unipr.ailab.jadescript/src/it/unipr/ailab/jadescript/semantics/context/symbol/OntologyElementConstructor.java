@@ -14,13 +14,12 @@ import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
+import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.maybe.utils.LazyValue;
-import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
 import org.eclipse.xtext.common.types.JvmTypeReference;
-import org.eclipse.xtext.naming.QualifiedName;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +33,7 @@ import static it.unipr.ailab.maybe.Maybe.some;
 
 public class OntologyElementConstructor implements GlobalCallable {
 
-    private final String ontoFQName;
+    private final Maybe<String> ontoFQName;
     private final String name;
     private final LazyValue<IJadescriptType> type;
     private final Map<String, IJadescriptType> parameterTypesByName;
@@ -43,7 +42,7 @@ public class OntologyElementConstructor implements GlobalCallable {
 
 
     private OntologyElementConstructor(
-        String ontoFQName,
+        Maybe<String> ontoFQName,
         String name,
         LazyValue<IJadescriptType> type,
         Map<String, IJadescriptType> parameterTypesByName,
@@ -104,7 +103,7 @@ public class OntologyElementConstructor implements GlobalCallable {
         }
 
         return new OntologyElementConstructor(
-            ontoFQName,
+            some(ontoFQName),
             operation.getSimpleName(),
             new LazyValue<>(() -> jvmTypeNamespace.resolveType(
                 operation.getReturnType()
@@ -121,7 +120,7 @@ public class OntologyElementConstructor implements GlobalCallable {
     public static Maybe<OntologyElementConstructor> fromFeature(
         SemanticsModule module,
         Maybe<ExtendingFeature> f,
-        String ontoFQName,
+        Maybe<String> ontoFQName,
         SearchLocation currentLocation
     ) {
         if (f.isNothing()) {
@@ -165,17 +164,15 @@ public class OntologyElementConstructor implements GlobalCallable {
                 final TypeHelper typeHelper = module.get(TypeHelper.class);
                 final CompilationHelper compilationHelper =
                     module.get(CompilationHelper.class);
-                final QualifiedName fqname = compilationHelper.
-                    getFullyQualifiedName(ontologyElement);
 
+                return some(
+                    compilationHelper.getFullyQualifiedName(ontologyElement)
+                )
+                    .__(fqn -> fqn.toString("."))
+                    .nullIf(String::isBlank)
+                    .__(typeHelper::jtFromFullyQualifiedName)
+                    .orElse(typeHelper.SERIALIZABLE);
 
-                String fqnameString = fqname == null
-                    ? ""
-                    : fqname.toString(".");
-
-                return typeHelper.jtFromJvmTypeRef(
-                    typeHelper.typeRef(fqnameString)
-                );
             }),
             paramTypesByName,
             paramNames,
@@ -229,9 +226,7 @@ public class OntologyElementConstructor implements GlobalCallable {
         List<String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
-        return defaultInvokeByArity(
-            ontoFQName + "." + name
-        ).apply(compiledRexprs);
+        return defaultInvokeByArity(javaMethodName()).apply(compiledRexprs);
     }
 
 
@@ -241,10 +236,18 @@ public class OntologyElementConstructor implements GlobalCallable {
         BlockElementAcceptor acceptor
     ) {
         return defaultInvokeByName(
-            ontoFQName + "." + name,
+            javaMethodName(),
             parameterNames()
         ).apply(compiledRexprs);
+    }
 
+
+    private String javaMethodName() {
+        if (ontoFQName.isNothing()) {
+            return name;
+        }
+
+        return ontoFQName.toNullable() + "." + name;
     }
 
 
