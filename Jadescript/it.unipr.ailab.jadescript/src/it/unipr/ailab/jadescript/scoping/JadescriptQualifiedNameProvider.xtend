@@ -9,6 +9,8 @@ import org.eclipse.xtext.naming.QualifiedName
 import org.eclipse.xtext.xbase.scoping.XbaseQualifiedNameProvider
 
 import static extension org.eclipse.xtext.EcoreUtil2.*
+import org.eclipse.xtext.common.types.JvmType
+import org.eclipse.xtext.common.types.JvmMember
 
 class JadescriptQualifiedNameProvider extends XbaseQualifiedNameProvider {
 	
@@ -22,9 +24,18 @@ class JadescriptQualifiedNameProvider extends XbaseQualifiedNameProvider {
 	
 	override QualifiedName getFullyQualifiedName(EObject obj) {
 		if(obj === null) return nullName();
+		
 		switch (obj) {
 			NamedFeature: {
-				return _getFullyQualifiedName(obj)
+				return getFullyQualifiedNameForNamedFeature(obj)
+			}
+			JvmType, JvmMember :{
+				// additional subcases to prevent super.getFullyQualifiedName() to throw
+				// an IllegalArgumentException when the returned qn is an empty string.
+				var qualifiedName = obj.qualifiedName;
+				if(qualifiedName.isBlank){
+					return nullName();
+				}
 			}
 			default: {
 				return super.getFullyQualifiedName(obj)
@@ -32,7 +43,7 @@ class JadescriptQualifiedNameProvider extends XbaseQualifiedNameProvider {
 		}
 	}
 
-	def QualifiedName _getFullyQualifiedName(NamedFeature e) {
+	def QualifiedName getFullyQualifiedNameForNamedFeature(NamedFeature e) {
 		if(e === null || e.name === null)
 			return nullName()
 		val model = e.getContainerOfType(Model);
