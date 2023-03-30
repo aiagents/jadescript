@@ -1,6 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship;
 
 public class PatternMatchMode {
 

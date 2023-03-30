@@ -59,7 +59,7 @@ public class RemoveStatementSemantics
             final IJadescriptType elementType = rves.inferType(element, state);
             String elementCompiled = rves.compile(element, state, acceptor);
 
-            if (typeHelper.INTEGER.isSupEqualTo(elementType)) {
+            if (typeHelper.INTEGER.isSupertypeOrEqualTo(elementType)) {
                 //Using a cast to (java.lang.Integer) to specify the removal
                 // of the Integer element, not the removal by int index.
                 elementCompiled = "(Integer) " + elementCompiled;

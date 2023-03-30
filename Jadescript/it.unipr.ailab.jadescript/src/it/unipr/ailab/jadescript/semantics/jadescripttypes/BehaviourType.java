@@ -12,4 +12,6 @@ public interface BehaviourType
 
     @Override
     BehaviourTypeNamespace namespace();
+
+    IJadescriptType getForAgentType();
 }

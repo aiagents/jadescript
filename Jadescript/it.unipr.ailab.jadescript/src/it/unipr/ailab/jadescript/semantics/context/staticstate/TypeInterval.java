@@ -49,7 +49,7 @@ public class TypeInterval {
 
 
     public boolean isEmpty() {
-        return this.negatedUpperBound.isSupEqualTo(upperBound);
+        return this.negatedUpperBound.isSupertypeOrEqualTo(upperBound);
     }
 
 
@@ -64,7 +64,7 @@ public class TypeInterval {
     public TypeInterval assertUpperBound(
         IJadescriptType ub
     ) {
-        if(ub.isSupEqualTo(this.getUpperBound())){
+        if(ub.isSupertypeOrEqualTo(this.getUpperBound())){
             return this;
         }else{
             return new TypeInterval(
@@ -99,7 +99,7 @@ public class TypeInterval {
     public TypeInterval assertNegatedUpperBound(
         IJadescriptType nub
     ) {
-        if (this.getNegatedUpperBound().isSupEqualTo(nub)) {
+        if (this.getNegatedUpperBound().isSupertypeOrEqualTo(nub)) {
             return this;
         } else {
             return new TypeInterval(
@@ -133,7 +133,7 @@ public class TypeInterval {
     public TypeInterval alternativeUpperBound(
         IJadescriptType ub
     ) {
-        if (this.getUpperBound().isSupEqualTo(ub)) {
+        if (this.getUpperBound().isSupertypeOrEqualTo(ub)) {
             return this;
         } else {
             return new TypeInterval(
@@ -167,7 +167,7 @@ public class TypeInterval {
     public TypeInterval alternativeNegatedUpperBound(
         IJadescriptType nub
     ) {
-        if (nub.isSupEqualTo(this.getNegatedUpperBound())) {
+        if (nub.isSupertypeOrEqualTo(this.getNegatedUpperBound())) {
             return this;
         } else {
             return new TypeInterval(

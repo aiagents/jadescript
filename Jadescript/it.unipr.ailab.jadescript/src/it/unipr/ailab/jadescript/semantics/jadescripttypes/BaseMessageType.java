@@ -36,7 +36,9 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
             typeName,
             "MESSAGE",
             "of",
-            "(", ")", ",",
+            "(",
+            ")",
+            ",",
             typeParameters,
             upperBounds
         );

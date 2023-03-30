@@ -50,7 +50,7 @@ public class OfNotationExpressionSemantics
         boolean isAssignment
     ) {
         if (propName.equals("size") || propName.equals("length")) {
-            if (module.get(TypeHelper.class).TEXT.isSupEqualTo(prevType)) {
+            if (module.get(TypeHelper.class).TEXT.isSupertypeOrEqualTo(prevType)) {
                 return "length";
             } else {
                 return "size";
@@ -626,7 +626,7 @@ public class OfNotationExpressionSemantics
                 boolean result = VALID;
                 final TypeHelper typeHelper = module.get(TypeHelper.class);
                 if (!prop.wrappedEquals("length")
-                    || !typeHelper.TEXT.isSupEqualTo(prevType)) {
+                    || !typeHelper.TEXT.isSupertypeOrEqualTo(prevType)) {
                     result = module.get(ValidationHelper.class)
                         .assertPropertiesOfTypeAccessible(
                             input,

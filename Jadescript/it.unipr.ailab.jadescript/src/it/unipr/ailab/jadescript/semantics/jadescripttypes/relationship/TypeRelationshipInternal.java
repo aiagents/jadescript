@@ -1,15 +1,17 @@
-package it.unipr.ailab.jadescript.semantics.jadescripttypes;
+package it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship;
 
 
 /**
  * Identifies the type of subtyping relationship that a type has w.r.t. to another.
  */
-public interface TypeRelationship {
+interface TypeRelationshipInternal {
 
-    interface Related extends TypeRelationship {
+
+
+    interface Related extends TypeRelationshipInternal {
     }
 
-    interface NotRelated extends TypeRelationship {
+    interface NotRelated extends TypeRelationshipInternal {
     }
 
     NotRelated NOT_RELATED = new NotRelated() {

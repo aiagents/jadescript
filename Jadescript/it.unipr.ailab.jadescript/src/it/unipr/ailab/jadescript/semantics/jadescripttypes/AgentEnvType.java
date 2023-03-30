@@ -107,12 +107,12 @@ public class AgentEnvType extends ParametricType {
 
 
     @Override
-    public boolean isSupEqualTo(IJadescriptType other) {
+    public boolean isSupertypeOrEqualTo(IJadescriptType other) {
         if (other.compileToJavaTypeReference()
             .startsWith("jadescript.java.AgentEnv")) {
             return true;
         }
-        return super.isSupEqualTo(other);
+        return super.isSupertypeOrEqualTo(other);
     }
 
 

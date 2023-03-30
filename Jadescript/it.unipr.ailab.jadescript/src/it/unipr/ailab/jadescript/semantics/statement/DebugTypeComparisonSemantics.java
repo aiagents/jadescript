@@ -60,11 +60,11 @@ public class DebugTypeComparisonSemantics
                 ") are equal.\n";
         }
 
-        if (type1.isSupEqualTo(type2)) {
+        if (type1.isSupertypeOrEqualTo(type2)) {
             result += "TypeA(" + type1 + ") >= TypeB(" + type2 + ").\n";
         }
 
-        if (type2.isSupEqualTo(type1)) {
+        if (type2.isSupertypeOrEqualTo(type1)) {
             result += "TypeA(" + type1 + ") <= TypeB(" + type2 + ").\n";
         }
         return result;

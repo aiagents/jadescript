@@ -406,7 +406,7 @@ public class ValidationHelper implements SemanticsConsts {
     ) {
         expected = expected.postResolve();
         return asserting(
-            expected.isSupEqualTo(actual),
+            expected.isSupertypeOrEqualTo(actual),
             issueCode,
             "Invalid type; found: '" + actual.getJadescriptName() +
                 "'; expected: '" + expected.getJadescriptName() +
@@ -448,7 +448,7 @@ public class ValidationHelper implements SemanticsConsts {
         boolean b = false;
         for (IJadescriptType e : alternatives) {
             e = e.postResolve();
-            b = b || e.isSupEqualTo(actual);
+            b = b || e.isSupertypeOrEqualTo(actual);
         }
         return asserting(
             b,
@@ -470,7 +470,7 @@ public class ValidationHelper implements SemanticsConsts {
     ) {
         expected = expected.postResolve();
         return asserting(
-            expected.isSupEqualTo(actual),
+            expected.isSupertypeOrEqualTo(actual),
             issueCode,
             "invalid type; found: '" + actual.getJadescriptName() +
                 "'; expected: '" + expected.getJadescriptName() +
@@ -494,7 +494,7 @@ public class ValidationHelper implements SemanticsConsts {
     ) {
         expected = expected.postResolve();
         return asserting(
-            expected.isSupEqualTo(actual),
+            expected.isSupertypeOrEqualTo(actual),
             issueCode,
             "invalid type; found: '" + actual.getJadescriptName() +
                 "'; expected: '" + expected.getJadescriptName() +
@@ -518,7 +518,7 @@ public class ValidationHelper implements SemanticsConsts {
         final IJadescriptType expectedType =
             module.get(TypeHelper.class).jtFromClass(expected);
         return asserting(
-            expectedType.isSupEqualTo(actual),
+            expectedType.isSupertypeOrEqualTo(actual),
             issueCode,
             "invalid type; found: '" + actual.getJadescriptName() +
                 "'; expected: '" + expectedType.getJadescriptName() +
@@ -541,7 +541,7 @@ public class ValidationHelper implements SemanticsConsts {
         final IJadescriptType expectedType =
             module.get(TypeHelper.class).jtFromClass(expected);
         return asserting(
-            expectedType.isSupEqualTo(actual),
+            expectedType.isSupertypeOrEqualTo(actual),
             issueCode,
             "invalid type; found: '" + actual.getJadescriptName() +
                 "'; expected: '" + expectedType.getJadescriptName() +
@@ -567,7 +567,7 @@ public class ValidationHelper implements SemanticsConsts {
         final IJadescriptType expectedDescriptor =
             module.get(TypeHelper.class).jtFromClass(expected);
         return asserting(
-            expectedDescriptor.isSupEqualTo(actual),
+            expectedDescriptor.isSupertypeOrEqualTo(actual),
             issueCode,
             "invalid type; found: '" + actual.getJadescriptName() +
                 "'; expected: '" + expectedDescriptor.getJadescriptName() +

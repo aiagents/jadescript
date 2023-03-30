@@ -94,7 +94,7 @@ public class OntologyElementConstructor implements GlobalCallable {
 
             final IJadescriptType solvedType =
                 jvmTypeNamespace.resolveType(paramTypeRef);
-            if (anyAE.isSupEqualTo(solvedType)) {
+            if (anyAE.isSupertypeOrEqualTo(solvedType)) {
                 continue;
             }
 

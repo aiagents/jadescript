@@ -44,6 +44,74 @@ public abstract class ParametricType extends JadescriptType {
     }
 
 
+    private static Boolean typeArgumentIsSuperOrEquals(
+        TypeArgument ta1,
+        TypeArgument ta2
+    ) {
+        BoundedTypeArgument.Variance v1;
+        IJadescriptType t1;
+
+        if (ta1 instanceof BoundedTypeArgument) {
+            v1 = ((BoundedTypeArgument) ta1).getVariance();
+            t1 = ((BoundedTypeArgument) ta1).getType();
+        } else {
+            v1 = BoundedTypeArgument.Variance.INVARIANT;
+            t1 = ((IJadescriptType) ta1);
+        }
+
+        BoundedTypeArgument.Variance v2;
+        IJadescriptType t2;
+        if (ta2 instanceof BoundedTypeArgument) {
+            v2 = ((BoundedTypeArgument) ta2).getVariance();
+            t2 = ((BoundedTypeArgument) ta2).getType();
+        } else {
+            v2 = BoundedTypeArgument.Variance.INVARIANT;
+            t2 = ((IJadescriptType) ta2);
+        }
+
+        if (t1.typeEquals(t2)) {
+            return v2 == BoundedTypeArgument.Variance.INVARIANT
+                || v1 == v2;
+        } else if (t1.isSupertypeOrEqualTo(t2)) {
+            return v1 == BoundedTypeArgument.Variance.EXTENDS
+                && (v2 == BoundedTypeArgument.Variance.INVARIANT
+                || v2 == BoundedTypeArgument.Variance.EXTENDS);
+        } else if (t2.isSupertypeOrEqualTo(t1)) {
+            return v1 == BoundedTypeArgument.Variance.SUPER
+                && (v2 == BoundedTypeArgument.Variance.INVARIANT
+                || v2 == BoundedTypeArgument.Variance.SUPER);
+        } else {
+            return false;
+        }
+    }
+
+
+    private static Boolean typeArgumentEquals(
+        TypeArgument ta1,
+        TypeArgument ta2
+    ) {
+        BoundedTypeArgument.Variance v1;
+        IJadescriptType t1;
+        if (ta1 instanceof BoundedTypeArgument) {
+            v1 = ((BoundedTypeArgument) ta1).getVariance();
+            t1 = ((BoundedTypeArgument) ta1).getType();
+        } else {
+            v1 = BoundedTypeArgument.Variance.INVARIANT;
+            t1 = ((IJadescriptType) ta1);
+        }
+        BoundedTypeArgument.Variance v2;
+        IJadescriptType t2;
+        if (ta2 instanceof BoundedTypeArgument) {
+            v2 = ((BoundedTypeArgument) ta2).getVariance();
+            t2 = ((BoundedTypeArgument) ta2).getType();
+        } else {
+            v2 = BoundedTypeArgument.Variance.INVARIANT;
+            t2 = ((IJadescriptType) ta2);
+        }
+        return t1.typeEquals(t2) && v1 == v2;
+    }
+
+
     @Override
     public String getID() {
         return typeID + "<" + typeArguments.stream()
@@ -66,106 +134,93 @@ public abstract class ParametricType extends JadescriptType {
     }
 
 
-    @Override
-    public boolean typeEquals(IJadescriptType other) {
-        if (other instanceof ParametricType) {
-            final ParametricType parOther = (ParametricType) other;
-            return this.typeID.equals(parOther.typeID)
-                && this.typeArguments.size() == parOther.typeArguments.size()
-                && Streams.zip(
-                this.typeArguments.stream(),
-                parOther.typeArguments.stream(),
-                (ta1, ta2) -> {
-                    BoundedTypeArgument.Variance v1;
-                    IJadescriptType t1;
-                    if (ta1 instanceof BoundedTypeArgument) {
-                        v1 = ((BoundedTypeArgument) ta1).getVariance();
-                        t1 = ((BoundedTypeArgument) ta1).getType();
-                    } else {
-                        v1 = BoundedTypeArgument.Variance.INVARIANT;
-                        t1 = ((IJadescriptType) ta1);
-                    }
-                    BoundedTypeArgument.Variance v2;
-                    IJadescriptType t2;
-                    if (ta2 instanceof BoundedTypeArgument) {
-                        v2 = ((BoundedTypeArgument) ta2).getVariance();
-                        t2 = ((BoundedTypeArgument) ta2).getType();
-                    } else {
-                        v2 = BoundedTypeArgument.Variance.INVARIANT;
-                        t2 = ((IJadescriptType) ta2);
-                    }
-                    return t1.typeEquals(t2) && v1 == v2;
-                }
-            ).allMatch(b -> b);
+    public boolean parametricTypeEquals(ParametricType other) {
+        if (!super.typeEquals(other)
+            || this.getTypeArguments().size()
+            != other.getTypeArguments().size()) {
+            return false;
         }
-        return super.typeEquals(other);
+
+        int size = this.typeArguments.size();
+        for (int i = 0; i < size; i++) {
+            final TypeArgument arg1 = this.getTypeArguments().get(i);
+            final TypeArgument arg2 = other.getTypeArguments().get(i);
+
+            if (!typeArgumentEquals(arg1, arg2)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 
     @Override
-    public boolean isSupEqualTo(IJadescriptType other) {
-        other = other.postResolve();
+    public boolean typeEquals(IJadescriptType other) {
+        if (other instanceof ParametricType) {
+            return parametricTypeEquals(((ParametricType) other));
+        }
+
+        return super.typeEquals(other);
+    }
+
+
+    public boolean containerTypeEquals(IJadescriptType other) {
+        return super.typeEquals(other);
+    }
+
+
+    public boolean isParametricSupertypeOrEqualTo(ParametricType other) {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
 
         if (other.typeEquals(typeHelper.NOTHING)) {
             return true;
         }
 
-        if (other instanceof ParametricType) {
-            final ParametricType parOther = (ParametricType) other;
-            final boolean equals = this.typeID.equals(parOther.typeID);
-            final boolean equalsSize =
-                this.typeArguments.size() == parOther.typeArguments.size();
-            return equals
-                && equalsSize
-                && Streams.zip(
-                this.typeArguments.stream(),
-                parOther.typeArguments.stream(),
-                (ta1, ta2) -> {
-                    BoundedTypeArgument.Variance v1;
-                    IJadescriptType t1;
-                    if (ta1 instanceof BoundedTypeArgument) {
-                        v1 = ((BoundedTypeArgument) ta1).getVariance();
-                        t1 = ((BoundedTypeArgument) ta1).getType();
-                    } else {
-                        v1 = BoundedTypeArgument.Variance.INVARIANT;
-                        t1 = ((IJadescriptType) ta1);
-                    }
-                    BoundedTypeArgument.Variance v2;
-                    IJadescriptType t2;
-                    if (ta2 instanceof BoundedTypeArgument) {
-                        v2 = ((BoundedTypeArgument) ta2).getVariance();
-                        t2 = ((BoundedTypeArgument) ta2).getType();
-                    } else {
-                        v2 = BoundedTypeArgument.Variance.INVARIANT;
-                        t2 = ((IJadescriptType) ta2);
-                    }
-
-                    if (t1.typeEquals(t2)) {
-                        return v2 == BoundedTypeArgument.Variance.INVARIANT
-                            || v1 == v2;
-                    } else if (t1.isSupEqualTo(t2)) {
-                        return v1 == BoundedTypeArgument.Variance.EXTENDS
-                            && (v2 == BoundedTypeArgument.Variance.INVARIANT
-                            || v2 == BoundedTypeArgument.Variance.EXTENDS);
-                    } else if (t2.isSupEqualTo(t1)) {
-                        return v1 == BoundedTypeArgument.Variance.SUPER
-                            && (v2 == BoundedTypeArgument.Variance.INVARIANT
-                            || v2 == BoundedTypeArgument.Variance.SUPER);
-                    } else {
-                        return false;
-                    }
-                }
-            ).allMatch(b -> b);
-
+        if (!containerTypeEquals(other)) {
+            return false;
         }
+
+
+        if (this.getTypeArguments().size() != other.getTypeArguments().size()) {
+            return false;
+        }
+
+        int size = this.getTypeArguments().size();
+
+        for (int i = 0; i < size; i++) {
+            final TypeArgument arg1 = this.getTypeArguments().get(i);
+            final TypeArgument arg2 = other.getTypeArguments().get(i);
+
+            if(!typeArgumentIsSuperOrEquals(arg1, arg2)){
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+    @Override
+    public boolean isSupertypeOrEqualTo(IJadescriptType other) {
+        other = other.postResolve();
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        if (other instanceof ParametricType) {
+            return isParametricSupertypeOrEqualTo(((ParametricType) other));
+        }
+
+        if (other.typeEquals(typeHelper.NOTHING)) {
+            return true;
+        }
+
 
         if (this.typeEquals(other)) {
             return true;
         }
 
 
-        return super.isSupEqualTo(other);
+        return super.isSupertypeOrEqualTo(other);
     }
 
 

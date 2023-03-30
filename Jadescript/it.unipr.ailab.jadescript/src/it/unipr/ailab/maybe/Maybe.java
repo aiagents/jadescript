@@ -115,7 +115,7 @@ public class Maybe<OfType> {
     }
 
 
-    
+
     public static <T1> Iterable<Maybe<T1>> iterate(
         Maybe<?
             extends Iterable<T1>> maybeCollection

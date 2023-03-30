@@ -80,12 +80,12 @@ public class RelationalComparisonExpressionSemantics
 
         String rightCompiled = cces.compile(right, afterLeft, acceptor);
         IJadescriptType t2 = cces.inferType(right, afterLeft);
-        if (t1.isSupEqualTo(th.DURATION)
-            && t2.isSupEqualTo(th.DURATION)) {
+        if (t1.isSupertypeOrEqualTo(th.DURATION)
+            && t2.isSupertypeOrEqualTo(th.DURATION)) {
             return "jadescript.lang.Duration.compare(" + leftCompiled
                 + ", " + rightCompiled + ") " + relationalOp + " 0";
-        } else if (t1.isSupEqualTo(th.TIMESTAMP)
-            && t2.isSupEqualTo(th.TIMESTAMP)) {
+        } else if (t1.isSupertypeOrEqualTo(th.TIMESTAMP)
+            && t2.isSupertypeOrEqualTo(th.TIMESTAMP)) {
             return "jadescript.lang.Timestamp.compare(" + leftCompiled
                 + ", " + rightCompiled + ") " + relationalOp + " 0";
         } else {
@@ -233,18 +233,18 @@ public class RelationalComparisonExpressionSemantics
             boolean otherValidation = validationHelper.asserting(
                 //implication: if left is NUMBER, right has to be NUMBER too
                 (
-                    !th.NUMBER.isSupEqualTo(typeLeft)
-                        || th.NUMBER.isSupEqualTo(typeRight)
+                    !th.NUMBER.isSupertypeOrEqualTo(typeLeft)
+                        || th.NUMBER.isSupertypeOrEqualTo(typeRight)
                 ) && (
                     //implication: if left is DURATION,
                     // right has to be DURATION too
-                    !th.DURATION.isSupEqualTo(typeLeft)
-                        || th.DURATION.isSupEqualTo(typeRight)
+                    !th.DURATION.isSupertypeOrEqualTo(typeLeft)
+                        || th.DURATION.isSupertypeOrEqualTo(typeRight)
                 ) && (
                     //implication: if left is TIMESTAMP,
                     // right has to be TIMESTAMP too
-                    !th.TIMESTAMP.isSupEqualTo(typeLeft)
-                        || th.TIMESTAMP.isSupEqualTo(typeRight)
+                    !th.TIMESTAMP.isSupertypeOrEqualTo(typeLeft)
+                        || th.TIMESTAMP.isSupertypeOrEqualTo(typeRight)
                 ),
                 "IncongruentOperandTypes",
                 "Incompatible types for comparison: '"

@@ -38,6 +38,7 @@ public class UserDefinedBehaviourType
 
 
 
+    @Override
     public IJadescriptType getForAgentType() {
         return getRootCategoryType().getForAgentType();
     }

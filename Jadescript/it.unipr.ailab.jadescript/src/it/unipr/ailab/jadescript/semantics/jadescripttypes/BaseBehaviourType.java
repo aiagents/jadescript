@@ -73,7 +73,7 @@ public class BaseBehaviourType
         return true;
     }
 
-
+    @Override
     public IJadescriptType getForAgentType() {
         return forAgentType.ignoreBound();
     }
@@ -186,7 +186,7 @@ public class BaseBehaviourType
 
 
     @Override
-    public boolean isSupEqualTo(IJadescriptType other) {
+    public boolean isSupertypeOrEqualTo(IJadescriptType other) {
         other = other.postResolve();
         if (other instanceof UserDefinedBehaviourType) {
             return (
@@ -194,11 +194,11 @@ public class BaseBehaviourType
                     || this.getBehaviourKind().equals(
                     ((UserDefinedBehaviourType) other).getBehaviourKind()
                 )
-            ) && this.getForAgentType().isSupEqualTo(
+            ) && this.getForAgentType().isSupertypeOrEqualTo(
                 ((UserDefinedBehaviourType) other).getForAgentType()
             );
         }
-        return super.isSupEqualTo(other);
+        return super.isSupertypeOrEqualTo(other);
     }
 
 

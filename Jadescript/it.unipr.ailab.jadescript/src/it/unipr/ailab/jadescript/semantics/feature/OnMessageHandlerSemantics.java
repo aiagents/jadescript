@@ -799,7 +799,7 @@ public class OnMessageHandlerSemantics
 
         if (pattern.isPresent() || whenExpr.isPresent()) {
             module.get(ValidationHelper.class).advice(
-                contentUpperBound.isSupEqualTo(finalContentType),
+                contentUpperBound.isSupertypeOrEqualTo(finalContentType),
                 "UnexpectedContent",
                 "Suspicious content type; Messages with performative '"
                     + performativeString + "' expect contents of type "

@@ -134,7 +134,7 @@ public class ReturnStatementSemantics
 
         IJadescriptType actualType = rves.inferType(expr, state);
         validationHelper.asserting(
-            expectedReturn.get().isSupEqualTo(actualType),
+            expectedReturn.get().isSupertypeOrEqualTo(actualType),
             "InvalidReturnStatement",
             "Expected returned value type: " + expectedReturn.get()
                 + "; found: " + actualType,

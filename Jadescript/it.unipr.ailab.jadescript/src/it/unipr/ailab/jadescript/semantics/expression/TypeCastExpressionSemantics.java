@@ -613,12 +613,12 @@ public class TypeCastExpressionSemantics
 
 
     private boolean isNumber(IJadescriptType type) {
-        return module.get(TypeHelper.class).NUMBER.isSupEqualTo(type);
+        return module.get(TypeHelper.class).NUMBER.isSupertypeOrEqualTo(type);
     }
 
 
     private boolean isCastable(IJadescriptType x1, IJadescriptType x2) {
-        return x1.isSupEqualTo(x2) || x1.isSupEqualTo(x1);
+        return x1.isSupertypeOrEqualTo(x2) || x1.isSupertypeOrEqualTo(x1);
     }
 
 

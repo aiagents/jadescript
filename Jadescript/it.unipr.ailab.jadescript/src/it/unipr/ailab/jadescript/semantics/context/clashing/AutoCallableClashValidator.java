@@ -38,7 +38,7 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
                     .extractType(module);
             // is overriding if...
             // supertype
-            return alreadyPresentType.isSupEqualTo(toBeAddedType) // it is a
+            return alreadyPresentType.isSupertypeOrEqualTo(toBeAddedType) // it is a
                 // be strictly a supertype
                 && !alreadyPresentType.typeEquals(toBeAddedType) // it has to
                 // the signature is compatible (in the Java sense)
@@ -57,7 +57,7 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
         if (alreadyPresent.arity() != toBeAdded.arity()) {
             return false;
         }
-        if (!alreadyPresent.returnType().isSupEqualTo(toBeAdded.returnType())) {
+        if (!alreadyPresent.returnType().isSupertypeOrEqualTo(toBeAdded.returnType())) {
             return false;
         }
         final List<IJadescriptType> apTypes = alreadyPresent.parameterTypes();

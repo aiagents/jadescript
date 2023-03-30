@@ -145,7 +145,7 @@ public class Operation implements MemberCallable {
 
             final IJadescriptType solvedType =
                 namespace.resolveType(paramTypeRef);
-            if (anyAE.isSupEqualTo(solvedType)) {
+            if (anyAE.isSupertypeOrEqualTo(solvedType)) {
                 continue;
             }
 

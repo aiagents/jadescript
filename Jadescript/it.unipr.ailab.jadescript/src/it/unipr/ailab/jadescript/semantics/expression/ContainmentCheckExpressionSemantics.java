@@ -408,7 +408,7 @@ public class ContainmentCheckExpressionSemantics
                             .typeEquals(typeHelper.BOOLEAN))
                         .filter(mc -> mc.arity() == 1)
                         .filter(mc -> mc.parameterTypes().get(0)
-                            .isSupEqualTo(elementType))
+                            .isSupertypeOrEqualTo(elementType))
                 ).collect(Collectors.toList());
 
 

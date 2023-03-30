@@ -87,7 +87,7 @@ public abstract class ExtendingTopLevelDeclarationSemantics<T extends ExtendingE
                     allowedSuperTypes.stream().anyMatch(sup -> {
                         final IJadescriptType sub =
                             typeHelper.jtFromJvmTypeRef(declaredSuperTypeSafe);
-                        return sup.isSupEqualTo(sub);
+                        return sup.isSupertypeOrEqualTo(sub);
                     }),
                     "InvalidSupertype",
                     "Here is expected a subtype of or same type as " +

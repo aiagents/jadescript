@@ -7,7 +7,7 @@ package it.unipr.ailab.jadescript.scoping;
 /**
  * This class contains custom scoping description.
  * <p>
- * <a href="See">https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#sco</a>ping
+ * <a href="https://www.eclipse.org/Xtext/documentation/303_runtime_concepts.html#scoping">Refer to this</a>
  * on how and when to use it.
  */
 public class JadescriptScopeProvider extends AbstractJadescriptScopeProvider {

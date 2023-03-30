@@ -540,16 +540,16 @@ public class OntologyDeclarationSemantics extends
             return some("jade.content.schema.AgentActionSchema");
         } else if (type instanceof ListType) {
             return some("jade.content.schema.TermSchema");
-        } else if (typeHelper.CONCEPT.isSupEqualTo(type)
-            || typeHelper.AID.isSupEqualTo(type)
-            || typeHelper.TIMESTAMP.isSupEqualTo(type)
-            || typeHelper.DURATION.isSupEqualTo(type)) {
+        } else if (typeHelper.CONCEPT.isSupertypeOrEqualTo(type)
+            || typeHelper.AID.isSupertypeOrEqualTo(type)
+            || typeHelper.TIMESTAMP.isSupertypeOrEqualTo(type)
+            || typeHelper.DURATION.isSupertypeOrEqualTo(type)) {
             return some("jade.content.schema.ConceptSchema");
-        } else if (typeHelper.PROPOSITION.isSupEqualTo(type)
-            || typeHelper.PREDICATE.isSupEqualTo(type)
-            || typeHelper.ATOMIC_PROPOSITION.isSupEqualTo(type)) {
+        } else if (typeHelper.PROPOSITION.isSupertypeOrEqualTo(type)
+            || typeHelper.PREDICATE.isSupertypeOrEqualTo(type)
+            || typeHelper.ATOMIC_PROPOSITION.isSupertypeOrEqualTo(type)) {
             return some("jade.content.schema.PredicateSchema");
-        } else if (typeHelper.ACTION.isSupEqualTo(type)) {
+        } else if (typeHelper.ACTION.isSupertypeOrEqualTo(type)) {
             return some("jade.content.schema.AgentActionSchema");
         } else if (typeHelper.isTypeWithPrimitiveOntologySchema(type)) {
             return some("jade.content.schema.PrimitiveSchema");

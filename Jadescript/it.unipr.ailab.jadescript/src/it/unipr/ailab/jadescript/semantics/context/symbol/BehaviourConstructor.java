@@ -98,7 +98,7 @@ public class BehaviourConstructor implements GlobalCallable {
 
             final IJadescriptType solvedType =
                 namespace.resolveType(paramTypeRef);
-            if (anyAE.isSupEqualTo(solvedType)) {
+            if (anyAE.isSupertypeOrEqualTo(solvedType)) {
                 continue;
             }
 

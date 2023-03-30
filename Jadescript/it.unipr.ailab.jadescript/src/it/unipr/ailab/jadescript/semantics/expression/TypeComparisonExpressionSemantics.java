@@ -151,7 +151,7 @@ public class TypeComparisonExpressionSemantics
                 .toJadescriptType(type);
         String compiledTypeExpression =
             jadescriptType.compileToJavaTypeReference();
-        if (module.get(TypeHelper.class).ONTOLOGY.isSupEqualTo(
+        if (module.get(TypeHelper.class).ONTOLOGY.isSupertypeOrEqualTo(
             jadescriptType)) {
             result = THE_AGENTCLASS + ".__checkOntology(" + result + ", " +
                 compiledTypeExpression + ".class, " +

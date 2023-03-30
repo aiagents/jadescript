@@ -8,6 +8,7 @@ import it.unipr.ailab.jadescript.semantics.context.search.JadescriptTypeLocation
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.JvmTypeQualifiedNameParser;
@@ -28,8 +29,6 @@ import jadescript.util.JadescriptSet;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.common.types.*;
-import org.eclipse.xtext.naming.IQualifiedNameProvider;
-import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
@@ -167,7 +166,7 @@ public class TypeHelper implements SemanticsConsts {
             this.objectTypeRef()
         ) {
             @Override
-            public boolean isSupEqualTo(IJadescriptType other) {
+            public boolean isSupertypeOrEqualTo(IJadescriptType other) {
                 return true;
             }
 
@@ -215,7 +214,7 @@ public class TypeHelper implements SemanticsConsts {
                 "/*NOTHING*/java.lang.Object")
         ) {
             @Override
-            public boolean isSupEqualTo(IJadescriptType other) {
+            public boolean isSupertypeOrEqualTo(IJadescriptType other) {
                 return false;
             }
 
@@ -470,12 +469,12 @@ public class TypeHelper implements SemanticsConsts {
 
 
             @Override
-            public boolean isSupEqualTo(IJadescriptType other) {
+            public boolean isSupertypeOrEqualTo(IJadescriptType other) {
                 other = other.postResolve();
                 if (other instanceof BaseMessageType) {
                     return true;
                 } else {
-                    return super.isSupEqualTo(other);
+                    return super.isSupertypeOrEqualTo(other);
                 }
             }
 
@@ -549,12 +548,12 @@ public class TypeHelper implements SemanticsConsts {
             this.typeRef(Number.class)
         ) {
             @Override
-            public boolean isSupEqualTo(IJadescriptType other) {
+            public boolean isSupertypeOrEqualTo(IJadescriptType other) {
                 other = other.postResolve();
                 if (other.typeEquals(INTEGER) || other.typeEquals(REAL)) {
                     return true;
                 } else {
-                    return super.isSupEqualTo(other);
+                    return super.isSupertypeOrEqualTo(other);
                 }
             }
 
@@ -1050,7 +1049,7 @@ public class TypeHelper implements SemanticsConsts {
         nameToPerformativeMap.put("RequestMessage", REQUEST);
         messageSubTypeMap.put(REQUEST, REQUEST_MESSAGE);
         messageContentTypeRequirements.put(REQUEST, () -> ACTION);
-        defineJVMToGenericDescriptor(RequestMessage.class, REQUEST_MESSAGE, 2);
+        defineJVMToGenericDescriptor(RequestMessage.class, REQUEST_MESSAGE, 1);
 
         REQUESTWHEN_MESSAGE = (args) -> new MessageSubType(
             module,
@@ -1252,12 +1251,25 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    public static boolean typeReferenceRawEquals(
+        JvmTypeReference a,
+        JvmTypeReference b
+    ) {
+        return Objects.equals(
+            boxedName(noGenericsTypeName(a.getQualifiedName('.'))),
+            boxedName(noGenericsTypeName(b.getQualifiedName('.')))
+        );
+    }
+
+
     public static boolean typeReferenceEquals(
         JvmTypeReference a,
         JvmTypeReference b
     ) {
-        return boxedName(a.getQualifiedName('.'))
-            .equals(boxedName(b.getQualifiedName('.')));
+        return Objects.equals(
+            boxedName(a.getQualifiedName('.')),
+            boxedName(b.getQualifiedName('.'))
+        );
     }
 
 
@@ -1286,6 +1298,18 @@ public class TypeHelper implements SemanticsConsts {
             module.get(JvmTypeReferenceBuilder.class)::typeRef,
             module.get(JvmTypeReferenceBuilder.class)::typeRef
         );
+    }
+
+
+    public static String noGenericsTypeName(String type) {
+        if (type == null) {
+            return "";
+        }
+        int endIndex = type.indexOf('<');
+        if (endIndex < 0) {
+            return type;
+        }
+        return type.substring(0, endIndex);
     }
 
 
@@ -1641,9 +1665,6 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
-
-
-
     public IJadescriptType jtFromClass(
         Class<?> class_,
         List<IJadescriptType> arguments
@@ -1719,8 +1740,6 @@ public class TypeHelper implements SemanticsConsts {
     public IJadescriptType jtFromFullyQualifiedName(String fullyQualifiedName) {
         return jtFromJvmTypeRef(typeRef(fullyQualifiedName));
     }
-
-
 
 
     private Maybe<IJadescriptType> getFromJVMTypeReference(
@@ -2047,22 +2066,9 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
-    public String noGenericsTypeName(String type) {
-        if (type == null) {
-            return "";
-        }
-        int endIndex = type.indexOf('<');
-        if (endIndex < 0) {
-            return type;
-        }
-        return type.substring(0, endIndex);
-    }
-
-
     public JvmTypeReference objectTypeRef() {
         return module.get(JvmTypeReferenceBuilder.class).typeRef(Object.class);
     }
-
 
 
     public JvmTypeReference typeRef(
@@ -2146,6 +2152,15 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    public JvmTypeReference boxedReferenceIfPrimitive(JvmTypeReference ref) {
+        final JvmType type = ref.getType();
+        if (type instanceof JvmPrimitiveType) {
+            return boxedReference((JvmPrimitiveType) type);
+        }
+        return ref;
+    }
+
+
     public JvmTypeReference boxedReference(JvmPrimitiveType primitiveType) {
         switch (primitiveType.getSimpleName()) {
             case JAVA_PRIMITIVE_int:
@@ -2174,12 +2189,13 @@ public class TypeHelper implements SemanticsConsts {
         IJadescriptType toType,
         IJadescriptType fromType
     ) {
-        return toType.isSupEqualTo(fromType);
+
+        return toType.isSupertypeOrEqualTo(fromType);
     }
 
 
     public boolean isAssignable(Class<?> toType, IJadescriptType fromType) {
-        return jtFromClass(toType).isSupEqualTo(fromType);
+        return jtFromClass(toType).isSupertypeOrEqualTo(fromType);
     }
 
 
@@ -2194,48 +2210,124 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
-    /**
-     * Determines if the class or interface represented by the
-     * <code>toType</code> type reference
-     * is either the same as, or is a superclass or superinterface of, the
-     * class or interface
-     * represented by <code>fromType</code> type reference. It tries to
-     * respond to the question,
-     * in the context of the JVM type system, "can a Java instance of the
-     * type referenced by
-     * <code>fromType</code> be assigned to a Java reference of the type
-     * referenced by
-     * <code>toType</code>?".
-     */
-    public boolean isAssignable(
+    public boolean isAssignableRaw(
         JvmTypeReference toType,
         JvmTypeReference fromType
     ) {
         JvmTypeReference left = toType;
         JvmTypeReference right = fromType;
-        if (fromType == null || toType == null) {
+        if (fromType == null
+            || fromType.getIdentifier() == null
+            || fromType.getIdentifier().equals("void")) {
             return false;
         }
-        if (fromType.getIdentifier() == null
+
+        if (toType == null
             || toType.getIdentifier() == null
-            || fromType.getIdentifier().equals("void")
             || toType.getIdentifier().equals("void")) {
             return false;
         }
+
         if (isPrimitiveWideningViable(fromType, toType)) {
             return true;
         }
+
         if (toType.getType() instanceof JvmPrimitiveType) {
             left = boxedReference((JvmPrimitiveType) toType.getType());
         }
         if (fromType.getType() instanceof JvmPrimitiveType) {
             right = boxedReference((JvmPrimitiveType) fromType.getType());
         }
+
+        if (typeReferenceRawEquals(left, right)) {
+            return true;
+        }
+
+
+        final String tupleInterfaceName = Tuple.class.getName();
+        final String tupleInterfaceSimpleName = Tuple.class.getSimpleName();
+        if (Objects.equals(
+            noGenericsTypeName(left.getQualifiedName('.')),
+            tupleInterfaceName
+        )) {
+            //ad hoc fix for tuple types
+            final String noGenericsFQN = noGenericsTypeName(
+                right.getQualifiedName('.')
+            );
+            final String noGenericsSN = noGenericsTypeName(
+                right.getSimpleName()
+            );
+            return noGenericsFQN.startsWith(tupleInterfaceName)
+                && noGenericsSN.startsWith(tupleInterfaceSimpleName);
+        }
+
+
+        if (left.getType() instanceof JvmDeclaredType
+            && right.getType() instanceof JvmDeclaredType) {
+
+            if (left.getType().equals(right.getType())) {
+                return true;
+            }
+
+            final JvmTypeReferenceSet superSet =
+                JvmTypeReferenceSet.generateAllSupertypesSet(
+                (JvmDeclaredType) right.getType()
+            );
+
+            return superSet.containsRaw(left);
+
+        }
+
+        if (left instanceof JvmGenericArrayTypeReference
+            && right instanceof JvmGenericArrayTypeReference) {
+            //if left and right are array types, just see if their component
+            // types matches isAssignableRaw
+            return isAssignableRaw(
+                ((JvmGenericArrayTypeReference) left).getComponentType(),
+                ((JvmGenericArrayTypeReference) right).getComponentType()
+            );
+        }
+
+        if (left instanceof JvmGenericArrayTypeReference
+            && right.getType() instanceof JvmDeclaredType
+            || left.getType() instanceof JvmDeclaredType
+            && right instanceof JvmGenericArrayTypeReference) {
+            //one is array, the other is not: not assignable
+            return false;
+        }
+
+        return false;
+    }
+
+
+    private boolean isNullOrVoid(JvmTypeReference jvmTypeReference) {
+        return jvmTypeReference == null
+            || jvmTypeReference.getIdentifier() == null
+            || !jvmTypeReference.getIdentifier().equals("void");
+    }
+
+
+    public boolean isAssignableGeneric(
+        JvmTypeReference toType,
+        JvmTypeReference fromType
+    ) {
+        JvmTypeReference left = toType;
+        JvmTypeReference right = fromType;
+        if (isNullOrVoid(left) || isNullOrVoid(right)) {
+            return false;
+        }
+
+        if (isPrimitiveWideningViable(fromType, toType)) {
+            return true;
+        }
+
+        left = boxedReferenceIfPrimitive(left);
+        right = boxedReferenceIfPrimitive(right);
+
         if (typeReferenceEquals(left, right)) {
             return true;
         }
 
-        //TODO design better solution
         if (left.getQualifiedName().equals("jadescript.lang.Tuple")) {
             //ad hoc fix for tuple types
             return right.getQualifiedName('.')
@@ -2284,7 +2376,7 @@ public class TypeHelper implements SemanticsConsts {
             && right instanceof JvmGenericArrayTypeReference) {
             //if left and right are array types, just see if their component
             // types matches isAssignable
-            return isAssignable(
+            return isAssignableGeneric(
                 ((JvmGenericArrayTypeReference) left).getComponentType(),
                 ((JvmGenericArrayTypeReference) right).getComponentType()
             );
@@ -2297,6 +2389,32 @@ public class TypeHelper implements SemanticsConsts {
         } else {
             return false;
         }
+    }
+
+
+    /**
+     * Determines if the class or interface represented by the
+     * <code>toType</code> type reference
+     * is either the same as, or is a superclass or superinterface of, the
+     * class or interface
+     * represented by <code>fromType</code> type reference. It tries to
+     * respond to the question,
+     * in the context of the JVM type system, "can a Java value of the
+     * type referenced by
+     * <code>fromType</code> be assigned to a Java variable of the type
+     * referenced by
+     * <code>toType</code>?".
+     */
+    public boolean isAssignable(
+        JvmTypeReference toType,
+        JvmTypeReference fromType,
+        boolean rawComparison
+    ) {
+        if(rawComparison){
+            return isAssignableRaw(toType, fromType);
+        }
+
+        return isAssignableGeneric(toType, fromType);
     }
 
 
@@ -2314,9 +2432,9 @@ public class TypeHelper implements SemanticsConsts {
 
     @SuppressWarnings("unused")
     public IJadescriptType getGLB(IJadescriptType t1, IJadescriptType t2) {
-        if (t1.isSupEqualTo(t2)) {
+        if (t1.isSupertypeOrEqualTo(t2)) {
             return t2;
-        } else if (t2.isSupEqualTo(t1)) {
+        } else if (t2.isSupertypeOrEqualTo(t1)) {
             return t1;
         } else {
             return NOTHING;
@@ -2371,9 +2489,9 @@ public class TypeHelper implements SemanticsConsts {
 
 
     public IJadescriptType getLUB(IJadescriptType t1, IJadescriptType t2) {
-        if (t1.isSupEqualTo(t2)) {
+        if (t1.isSupertypeOrEqualTo(t2)) {
             return t1;
-        } else if (t2.isSupEqualTo(t1)) {
+        } else if (t2.isSupertypeOrEqualTo(t1)) {
             return t2;
         }
         if (t1.asJvmTypeReference().getType() instanceof JvmDeclaredType
@@ -2389,7 +2507,7 @@ public class TypeHelper implements SemanticsConsts {
                 }
             }
         }
-        return TOP.apply("Could not compute LUB between "+t1+ " and "+t2);
+        return TOP.apply("Could not compute LUB between " + t1 + " and " + t2);
     }
 
 
@@ -2399,9 +2517,9 @@ public class TypeHelper implements SemanticsConsts {
     ) {
         if (t1.typeEquals(t2)) {
             return TypeRelationship.EQUAL;
-        } else if (t1.isSupEqualTo(t2)) {
+        } else if (t1.isSupertypeOrEqualTo(t2)) {
             return TypeRelationship.STRICT_SUPERTYPE;
-        } else if (t2.isSupEqualTo(t1)) {
+        } else if (t2.isSupertypeOrEqualTo(t1)) {
             return TypeRelationship.STRICT_SUBTYPE;
         } else {
             return TypeRelationship.NOT_RELATED;
@@ -2723,8 +2841,8 @@ public class TypeHelper implements SemanticsConsts {
 
 
         @Override
-        public boolean isSupEqualTo(IJadescriptType other) {
-            return relationshipDelegate.isSupEqualTo(other);
+        public boolean isSupertypeOrEqualTo(IJadescriptType other) {
+            return relationshipDelegate.isSupertypeOrEqualTo(other);
         }
 
 

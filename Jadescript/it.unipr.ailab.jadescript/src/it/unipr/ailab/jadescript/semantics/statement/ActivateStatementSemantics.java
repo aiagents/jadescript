@@ -170,7 +170,7 @@ public class ActivateStatementSemantics
             final IJadescriptType forAgentType =
                 ((UserDefinedBehaviourType) exprType).getForAgentType();
             validationHelper.asserting(
-                forAgentType.isSupEqualTo(agentType.get()),
+                forAgentType.isSupertypeOrEqualTo(agentType.get()),
                 "InvalidBehaviourActivation",
                 "An agent of type '" + agentType.get().getJadescriptName() +
                     "' can not activate a behaviour " +

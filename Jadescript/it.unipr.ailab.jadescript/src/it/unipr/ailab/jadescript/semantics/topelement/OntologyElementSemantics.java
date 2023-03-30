@@ -1632,7 +1632,7 @@ public class OntologyElementSemantics extends Semantics {
                     ) + "()";
 
 
-                    if (typeHelper.TEXT.isSupEqualTo(type)) {
+                    if (typeHelper.TEXT.isSupertypeOrEqualTo(type)) {
                         final String quoteLiteral = "\"\\\"\"";
                         w.callStmnt(
                             "_sb.append",

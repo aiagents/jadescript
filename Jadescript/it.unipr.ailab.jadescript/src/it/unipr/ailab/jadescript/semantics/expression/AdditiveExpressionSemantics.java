@@ -20,8 +20,6 @@ import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -216,8 +214,8 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             || t2.typeEquals(typeHelper.TEXT))
             && op.wrappedEquals("+")) {
             return typeHelper.TEXT;
-        } else if (typeHelper.NUMBER.isSupEqualTo(t1)
-            || typeHelper.NUMBER.isSupEqualTo(t2)) {
+        } else if (typeHelper.NUMBER.isSupertypeOrEqualTo(t1)
+            || typeHelper.NUMBER.isSupertypeOrEqualTo(t2)) {
 
             if (typeHelper.implicitConversionCanOccur(t1, t2)) {
                 return t2;
@@ -538,16 +536,16 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             // at least one of the two operands has to be TEXT, INTEGER,
             // REAL, DURATION or TIMESTAMP
             vh.asserting(
-                th.TEXT.isSupEqualTo(t1) ||
-                    th.INTEGER.isSupEqualTo(t1) ||
-                    th.REAL.isSupEqualTo(t1) ||
-                    th.DURATION.isSupEqualTo(t1) ||
-                    th.TIMESTAMP.isSupEqualTo(t1) ||
-                    th.TEXT.isSupEqualTo(t2) ||
-                    th.INTEGER.isSupEqualTo(t2) ||
-                    th.REAL.isSupEqualTo(t2) ||
-                    th.DURATION.isSupEqualTo(t2) ||
-                    th.TIMESTAMP.isSupEqualTo(t2),
+                th.TEXT.isSupertypeOrEqualTo(t1) ||
+                    th.INTEGER.isSupertypeOrEqualTo(t1) ||
+                    th.REAL.isSupertypeOrEqualTo(t1) ||
+                    th.DURATION.isSupertypeOrEqualTo(t1) ||
+                    th.TIMESTAMP.isSupertypeOrEqualTo(t1) ||
+                    th.TEXT.isSupertypeOrEqualTo(t2) ||
+                    th.INTEGER.isSupertypeOrEqualTo(t2) ||
+                    th.REAL.isSupertypeOrEqualTo(t2) ||
+                    th.DURATION.isSupertypeOrEqualTo(t2) ||
+                    th.TIMESTAMP.isSupertypeOrEqualTo(t2),
                 "InvalidAdditiveOperation",
                 "At least one of the two operands has to be of type " +
                     "'integer', 'real', " +

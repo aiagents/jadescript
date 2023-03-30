@@ -287,7 +287,7 @@ public class CreateAgentStatementSemantics
                     return typeHelper.isAssignable(
                         typeHelper.typeRef(ContainerController.class),
                         param0Type.asJvmTypeReference()
-                    ) && typeHelper.TEXT.isSupEqualTo(param1Type);
+                    ) && typeHelper.TEXT.isSupertypeOrEqualTo(param1Type);
                 })
         ).findFirst();
     }

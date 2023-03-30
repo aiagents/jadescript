@@ -39,8 +39,11 @@ public abstract class JadescriptType implements SemanticsConsts,
 
     @Override
     public boolean typeEquals(IJadescriptType other) {
-        if (other == null) return false;
-        return this == other || this.getID().equals(other.getID());
+        if (other == null) {
+            return false;
+        }
+        return this == other
+            || this.getID().equals(other.getID());
     }
 
 
@@ -57,10 +60,12 @@ public abstract class JadescriptType implements SemanticsConsts,
 
 
     @Override
-    public boolean isSupEqualTo(IJadescriptType other) {
+    public boolean isSupertypeOrEqualTo(IJadescriptType other) {
         other = other.postResolve();
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+
         if (other.typeEquals(typeHelper.NOTHING)) {
             return true;
         }

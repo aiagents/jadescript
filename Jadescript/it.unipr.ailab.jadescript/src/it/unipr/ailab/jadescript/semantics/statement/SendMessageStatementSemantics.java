@@ -213,7 +213,7 @@ public class SendMessageStatementSemantics
                 // subtype-or-equal of the ontology that declared the
                 // content type
                 ontoCheck = validationHelper.asserting(
-                    declaringOntologyType.isSupEqualTo(ontologyType),
+                    declaringOntologyType.isSupertypeOrEqualTo(ontologyType),
                     "OntologyMismatch",
                     "The type of this content is declared in ontology "
                         + declaringOntologyType.getJadescriptName()
@@ -475,7 +475,7 @@ public class SendMessageStatementSemantics
                     acceptor
                 );
 
-            } else if (typeHelper.AID.isSupEqualTo(
+            } else if (typeHelper.AID.isSupertypeOrEqualTo(
 
                 receiversType)) {
                 setReceiver(receiver, messageName, runningState, acceptor);

@@ -207,7 +207,7 @@ public class SubscriptExpressionSemantics
         }
 
         keyCheck = module.get(ValidationHelper.class).asserting(
-            !module.get(TypeHelper.class).TEXT.isSupEqualTo(restType),
+            !module.get(TypeHelper.class).TEXT.isSupertypeOrEqualTo(restType),
             "InvalidAssignment",
             "Invalid assignment; values of 'text' are immutable.",
             key,
@@ -235,9 +235,9 @@ public class SubscriptExpressionSemantics
                     searcher -> searcher.memberCallables(methodName)
                         .filter(mc -> mc.arity() == 2)
                         .filter(mc -> mc.parameterTypes().get(0)
-                            .isSupEqualTo(keyType))
+                            .isSupertypeOrEqualTo(keyType))
                         .filter(mc -> mc.parameterTypes().get(1)
-                            .isSupEqualTo(rightType))
+                            .isSupertypeOrEqualTo(rightType))
                 ).collect(Collectors.toList());
 
             if (matchesFound.size() != 1) {
@@ -328,7 +328,7 @@ public class SubscriptExpressionSemantics
 //                .advance(key, afterRest);
 
 
-        if (module.get(TypeHelper.class).TEXT.isSupEqualTo(restType)) {
+        if (module.get(TypeHelper.class).TEXT.isSupertypeOrEqualTo(restType)) {
             return "(\"\"+" + restCompiled + ".charAt(" + keyCompiled + "))";
         } else if (restType instanceof TupleType) {
             final Optional<Integer> integer = extractIntegerIfAvailable(key);
@@ -387,7 +387,7 @@ public class SubscriptExpressionSemantics
             (s, i) -> s.inferType(i, state)
         );
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-        if (typeHelper.TEXT.isSupEqualTo(restType)) {
+        if (typeHelper.TEXT.isSupertypeOrEqualTo(restType)) {
             return typeHelper.TEXT;
         }
         if (restType instanceof TupleType) {
@@ -488,7 +488,7 @@ public class SubscriptExpressionSemantics
             return indexValidation;
 
         } else if (module.get(TypeHelper.class).TEXT
-            .isSupEqualTo(restType)) {
+            .isSupertypeOrEqualTo(restType)) {
             return module.get(ValidationHelper.class).assertExpectedType(
                 module.get(TypeHelper.class).INTEGER,
                 keyType,
@@ -505,7 +505,7 @@ public class SubscriptExpressionSemantics
                     searcher -> searcher.memberCallables("get")
                         .filter(mc -> mc.arity() == 1)
                         .filter(mc -> mc.parameterTypes().get(0)
-                            .isSupEqualTo(keyType))
+                            .isSupertypeOrEqualTo(keyType))
                 ).collect(Collectors.toList());
 
             if (matchesFound.size() != 1) {
