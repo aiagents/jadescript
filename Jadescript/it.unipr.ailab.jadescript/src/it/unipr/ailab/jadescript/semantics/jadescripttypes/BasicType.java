@@ -39,7 +39,7 @@ public class BasicType extends JadescriptType implements EmptyCreatable{
 
 
     @Override
-    public void addProperty(Property prop) {
+    public void addBultinProperty(Property prop) {
         properties.put(prop.name(), prop);
     }
 

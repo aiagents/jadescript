@@ -86,7 +86,7 @@ public class MaybeList<OfType> implements Iterable<Maybe<OfType>> {
      * the overall list. If {@code maybeAList} is nothing, the result is an
      * empty maybe-list.
      */
-    public static <T> MaybeList<T> fromMaybeList(
+    public static <T> MaybeList<T> fromMaybeAList(
         @NotNull
         Maybe<? extends List<T>> maybeAList
     ) {

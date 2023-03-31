@@ -9,6 +9,7 @@ import org.eclipse.xtext.common.types.JvmTypeReference;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class BaseAgentType extends JadescriptType implements AgentType {
 
@@ -19,13 +20,18 @@ public class BaseAgentType extends JadescriptType implements AgentType {
     public BaseAgentType(
         SemanticsModule module
     ) {
-        super(module, TypeHelper.builtinPrefix + "Agent", "Agent", "AGENT");
+        super(
+            module,
+            TypeHelper.builtinPrefix + "Agent",
+            "Agent",
+            "AGENT"
+        );
     }
 
 
     private void initBuiltinProperties() {
         if (!initializedProperties) {
-            this.addProperty(
+            this.addBultinProperty(
                 Property.readonlyProperty(
                     "name",
                     module.get(TypeHelper.class).TEXT,
@@ -33,7 +39,7 @@ public class BaseAgentType extends JadescriptType implements AgentType {
                     Property.compileWithJVMGetter("name")
                 )
             );
-            this.addProperty(
+            this.addBultinProperty(
                 Property.readonlyProperty(
                     "localName",
                     module.get(TypeHelper.class).TEXT,
@@ -41,7 +47,7 @@ public class BaseAgentType extends JadescriptType implements AgentType {
                     Property.compileWithJVMGetter("localName")
                 )
             );
-            this.addProperty(
+            this.addBultinProperty(
                 Property.readonlyProperty(
                     "aid",
                     module.get(TypeHelper.class).AID,
@@ -55,7 +61,7 @@ public class BaseAgentType extends JadescriptType implements AgentType {
 
 
     @Override
-    public void addProperty(Property prop) {
+    public void addBultinProperty(Property prop) {
         properties.add(prop);
     }
 
@@ -115,8 +121,44 @@ public class BaseAgentType extends JadescriptType implements AgentType {
 
 
     @Override
+    public boolean isBehaviour() {
+        return false;
+    }
+
+
+    @Override
+    public boolean isMessage() {
+        return false;
+    }
+
+
+    @Override
+    public boolean isMessageContent() {
+        return false;
+    }
+
+
+    @Override
+    public boolean isAgentEnv() {
+        return false;
+    }
+
+
+    @Override
     public AgentTypeNamespace namespace() {
         return new AgentTypeNamespace(module, this, getBuiltinProperties());
+    }
+
+
+    @Override
+    public Stream<IJadescriptType> declaredSupertypes() {
+        return Stream.empty();
+    }
+
+
+    @Override
+    public List<TypeArgument> typeArguments() {
+        return List.of();
     }
 
 

@@ -5,7 +5,6 @@ import it.unipr.ailab.jadescript.semantics.context.search.JadescriptTypeLocation
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
@@ -15,8 +14,8 @@ import org.jetbrains.annotations.Nullable;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
 
-public abstract class JadescriptType implements SemanticsConsts,
-    IJadescriptType {
+public abstract class JadescriptType
+    implements SemanticsConsts, IJadescriptType {
 
     protected final SemanticsModule module;
     protected final String typeID;
@@ -38,16 +37,6 @@ public abstract class JadescriptType implements SemanticsConsts,
 
 
     @Override
-    public boolean typeEquals(IJadescriptType other) {
-        if (other == null) {
-            return false;
-        }
-        return this == other
-            || this.getID().equals(other.getID());
-    }
-
-
-    @Override
     public String getCategoryName() {
         return categoryName;
     }
@@ -59,33 +48,10 @@ public abstract class JadescriptType implements SemanticsConsts,
     }
 
 
-    @Override
-    public boolean isSupertypeOrEqualTo(IJadescriptType other) {
-        other = other.postResolve();
-
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
 
 
-        if (other.typeEquals(typeHelper.NOTHING)) {
-            return true;
-        }
 
-        if (this.typeEquals(other)) {
-            return true;
-        }
-
-        if (typeHelper.implicitConversionCanOccur(other, this)) {
-            return true;
-        }
-
-        return typeHelper.isAssignable(
-            this.asJvmTypeReference(),
-            other.asJvmTypeReference()
-        );
-    }
-
-
-    public abstract void addProperty(Property prop);
+    public abstract void addBultinProperty(Property prop);
 
 
     @Override
@@ -129,9 +95,9 @@ public abstract class JadescriptType implements SemanticsConsts,
 
     @Override
     public String compileConversionType() {
-
         return "new jadescript.util.types.JadescriptTypeReference(" +
-            "jadescript.util.types.JadescriptBuiltinTypeAtom." + getCategoryName() + ")";
+            "jadescript.util.types.JadescriptBuiltinTypeAtom." +
+            getCategoryName() + ")";
     }
 
 

@@ -11,6 +11,7 @@ import jadescript.core.behaviours.OneShotBehaviour;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 public class BaseBehaviourType
     extends ParametricType
@@ -81,7 +82,7 @@ public class BaseBehaviourType
 
     private void initBuiltinProperties() {
         if (!initializedProperties) {
-            this.addProperty(
+            this.addBultinProperty(
                 Property.readonlyProperty(
                     "behaviourName",
                     module.get(TypeHelper.class).TEXT,
@@ -89,7 +90,7 @@ public class BaseBehaviourType
                     Property.compileWithJVMGetter("behaviourName")
                 )
             );
-            this.addProperty(
+            this.addBultinProperty(
                 Property.readonlyProperty(
                     "state",
                     module.get(TypeHelper.class).TEXT,
@@ -98,7 +99,7 @@ public class BaseBehaviourType
                 )
             );
 
-            this.addProperty(
+            this.addBultinProperty(
                 Property.readonlyProperty(
                     "agent",
                     getForAgentType(),
@@ -107,7 +108,7 @@ public class BaseBehaviourType
                 )
             );
 
-            this.addProperty(
+            this.addBultinProperty(
                 Property.readonlyProperty(
                     "isActive",
                     module.get(TypeHelper.class).BOOLEAN,
@@ -126,7 +127,7 @@ public class BaseBehaviourType
 
 
     @Override
-    public void addProperty(Property prop) {
+    public void addBultinProperty(Property prop) {
         properties.add(prop);
     }
 
@@ -186,25 +187,45 @@ public class BaseBehaviourType
 
 
     @Override
-    public boolean isSupertypeOrEqualTo(IJadescriptType other) {
-        other = other.postResolve();
-        if (other instanceof UserDefinedBehaviourType) {
-            return (
-                this.getBehaviourKind().equals(Kind.Base)
-                    || this.getBehaviourKind().equals(
-                    ((UserDefinedBehaviourType) other).getBehaviourKind()
-                )
-            ) && this.getForAgentType().isSupertypeOrEqualTo(
-                ((UserDefinedBehaviourType) other).getForAgentType()
-            );
-        }
-        return super.isSupertypeOrEqualTo(other);
+    public boolean isBehaviour() {
+        return true;
     }
+
+
+    @Override
+    public boolean isMessage() {
+        return false;
+    }
+
+
+    @Override
+    public boolean isMessageContent() {
+        return false;
+    }
+
+
+    @Override
+    public boolean isAgentEnv() {
+        return false;
+    }
+
 
 
     @Override
     public BehaviourTypeNamespace namespace() {
         return new BehaviourTypeNamespace(module, this, getBuiltinProperties());
+    }
+
+
+    @Override
+    public Stream<IJadescriptType> declaredSupertypes() {
+        return Stream.empty();
+    }
+
+
+    @Override
+    public List<TypeArgument> typeArguments() {
+        return List.of();
     }
 
 

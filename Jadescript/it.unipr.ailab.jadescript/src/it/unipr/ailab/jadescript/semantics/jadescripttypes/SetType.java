@@ -80,7 +80,7 @@ public class SetType extends ParametricType
 
 
     @Override
-    public void addProperty(Property prop) {
+    public void addBultinProperty(Property prop) {
         properties.put(prop.name(), prop);
     }
 
@@ -89,7 +89,7 @@ public class SetType extends ParametricType
         if (initializedProperties) {
             return;
         }
-        this.addProperty(
+        this.addBultinProperty(
             Property.readonlyProperty(
                 "size",
                 module.get(TypeHelper.class).INTEGER,

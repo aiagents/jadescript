@@ -10,15 +10,15 @@ import jadescript.content.*;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.some;
 
-public class BaseOntoContentType extends JadescriptType implements OntoContentType {
+public class BaseOntoContentType
+    extends JadescriptType
+    implements OntoContentType {
 
     private final Kind kind;
-
-
-
 
     public enum Kind {
         Concept, Action, Predicate, Proposition, AtomicProposition
@@ -27,7 +27,12 @@ public class BaseOntoContentType extends JadescriptType implements OntoContentTy
             SemanticsModule module,
             Kind kind
     ) {
-        super(module, TypeHelper.builtinPrefix + getTypeName(kind), getTypeName(kind), getCategoryName(kind));
+        super(
+            module,
+            TypeHelper.builtinPrefix + getTypeNameForKind(kind),
+            getTypeNameForKind(kind),
+            getCategoryName(kind)
+        );
         this.kind = kind;
     }
 
@@ -49,7 +54,7 @@ public class BaseOntoContentType extends JadescriptType implements OntoContentTy
         return false;
     }
 
-    private static String getTypeName(Kind kind) {
+    private static String getTypeNameForKind(Kind kind) {
         return kind.name();
     }
 
@@ -66,8 +71,8 @@ public class BaseOntoContentType extends JadescriptType implements OntoContentTy
 
 
     @Override
-    public void addProperty(Property prop) {
-        // no props
+    public void addBultinProperty(Property prop) {
+        // no builtin props
     }
 
     @Override
@@ -111,6 +116,31 @@ public class BaseOntoContentType extends JadescriptType implements OntoContentTy
         return false;
     }
 
+
+    @Override
+    public boolean isBehaviour() {
+        return false;
+    }
+
+
+    @Override
+    public boolean isMessage() {
+        return false;
+    }
+
+
+    @Override
+    public boolean isMessageContent() {
+        return true;
+    }
+
+
+    @Override
+    public boolean isAgentEnv() {
+        return false;
+    }
+
+
     @Override
     public String getSlotSchemaName() {
         switch (kind){
@@ -147,20 +177,34 @@ public class BaseOntoContentType extends JadescriptType implements OntoContentTy
         );
     }
 
+
+    @Override
+    public Stream<IJadescriptType> declaredSupertypes() {
+        return Stream.of();
+    }
+
+
+    @Override
+    public List<TypeArgument> typeArguments() {
+        return List.of();
+    }
+
+
     @Override
     public JvmTypeReference asJvmTypeReference() {
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
         switch (kind) {
             case Action:
-                return module.get(TypeHelper.class).typeRef(JadescriptAction.class);
+                return typeHelper.typeRef(JadescriptAction.class);
             case Concept:
-                return module.get(TypeHelper.class).typeRef(JadescriptConcept.class);
+                return typeHelper.typeRef(JadescriptConcept.class);
             case AtomicProposition:
-                return module.get(TypeHelper.class).typeRef(JadescriptAtomicProposition.class);
+                return typeHelper.typeRef(JadescriptAtomicProposition.class);
             case Predicate:
-                return module.get(TypeHelper.class).typeRef(JadescriptPredicate.class);
+                return typeHelper.typeRef(JadescriptPredicate.class);
             case Proposition:
             default:
-                return module.get(TypeHelper.class).typeRef(JadescriptProposition.class);
+                return typeHelper.typeRef(JadescriptProposition.class);
         }
     }
 }

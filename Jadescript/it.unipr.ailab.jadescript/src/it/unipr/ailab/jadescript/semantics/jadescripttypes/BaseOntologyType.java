@@ -7,18 +7,24 @@ import it.unipr.ailab.jadescript.semantics.namespace.OntologyTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
-public class BaseOntologyType extends JadescriptType
+public class BaseOntologyType
+    extends JadescriptType
     implements EmptyCreatable, OntologyType {
 
 
     public BaseOntologyType(
             SemanticsModule module
     ) {
-        super(module, TypeHelper.builtinPrefix + "Ontology", "Ontology", "ONTOLOGY");
+        super(
+            module,
+            TypeHelper.builtinPrefix + "Ontology",
+            "Ontology",
+            "ONTOLOGY"
+        );
     }
 
     @Override
-    public void addProperty(Property prop) {
+    public void addBultinProperty(Property prop) {
     }
 
     @Override
@@ -68,7 +74,8 @@ public class BaseOntologyType extends JadescriptType
 
     @Override
     public JvmTypeReference asJvmTypeReference() {
-        return module.get(TypeHelper.class).typeRef(jadescript.content.onto.Ontology.class);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        return typeHelper.typeRef(jadescript.content.onto.Ontology.class);
     }
 
     @Override

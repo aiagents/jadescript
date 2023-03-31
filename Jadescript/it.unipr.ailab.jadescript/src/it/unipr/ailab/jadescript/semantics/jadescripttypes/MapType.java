@@ -101,7 +101,7 @@ public class MapType extends ParametricType implements EmptyCreatable,
 
 
     @Override
-    public void addProperty(Property prop) {
+    public void addBultinProperty(Property prop) {
         properties.put(prop.name(), prop);
     }
 
@@ -111,7 +111,7 @@ public class MapType extends ParametricType implements EmptyCreatable,
             return;
         }
 
-        this.addProperty(
+        this.addBultinProperty(
             Property.readonlyProperty(
                 "size",
                 module.get(TypeHelper.class).INTEGER,
@@ -119,7 +119,7 @@ public class MapType extends ParametricType implements EmptyCreatable,
                 Property.compileGetWithCustomMethod("size")
             )
         );
-        this.addProperty(
+        this.addBultinProperty(
             Property.readonlyProperty(
                 "values",
                 module.get(TypeHelper.class).SET.apply(
@@ -129,7 +129,7 @@ public class MapType extends ParametricType implements EmptyCreatable,
                 Property.compileGetWithCustomMethod("values")
             )
         );
-        this.addProperty(
+        this.addBultinProperty(
             Property.readonlyProperty(
                 "keys",
                 module.get(TypeHelper.class).SET.apply(

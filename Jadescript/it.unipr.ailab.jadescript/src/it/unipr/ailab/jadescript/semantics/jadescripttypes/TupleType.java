@@ -135,7 +135,7 @@ public class TupleType extends ParametricType
 
     private void initBuiltinProperties() {
         if (!initializedProperties) {
-            this.addProperty(Property.readonlyProperty(
+            this.addBultinProperty(Property.readonlyProperty(
                     "length",
                     module.get(TypeHelper.class).INTEGER,
                     getLocation(),
@@ -144,13 +144,13 @@ public class TupleType extends ParametricType
             );
 
             if (getElementTypes().size() > 0) {
-                this.addProperty(Property.readonlyProperty(
+                this.addBultinProperty(Property.readonlyProperty(
                     "head",
                     getElementTypes().get(0),
                     getLocation(),
                     (o, a) -> compileGet(o, 0)
                 ));
-                this.addProperty(Property.readonlyProperty(
+                this.addBultinProperty(Property.readonlyProperty(
                     "tail",
                     new TupleType(
                         module,
@@ -167,7 +167,7 @@ public class TupleType extends ParametricType
                         return compileNewInstance(tailCompiles, tailTypes);
                     }
                 ));
-                this.addProperty(Property.readonlyProperty(
+                this.addBultinProperty(Property.readonlyProperty(
                     "last",
                     getElementTypes().get(elementTypes.size() - 1),
                     getLocation(),
@@ -191,7 +191,7 @@ public class TupleType extends ParametricType
 
 
     @Override
-    public void addProperty(Property prop) {
+    public void addBultinProperty(Property prop) {
         properties.put(prop.name(), prop);
     }
 

@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.*;
-import static it.unipr.ailab.maybe.MaybeList.fromMaybeList;
+import static it.unipr.ailab.maybe.MaybeList.fromMaybeAList;
 
 /**
  * Created on 31/03/18.
@@ -99,7 +99,7 @@ public class ListLiteralExpressionSemantics
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        MaybeList<RValueExpression> elements = fromMaybeList(values);
+        MaybeList<RValueExpression> elements = fromMaybeAList(values);
 
         return "jadescript.util.JadescriptCollections.createList(" +
             "java.util.List.of(" + mapExpressionsWithState(
@@ -184,7 +184,7 @@ public class ListLiteralExpressionSemantics
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        MaybeList<RValueExpression> valuesList = fromMaybeList(values);
+        MaybeList<RValueExpression> valuesList = fromMaybeAList(values);
         StaticState newState = state;
 
         for (Maybe<RValueExpression> rValueExpressionMaybe : valuesList) {

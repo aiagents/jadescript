@@ -5,8 +5,6 @@ import it.unipr.ailab.jadescript.semantics.namespace.AgentTypeNamespace;
 
 public interface AgentType extends IJadescriptType, UsingOntologyType {
 
-    SearchLocation getLocation();
-
     @Override
     AgentTypeNamespace namespace();
 

@@ -73,7 +73,7 @@ public class BaseMessageType extends ParametricType implements EmptyCreatable {
 
 
     @Override
-    public void addProperty(Property prop) {
+    public void addBultinProperty(Property prop) {
 
     }
 

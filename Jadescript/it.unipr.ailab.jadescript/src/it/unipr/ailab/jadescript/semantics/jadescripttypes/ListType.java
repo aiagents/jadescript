@@ -69,7 +69,7 @@ public class ListType
             return;
         }
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-        this.addProperty(
+        this.addBultinProperty(
             Property.readonlyProperty(
                 "length",
                 typeHelper.INTEGER,
@@ -77,7 +77,7 @@ public class ListType
                 Property.compileGetWithCustomMethod("size")
             )
         );
-        this.addProperty(
+        this.addBultinProperty(
             new Property(
                 true,
                 "head",
@@ -90,7 +90,7 @@ public class ListType
                 )
             )
         );
-        this.addProperty(
+        this.addBultinProperty(
             new Property(
                 false,
                 "tail",
@@ -105,7 +105,7 @@ public class ListType
                 )
             )
         );
-        this.addProperty(
+        this.addBultinProperty(
             new Property(
                 true,
                 "last",
@@ -311,7 +311,7 @@ public class ListType
 
 
     @Override
-    public void addProperty(Property prop) {
+    public void addBultinProperty(Property prop) {
         properties.put(prop.name(), prop);
     }
 

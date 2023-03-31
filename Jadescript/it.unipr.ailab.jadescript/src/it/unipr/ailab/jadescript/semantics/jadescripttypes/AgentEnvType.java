@@ -159,7 +159,7 @@ public class AgentEnvType extends ParametricType {
 
 
     @Override
-    public void addProperty(Property prop) {
+    public void addBultinProperty(Property prop) {
         //do nothing
     }
 

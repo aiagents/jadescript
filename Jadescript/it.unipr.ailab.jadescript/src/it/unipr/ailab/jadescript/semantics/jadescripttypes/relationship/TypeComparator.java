@@ -705,8 +705,7 @@ public class TypeComparator {
         target = target.postResolve();
 
         // If any of the two is unresolved, fall back to old JVM type comparison
-        if (subject instanceof UnknownJVMType
-            || target instanceof UnknownJVMType) {
+        if (subject.isUnknownJVM() || target.isUnknownJVM()) {
             return compareJVMTypeReferencesInternal(
                 subject.asJvmTypeReference(),
                 target.asJvmTypeReference(),
@@ -804,6 +803,14 @@ public class TypeComparator {
             return agentEnvBranch.toNullable();
         }
 
+        // Ontologies use another way to determine subtying
+        final Maybe<TypeRelationship> ontologyCheck =
+            checkOntology(subject, target);
+
+        if(ontologyCheck.isPresent()){
+            return ontologyCheck.toNullable();
+        }
+
 
         // Fast collections and tuple checking
         final Maybe<TypeRelationship> listCheck =
@@ -833,11 +840,68 @@ public class TypeComparator {
             return tupleCheck.toNullable();
         }
 
-        //TODO rawComparison
+        if (!rawComparison) {
+            // Generic checking, taking into account type arguments/parameters
+            // and user-defined/extensional subtyping relationships.
+            return parametricCheck(subject, target);
+        }
 
-        // Generic checking, taking into account type arguments/parameters and
-        // user-defined/extensional subtyping relationships.
-        return parametricCheck(subject, target);
+
+        if(rawEquals(subject, target)){
+            return TypeRelationship.equal();
+        }
+
+        IJadescriptType finalSubject = subject;
+        if(target.allSupertypesBFS()
+            .map(IJadescriptType::getID)
+            .anyMatch(id -> Objects.equals(id, finalSubject.getID()))){
+            return TypeRelationship.superType();
+        }
+
+        IJadescriptType finalTarget = target;
+        if(subject.allSupertypesBFS()
+            .map(IJadescriptType::getID)
+            .anyMatch(id -> Objects.equals(id, finalTarget.getID()))){
+            return TypeRelationship.subType();
+        }
+
+        return TypeRelationship.notRelated();
+
+
+    }
+
+
+    private Maybe<TypeRelationship> checkOntology(
+        IJadescriptType subject,
+        IJadescriptType target
+    ) {
+        boolean subjectIsOnto = subject.isOntology();
+        boolean targetIsOnto = target.isOntology();
+
+        if(subjectIsOnto && targetIsOnto){
+            if(rawEquals(subject, target)){
+                return some(TypeRelationship.equal());
+            }
+
+            OntologyType subjectOnto = ((OntologyType) subject);
+            OntologyType targetOnto = ((OntologyType) target);
+
+            if (subjectOnto.isSuperOrEqualOntology(targetOnto)) {
+                return some(TypeRelationship.superType());
+            }
+
+            if(targetOnto.isSuperOrEqualOntology(subjectOnto)){
+                return some(TypeRelationship.subType());
+            }
+
+            return some(TypeRelationship.notRelated());
+        }
+
+        if(subjectIsOnto != targetIsOnto){
+            return some(TypeRelationship.notRelated());
+        }
+
+        return Maybe.nothing();
     }
 
 

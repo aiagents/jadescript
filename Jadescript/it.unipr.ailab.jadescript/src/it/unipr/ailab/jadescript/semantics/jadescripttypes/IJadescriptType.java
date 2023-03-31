@@ -9,6 +9,7 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.jetbrains.annotations.Contract;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -47,26 +48,10 @@ public interface IJadescriptType extends TypeArgument {
      */
     Stream<IJadescriptType> declaredSupertypes();
 
-
     List<TypeArgument> typeArguments();
-
-
-
 
     @Override
     JvmTypeReference asJvmTypeReference();
-
-    /**
-     * @deprecated use the facilities provided by {@link TypeComparator}.
-     */
-    @Deprecated
-    boolean typeEquals(IJadescriptType other);
-
-    /**
-     * @deprecated use the facilities provided by {@link TypeComparator}.
-     */
-    @Deprecated
-    boolean isSupertypeOrEqualTo(IJadescriptType other);
 
     String getCategoryName();
 
@@ -106,11 +91,27 @@ public interface IJadescriptType extends TypeArgument {
      */
     boolean hasProperties();
 
+    boolean isCollection();
+
+    boolean isBehaviour();
+
+    boolean isMessage();
+
+    boolean isMessageContent();
+
+    boolean isAgentEnv();
+
+    /**
+     * If true, then this can be safely casted to {@link OntologyType}.
+     */
+    boolean isOntology();
+
     /**
      * Whether this is the type of value resulting from a compilation error
      */
     boolean isErroneous();
 
+    boolean isUnknownJVM();
 
     Maybe<OntologyType> getDeclaringOntology();
 
@@ -128,16 +129,6 @@ public interface IJadescriptType extends TypeArgument {
      * {@link Maybe#nothing()} otherwise.
      */
     Maybe<IJadescriptType> getElementTypeIfCollection();
-
-    boolean isCollection();
-
-    boolean isBehaviour();
-
-    boolean isMessage();
-
-    boolean isMessageContent();
-
-    boolean isAgentEnv();
 
     String compileConversionType();
 

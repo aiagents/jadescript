@@ -325,7 +325,7 @@ public class TypeHelper implements SemanticsConsts {
             "\"\""
         );
         defineJVMToDescriptor(String.class, TEXT);
-        TEXT.addProperty(Property.readonlyProperty(
+        TEXT.addBultinProperty(Property.readonlyProperty(
             "length",
             INTEGER,
             new JadescriptTypeLocation(TEXT),
@@ -361,13 +361,13 @@ public class TypeHelper implements SemanticsConsts {
             "new jade.core.AID()"
         );
         final SearchLocation aidLocation = new JadescriptTypeLocation(AID);
-        AID.addProperty(Property.readonlyProperty(
+        AID.addBultinProperty(Property.readonlyProperty(
             "name",
             TEXT,
             aidLocation,
             Property.compileWithJVMGetter("name")
         ));
-        AID.addProperty(Property.readonlyProperty(
+        AID.addBultinProperty(Property.readonlyProperty(
             "platform",
             TEXT,
             aidLocation,
@@ -1751,10 +1751,12 @@ public class TypeHelper implements SemanticsConsts {
             return some(defaultJVMToDescriptorTable.get(qualifiedName));
         } else {
             final String noGenericsTypeName = noGenericsTypeName(qualifiedName);
-            if (defaultJVMToGenericDescriptorTable.containsKey(
-                noGenericsTypeName)
+            if (defaultJVMToGenericDescriptorTable
+                .containsKey(noGenericsTypeName)
                 && typeReference instanceof JvmParameterizedTypeReference) {
+
                 List<TypeArgument> args = new ArrayList<>();
+
                 final EList<JvmTypeReference> jvmPTRArgs =
                     ((JvmParameterizedTypeReference) typeReference)
                         .getArguments();
@@ -1765,10 +1767,15 @@ public class TypeHelper implements SemanticsConsts {
                 }
                 final Integer expectedArguments =
                     expectedGenericDescriptorArguments.get(noGenericsTypeName);
+
                 if (expectedArguments != null
                     && expectedArguments == args.size()) {
-                    return some(defaultJVMToGenericDescriptorTable.get(
-                        noGenericsTypeName).apply(args));
+
+                    return some(
+                        defaultJVMToGenericDescriptorTable
+                            .get(noGenericsTypeName).apply(args)
+                    );
+
                 } else {
                     return nothing();
                 }

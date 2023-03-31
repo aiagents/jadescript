@@ -4,7 +4,7 @@ import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.namespace.OntologyTypeNamespace;
 
 public interface OntologyType
-    extends IJadescriptType {
+    extends IJadescriptType, EmptyCreatable {
 
     SearchLocation getLocation();
 
