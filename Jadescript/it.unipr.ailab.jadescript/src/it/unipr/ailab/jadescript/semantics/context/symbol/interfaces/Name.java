@@ -1,6 +1,5 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol.interfaces;
 
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 

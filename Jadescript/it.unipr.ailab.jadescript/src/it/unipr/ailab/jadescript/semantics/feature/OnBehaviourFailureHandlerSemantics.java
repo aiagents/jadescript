@@ -16,6 +16,7 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -357,11 +358,11 @@ public class OnBehaviourFailureHandlerSemantics
         final IJadescriptType finalBehaviourType = wexpNarrowedBehaviourType;
 
         scb.open("if (__failureReason instanceof "
-            + module.get(TypeHelper.class).noGenericsTypeName(
+            + JvmTypeHelper.noGenericsTypeName(
             finalContentType.compileToJavaTypeReference()
         ) + "&&" +
             "__failedBehaviour instanceof "
-            + module.get(TypeHelper.class).noGenericsTypeName(
+            + JvmTypeHelper.noGenericsTypeName(
             finalBehaviourType.compileToJavaTypeReference()
         ) + ") {");
 

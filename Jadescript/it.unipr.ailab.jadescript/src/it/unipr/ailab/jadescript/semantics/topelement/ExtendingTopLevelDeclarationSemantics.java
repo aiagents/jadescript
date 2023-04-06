@@ -110,16 +110,16 @@ public abstract class ExtendingTopLevelDeclarationSemantics<T extends ExtendingE
 
         StringBuilder sb = new StringBuilder();
 
-        sb.append(allowedSuperTypes.get(0).getJadescriptName());
+        sb.append(allowedSuperTypes.get(0).getFullJadescriptName());
 
         if (allowedSuperTypes.size() > 1) {
             for (int i = 1; i < allowedSuperTypes.size() - 1; i++) {
                 sb.append(", ")
-                    .append(allowedSuperTypes.get(i).getJadescriptName());
+                    .append(allowedSuperTypes.get(i).getFullJadescriptName());
             }
             sb.append(" or ")
                 .append(allowedSuperTypes.get(allowedSuperTypes.size() - 1)
-                    .getJadescriptName());
+                    .getFullJadescriptName());
         }
 
         return sb.toString();

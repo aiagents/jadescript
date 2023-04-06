@@ -13,9 +13,9 @@ import it.unipr.ailab.jadescript.semantics.expression.trailersexprchain.Reversed
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.TupleType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Subscript;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
@@ -244,11 +244,11 @@ public class SubscriptExpressionSemantics
                 return module.get(ValidationHelper.class).emitError(
                     "InvalidElementAccessOperation",
                     "Cannot perform '[]' subscript on values of type " +
-                        restType.getJadescriptName() +
+                        restType.getFullJadescriptName() +
                         ", with index of type " +
-                        keyType.getJadescriptName() +
+                        keyType.getFullJadescriptName() +
                         ", assigning values of type " +
-                        rightType.getJadescriptName() + ".",
+                        rightType.getFullJadescriptName() + ".",
                     key,
                     acceptor
                 );
@@ -260,7 +260,7 @@ public class SubscriptExpressionSemantics
                 "InvalidSubscriptOperation",
                 "[] operator cannot be used on types that are " +
                     "not list, map, or text. Type found: " +
-                    restType.getJadescriptName(),
+                    restType.getFullJadescriptName(),
                 key,
                 acceptor
             );
@@ -513,8 +513,8 @@ public class SubscriptExpressionSemantics
                 return module.get(ValidationHelper.class).emitError(
                     "InvalidElementAccessOperation",
                     "Cannot perform '[]' operator on values of type "
-                        + restType.getJadescriptName() + ", using values " +
-                        "of type" + keyType.getJadescriptName() +
+                        + restType.getFullJadescriptName() + ", using values " +
+                        "of type" + keyType.getFullJadescriptName() +
                         "as index.",
                     key,
                     acceptor
@@ -528,7 +528,7 @@ public class SubscriptExpressionSemantics
                 "InvalidElementAccessOperation",
                 "[] operator cannot be used on types that are " +
                     "not list, map, or text. Type found: " +
-                    restType.getJadescriptName(),
+                    restType.getFullJadescriptName(),
                 key,
                 acceptor
             );

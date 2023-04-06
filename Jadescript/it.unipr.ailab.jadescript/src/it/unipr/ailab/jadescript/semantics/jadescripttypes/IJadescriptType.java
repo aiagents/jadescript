@@ -1,15 +1,16 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -42,6 +43,22 @@ public interface IJadescriptType extends TypeArgument {
         );
     }
 
+    default String getParametricIntroductor() {
+        return "of";
+    }
+
+    default String getParametricListDelimiterOpen() {
+        return "(";
+    }
+
+    default String getParametricListDelimiterClose() {
+        return ")";
+    }
+
+    default String getParametricListSeparator() {
+        return ",";
+    }
+
     /**
      * @return a stream of all the extensionally-defined direct supertypes of
      * this type.
@@ -55,20 +72,23 @@ public interface IJadescriptType extends TypeArgument {
 
     String getCategoryName();
 
+    TypeCategory category();
+
     SearchLocation getLocation();
+
+    String getRawID();
 
     @Override
     String getID();
+
 
     default IJadescriptType postResolve() {
         //Override if needed.
         return this;
     }
 
-    /**
-     * Whether this is a Jadescript Basic type (integer, real, aid...)
-     */
-    boolean isBasicType();
+
+
 
     /**
      * Whether this is a slottable type (it can be part of a content)
@@ -91,27 +111,13 @@ public interface IJadescriptType extends TypeArgument {
      */
     boolean hasProperties();
 
-    boolean isCollection();
-
-    boolean isBehaviour();
-
-    boolean isMessage();
-
-    boolean isMessageContent();
-
-    boolean isAgentEnv();
-
-    /**
-     * If true, then this can be safely casted to {@link OntologyType}.
-     */
-    boolean isOntology();
 
     /**
      * Whether this is the type of value resulting from a compilation error
      */
     boolean isErroneous();
 
-    boolean isUnknownJVM();
+
 
     Maybe<OntologyType> getDeclaringOntology();
 
@@ -121,7 +127,9 @@ public interface IJadescriptType extends TypeArgument {
     );
 
     @Override
-    String getJadescriptName();
+    String getFullJadescriptName();
+
+    String getRawJadescriptName();
 
     /**
      * It returns the type of the elements if this is a list or set type, the
@@ -150,8 +158,6 @@ public interface IJadescriptType extends TypeArgument {
     String getDebugPrint();
     //overridden by VOID type in TypeHelper
 
-    default boolean isJavaVoid() {
-        return false;
-    }
+
 
 }

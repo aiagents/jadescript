@@ -14,7 +14,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedBehaviourType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.UserDefinedBehaviourType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import jade.core.behaviours.Behaviour;
@@ -172,10 +172,10 @@ public class ActivateStatementSemantics
             validationHelper.asserting(
                 forAgentType.isSupertypeOrEqualTo(agentType.get()),
                 "InvalidBehaviourActivation",
-                "An agent of type '" + agentType.get().getJadescriptName() +
+                "An agent of type '" + agentType.get().getFullJadescriptName() +
                     "' can not activate a behaviour " +
                     "designed for agents of type '" +
-                    forAgentType.getJadescriptName() + "'.",
+                    forAgentType.getFullJadescriptName() + "'.",
                 expr,
                 acceptor
             );

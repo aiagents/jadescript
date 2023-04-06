@@ -15,10 +15,7 @@ import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
-import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TemplateCompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
@@ -370,7 +367,7 @@ public class OnNativeEventHandlerSemantics
                 ".getContentManager()" +
                 ".extractContent(" + NATIVE_EVENT_VAR_NAME + "))" +
                 ".getContent() instanceof " +
-                module.get(TypeHelper.class).noGenericsTypeName(
+                JvmTypeHelper.noGenericsTypeName(
                     finalContentType.compileToJavaTypeReference()
                 ) + ")"),
             w.block().addStatement(w.returnStmnt(w.expr("false")))

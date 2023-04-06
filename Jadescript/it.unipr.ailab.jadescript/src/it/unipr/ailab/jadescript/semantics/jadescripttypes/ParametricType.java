@@ -1,9 +1,10 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
-import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.BoundedTypeArgument;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -121,11 +122,11 @@ public abstract class ParametricType extends JadescriptType {
     }
 
 
-    public String getJadescriptName() {
+    public String getFullJadescriptName() {
         String result = simpleName;
         result += " " + parametricIntroductor + " " +
             parametricListDelimiterOpen + typeArguments.stream()
-            .map(TypeArgument::getJadescriptName)
+            .map(TypeArgument::getFullJadescriptName)
             .map(s -> "(" + s + ")")
             .reduce((s1, s2) -> s1 + parametricListSeparator + s2).orElse(
                 "(###notypeargs###)")
@@ -274,7 +275,7 @@ public abstract class ParametricType extends JadescriptType {
                 !typeArgument.ignoreBound().isErroneous(),
                 "InvalidParametricType",
                 "Invalid parametric type type: '" +
-                    typeArgument.getJadescriptName() + "'.",
+                    typeArgument.getFullJadescriptName() + "'.",
                 input,
                 acceptor
             );

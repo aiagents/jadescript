@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
@@ -35,9 +35,9 @@ public abstract class AssignableExpressionSemantics<T>
     extends ExpressionSemantics<T> {
 
 
-    private final LazyValue<AssignableExpressionSemantics<?>>
+    private final LazyInit<AssignableExpressionSemantics<?>>
         EMPTY_ASSIGNABLE_EXPRESSION_SEMANTICS =
-        new LazyValue<>(() -> new AssignableAdapter<>(this.module));
+        new LazyInit<>(() -> new AssignableAdapter<>(this.module));
 
 
     public AssignableExpressionSemantics(SemanticsModule semanticsModule) {

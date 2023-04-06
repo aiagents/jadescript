@@ -16,7 +16,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
-import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
 import org.eclipse.xtext.common.types.JvmTypeReference;
@@ -35,7 +35,7 @@ public class OntologyElementConstructor implements GlobalCallable {
 
     private final Maybe<String> ontoFQName;
     private final String name;
-    private final LazyValue<IJadescriptType> type;
+    private final LazyInit<IJadescriptType> type;
     private final Map<String, IJadescriptType> parameterTypesByName;
     private final List<String> parameterNames;
     private final SearchLocation sourceLocation;
@@ -44,7 +44,7 @@ public class OntologyElementConstructor implements GlobalCallable {
     private OntologyElementConstructor(
         Maybe<String> ontoFQName,
         String name,
-        LazyValue<IJadescriptType> type,
+        LazyInit<IJadescriptType> type,
         Map<String, IJadescriptType> parameterTypesByName,
         List<String> parameterNames,
         SearchLocation sourceLocation
@@ -73,7 +73,7 @@ public class OntologyElementConstructor implements GlobalCallable {
         List<String> paramNames = new ArrayList<>();
         Map<String, IJadescriptType> paramNamesToTypes = new HashMap<>();
 
-        final IJadescriptType anyAE = module.get(TypeHelper.class).ANYAGENTENV;
+        final IJadescriptType anyAE = module.get(TypeHelper.class).ANY_AGENTENV;
 
 
         for (JvmFormalParameter parameter : parameters) {
@@ -105,7 +105,7 @@ public class OntologyElementConstructor implements GlobalCallable {
         return new OntologyElementConstructor(
             some(ontoFQName),
             operation.getSimpleName(),
-            new LazyValue<>(() -> jvmTypeNamespace.resolveType(
+            new LazyInit<>(() -> jvmTypeNamespace.resolveType(
                 operation.getReturnType()
             )),
             paramNamesToTypes,
@@ -160,7 +160,7 @@ public class OntologyElementConstructor implements GlobalCallable {
         return some(new OntologyElementConstructor(
             ontoFQName,
             ontologyElement.getName() == null ? "" : ontologyElement.getName(),
-            new LazyValue<>(() -> {
+            new LazyInit<>(() -> {
                 final TypeHelper typeHelper = module.get(TypeHelper.class);
                 final CompilationHelper compilationHelper =
                     module.get(CompilationHelper.class);
@@ -171,7 +171,7 @@ public class OntologyElementConstructor implements GlobalCallable {
                     .__(fqn -> fqn.toString("."))
                     .nullIf(String::isBlank)
                     .__(typeHelper::jtFromFullyQualifiedName)
-                    .orElse(typeHelper.SERIALIZABLE);
+                    .orElse(typeHelper.ANY_ONTOLOGY_ELEMENT);
 
             }),
             paramTypesByName,

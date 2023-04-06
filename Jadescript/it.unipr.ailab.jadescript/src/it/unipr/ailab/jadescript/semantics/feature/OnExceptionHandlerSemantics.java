@@ -17,6 +17,7 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -348,7 +349,7 @@ public class OnExceptionHandlerSemantics
 
         scb.open(
             "if (__inputException.getReason() instanceof " +
-                typeHelper.noGenericsTypeName(
+                JvmTypeHelper.noGenericsTypeName(
                     finalContentType.compileToJavaTypeReference()
                 ) + ") {");
 

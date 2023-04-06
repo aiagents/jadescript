@@ -426,6 +426,28 @@ public class Maybe<OfType> {
         }
     }
 
+    public Maybe<OfType> orGetMaybe(Supplier<Maybe<OfType>> alternative){
+        Objects.requireNonNull(alternative);
+        if(isPresent()){
+            return this;
+        } else {
+            final Maybe<OfType> alt = alternative.get();
+            Objects.requireNonNull(alt);
+            return alt;
+        }
+    }
+
+    public Maybe<OfType> orGet(Supplier<?extends OfType> alternative){
+        Objects.requireNonNull(alternative);
+        if(isPresent()){
+            return this;
+        } else {
+            return this.__((__) -> alternative.get());
+        }
+    }
+
+
+
 
     public Maybe<OfType> nullIf(Predicate<OfType> predicate) {
         if (isNothing()) return this;

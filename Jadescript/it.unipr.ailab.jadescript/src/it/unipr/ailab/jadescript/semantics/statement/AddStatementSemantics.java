@@ -11,9 +11,9 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -194,7 +194,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
                     || collectionType instanceof SetType,
                 "InvalidCollection",
                 "This is not a valid collection: " +
-                    collectionType.getJadescriptName(),
+                    collectionType.getFullJadescriptName(),
                 collection,
                 acceptor
             );
@@ -204,7 +204,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
                 collectionType.getElementTypeIfCollection().orElse(
                     module.get(TypeHelper.class).BOTTOM
                         .apply("Unexpected collection type (" +
-                            collectionType.getJadescriptName() + ")")
+                            collectionType.getFullJadescriptName() + ")")
                 );
 
             final IJadescriptType elementType = rves.inferType(element, state);

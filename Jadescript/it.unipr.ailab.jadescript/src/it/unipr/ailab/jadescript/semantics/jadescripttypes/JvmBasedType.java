@@ -1,7 +1,9 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.emf.common.util.EList;
@@ -28,7 +30,7 @@ public abstract class JvmBasedType extends JadescriptType {
         String typeID,
         String simpleName,
         String categoryName,
-        JvmTypeReference jvmTypeReference
+        @Nullable JvmTypeReference jvmTypeReference
     ) {
         super(module, typeID, simpleName, categoryName);
         this.jvmTypeReference = jvmTypeReference;
@@ -239,7 +241,9 @@ public abstract class JvmBasedType extends JadescriptType {
     @Override
     public IJadescriptType postResolve() {
         final JvmTypeReference attemptedResolution =
-            TypeHelper.attemptResolveTypeRef(module, asJvmTypeReference());
+            module.get(JvmTypeHelper.class)
+                .attemptResolveTypeRef(asJvmTypeReference());
+
         if (attemptedResolution == jvmTypeReference) {
             return this;
         }

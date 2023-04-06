@@ -357,7 +357,7 @@ public class OfNotationExpressionSemantics
                 module.get(TypeHelper.class).BOTTOM.apply(
                     "Could not resolve property '" + propSafe + "' of value " +
                         "of type "
-                        + prevType.getJadescriptName()
+                        + prevType.getFullJadescriptName()
                 )
             );
     }
@@ -411,7 +411,7 @@ public class OfNotationExpressionSemantics
                 .assertPropertiesOfTypeAccessible(
                     input,
                     "Cannot access properties of values of type '"
-                        + prevType.getJadescriptName() + "'",
+                        + prevType.getFullJadescriptName() + "'",
                     prevType,
                     acceptor
                 );
@@ -466,7 +466,7 @@ public class OfNotationExpressionSemantics
             ).findFirst().isPresent(),
             "InvalidOfNotation",
             "Cannot resolve property '" + prop + "' in value of type " +
-                prevType.getJadescriptName() + ".",
+                prevType.getFullJadescriptName() + ".",
             input,
             JadescriptPackage.eINSTANCE.getOfNotation_Properties(),
             index,
@@ -501,7 +501,7 @@ public class OfNotationExpressionSemantics
             foundProperty.isPresent(),
             "InvalidOfNotation",
             "Can not find property '" + prop + "' in type " +
-                prevType.getJadescriptName() + ".",
+                prevType.getFullJadescriptName() + ".",
             input,
             JadescriptPackage.eINSTANCE.getOfNotation_Properties(),
             index,
@@ -631,7 +631,7 @@ public class OfNotationExpressionSemantics
                         .assertPropertiesOfTypeAccessible(
                             input,
                             "Cannot access properties of values of type '" +
-                                prevType.getJadescriptName() + "'.",
+                                prevType.getFullJadescriptName() + "'.",
                             prevType,
                             acceptor
                         );

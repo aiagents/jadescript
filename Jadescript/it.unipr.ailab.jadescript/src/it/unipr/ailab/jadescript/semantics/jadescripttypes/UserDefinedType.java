@@ -46,11 +46,6 @@ public abstract class UserDefinedType<T extends JadescriptType>
     }
 
 
-    @Override
-    public boolean isBasicType() {
-        return false;
-    }
-
 
     @Override
     public boolean isSlottable() {
@@ -82,9 +77,5 @@ public abstract class UserDefinedType<T extends JadescriptType>
     }
 
 
-    @Override
-    public boolean isCollection() {
-        return false;
-    }
 
 }

@@ -16,7 +16,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.NativeCall;
 import it.unipr.ailab.maybe.Maybe;

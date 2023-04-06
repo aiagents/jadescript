@@ -17,9 +17,9 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
@@ -74,7 +74,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         } else {
             firstVarType = module.get(TypeHelper.class).TOP.apply(
                 "Unexpected collection type: " +
-                    collectionType.getJadescriptName()
+                    collectionType.getFullJadescriptName()
             );
         }
 

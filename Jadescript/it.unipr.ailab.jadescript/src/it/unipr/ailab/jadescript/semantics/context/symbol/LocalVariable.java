@@ -7,7 +7,6 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescrip
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.FlowSensitiveSymbol;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.LocalName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 /**
  * A local variable, created explicitly by the programmer with an initial

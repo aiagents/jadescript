@@ -3,19 +3,19 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.namespace.EmptyTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.PermissiveJvmBasedNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.maybe.MaybeList;
 import jadescript.content.JadescriptOntoElement;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.xtext.common.types.*;
-import org.jetbrains.annotations.Nullable;
+import org.eclipse.xtext.common.types.JvmOperation;
+import org.eclipse.xtext.common.types.JvmTypeReference;
 
-import java.util.*;
-import java.util.stream.Stream;
+import java.util.Optional;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.some;
@@ -24,6 +24,12 @@ public class UnknownJVMType
     extends JvmBasedType
     implements EmptyCreatable {
 
+    public static final TypeCategory CATEGORY = new TypeCategoryAdapter() {
+        @Override
+        public boolean isUnknownJVM() {
+            return true;
+        }
+    };
     private final boolean permissive;
 
 
@@ -44,7 +50,10 @@ public class UnknownJVMType
     }
 
 
-
+    @Override
+    public TypeCategory category() {
+        return CATEGORY;
+    }
 
 
     @Override
@@ -53,10 +62,6 @@ public class UnknownJVMType
     }
 
 
-    @Override
-    public boolean isBasicType() {
-        return false;
-    }
 
 
     @Override
@@ -84,45 +89,10 @@ public class UnknownJVMType
 
 
     @Override
-    public String getJadescriptName() {
-        return "[JVM] " + super.getJadescriptName();
+    public String getFullJadescriptName() {
+        return "[JVM] " + super.getFullJadescriptName();
     }
 
-
-    @Override
-    public boolean isCollection() {
-        return false;
-    }
-
-
-    @Override
-    public boolean isBehaviour() {
-        return false;
-    }
-
-
-    @Override
-    public boolean isMessage() {
-        return false;
-    }
-
-
-    @Override
-    public boolean isMessageContent() {
-        return false;
-    }
-
-
-    @Override
-    public boolean isAgentEnv() {
-        return false;
-    }
-
-
-    @Override
-    public boolean isOntology() {
-        return false;
-    }
 
 
     @Override
@@ -148,10 +118,6 @@ public class UnknownJVMType
     }
 
 
-    @Override
-    public boolean isUnknownJVM() {
-        return true;
-    }
 
 
     @Override

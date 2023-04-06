@@ -12,7 +12,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableN
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -29,9 +29,9 @@ public class AgentDeclarationContext
 
 
     private final JvmDeclaredType agentJvmType;
-    private final LazyValue<IJadescriptType> agentType;
-    private final LazyValue<TypeNamespace> agentTypeNamespace;
-    private final LazyValue<ContextGeneratedName> agentReference;
+    private final LazyInit<IJadescriptType> agentType;
+    private final LazyInit<TypeNamespace> agentTypeNamespace;
+    private final LazyInit<ContextGeneratedName> agentReference;
 
 
     public AgentDeclarationContext(
@@ -43,13 +43,13 @@ public class AgentDeclarationContext
         super(module, outer, ontologyTypes);
         this.agentJvmType = agentType;
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-        this.agentType = new LazyValue<>(() ->
+        this.agentType = new LazyInit<>(() ->
             typeHelper.jtFromJvmTypePermissive(agentJvmType)
         );
-        this.agentTypeNamespace = new LazyValue<>(() ->
+        this.agentTypeNamespace = new LazyInit<>(() ->
             this.agentType.get().namespace()
         );
-        this.agentReference = new LazyValue<>(() ->
+        this.agentReference = new LazyInit<>(() ->
             AgentAssociated.contextGeneratedAgentReference(this.agentType.get())
         );
     }

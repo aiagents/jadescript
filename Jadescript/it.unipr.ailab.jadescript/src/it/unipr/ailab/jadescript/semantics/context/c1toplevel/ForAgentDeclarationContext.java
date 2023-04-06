@@ -9,10 +9,10 @@ import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedName;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.AgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.jetbrains.annotations.Nullable;
@@ -25,8 +25,8 @@ public abstract class ForAgentDeclarationContext
     implements CompilableName.Namespace, AgentAssociated {
 
     private final IJadescriptType agentType;
-    private final LazyValue<TypeNamespace> agentNamespace;
-    private final LazyValue<CompilableName> agentSymbol;
+    private final LazyInit<TypeNamespace> agentNamespace;
+    private final LazyInit<CompilableName> agentSymbol;
 
 
     public ForAgentDeclarationContext(
@@ -37,8 +37,8 @@ public abstract class ForAgentDeclarationContext
     ) {
         super(module, outer, ontologyTypes);
         this.agentType = agentType;
-        this.agentNamespace = new LazyValue<>(agentType::namespace);
-        this.agentSymbol = new LazyValue<>(() ->
+        this.agentNamespace = new LazyInit<>(agentType::namespace);
+        this.agentSymbol = new LazyInit<>(() ->
             new ContextGeneratedName(
                 "agent",
                 agentType,

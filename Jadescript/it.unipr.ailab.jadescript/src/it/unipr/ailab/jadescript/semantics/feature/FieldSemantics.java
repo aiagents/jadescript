@@ -13,6 +13,7 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -147,17 +148,15 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
                 typeRef,
                 itMethod -> {
                     itMethod.setVisibility(JvmVisibility.PRIVATE);
+                    final JvmTypeHelper jvmTypeHelper =
+                        module.get(JvmTypeHelper.class);
                     JvmTypeReference typeReference2 =
-                        TypeHelper.attemptResolveTypeRef(
-                            module, typeRef
-                        );
+                        jvmTypeHelper.attemptResolveTypeRef(typeRef);
                     String eObjectToStringReattempt1 = "" + typeReference2;
                     compilationHelper.createAndSetBody(itMethod, scb -> {
                         String eObjectToStringAfter = "" + typeRef;
                         JvmTypeReference typeReference3 =
-                            TypeHelper.attemptResolveTypeRef(
-                                module, typeRef
-                            );
+                            jvmTypeHelper.attemptResolveTypeRef(typeRef);
                         String eObjectToStringReattempt2 = "" + typeReference3;
                         itMethod.setReturnType(typeReference3);
 

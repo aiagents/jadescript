@@ -9,7 +9,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCalla
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
@@ -115,7 +115,7 @@ public class Operation implements MemberCallable {
         List<String> paramNames = new ArrayList<>();
         Map<String, IJadescriptType> paramNamesToTypes = new HashMap<>();
 
-        final IJadescriptType anyAE = module.get(TypeHelper.class).ANYAGENTENV;
+        final IJadescriptType anyAE = module.get(TypeHelper.class).ANY_AGENTENV;
 
         boolean withoutSideEffects = false;
 

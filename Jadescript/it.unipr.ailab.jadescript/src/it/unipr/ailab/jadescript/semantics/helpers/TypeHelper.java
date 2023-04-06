@@ -7,11 +7,37 @@ import it.unipr.ailab.jadescript.semantics.context.c0outer.RawTypeReferenceSolve
 import it.unipr.ailab.jadescript.semantics.context.search.JadescriptTypeLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.UnknownJVMType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.BaseAgentType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.UserDefinedAgentType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.basic.BasicType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BaseBehaviourType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.UserDefinedBehaviourType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.TupleType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.BaseMessageType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.MessageSubType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.MessageType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontocontent.BaseOntoContentType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontocontent.OntoContentType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontocontent.UserDefinedOntoContentType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.BaseOntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.UserDefinedOntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.BoundedTypeArgument;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.*;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.JvmTypeQualifiedNameParser;
 import it.unipr.ailab.jadescript.semantics.utils.JvmTypeReferenceSet;
 import it.unipr.ailab.maybe.Maybe;
 import jade.content.onto.Ontology;
@@ -27,12 +53,10 @@ import jadescript.util.JadescriptList;
 import jadescript.util.JadescriptMap;
 import jadescript.util.JadescriptSet;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypeReferenceBuilder;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,14 +85,14 @@ public class TypeHelper implements SemanticsConsts {
     public final Function<String, UtilityType> TOP;
     public final Function<String, UtilityType> BOTTOM;
     // ANY = Supertype of all types. NOTHING = Subtype of all types.
-    public final UtilityType ANY;
-    public final UtilityType NOTHING;
+    public final AnyType ANY;
+    public final NothingType NOTHING;
     // Common useful Jvm types:
     public final UtilityType VOID;
     public final UtilityType NUMBER;
-    public final UtilityType SERIALIZABLE;
-    public final UtilityType ANYMESSAGE;
-    public final AgentEnvType ANYAGENTENV;
+    public final UtilityType ANY_ONTOLOGY_ELEMENT;
+    public final UtilityType ANY_MESSAGE;
+    public final AgentEnvType ANY_AGENTENV;
     public final Function<List<TypeArgument>, AgentEnvType> AGENTENV;
     // Jadescript basic types:
     public final BasicType INTEGER;
@@ -144,8 +168,10 @@ public class TypeHelper implements SemanticsConsts {
         new HashMap<>();
     private final List<ImplicitConversionDefinition> implicitConversions =
         new ArrayList<>();
-    private final Map<Performative, Function<List<TypeArgument>,
-        MessageSubType>> messageSubTypeMap = new HashMap<>();
+    private final Map<
+        Performative,
+        Function<List<TypeArgument>, ? extends MessageType>
+        > messageSubTypeMap = new HashMap<>();
     private final Map<String, Performative> nameToPerformativeMap =
         new HashMap<>();
     private final Map<Performative, Supplier<IJadescriptType>>
@@ -159,139 +185,15 @@ public class TypeHelper implements SemanticsConsts {
 
     public TypeHelper(SemanticsModule module) {
         this.module = module;
-        ANY = new UtilityType(
-            module,
-            builtinPrefix + "ANY",
-            "(error)any",
-            this.objectTypeRef()
-        ) {
-            @Override
-            public boolean isSupertypeOrEqualTo(IJadescriptType other) {
-                return true;
-            }
-
-
-            @Override
-            public boolean isSendable() {
-                return false;
-            }
-
-
-            @Override
-            public boolean isErroneous() {
-                return true;
-            }
-
-
-            @Override
-            public Maybe<OntologyType> getDeclaringOntology() {
-                return nothing();
-            }
-
-
-            @Override
-            public TypeNamespace namespace() {
-                return new BuiltinOpsNamespace(
-                    module,
-                    Maybe.nothing(),
-                    List.of(),
-                    List.of(),
-                    getLocation()
-                );
-            }
-
-        };
+        ANY = new AnyType(module, this);
         defineJVMToDescriptor(Object.class, ANY);
-
         TOP = (String s) -> ErroneousType.top(module, s, ANY);
 
 
-        NOTHING = new UtilityType(
-            module,
-            builtinPrefix + "NOTHING",
-            "(error)nothing",
-            module.get(JvmTypeReferenceBuilder.class).typeRef(
-                "/*NOTHING*/java.lang.Object")
-        ) {
-            @Override
-            public boolean isSupertypeOrEqualTo(IJadescriptType other) {
-                return false;
-            }
-
-
-            @Override
-            public boolean isSendable() {
-                return false;
-            }
-
-
-            @Override
-            public boolean isErroneous() {
-                return true;
-            }
-
-
-            @Override
-            public Maybe<OntologyType> getDeclaringOntology() {
-                return nothing();
-            }
-
-
-            @Override
-            public TypeNamespace namespace() {
-                return new BuiltinOpsNamespace(
-                    module,
-                    Maybe.nothing(),
-                    List.of(),
-                    List.of(),
-                    getLocation()
-                );
-            }
-        };
-
+        NOTHING = new NothingType(module);
         BOTTOM = (String s) -> ErroneousType.bottom(module, s, NOTHING);
 
-        VOID = new UtilityType(
-            module,
-            VOID_TYPEID,
-            "(error)javaVoid",
-            this.typeRef(void.class)
-        ) {
-            @Override
-            public boolean isSendable() {
-                return false;
-            }
-
-
-            @Override
-            public boolean isErroneous() {
-                return true;
-            }
-
-
-            @Override
-            public Maybe<OntologyType> getDeclaringOntology() {
-                return nothing();
-            }
-
-
-            @Override
-            public TypeNamespace namespace() {
-                return new BuiltinOpsNamespace(
-                    module,
-                    Maybe.nothing(),
-                    List.of(),
-                    List.of(),
-                    getLocation()
-                );
-            }
-
-
-            @Override
-            public boolean isJavaVoid() {
-                return true;
-            }
-        };
+        VOID = new JavaVoidType(this, module);
         defineJVMToDescriptor(Void.class, VOID);
         defineJVMToDescriptor(Void.TYPE, VOID);
 
@@ -306,6 +208,7 @@ public class TypeHelper implements SemanticsConsts {
         );
         defineJVMToDescriptor(Integer.class, INTEGER);
         defineJVMToDescriptor(Integer.TYPE, INTEGER);
+
         BOOLEAN = new BasicType(
             this.module,
             builtinPrefix + "boolean",
@@ -316,6 +219,7 @@ public class TypeHelper implements SemanticsConsts {
         );
         defineJVMToDescriptor(Boolean.class, BOOLEAN);
         defineJVMToDescriptor(Boolean.TYPE, BOOLEAN);
+
         TEXT = new BasicType(
             this.module,
             builtinPrefix + "text",
@@ -331,6 +235,7 @@ public class TypeHelper implements SemanticsConsts {
             new JadescriptTypeLocation(TEXT),
             Property.compileGetWithCustomMethod("length")
         ));
+
         REAL = new BasicType(
             this.module,
             builtinPrefix + "real",
@@ -343,6 +248,7 @@ public class TypeHelper implements SemanticsConsts {
         defineJVMToDescriptor(Float.TYPE, REAL);
         defineJVMToDescriptor(Double.class, REAL);
         defineJVMToDescriptor(Double.TYPE, REAL);
+
         PERFORMATIVE = new BasicType(
             this.module,
             builtinPrefix + "performative",
@@ -352,6 +258,7 @@ public class TypeHelper implements SemanticsConsts {
             "jadescript.lang.Performative.UNKNOWN"
         );
         defineJVMToDescriptor(jadescript.lang.Performative.class, PERFORMATIVE);
+
         AID = new BasicType(
             this.module,
             builtinPrefix + "aid",
@@ -374,6 +281,7 @@ public class TypeHelper implements SemanticsConsts {
             Property.compileGetWithCustomMethod("getPlatformID")
         ));
         defineJVMToDescriptor(jade.core.AID.class, AID);
+
         DURATION = new BasicType(
             this.module,
             builtinPrefix + "duration",
@@ -383,6 +291,7 @@ public class TypeHelper implements SemanticsConsts {
             "new jadescript.lang.Duration()"
         );
         defineJVMToDescriptor(jadescript.lang.Duration.class, DURATION);
+
         TIMESTAMP = new BasicType(
             this.module,
             builtinPrefix + "timestamp",
@@ -399,91 +308,12 @@ public class TypeHelper implements SemanticsConsts {
         );
 
 
-        // for java.io.Serializable, not usable in the language, used by
-        //      type engine as a supertype for ontology content types
-        SERIALIZABLE = new UtilityType(
-            module,
-            builtinPrefix + "serializable",
-            this.typeRef(Serializable.class).getQualifiedName('.'),
-            this.typeRef(Serializable.class)
-        ) {
-            @Override
-            public boolean isSendable() {
-                return false;
-            }
+        // not usable in the language, used by type engine as a supertype
+        // for all ontology content types
+        ANY_ONTOLOGY_ELEMENT = new AnyOntologyElementType(this, module);
+        defineJVMToDescriptor(Serializable.class, ANY_ONTOLOGY_ELEMENT);
 
-
-            @Override
-            public boolean isErroneous() {
-                return false;
-            }
-
-
-            @Override
-            public Maybe<OntologyType> getDeclaringOntology() {
-                return nothing();
-            }
-
-
-            @Override
-            public TypeNamespace namespace() {
-                return new BuiltinOpsNamespace(
-                    module,
-                    Maybe.nothing(),
-                    List.of(),
-                    List.of(),
-                    getLocation()
-                );
-            }
-        };
-        defineJVMToDescriptor(Serializable.class, SERIALIZABLE);
-
-        ANYMESSAGE = new UtilityType(
-            module,
-            builtinPrefix + "ANYMESSAGE",
-            "Message",
-            this.typeRef(Message.class)
-        ) {
-            @Override
-            public boolean isErroneous() {
-                return false;
-            }
-
-
-            @Override
-            public Maybe<OntologyType> getDeclaringOntology() {
-                return some(ONTOLOGY);
-            }
-
-
-            @Override
-            public TypeNamespace namespace() {
-                return new BuiltinOpsNamespace(
-                    module,
-                    Maybe.nothing(),
-                    List.of(),
-                    List.of(),
-                    getLocation()
-                );
-            }
-
-
-            @Override
-            public boolean isSupertypeOrEqualTo(IJadescriptType other) {
-                other = other.postResolve();
-                if (other instanceof BaseMessageType) {
-                    return true;
-                } else {
-                    return super.isSupertypeOrEqualTo(other);
-                }
-            }
-
-
-            @Override
-            public boolean isSendable() {
-                return true;
-            }
-        };
+        ANY_MESSAGE = new AnyMessageType(this, module);
 
 
         LIST = (arguments) -> new ListType(module, arguments.get(0));
@@ -504,22 +334,24 @@ public class TypeHelper implements SemanticsConsts {
         AGENT = new BaseAgentType(module);
         defineJVMToDescriptor(jadescript.core.Agent.class, AGENT);
 
-        AGENTENV = (args) -> new AgentEnvType(
-            module,
-            args.get(0),
-            args.get(1),
-            AGENT
-        );
-
-        defineJVMToGenericDescriptor(AgentEnv.class, AGENTENV, 2);
-
         ANY_SE_MODE = new UnknownJVMType(
             module,
             typeRef(SideEffectsFlag.AnySideEffectFlag.class),
             /*permissive = */false
         );
 
-        ANYAGENTENV = AGENTENV.apply(
+
+        AGENTENV = (args) -> new AgentEnvType(
+            module,
+            args.get(0),
+            args.get(1),
+            AGENT,
+            ANY_SE_MODE
+        );
+        defineJVMToGenericDescriptor(AgentEnv.class, AGENTENV, 2);
+
+
+        ANY_AGENTENV = AGENTENV.apply(
             List.of(covariant(AGENT), covariant(ANY_SE_MODE))
         );
 
@@ -536,11 +368,10 @@ public class TypeHelper implements SemanticsConsts {
         defineJVMToDescriptor(jade.content.onto.Ontology.class, ONTOLOGY);
 
         // for java.lang.Number, not usable in the language, used by
-        //      type engine as a non-direct supertype for number basic types
+        //  type engine as a non-direct supertype for number basic types
         //  (non-direct supertype = you can ask NUMBER if INTEGER is its
-        //  subtype,
-        //    but you will not find NUMBER in the list of INTEGER's direct
-        //    sypertypes)
+        //  subtype, but you will not find NUMBER in the list of INTEGER's
+        //  direct sypertypes)
         NUMBER = new UtilityType(
             module,
             builtinPrefix + "number",
@@ -548,13 +379,8 @@ public class TypeHelper implements SemanticsConsts {
             this.typeRef(Number.class)
         ) {
             @Override
-            public boolean isSupertypeOrEqualTo(IJadescriptType other) {
-                other = other.postResolve();
-                if (other.typeEquals(INTEGER) || other.typeEquals(REAL)) {
-                    return true;
-                } else {
-                    return super.isSupertypeOrEqualTo(other);
-                }
+            public TypeCategory category() {
+                return new TypeCategoryAdapter();
             }
 
 
@@ -632,7 +458,7 @@ public class TypeHelper implements SemanticsConsts {
 
         CONCEPT = new BaseOntoContentType(
             module,
-            BaseOntoContentType.Kind.Concept
+            OntoContentType.OntoContentKind.Concept
         );
         defineJVMToDescriptor(
             jadescript.content.JadescriptConcept.class,
@@ -642,7 +468,7 @@ public class TypeHelper implements SemanticsConsts {
 
         PROPOSITION = new BaseOntoContentType(
             module,
-            BaseOntoContentType.Kind.Proposition
+            OntoContentType.OntoContentKind.Proposition
         );
         defineJVMToDescriptor(
             jadescript.content.JadescriptProposition.class,
@@ -651,7 +477,7 @@ public class TypeHelper implements SemanticsConsts {
 
         PREDICATE = new BaseOntoContentType(
             module,
-            BaseOntoContentType.Kind.Predicate
+            OntoContentType.OntoContentKind.Predicate
         );
         defineJVMToDescriptor(
             jadescript.content.JadescriptPredicate.class,
@@ -660,7 +486,7 @@ public class TypeHelper implements SemanticsConsts {
 
         ATOMIC_PROPOSITION = new BaseOntoContentType(
             module,
-            BaseOntoContentType.Kind.AtomicProposition
+            OntoContentType.OntoContentKind.AtomicProposition
         );
         defineJVMToDescriptor(
             jadescript.content.JadescriptAtomicProposition.class,
@@ -669,7 +495,7 @@ public class TypeHelper implements SemanticsConsts {
 
         ACTION = new BaseOntoContentType(
             module,
-            BaseOntoContentType.Kind.Action
+            OntoContentType.OntoContentKind.Action
         );
         defineJVMToDescriptor(
             jadescript.content.JadescriptAction.class,
@@ -885,14 +711,14 @@ public class TypeHelper implements SemanticsConsts {
             module,
             NotUnderstoodMessage.class,
             args,
-            Arrays.asList(ANYMESSAGE, PROPOSITION)
+            Arrays.asList(ANY_MESSAGE, PROPOSITION)
         );
         nameToPerformativeMap.put("NotUnderstoodMessage", NOT_UNDERSTOOD);
         messageSubTypeMap.put(NOT_UNDERSTOOD, NOTUNDERSTOOD_MESSAGE);
         messageContentTypeRequirements.put(
             NOT_UNDERSTOOD,
             () -> TUPLE.apply(Arrays.asList(
-                covariant(ANYMESSAGE), covariant(PROPOSITION)
+                covariant(ANY_MESSAGE), covariant(PROPOSITION)
             ))
         );
         defaultContentElementsMap.put(
@@ -1115,7 +941,7 @@ public class TypeHelper implements SemanticsConsts {
             args,
             Arrays.asList(
                 LIST.apply(Arrays.asList(AID)),
-                ANYMESSAGE,
+                ANY_MESSAGE,
                 PROPOSITION
             )
         );
@@ -1125,7 +951,7 @@ public class TypeHelper implements SemanticsConsts {
             PROXY,
             () -> TUPLE.apply(Arrays.asList(
                 LIST.apply(Arrays.asList(AID)),
-                covariant(ANYMESSAGE),
+                covariant(ANY_MESSAGE),
                 covariant(PROPOSITION)
             ))
         );
@@ -1149,7 +975,7 @@ public class TypeHelper implements SemanticsConsts {
             args,
             Arrays.asList(
                 LIST.apply(Arrays.asList(AID)),
-                ANYMESSAGE,
+                ANY_MESSAGE,
                 PROPOSITION
             )
         );
@@ -1159,7 +985,7 @@ public class TypeHelper implements SemanticsConsts {
             PROPAGATE,
             () -> TUPLE.apply(Arrays.asList(
                 LIST.apply(Arrays.asList(AID)),
-                covariant(ANYMESSAGE),
+                covariant(ANY_MESSAGE),
                 covariant(PROPOSITION)
             ))
         );
@@ -1186,7 +1012,7 @@ public class TypeHelper implements SemanticsConsts {
             module,
             UnknownMessage.class,
             args,
-            Arrays.asList(SERIALIZABLE)
+            Arrays.asList(ANY_ONTOLOGY_ELEMENT)
         ) {
             @Override
             public boolean isSendable() {
@@ -1195,215 +1021,15 @@ public class TypeHelper implements SemanticsConsts {
         };
         nameToPerformativeMap.put("UnknownMessage", UNKNOWN);
         messageSubTypeMap.put(UNKNOWN, UNKNOWN_MESSAGE);
-        messageContentTypeRequirements.put(UNKNOWN, () -> SERIALIZABLE);
+        messageContentTypeRequirements.put(UNKNOWN, () -> ANY_ONTOLOGY_ELEMENT);
         defineJVMToGenericDescriptor(UnknownMessage.class, UNKNOWN_MESSAGE, 1);
 
 
     }
 
 
-    private static String boxedName(String input) {
-        switch (input) {
-            case JAVA_PRIMITIVE_int:
-                return JAVA_TYPE_Integer;
-            case JAVA_PRIMITIVE_float:
-                return JAVA_TYPE_Float;
-            case JAVA_PRIMITIVE_long:
-                return JAVA_TYPE_Long;
-            case JAVA_PRIMITIVE_char:
-                return JAVA_TYPE_Character;
-            case JAVA_PRIMITIVE_short:
-                return JAVA_TYPE_Short;
-            case JAVA_PRIMITIVE_double:
-                return JAVA_TYPE_Double;
-            case JAVA_PRIMITIVE_boolean:
-                return JAVA_TYPE_Boolean;
-            case JAVA_PRIMITIVE_byte:
-                return JAVA_TYPE_Byte;
-            default:
-                return input;
-        }
-    }
 
-
-    @SuppressWarnings("unused")
-    public static String unBoxedName(String input) {
-        switch (input) {
-            case JAVA_TYPE_Integer:
-                return JAVA_PRIMITIVE_int;
-            case JAVA_TYPE_Float:
-                return JAVA_PRIMITIVE_float;
-            case JAVA_TYPE_Long:
-                return JAVA_PRIMITIVE_long;
-            case JAVA_TYPE_Character:
-                return JAVA_PRIMITIVE_char;
-            case JAVA_TYPE_Short:
-                return JAVA_PRIMITIVE_short;
-            case JAVA_TYPE_Double:
-                return JAVA_PRIMITIVE_double;
-            case JAVA_TYPE_Boolean:
-                return JAVA_PRIMITIVE_boolean;
-            case JAVA_TYPE_Byte:
-                return JAVA_PRIMITIVE_byte;
-            default:
-                return input;
-        }
-    }
-
-
-    public static boolean typeReferenceRawEquals(
-        JvmTypeReference a,
-        JvmTypeReference b
-    ) {
-        return Objects.equals(
-            boxedName(noGenericsTypeName(a.getQualifiedName('.'))),
-            boxedName(noGenericsTypeName(b.getQualifiedName('.')))
-        );
-    }
-
-
-    public static boolean typeReferenceEquals(
-        JvmTypeReference a,
-        JvmTypeReference b
-    ) {
-        return Objects.equals(
-            boxedName(a.getQualifiedName('.')),
-            boxedName(b.getQualifiedName('.'))
-        );
-    }
-
-
-    public static String extractPackageName(JvmTypeReference jtr) {
-        String[] split = jtr.getQualifiedName().split("\\.");
-        StringBuilder packageName = new StringBuilder();
-        for (int i = 0; i < split.length - 1; i++) {
-            String s = split[i];
-            packageName.append(s);
-        }
-        return packageName.toString();
-    }
-
-
-    public static JvmTypeReference attemptResolveTypeRef(
-        SemanticsModule module,
-        JvmTypeReference typeReference
-    ) {
-        final JvmTypeQualifiedNameParser.GenericType type =
-            JvmTypeQualifiedNameParser
-                .parseJvmGenerics(typeReference.getIdentifier());
-        if (type == null) {
-            return typeReference;
-        }
-        return type.convertToTypeRef(
-            module.get(JvmTypeReferenceBuilder.class)::typeRef,
-            module.get(JvmTypeReferenceBuilder.class)::typeRef
-        );
-    }
-
-
-    public static String noGenericsTypeName(String type) {
-        if (type == null) {
-            return "";
-        }
-        int endIndex = type.indexOf('<');
-        if (endIndex < 0) {
-            return type;
-        }
-        return type.substring(0, endIndex);
-    }
-
-
-    public BaseMessageType instantiateMessageType(
-        Maybe<String> performative,
-        IJadescriptType computedContentType,
-        boolean normalizeToUpperBounds
-    ) {
-        final Maybe<? extends Function<List<TypeArgument>, ?
-            extends BaseMessageType>> functionMaybe
-            = performative.__(performativeByName::get).__(this::getMessageType);
-        List<TypeArgument> resultTypeArgs;
-        if (computedContentType instanceof TupleType) {
-            resultTypeArgs = new ArrayList<>(
-                ((TupleType) computedContentType).getTypeArguments()
-            );
-        } else {
-            resultTypeArgs = List.of(computedContentType);
-        }
-
-        if (normalizeToUpperBounds) {
-            resultTypeArgs = limitMsgContentTypesToUpperBounds(
-                performative.__(performativeByName::get), resultTypeArgs);
-        }
-
-        if (functionMaybe.isPresent()) {
-            return functionMaybe.toNullable().apply(resultTypeArgs);
-        } else {
-            return this.MESSAGE.apply(resultTypeArgs);
-        }
-    }
-
-
-    private List<TypeArgument> limitMsgContentTypesToUpperBounds(
-        Maybe<Performative> performative,
-        List<TypeArgument> arguments
-    ) {
-        if (performative == null || performative.isNothing()
-            || performative.wrappedEquals(UNKNOWN)) {
-            return arguments;
-        }
-
-        List<TypeArgument> result = new ArrayList<>(arguments.size());
-        final IJadescriptType requiredContentType =
-            messageContentTypeRequirements.get(
-                performative.toNullable()).get();
-        final List<IJadescriptType> requiredTypes;
-        if (requiredContentType instanceof TupleType) {
-            requiredTypes = ((TupleType) requiredContentType).getElementTypes();
-        } else {
-            requiredTypes = List.of(requiredContentType);
-        }
-        int i;
-        for (i = 0; i < Math.min(requiredTypes.size(), arguments.size()); i++) {
-            final IJadescriptType glb = getGLB(
-                requiredTypes.get(i),
-                arguments.get(i).ignoreBound()
-            );
-            if (glb.typeEquals(requiredTypes.get(i))) {
-                result.add(covariant(glb));
-            } else {
-                result.add(glb);
-            }
-        }
-        if (i < requiredTypes.size()) {
-            for (; i < requiredTypes.size(); i++) {
-                result.add(covariant(requiredTypes.get(i)));
-            }
-        }
-
-        return result;
-
-    }
-
-
-    public Function<List<TypeArgument>, ? extends BaseMessageType>
-    getMessageType(
-        @Nullable Performative performative
-    ) {
-        if (performative == null) {
-            return MESSAGE;
-        }
-        return messageSubTypeMap.get(performative);
-    }
-
-
-    public Function<List<TypeArgument>, ? extends BaseMessageType>
-    getMessageType(
-        String performative
-    ) {
-        return getMessageType(nameToPerformativeMap.get(performative));
-    }
-
-
+    //TODO ?
     public List<TypeArgument> getDefaultTypeArguments(
         String name
     ) {
@@ -1418,98 +1044,31 @@ public class TypeHelper implements SemanticsConsts {
             return Collections.emptyList();
         }
         final IJadescriptType jadescriptType = supplyDefaultArg.get();
-        if (jadescriptType instanceof TupleType) {
-            return ((TupleType) jadescriptType).getTypeArguments();
+        if (jadescriptType.category().isTuple()) {
+            return jadescriptType.typeArguments();
         }
         return Collections.singletonList(jadescriptType);
     }
 
 
+    //TODO ?
     public IJadescriptType getContentBound(Performative performative) {
         return messageContentTypeRequirements.get(performative).get();
     }
 
-
-    private IJadescriptType jtFromJvmTypeRefWithoutReattempts(
-        JvmTypeReference reference,
-        boolean permissive
-    ) {
-        final Maybe<IJadescriptType> fromJVMTypeReference =
-            this.getFromJVMTypeReference(reference);
-
-        IJadescriptType result;
-        if (fromJVMTypeReference.isPresent()) {
-            result = fromJVMTypeReference.toNullable();
-        } else if (isAssignable(
-            Tuple.class,
-            reference
-        ) && reference instanceof JvmParameterizedTypeReference) {
-            result =
-                resolveTupleType(((JvmParameterizedTypeReference) reference));
-        } else {
-            result = resolveNonBuiltinType(reference, permissive);
-        }
-        return result;
-    }
+    //TODO separation of concerns:
+    // - TypeSolver
+    // - TypeIndex
+    // - BuiltinTypeProvider
+    // - TypeComparator
+    // - TypeLatticeComputer
+    // - ImplicitConversionsHelper
+    // - TypeHelper (unpackTuple, adaptMessageContentDefaultType etc...)
+    // - JvmTypeHelper (isAssignable, typeReferenceEquals...)
 
 
-    public IJadescriptType jtFromJvmTypeRef(
-        JvmTypeReference reference
-    ) {
-        return jtFromJvmTypeRef(reference, false);
-    }
 
-
-    public IJadescriptType jtFromJvmTypeRef(
-        JvmTypeReference reference,
-        boolean permissive
-    ) {
-        IJadescriptType result = jtFromJvmTypeRefWithoutReattempts(
-            reference,
-            permissive
-        );
-
-        if (result.isJavaVoid()) {
-            ICompositeNode node = NodeModelUtils.getNode(reference);
-            if (node == null) {
-                node = NodeModelUtils.findActualNodeFor(reference);
-            }
-
-            if (node != null) {
-                final INode finalNode = node;
-                final JvmTypeReference reattempt =
-                    module.get(ContextManager.class).currentContext()
-                        .searchAs(
-                            RawTypeReferenceSolverContext.class,
-                            solver -> solver.rawResolveTypeReference(
-                                finalNode.getText().trim()
-                            )
-                        )
-                        .findAny()
-                        .orElse(typeRef(finalNode.getText()));
-
-                return jtFromJvmTypeRefWithoutReattempts(
-                    reattempt,
-                    permissive
-                );
-            }
-        }
-        return result;
-    }
-
-
-    private IJadescriptType resolveTupleType(
-        JvmParameterizedTypeReference reference
-    ) {
-        List<TypeArgument> args = new ArrayList<>();
-        for (JvmTypeReference arg : reference.getArguments()) {
-            IJadescriptType typeDescriptor = jtFromJvmTypeRef(arg);
-            args.add(typeDescriptor);
-        }
-        return TUPLE.apply(args);
-    }
-
-
+    //TODO keep here
     public BoundedTypeArgument covariant(IJadescriptType jadescriptType) {
         return new BoundedTypeArgument(
             module,
@@ -1518,8 +1077,7 @@ public class TypeHelper implements SemanticsConsts {
         );
     }
 
-
-    @SuppressWarnings("unused")
+    //TODO keep here
     public BoundedTypeArgument contravariant(IJadescriptType jadescriptType) {
         return new BoundedTypeArgument(
             module,
@@ -1529,129 +1087,9 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
-    private IJadescriptType resolveNonBuiltinType(
-        JvmTypeReference reference,
-        boolean permissive
-    ) {
-        if (isAssignable(JadescriptConcept.class, reference)) {
-            return new UserDefinedOntoContentType(
-                module,
-                reference,
-                CONCEPT
-            );
-        } else if (isAssignable(JadescriptAction.class, reference)) {
-            return new UserDefinedOntoContentType(
-                module,
-                reference,
-                ACTION
-            );
-        } else if (isAssignable(JadescriptPredicate.class, reference)) {
-            return new UserDefinedOntoContentType(
-                module,
-                reference,
-                PREDICATE
-            );
-        } else if (isAssignable(JadescriptAtomicProposition.class, reference)) {
-            return new UserDefinedOntoContentType(
-                module,
-                reference,
-                ATOMIC_PROPOSITION
-            );
-        } else if (isAssignable(JadescriptProposition.class, reference)) {
-            return new UserDefinedOntoContentType(
-                module,
-                reference,
-                PROPOSITION
-            );
-        } else if (isAssignable(Agent.class, reference)) {
-            return new UserDefinedAgentType(
-                module,
-                reference,
-                AGENT
-            );
-        } else if (isAssignable(Cyclic.class, reference)) {
-            final List<JvmTypeReference> args = getTypeArgumentsOfParent(
-                reference,
-                typeRef(CyclicBehaviour.class)
-            );
-            if (args.isEmpty()) {
-                args.add(AGENT.asJvmTypeReference());
-            }
-            if (args.size() == 1) {
-                return new UserDefinedBehaviourType(
-                    module,
-                    reference,
-                    CYCLIC_BEHAVIOUR.apply(Arrays.asList(
-                        jtFromJvmTypeRef(args.get(0)))
-                    )
-                );
-            }
-        } else if (isAssignable(OneShot.class, reference)) {
-            final List<JvmTypeReference> args = getTypeArgumentsOfParent(
-                reference,
-                typeRef(OneShotBehaviour.class)
-            );
-            if (args.isEmpty()) {
-                args.add(AGENT.asJvmTypeReference());
-            }
-            if (args.size() == 1) {
-                return new UserDefinedBehaviourType(
-                    module,
-                    reference,
-                    ONESHOT_BEHAVIOUR.apply(Arrays.asList(
-                        jtFromJvmTypeRef(args.get(0)))
-                    )
-                );
-            }
-        } else if (isAssignable(Base.class, reference)) {
-            final List<JvmTypeReference> args = getTypeArgumentsOfParent(
-                reference,
-                typeRef(Behaviour.class)
-            );
-            if (args.isEmpty()) {
-                args.add(AGENT.asJvmTypeReference());
-            }
-            if (args.size() == 1) {
-                return new UserDefinedBehaviourType(
-                    module,
-                    reference,
-                    BEHAVIOUR.apply(Arrays.asList(
-                        jtFromJvmTypeRef(args.get(0)))
-                    )
-                );
-            }
-        } else if (isAssignable(Ontology.class, reference)) {
-            return new UserDefinedOntologyType(
-                module,
-                reference,
-                ONTOLOGY
-            );
-        }
-
-        return new UnknownJVMType(module, reference, permissive);
-
-    }
 
 
-    public IJadescriptType jtFromJvmType(
-        JvmDeclaredType itClass,
-        JvmTypeReference... typeArguments
-    ) {
-        return jtFromJvmTypeRef(this.typeRef(itClass, typeArguments));
-    }
-
-
-    public IJadescriptType jtFromJvmTypePermissive(
-        JvmDeclaredType itClass,
-        JvmTypeReference... typeArguments
-    ) {
-        return jtFromJvmTypeRef(
-            this.typeRef(itClass, typeArguments),
-            /*permissive = */true
-        );
-    }
-
-
+    //TODO keep here
     public IJadescriptType beingDeclaredAgentType(
         JvmDeclaredType itClass,
         Maybe<IJadescriptType> superType
@@ -1665,24 +1103,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
-    public IJadescriptType jtFromClass(
-        Class<?> class_,
-        List<IJadescriptType> arguments
-    ) {
-        return jtFromJvmTypeRef(this.typeRef(class_, arguments.stream()
-            .map(IJadescriptType::asJvmTypeReference)
-            .collect(Collectors.toList())));
-    }
-
-
-    public IJadescriptType jtFromClass(
-        Class<?> class_,
-        IJadescriptType... arguments
-    ) {
-        return jtFromClass(class_, Arrays.asList(arguments));
-    }
-
-
+    //TODO remove
     private void defineJVMToDescriptor(
         Class<?> type,
         IJadescriptType descriptor
@@ -1694,6 +1115,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO remove
     private void defineJVMToGenericDescriptor(
         JvmTypeReference typeReference,
         Function<List<TypeArgument>, ? extends IJadescriptType> descriptor,
@@ -1701,16 +1123,21 @@ public class TypeHelper implements SemanticsConsts {
     ) {
 
         defaultJVMToGenericDescriptorTable.put(
-            noGenericsTypeName(typeReference.getQualifiedName('.')),
+            JvmTypeHelper.noGenericsTypeName(
+                typeReference.getQualifiedName('.')
+            ),
             descriptor
         );
         expectedGenericDescriptorArguments.put(
-            noGenericsTypeName(typeReference.getQualifiedName('.')),
+            JvmTypeHelper.noGenericsTypeName(
+                typeReference.getQualifiedName('.')
+            ),
             expectedArguments
         );
     }
 
 
+    //TODO remove
     private void defineJVMToGenericDescriptor(
         Class<?> type,
         Function<List<TypeArgument>, ? extends IJadescriptType> descriptor,
@@ -1724,6 +1151,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> ImplicitConversionHelper / TypeIndex
     private void defineImplicitConversionPath(
         IJadescriptType from,
         IJadescriptType to,
@@ -1737,55 +1165,14 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
-    public IJadescriptType jtFromFullyQualifiedName(String fullyQualifiedName) {
-        return jtFromJvmTypeRef(typeRef(fullyQualifiedName));
-    }
 
 
-    private Maybe<IJadescriptType> getFromJVMTypeReference(
-        JvmTypeReference typeReference
-    ) {
-
-        final String qualifiedName = typeReference.getQualifiedName('.');
-        if (defaultJVMToDescriptorTable.containsKey(qualifiedName)) {
-            return some(defaultJVMToDescriptorTable.get(qualifiedName));
-        } else {
-            final String noGenericsTypeName = noGenericsTypeName(qualifiedName);
-            if (defaultJVMToGenericDescriptorTable
-                .containsKey(noGenericsTypeName)
-                && typeReference instanceof JvmParameterizedTypeReference) {
-
-                List<TypeArgument> args = new ArrayList<>();
-
-                final EList<JvmTypeReference> jvmPTRArgs =
-                    ((JvmParameterizedTypeReference) typeReference)
-                        .getArguments();
-
-                for (JvmTypeReference arg : jvmPTRArgs) {
-                    IJadescriptType typeDescriptor = jtFromJvmTypeRef(arg);
-                    args.add(typeDescriptor);
-                }
-                final Integer expectedArguments =
-                    expectedGenericDescriptorArguments.get(noGenericsTypeName);
-
-                if (expectedArguments != null
-                    && expectedArguments == args.size()) {
-
-                    return some(
-                        defaultJVMToGenericDescriptorTable
-                            .get(noGenericsTypeName).apply(args)
-                    );
-
-                } else {
-                    return nothing();
-                }
-            } else {
-                return nothing();
-            }
-        }
-    }
 
 
+
+
+
+    //TODO -> ImplicitConversionHelper
     public boolean implicitConversionCanOccur(
         IJadescriptType from,
         IJadescriptType to
@@ -1817,6 +1204,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> ImplicitConversionHelper
     public String compileImplicitConversion(
         String compileExpression,
         IJadescriptType argType,
@@ -1834,6 +1222,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> ImplicitConversionHelper
     public String compileWithEventualImplicitConversions(
         String compiledExpression,
         IJadescriptType argType,
@@ -1851,6 +1240,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> TypeLatticeComputer
     public Maybe<OntologyType> getOntologyGLB(
         Maybe<OntologyType> mt1,
         Maybe<OntologyType> mt2,
@@ -1868,6 +1258,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> ImplicitConversionHelper
     public Maybe<OntologyType> getOntologyGLB(
         Maybe<OntologyType> mt1,
         Maybe<OntologyType> mt2
@@ -1891,6 +1282,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> Keep
     public IJadescriptType adaptMessageContentDefaultTypes(
         Maybe<String> performative,
         IJadescriptType inputContentType
@@ -1953,6 +1345,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> Keep
     public String adaptMessageContentDefaultCompile(
         Maybe<String> performative,
         IJadescriptType inputContentType,
@@ -1992,6 +1385,7 @@ public class TypeHelper implements SemanticsConsts {
      * Otherwise, it returns a singleton list
      * containing {@code t}.
      */
+    //TODO -> Keep
     public List<? extends TypeArgument> unpackTuple(TypeArgument t) {
         if (t instanceof TupleType) {
             return ((TupleType) t).getTypeArguments();
@@ -2001,6 +1395,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> ImplicitConversionHelper
     public List<ImplicitConversionDefinition> implicitConversionPath(
         IJadescriptType start,
         IJadescriptType end
@@ -2073,66 +1468,12 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> JvmTypeHelper
     public JvmTypeReference objectTypeRef() {
         return module.get(JvmTypeReferenceBuilder.class).typeRef(Object.class);
     }
 
-
-    public JvmTypeReference typeRef(
-        Class<?> objectClass,
-        JvmTypeReference... typeParameters
-    ) {
-        return module.get(JvmTypeReferenceBuilder.class).typeRef(
-            objectClass,
-            typeParameters
-        );
-    }
-
-
-    public JvmTypeReference typeRef(
-        Class<?> objectClass,
-        List<JvmTypeReference> typeParameters
-    ) {
-        return module.get(JvmTypeReferenceBuilder.class).typeRef(
-            objectClass,
-            typeParameters.toArray(new JvmTypeReference[0])
-        );
-    }
-
-
-    public JvmTypeReference typeRef(
-        JvmType componentType,
-        JvmTypeReference... typeArgs
-    ) {
-        return module.get(JvmTypeReferenceBuilder.class).typeRef(
-            componentType,
-            typeArgs
-        );
-    }
-
-
-    public JvmTypeReference typeRef(
-        JvmType componentType,
-        List<JvmTypeReference> typeArgs
-    ) {
-        return module.get(JvmTypeReferenceBuilder.class).typeRef(
-            componentType,
-            typeArgs.toArray(new JvmTypeReference[0])
-        );
-    }
-
-
-    public JvmTypeReference typeRef(
-        String ident,
-        JvmTypeReference... typeArgs
-    ) {
-        return module.get(JvmTypeReferenceBuilder.class).typeRef(
-            ident,
-            typeArgs
-        );
-    }
-
-
+    //TODO -> ImplicitConversionHelper
     public boolean isPrimitiveWideningViable(
         JvmTypeReference from,
         JvmTypeReference to
@@ -2140,17 +1481,32 @@ public class TypeHelper implements SemanticsConsts {
         if (from == null || to == null) {
             return false;
         } else {
-            if (typeReferenceEquals(from, to)) {
+            if (JvmTypeHelper.typeReferenceEquals(from, to)) {
                 return true;
-            } else if (typeReferenceEquals(to, typeRef(Double.class))) {
+            } else if (JvmTypeHelper.typeReferenceEquals(
+                to,
+                typeRef(Double.class)
+            )) {
                 return isPrimitiveWideningViable(from, typeRef(Float.class));
-            } else if (typeReferenceEquals(to, typeRef(Float.class))) {
+            } else if (JvmTypeHelper.typeReferenceEquals(
+                to,
+                typeRef(Float.class)
+            )) {
                 return isPrimitiveWideningViable(from, typeRef(Long.class));
-            } else if (typeReferenceEquals(to, typeRef(Long.class))) {
+            } else if (JvmTypeHelper.typeReferenceEquals(
+                to,
+                typeRef(Long.class)
+            )) {
                 return isPrimitiveWideningViable(from, typeRef(Integer.class));
-            } else if (typeReferenceEquals(to, typeRef(Integer.class))) {
+            } else if (JvmTypeHelper.typeReferenceEquals(
+                to,
+                typeRef(Integer.class)
+            )) {
                 return isPrimitiveWideningViable(from, typeRef(Short.class));
-            } else if (typeReferenceEquals(to, typeRef(Short.class))) {
+            } else if (JvmTypeHelper.typeReferenceEquals(
+                to,
+                typeRef(Short.class)
+            )) {
                 return isPrimitiveWideningViable(from, typeRef(Byte.class));
             }
         }
@@ -2159,6 +1515,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> ImplicitConversionHelper
     public JvmTypeReference boxedReferenceIfPrimitive(JvmTypeReference ref) {
         final JvmType type = ref.getType();
         if (type instanceof JvmPrimitiveType) {
@@ -2168,6 +1525,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> ImplicitConversionHelper
     public JvmTypeReference boxedReference(JvmPrimitiveType primitiveType) {
         switch (primitiveType.getSimpleName()) {
             case JAVA_PRIMITIVE_int:
@@ -2192,239 +1550,10 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
-    public boolean isAssignable(
-        IJadescriptType toType,
-        IJadescriptType fromType
-    ) {
-
-        return toType.isSupertypeOrEqualTo(fromType);
-    }
 
 
-    public boolean isAssignable(Class<?> toType, IJadescriptType fromType) {
-        return jtFromClass(toType).isSupertypeOrEqualTo(fromType);
-    }
 
-
-    public boolean isAssignable(Class<?> toType, JvmTypeReference fromType) {
-        return isAssignable(typeRef(toType), fromType);
-    }
-
-
-    @SuppressWarnings("unused")
-    public boolean isAssignable(JvmTypeReference toType, Class<?> fromType) {
-        return isAssignable(toType, typeRef(fromType));
-    }
-
-
-    public boolean isAssignableRaw(
-        JvmTypeReference toType,
-        JvmTypeReference fromType
-    ) {
-        JvmTypeReference left = toType;
-        JvmTypeReference right = fromType;
-        if (fromType == null
-            || fromType.getIdentifier() == null
-            || fromType.getIdentifier().equals("void")) {
-            return false;
-        }
-
-        if (toType == null
-            || toType.getIdentifier() == null
-            || toType.getIdentifier().equals("void")) {
-            return false;
-        }
-
-        if (isPrimitiveWideningViable(fromType, toType)) {
-            return true;
-        }
-
-        if (toType.getType() instanceof JvmPrimitiveType) {
-            left = boxedReference((JvmPrimitiveType) toType.getType());
-        }
-        if (fromType.getType() instanceof JvmPrimitiveType) {
-            right = boxedReference((JvmPrimitiveType) fromType.getType());
-        }
-
-        if (typeReferenceRawEquals(left, right)) {
-            return true;
-        }
-
-
-        final String tupleInterfaceName = Tuple.class.getName();
-        final String tupleInterfaceSimpleName = Tuple.class.getSimpleName();
-        if (Objects.equals(
-            noGenericsTypeName(left.getQualifiedName('.')),
-            tupleInterfaceName
-        )) {
-            //ad hoc fix for tuple types
-            final String noGenericsFQN = noGenericsTypeName(
-                right.getQualifiedName('.')
-            );
-            final String noGenericsSN = noGenericsTypeName(
-                right.getSimpleName()
-            );
-            return noGenericsFQN.startsWith(tupleInterfaceName)
-                && noGenericsSN.startsWith(tupleInterfaceSimpleName);
-        }
-
-
-        if (left.getType() instanceof JvmDeclaredType
-            && right.getType() instanceof JvmDeclaredType) {
-
-            if (left.getType().equals(right.getType())) {
-                return true;
-            }
-
-            final JvmTypeReferenceSet superSet =
-                JvmTypeReferenceSet.generateAllSupertypesSet(
-                (JvmDeclaredType) right.getType()
-            );
-
-            return superSet.containsRaw(left);
-
-        }
-
-        if (left instanceof JvmGenericArrayTypeReference
-            && right instanceof JvmGenericArrayTypeReference) {
-            //if left and right are array types, just see if their component
-            // types matches isAssignableRaw
-            return isAssignableRaw(
-                ((JvmGenericArrayTypeReference) left).getComponentType(),
-                ((JvmGenericArrayTypeReference) right).getComponentType()
-            );
-        }
-
-        if (left instanceof JvmGenericArrayTypeReference
-            && right.getType() instanceof JvmDeclaredType
-            || left.getType() instanceof JvmDeclaredType
-            && right instanceof JvmGenericArrayTypeReference) {
-            //one is array, the other is not: not assignable
-            return false;
-        }
-
-        return false;
-    }
-
-
-    private boolean isNullOrVoid(JvmTypeReference jvmTypeReference) {
-        return jvmTypeReference == null
-            || jvmTypeReference.getIdentifier() == null
-            || !jvmTypeReference.getIdentifier().equals("void");
-    }
-
-
-    public boolean isAssignableGeneric(
-        JvmTypeReference toType,
-        JvmTypeReference fromType
-    ) {
-        JvmTypeReference left = toType;
-        JvmTypeReference right = fromType;
-        if (isNullOrVoid(left) || isNullOrVoid(right)) {
-            return false;
-        }
-
-        if (isPrimitiveWideningViable(fromType, toType)) {
-            return true;
-        }
-
-        left = boxedReferenceIfPrimitive(left);
-        right = boxedReferenceIfPrimitive(right);
-
-        if (typeReferenceEquals(left, right)) {
-            return true;
-        }
-
-        if (left.getQualifiedName().equals("jadescript.lang.Tuple")) {
-            //ad hoc fix for tuple types
-            return right.getQualifiedName('.')
-                .startsWith("jadescript.lang.Tuple")
-                && right.getSimpleName().startsWith("Tuple");
-        }
-
-        if (left.getType() instanceof JvmDeclaredType
-            && right.getType() instanceof JvmDeclaredType) {
-
-            if (!(left instanceof JvmParameterizedTypeReference)) {
-                return left.getType().equals(right.getType())
-                    || JvmTypeReferenceSet.generateAllSupertypesSet(
-                    (JvmDeclaredType) right.getType()
-                ).contains(left);
-            }
-
-            JvmParameterizedTypeReference leftJvmptr =
-                (JvmParameterizedTypeReference) left;
-
-            if (!(right instanceof JvmParameterizedTypeReference)) {
-                return false;
-            } else {
-                JvmParameterizedTypeReference rightJvmptr =
-                    (JvmParameterizedTypeReference) right;
-                if (leftJvmptr.getArguments().size()
-                    != rightJvmptr.getArguments().size()) {
-                    return false;
-                } else {
-                    for (int i = 0; i < leftJvmptr.getArguments().size(); ++i) {
-                        if (!typeReferenceEquals(leftJvmptr.getArguments().get(
-                            i), rightJvmptr.getArguments().get(i))) {
-                            return false;
-                        }
-                    }
-                    //all type parameters are the same
-                }
-            }
-
-            return left.getType().equals(right.getType())
-                || JvmTypeReferenceSet.generateAllSupertypesSet(
-                (JvmDeclaredType) right.getType()
-            ).contains(left);
-
-        } else if (left instanceof JvmGenericArrayTypeReference
-            && right instanceof JvmGenericArrayTypeReference) {
-            //if left and right are array types, just see if their component
-            // types matches isAssignable
-            return isAssignableGeneric(
-                ((JvmGenericArrayTypeReference) left).getComponentType(),
-                ((JvmGenericArrayTypeReference) right).getComponentType()
-            );
-        } else if (left instanceof JvmGenericArrayTypeReference
-            && right.getType() instanceof JvmDeclaredType
-            || left.getType() instanceof JvmDeclaredType
-            && right instanceof JvmGenericArrayTypeReference) {
-            //one is array, the other is not: not assignable
-            return false;
-        } else {
-            return false;
-        }
-    }
-
-
-    /**
-     * Determines if the class or interface represented by the
-     * <code>toType</code> type reference
-     * is either the same as, or is a superclass or superinterface of, the
-     * class or interface
-     * represented by <code>fromType</code> type reference. It tries to
-     * respond to the question,
-     * in the context of the JVM type system, "can a Java value of the
-     * type referenced by
-     * <code>fromType</code> be assigned to a Java variable of the type
-     * referenced by
-     * <code>toType</code>?".
-     */
-    public boolean isAssignable(
-        JvmTypeReference toType,
-        JvmTypeReference fromType,
-        boolean rawComparison
-    ) {
-        if(rawComparison){
-            return isAssignableRaw(toType, fromType);
-        }
-
-        return isAssignableGeneric(toType, fromType);
-    }
-
-
+    //TODO -> TypeLatticeComputer
     @SuppressWarnings("unused")
     public IJadescriptType getLUB(IJadescriptType t0, IJadescriptType... ts) {
         if (ts.length == 0) {
@@ -2437,6 +1566,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> TypeLatticeComputer
     @SuppressWarnings("unused")
     public IJadescriptType getGLB(IJadescriptType t1, IJadescriptType t2) {
         if (t1.isSupertypeOrEqualTo(t2)) {
@@ -2449,6 +1579,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> TypeLatticeComputer
     public IJadescriptType getGLB(IJadescriptType t0, IJadescriptType... ts) {
         if (ts.length == 0) {
             return t0;
@@ -2460,6 +1591,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> TypeLatticeComputer
     @SuppressWarnings("unused")
     public Maybe<JvmTypeReference> getGLB(
         Maybe<JvmTypeReference> t1,
@@ -2495,6 +1627,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> TypeLatticeComputer
     public IJadescriptType getLUB(IJadescriptType t1, IJadescriptType t2) {
         if (t1.isSupertypeOrEqualTo(t2)) {
             return t1;
@@ -2518,55 +1651,8 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
-    public TypeRelationship getTypeRelationship(
-        IJadescriptType t1,
-        IJadescriptType t2
-    ) {
-        if (t1.typeEquals(t2)) {
-            return TypeRelationship.EQUAL;
-        } else if (t1.isSupertypeOrEqualTo(t2)) {
-            return TypeRelationship.STRICT_SUPERTYPE;
-        } else if (t2.isSupertypeOrEqualTo(t1)) {
-            return TypeRelationship.STRICT_SUBTYPE;
-        } else {
-            return TypeRelationship.NOT_RELATED;
-        }
-    }
 
-
-    private List<JvmTypeReference> getParentChain(JvmTypeReference x) {
-        List<JvmTypeReference> result = new ArrayList<>();
-        result.add(x);
-        if (x.getType() instanceof JvmDeclaredType) {
-            if (((JvmDeclaredType) x.getType()).getExtendedClass() != null) {
-                result.addAll(getParentChain(
-                    ((JvmDeclaredType) x.getType()).getExtendedClass()
-                ));
-            }
-        } else {
-            result.add(typeRef(Object.class));
-        }
-        return result;
-    }
-
-
-    private List<JvmTypeReference> getTypeArgumentsOfParent(
-        JvmTypeReference type,
-        JvmTypeReference targetParentNoParams
-    ) {
-        for (JvmTypeReference x : getParentChain(type)) {
-            if (x instanceof JvmParameterizedTypeReference
-                && x.getType().getQualifiedName().equals(
-                targetParentNoParams.getQualifiedName()
-            )
-            ) {
-                return ((JvmParameterizedTypeReference) x).getArguments();
-            }
-        }
-        return new ArrayList<>();
-    }
-
-
+    //TODO keep
     public boolean isTypeWithPrimitiveOntologySchema(IJadescriptType type) {
         TypeHelper typeHelper = this;
         return Stream.of(
@@ -2579,6 +1665,7 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
+    //TODO -> ImplicitConversionHelper
     private static class Vertex implements Comparable<Vertex> {
 
         private final List<Edge> adjacents = new ArrayList<>();
@@ -2641,6 +1728,7 @@ public class TypeHelper implements SemanticsConsts {
 
     }
 
+    //TODO -> ImplicitConversionHelper
     private static class Edge {
 
         private final Vertex from;
@@ -2675,6 +1763,7 @@ public class TypeHelper implements SemanticsConsts {
 
     }
 
+    //TODO -> ImplicitConversionHelper
     private static class ImplicitConversionDefinition {
 
         private final IJadescriptType from;
@@ -2708,6 +1797,7 @@ public class TypeHelper implements SemanticsConsts {
         }
 
     }
+
 
     private static final class MessageContentTupleDefaultElements {
 
@@ -2786,116 +1876,5 @@ public class TypeHelper implements SemanticsConsts {
 
     }
 
-
-    public static class ErroneousType extends UtilityType {
-
-        private final String description;
-        private final IJadescriptType relationshipDelegate;
-
-
-        private ErroneousType(
-            SemanticsModule module,
-            String typeID,
-            String simpleName,
-            JvmTypeReference jvmType,
-            String description,
-            IJadescriptType relationshipDelegate
-        ) {
-            super(module, typeID, simpleName, jvmType);
-            this.description = description;
-            this.relationshipDelegate = relationshipDelegate;
-        }
-
-
-        static ErroneousType top(
-            SemanticsModule module,
-            String description,
-            IJadescriptType giveMeANY
-        ) {
-            return new ErroneousType(
-                module,
-                builtinPrefix + "TOP_ERR",
-                "(error)any",
-                module.get(JvmTypeReferenceBuilder.class).typeRef(
-                    "/*ANY*/java.lang.Object"),
-                description,
-                giveMeANY
-            );
-        }
-
-
-        static ErroneousType bottom(
-            SemanticsModule module,
-            String description,
-            IJadescriptType giveMeNOTHING
-        ) {
-            return new ErroneousType(
-                module,
-                builtinPrefix + "BOTTOM_ERR",
-                "(error)nothing",
-                module.get(JvmTypeReferenceBuilder.class).typeRef(
-                    "/*NOTHING*/java.lang.Object"),
-                description,
-                giveMeNOTHING
-            );
-        }
-
-
-        @Override
-        public boolean typeEquals(IJadescriptType other) {
-            return relationshipDelegate.typeEquals(other);
-        }
-
-
-        @Override
-        public boolean isSupertypeOrEqualTo(IJadescriptType other) {
-            return relationshipDelegate.isSupertypeOrEqualTo(other);
-        }
-
-
-        @Override
-        public boolean validateType(
-            Maybe<? extends EObject> input,
-            ValidationMessageAcceptor acceptor
-        ) {
-            return module.get(ValidationHelper.class).emitError(
-                "InvalidType",
-                description,
-                input,
-                acceptor
-            );
-        }
-
-
-        @Override
-        public boolean isSendable() {
-            return false;
-        }
-
-
-        @Override
-        public boolean isErroneous() {
-            return true;
-        }
-
-
-        @Override
-        public Maybe<OntologyType> getDeclaringOntology() {
-            return nothing();
-        }
-
-
-        @Override
-        public TypeNamespace namespace() {
-            return new BuiltinOpsNamespace(
-                module,
-                nothing(),
-                List.of(),
-                List.of(),
-                getLocation()
-            );
-        }
-
-    }
 
 }

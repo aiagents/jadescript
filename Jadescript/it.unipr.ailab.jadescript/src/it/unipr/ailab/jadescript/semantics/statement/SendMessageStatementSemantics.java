@@ -13,7 +13,11 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.maybe.Functional;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
@@ -147,7 +151,7 @@ public class SendMessageStatementSemantics
         validationHelper.asserting(
             adaptedContentType.isSendable(),
             "InvalidContent",
-            "Values of type '" + adaptedContentType.getJadescriptName() + "' " +
+            "Values of type '" + adaptedContentType.getFullJadescriptName() + "' " +
                 "cannot be sent as part of messages.",
             content,
             acceptor
@@ -216,10 +220,10 @@ public class SendMessageStatementSemantics
                     declaringOntologyType.isSupertypeOrEqualTo(ontologyType),
                     "OntologyMismatch",
                     "The type of this content is declared in ontology "
-                        + declaringOntologyType.getJadescriptName()
+                        + declaringOntologyType.getFullJadescriptName()
                         + ", but this operation requires a content " +
                         "declared in ontology "
-                        + ontologyType.getJadescriptName() + ".",
+                        + ontologyType.getFullJadescriptName() + ".",
                     content,
                     acceptor
                 );
@@ -265,7 +269,7 @@ public class SendMessageStatementSemantics
                 validationHelper.asserting(
                     isInDeclaration,
                     "OntologyNotUsed",
-                    "Ontology " + ontoType.getJadescriptName() + " is not" +
+                    "Ontology " + ontoType.getFullJadescriptName() + " is not" +
                         " accessible in this context.",
                     maybeEobject,
                     acceptor

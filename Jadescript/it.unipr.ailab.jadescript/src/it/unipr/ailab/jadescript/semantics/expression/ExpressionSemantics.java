@@ -20,7 +20,7 @@ import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Functional.QuadFunction;
 import it.unipr.ailab.maybe.Functional.TriFunction;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -36,9 +36,12 @@ import java.util.stream.Stream;
  */
 @Singleton
 public abstract class ExpressionSemantics<T> extends Semantics {
+    //TODO improvements: add upperbound expression type in evaluation semantics
+    //TODO improvements: infertype returns additional explanations on the resolved type
 
-    private final LazyValue<ExpressionSemantics<?>> EMPTY_EXPRESSION_SEMANTICS =
-        new LazyValue<>(() -> new Adapter<>(this.module));
+
+    private final LazyInit<ExpressionSemantics<?>> EMPTY_EXPRESSION_SEMANTICS =
+        new LazyInit<>(() -> new Adapter<>(this.module));
 
 
     public ExpressionSemantics(SemanticsModule semanticsModule) {
@@ -1367,9 +1370,9 @@ public abstract class ExpressionSemantics<T> extends Semantics {
             requirement.isInstance(actualRelationship),
             "InvalidProvidedInput",
             "Cannot apply here an input of type "
-                + providedInputType.getJadescriptName()
+                + providedInputType.getFullJadescriptName()
                 + " to a pattern which expects an input of type "
-                + solvedType.getJadescriptName(),
+                + solvedType.getFullJadescriptName(),
             SemanticsUtils.extractEObject(pattern),
             acceptor
         );

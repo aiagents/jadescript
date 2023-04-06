@@ -8,7 +8,7 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 import java.util.List;
@@ -20,7 +20,7 @@ public abstract class UsingOntologyDeclarationContext
     implements OntologyAssociated {
 
     private final List<IJadescriptType> ontologyTypes;
-    private final List<LazyValue<TypeNamespace>> ontoNamespaces;
+    private final List<LazyInit<TypeNamespace>> ontoNamespaces;
 
 
     public UsingOntologyDeclarationContext(
@@ -31,7 +31,7 @@ public abstract class UsingOntologyDeclarationContext
         super(module, outer);
         this.ontologyTypes = ontologyTypes;
         this.ontoNamespaces = ontologyTypes.stream()
-            .map(ot -> new LazyValue<>(ot::namespace))
+            .map(ot -> new LazyInit<>(ot::namespace))
             .collect(Collectors.toList());
     }
 
@@ -44,7 +44,7 @@ public abstract class UsingOntologyDeclarationContext
             Math.min(ontologyTypes.size(), ontoNamespaces.size());
 
         for (int i = 0; i < assumedSize; i++) {
-            final LazyValue<TypeNamespace> ontoNamespace =
+            final LazyInit<TypeNamespace> ontoNamespace =
                 ontoNamespaces.get(i);
             final IJadescriptType ontologyType =
                 ontologyTypes.get(i);

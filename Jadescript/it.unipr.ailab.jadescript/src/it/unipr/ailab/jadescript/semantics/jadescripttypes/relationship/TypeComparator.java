@@ -2,9 +2,16 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.BoundedTypeArgument;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.UtilityType;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
 import java.util.List;
@@ -18,22 +25,22 @@ public class TypeComparator {
 
     private final SemanticsModule module;
 
-    private final LazyValue<TypeHelper> th;
+    private final LazyInit<TypeHelper> th;
 
-    private final LazyValue<UtilityType> any;
+    private final LazyInit<UtilityType> any;
 
-    private final LazyValue<UtilityType> nothing;
+    private final LazyInit<UtilityType> nothing;
 
 
     public TypeComparator(SemanticsModule module) {
         this.module = module;
-        th = new LazyValue<>(() -> this.module.get(TypeHelper.class));
-        any = new LazyValue<>(() -> th.get().ANY);
-        nothing = new LazyValue<>(() -> th.get().NOTHING);
+        th = new LazyInit<>(() -> this.module.get(TypeHelper.class));
+        any = new LazyInit<>(() -> th.get().ANY);
+        nothing = new LazyInit<>(() -> th.get().NOTHING);
     }
 
 
-    public final boolean rawEquals(
+    public static boolean rawEquals(
         IJadescriptType subject,
         IJadescriptType target
     ) {
@@ -323,8 +330,8 @@ public class TypeComparator {
         IJadescriptType target,
         boolean rawComparison
     ) {
-        final boolean subjectIsList = subject instanceof ListType;
-        final boolean targetIsList = target instanceof ListType;
+        final boolean subjectIsList = subject.isList();
+        final boolean targetIsList = target.isList();
         if (subjectIsList && targetIsList) {
             if (rawComparison) {
                 return some(TypeRelationship.equal());
@@ -349,8 +356,8 @@ public class TypeComparator {
         IJadescriptType target,
         boolean rawComparison
     ) {
-        final boolean subjectIsMap = subject instanceof MapType;
-        final boolean targetIsMap = target instanceof MapType;
+        final boolean subjectIsMap = subject.isMap();
+        final boolean targetIsMap = target.isMap();
         if (subjectIsMap && targetIsMap) {
             if (rawComparison) {
                 return some(TypeRelationship.equal());
@@ -430,8 +437,8 @@ public class TypeComparator {
         IJadescriptType target,
         boolean rawComparison
     ) {
-        final boolean subjectIsSet = subject instanceof SetType;
-        final boolean targetIsSet = target instanceof SetType;
+        final boolean subjectIsSet = subject.isSet();
+        final boolean targetIsSet = target.isSet();
         if (subjectIsSet && targetIsSet) {
             if (rawComparison) {
                 return some(TypeRelationship.equal());
@@ -567,15 +574,15 @@ public class TypeComparator {
         IJadescriptType target,
         boolean rawComparison
     ) {
-        final boolean subjectIsTuple = subject instanceof TupleType;
-        final boolean targetIsTuple = target instanceof TupleType;
+        final boolean subjectIsTuple = subject.isTuple();
+        final boolean targetIsTuple = target.isTuple();
         if (subjectIsTuple && targetIsTuple) {
 
             List<TypeArgument> subjectElements =
-                ((TupleType) subject).getTypeArguments();
+                subject.typeArguments();
 
             List<TypeArgument> targetElements =
-                ((TupleType) target).getTypeArguments();
+                target.typeArguments();
 
 
             if (subjectElements.size() != targetElements.size()) {
@@ -752,7 +759,7 @@ public class TypeComparator {
 
         final Maybe<TypeRelationship> anyMessageBranch =
             checkIntensionalSupertypeRelationship(
-                th.get().ANYMESSAGE,
+                th.get().ANY_MESSAGE,
                 subject,
                 target,
                 IJadescriptType::isMessage
@@ -779,7 +786,7 @@ public class TypeComparator {
 
         final Maybe<TypeRelationship> messageContentBranch =
             checkIntensionalSupertypeRelationship(
-                th.get().SERIALIZABLE,
+                th.get().ANY_ONTOLOGY_ELEMENT,
                 subject,
                 target,
                 IJadescriptType::isMessageContent
@@ -793,7 +800,7 @@ public class TypeComparator {
         // Agent-env internal utility type
         final Maybe<TypeRelationship> agentEnvBranch =
             checkIntensionalSupertypeRelationship(
-                th.get().ANYAGENTENV,
+                th.get().ANY_AGENTENV,
                 subject,
                 target,
                 IJadescriptType::isAgentEnv
@@ -904,5 +911,19 @@ public class TypeComparator {
         return Maybe.nothing();
     }
 
+
+    public Maybe<IJadescriptType> min(IJadescriptType a, IJadescriptType b) {
+        final TypeRelationship compare = compare(a, b);
+
+        if (TypeRelationshipQuery.subTypeOrEqual().matches(compare)) {
+            return some(a);
+        }
+
+        if (TypeRelationshipQuery.strictSuperType().matches(compare)) {
+            return some(b);
+        }
+
+        return Maybe.nothing();
+    }
 
 }

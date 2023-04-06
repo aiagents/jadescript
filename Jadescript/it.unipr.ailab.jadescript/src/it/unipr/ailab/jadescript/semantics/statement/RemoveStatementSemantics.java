@@ -10,9 +10,9 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -276,8 +276,8 @@ public class RemoveStatementSemantics
                 typeHelper.isAssignable(expectedList, elementType)
                     || typeHelper.isAssignable(expectedSet, elementType),
                 "Invalid" + (isRetain ? "Retain" : "Remove") + "Statement",
-                "invalid type; found: '" + elementType.getJadescriptName() +
-                    "'; expected: '" + expectedSet.getJadescriptName() +
+                "invalid type; found: '" + elementType.getFullJadescriptName() +
+                    "'; expected: '" + expectedSet.getFullJadescriptName() +
                     "' or '" + expectedList + "' or subtypes.",
                 element,
                 acceptor

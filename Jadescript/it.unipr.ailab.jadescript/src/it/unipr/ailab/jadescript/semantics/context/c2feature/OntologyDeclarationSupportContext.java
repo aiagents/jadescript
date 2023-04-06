@@ -13,8 +13,8 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCalla
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntologyType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedOntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.UserDefinedOntologyType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;

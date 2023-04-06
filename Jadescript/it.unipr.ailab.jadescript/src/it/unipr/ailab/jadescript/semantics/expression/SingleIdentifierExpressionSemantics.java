@@ -543,7 +543,7 @@ public class SingleIdentifierExpressionSemantics
                     module.get(ValidationHelper.class).emitInfo(
                         ISSUE_CODE_PREFIX + "Info",
                         "Inferred declaration, type: "
-                            + solvedPatternType.getJadescriptName(),
+                            + solvedPatternType.getFullJadescriptName(),
                         input.getPattern(),
                         acceptor
                     );
@@ -655,7 +655,7 @@ public class SingleIdentifierExpressionSemantics
                 module.get(ValidationHelper.class).emitInfo(
                     ISSUE_CODE_PREFIX + "Info",
                     "Inferred declaration; type: " +
-                        typeOfRExpression.getJadescriptName(),
+                        typeOfRExpression.getFullJadescriptName(),
                     input,
                     acceptor
                 );

@@ -72,7 +72,7 @@ public class PutBackStatementSemantics
         IJadescriptType messageType = rves.inferType(message, state);
 
         module.get(ValidationHelper.class).assertExpectedType(
-            module.get(TypeHelper.class).ANYMESSAGE,
+            module.get(TypeHelper.class).ANY_MESSAGE,
             messageType,
             "InvalidPutbackStatement",
             message,

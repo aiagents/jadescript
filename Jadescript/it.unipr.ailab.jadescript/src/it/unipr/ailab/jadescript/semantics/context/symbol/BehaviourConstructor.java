@@ -8,7 +8,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCalla
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import org.eclipse.xtext.common.types.JvmConstructor;
@@ -68,7 +68,7 @@ public class BehaviourConstructor implements GlobalCallable {
         Map<String, IJadescriptType> paramNamesToTypes = new HashMap<>();
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-        final IJadescriptType anyAE = typeHelper.ANYAGENTENV;
+        final IJadescriptType anyAE = typeHelper.ANY_AGENTENV;
 
         boolean withoutSideEffects = false;
 

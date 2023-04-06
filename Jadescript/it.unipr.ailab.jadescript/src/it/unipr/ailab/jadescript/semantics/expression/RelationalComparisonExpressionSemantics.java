@@ -248,8 +248,8 @@ public class RelationalComparisonExpressionSemantics
                 ),
                 "IncongruentOperandTypes",
                 "Incompatible types for comparison: '"
-                    + typeLeft.getJadescriptName()
-                    + "', '" + typeRight.getJadescriptName() + "'",
+                    + typeLeft.getFullJadescriptName()
+                    + "', '" + typeRight.getFullJadescriptName() + "'",
                 input,
                 acceptor
             );

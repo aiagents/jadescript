@@ -15,7 +15,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableN
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -36,8 +36,8 @@ public class ProceduralFeatureContainerContext
     private final TopLevelDeclarationContext outer;
     private final Maybe<IJadescriptType> thisReferenceType;
     private final Maybe<? extends EObject> featureContainer;
-    private final LazyValue<Maybe<TypeNamespace>> thisReferenceNamespace;
-    private final LazyValue<Maybe<CompilableName>> thisReferenceElement;
+    private final LazyInit<Maybe<TypeNamespace>> thisReferenceNamespace;
+    private final LazyInit<Maybe<CompilableName>> thisReferenceElement;
 
 
     public ProceduralFeatureContainerContext(
@@ -51,11 +51,11 @@ public class ProceduralFeatureContainerContext
         this.thisReferenceType = some(thisReferenceType);
 
         this.featureContainer = featureContainer;
-        this.thisReferenceNamespace = new LazyValue<>(() ->
+        this.thisReferenceNamespace = new LazyInit<>(() ->
             some(thisReferenceType.namespace())
         );
 
-        this.thisReferenceElement = new LazyValue<>(() ->
+        this.thisReferenceElement = new LazyInit<>(() ->
             some(new ContextGeneratedName(
                 THIS,
                 thisReferenceType,
@@ -78,8 +78,8 @@ public class ProceduralFeatureContainerContext
         this.featureContainer = featureContainer;
 
         this.thisReferenceType = Maybe.nothing();
-        this.thisReferenceNamespace = new LazyValue<>(Maybe::nothing);
-        this.thisReferenceElement = new LazyValue<>(Maybe::nothing);
+        this.thisReferenceNamespace = new LazyInit<>(Maybe::nothing);
+        this.thisReferenceElement = new LazyInit<>(Maybe::nothing);
     }
 
 

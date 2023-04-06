@@ -9,11 +9,11 @@ import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseAgentType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntologyType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedAgentType;
-import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.AgentType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.BaseAgentType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.UserDefinedAgentType;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.maybe.Maybe;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,7 +30,7 @@ public class AgentTypeNamespace
     private final AgentType agentType;
     private final boolean useJvm;
     private final List<Property> builtinProperties;
-    private final LazyValue<JvmTypeNamespace> jvmNamespace;
+    private final LazyInit<JvmTypeNamespace> jvmNamespace;
 
 
     public AgentTypeNamespace(
@@ -42,7 +42,7 @@ public class AgentTypeNamespace
         this.agentType = agentType;
         useJvm = !(agentType instanceof BaseAgentType);
         this.builtinProperties = builtinProperties;
-        this.jvmNamespace = new LazyValue<>(this.agentType::jvmNamespace);
+        this.jvmNamespace = new LazyInit<>(this.agentType::jvmNamespace);
     }
 
 

@@ -11,10 +11,10 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OntologyDeclarationSupportContext;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseBehaviourType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BaseBehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeArgument;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.TupleType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
@@ -202,7 +202,7 @@ public final class TypeExpressionSemantics extends Semantics {
                         "OntologyNotUsed",
                         "The type " + jdType
                             + "is defined in the ontology " +
-                            ontoType.getJadescriptName() + " which is not" +
+                            ontoType.getFullJadescriptName() + " which is not" +
                             " accessible in this context.",
                         input,
                         acceptor
@@ -286,7 +286,7 @@ public final class TypeExpressionSemantics extends Semantics {
         return baseTypeName
             .__(typeHelper::getMessageType)
             .<IJadescriptType>__(f -> f.apply(contentTypes))
-            .orElse(typeHelper.ANYMESSAGE);
+            .orElse(typeHelper.ANY_MESSAGE);
     }
 
 

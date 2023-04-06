@@ -59,7 +59,7 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
                         jvmTypeNamespace.resolveType(
                             parameters.get(0).getParameterType()
                         );
-                    return typeHelper.ANYAGENTENV.isSupertypeOrEqualTo(firstParamType);
+                    return typeHelper.ANY_AGENTENV.isSupertypeOrEqualTo(firstParamType);
                 })
                 .map((JvmOperation operation) -> Operation
                     .fromJvmOperation(module, jvmTypeNamespace, operation))
@@ -119,7 +119,7 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
                             parameters.get(0).getParameterType()
                         );
 
-                    return typeHelper.ANYAGENTENV.isSupertypeOrEqualTo(
+                    return typeHelper.ANY_AGENTENV.isSupertypeOrEqualTo(
                         firstParamType);
                 }).map((JvmOperation operation) ->
                     converter.apply(module, jvmTypeNamespace, operation)

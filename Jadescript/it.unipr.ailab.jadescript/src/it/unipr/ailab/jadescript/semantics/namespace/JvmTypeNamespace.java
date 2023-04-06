@@ -6,7 +6,7 @@ import it.unipr.ailab.jadescript.semantics.context.search.JvmTypeLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.maybe.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
@@ -28,7 +28,7 @@ public class JvmTypeNamespace implements Searcheable {
     private final SemanticsModule module;
     private final JvmDeclaredType jvmDeclaredType;
     private final boolean isGeneric;
-    private final LazyValue<Map<String, IJadescriptType>>
+    private final LazyInit<Map<String, IJadescriptType>>
         typeParameterAssignments;
     private final Supplier<JvmTypeLocation> locationSupplier;
 
@@ -41,7 +41,7 @@ public class JvmTypeNamespace implements Searcheable {
         this.module = module;
         this.jvmDeclaredType = jvmDeclaredType;
         this.isGeneric = jvmDeclaredType instanceof JvmGenericType;
-        this.typeParameterAssignments = new LazyValue<>(() -> {
+        this.typeParameterAssignments = new LazyInit<>(() -> {
             final HashMap<String, IJadescriptType> result = new HashMap<>();
             if (isGeneric) {
                 JvmGenericType genericType = (JvmGenericType) jvmDeclaredType;
@@ -68,7 +68,7 @@ public class JvmTypeNamespace implements Searcheable {
         this.module = module;
         this.isGeneric = false;
         this.jvmDeclaredType = null;
-        this.typeParameterAssignments = new LazyValue<>(HashMap::new);
+        this.typeParameterAssignments = new LazyInit<>(HashMap::new);
         this.locationSupplier = () -> new JvmTypeLocation(reference);
     }
 

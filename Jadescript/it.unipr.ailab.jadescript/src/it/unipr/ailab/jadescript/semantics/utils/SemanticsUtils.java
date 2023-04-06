@@ -201,7 +201,7 @@ public class SemanticsUtils implements SemanticsConsts {
                 sb.append(", ");
             }
             sb.append(paramNames.get(i)).append(" as ");
-            sb.append(paramTypes.get(i).getJadescriptName());
+            sb.append(paramTypes.get(i).getFullJadescriptName());
         }
         sb.append(")");
         return sb.toString();
@@ -217,7 +217,7 @@ public class SemanticsUtils implements SemanticsConsts {
             if (i != 0) {
                 sb.append(", ");
             }
-            sb.append(paramTypes.get(i).getJadescriptName());
+            sb.append(paramTypes.get(i).getFullJadescriptName());
         }
         sb.append(")");
         return sb.toString();

@@ -17,7 +17,7 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.helpers.*;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseMessageType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.BaseMessageType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
@@ -790,7 +790,7 @@ public class OnMessageHandlerSemantics
                 finalContentType.isSendable(),
                 "UnexpectedContent",
                 "Suspicious content type; values of type '"
-                    + finalContentType.getJadescriptName() +
+                    + finalContentType.getFullJadescriptName() +
                     "' cannot be received as part of messages.",
                 eitherGet(eitherGet(pattern, whenExpr), input),
                 acceptor
@@ -803,9 +803,9 @@ public class OnMessageHandlerSemantics
                 "UnexpectedContent",
                 "Suspicious content type; Messages with performative '"
                     + performativeString + "' expect contents of type "
-                    + contentUpperBound.getJadescriptName()
+                    + contentUpperBound.getFullJadescriptName()
                     + "; type constrained by pattern/when expression: "
-                    + finalContentType.getJadescriptName(),
+                    + finalContentType.getFullJadescriptName(),
                 eitherGet(pattern, whenExpr),
                 acceptor
             );

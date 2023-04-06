@@ -18,8 +18,8 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Callable;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;
@@ -137,11 +137,11 @@ public class ValidationHelper implements SemanticsConsts {
             case DEFAULT: //assuming this is package private:
                 //return true only if contextOfAccess is in the same package
                 // of containingType
-                return TypeHelper.extractPackageName(containingType)
-                    .equals(TypeHelper.extractPackageName(contextOfAccess));
+                return JvmTypeHelper.extractPackageName(containingType)
+                    .equals(JvmTypeHelper.extractPackageName(contextOfAccess));
             case PRIVATE:
                 //return true only if containingType == contextOfAccess
-                return TypeHelper
+                return JvmTypeHelper
                     .typeReferenceEquals(containingType, contextOfAccess);
             case PROTECTED:
                 //return true only if contextOfAccess isAssignable to
@@ -408,8 +408,8 @@ public class ValidationHelper implements SemanticsConsts {
         return asserting(
             expected.isSupertypeOrEqualTo(actual),
             issueCode,
-            "Invalid type; found: '" + actual.getJadescriptName() +
-                "'; expected: '" + expected.getJadescriptName() +
+            "Invalid type; found: '" + actual.getFullJadescriptName() +
+                "'; expected: '" + expected.getFullJadescriptName() +
                 "' or subtype.",
             object,
             acceptor
@@ -422,13 +422,13 @@ public class ValidationHelper implements SemanticsConsts {
         IJadescriptType actual
     ) {
         StringBuilder sb = new StringBuilder("Invalid type; found: '");
-        sb.append(actual.getJadescriptName()).append("'; expected: ");
+        sb.append(actual.getFullJadescriptName()).append("'; expected: ");
         for (int i = 0; i < expected.size(); i++) {
             final IJadescriptType e = expected.get(i);
             if (i != 0) {
                 sb.append(", ");
             }
-            sb.append("'").append(e.getJadescriptName()).append("'");
+            sb.append("'").append(e.getFullJadescriptName()).append("'");
         }
         sb.append(", or subtypes.");
         return sb.toString();
@@ -472,8 +472,8 @@ public class ValidationHelper implements SemanticsConsts {
         return asserting(
             expected.isSupertypeOrEqualTo(actual),
             issueCode,
-            "invalid type; found: '" + actual.getJadescriptName() +
-                "'; expected: '" + expected.getJadescriptName() +
+            "invalid type; found: '" + actual.getFullJadescriptName() +
+                "'; expected: '" + expected.getFullJadescriptName() +
                 "' or subtype",
             object,
             feature,
@@ -496,8 +496,8 @@ public class ValidationHelper implements SemanticsConsts {
         return asserting(
             expected.isSupertypeOrEqualTo(actual),
             issueCode,
-            "invalid type; found: '" + actual.getJadescriptName() +
-                "'; expected: '" + expected.getJadescriptName() +
+            "invalid type; found: '" + actual.getFullJadescriptName() +
+                "'; expected: '" + expected.getFullJadescriptName() +
                 "' or subtype",
             object,
             feature,
@@ -520,8 +520,8 @@ public class ValidationHelper implements SemanticsConsts {
         return asserting(
             expectedType.isSupertypeOrEqualTo(actual),
             issueCode,
-            "invalid type; found: '" + actual.getJadescriptName() +
-                "'; expected: '" + expectedType.getJadescriptName() +
+            "invalid type; found: '" + actual.getFullJadescriptName() +
+                "'; expected: '" + expectedType.getFullJadescriptName() +
                 "' or subtype",
             object,
             acceptor
@@ -543,8 +543,8 @@ public class ValidationHelper implements SemanticsConsts {
         return asserting(
             expectedType.isSupertypeOrEqualTo(actual),
             issueCode,
-            "invalid type; found: '" + actual.getJadescriptName() +
-                "'; expected: '" + expectedType.getJadescriptName() +
+            "invalid type; found: '" + actual.getFullJadescriptName() +
+                "'; expected: '" + expectedType.getFullJadescriptName() +
                 "' or subtype",
             object,
             feature,
@@ -569,8 +569,8 @@ public class ValidationHelper implements SemanticsConsts {
         return asserting(
             expectedDescriptor.isSupertypeOrEqualTo(actual),
             issueCode,
-            "invalid type; found: '" + actual.getJadescriptName() +
-                "'; expected: '" + expectedDescriptor.getJadescriptName() +
+            "invalid type; found: '" + actual.getFullJadescriptName() +
+                "'; expected: '" + expectedDescriptor.getFullJadescriptName() +
                 "' or subtype",
             object,
             feature,

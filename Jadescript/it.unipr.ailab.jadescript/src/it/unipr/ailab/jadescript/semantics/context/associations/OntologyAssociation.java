@@ -1,7 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.context.associations;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.namespace.ImportedGlobalsNamespace;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithCompilables;

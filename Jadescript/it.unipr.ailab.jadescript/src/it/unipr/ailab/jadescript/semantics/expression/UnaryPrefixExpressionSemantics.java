@@ -21,7 +21,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -404,7 +404,7 @@ public class UnaryPrefixExpressionSemantics
                 inferredType instanceof ListType,
                 "InvalidIndexExpression",
                 "Invalid type; expected: 'list', provided: " +
-                    inferredType.getJadescriptName(),
+                    inferredType.getFullJadescriptName(),
                 ofNotation,
                 acceptor
             );

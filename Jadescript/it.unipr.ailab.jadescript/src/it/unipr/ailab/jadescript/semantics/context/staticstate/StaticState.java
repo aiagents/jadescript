@@ -692,7 +692,7 @@ public final class StaticState
                 this.getLocalScopeFlowTypingUpperBounds().getKeys()) {
                 final IJadescriptType ub =
                     this.getLocalScopeFlowTypingUpperBounds().getUnsafe(ed);
-                scb.line(ed + " <= " + ub.getJadescriptName());
+                scb.line(ed + " <= " + ub.getFullJadescriptName());
             }
             scb.close("]");
         } else {

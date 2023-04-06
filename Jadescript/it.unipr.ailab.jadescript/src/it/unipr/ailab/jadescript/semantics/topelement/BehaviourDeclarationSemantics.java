@@ -8,7 +8,7 @@ import it.unipr.ailab.jadescript.semantics.context.c1toplevel.TopLevelBehaviourD
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDeclaration;
