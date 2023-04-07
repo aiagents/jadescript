@@ -4,20 +4,18 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c0outer.RawTypeReferenceSolverContext;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.UnknownJVMType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.UserDefinedAgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BaseBehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.UserDefinedBehaviourType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.TupleType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.MessageType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontocontent.UserDefinedOntoContentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.UserDefinedOntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.InvalidTypeInstantiatonException;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.ParametricTypeSchema;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.maybe.Maybe;
 import jade.content.onto.Ontology;
 import jadescript.content.*;
@@ -36,13 +34,13 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.some;
-import static jadescript.lang.Performative.UNKNOWN;
 import static jadescript.lang.Performative.performativeByName;
 
 public class TypeSolver {
@@ -66,7 +64,7 @@ public class TypeSolver {
     ) {
         final Maybe<IJadescriptType> fromJVMTypeReference =
             this.solveJVMTypeReference(
-            reference);
+                reference);
 
         IJadescriptType result;
         if (fromJVMTypeReference.isPresent()) {
@@ -116,7 +114,7 @@ public class TypeSolver {
 
         final ParametricTypeSchema<? extends IJadescriptType> schema =
             index.getParametricTypeTable().get(
-            noGenericsTypeName).get();
+                noGenericsTypeName).get();
 
         if (schema.isApplicable(args)) {
             try {
@@ -142,9 +140,10 @@ public class TypeSolver {
         JvmTypeReference reference, boolean permissive
     ) {
         IJadescriptType result =
-            solveJvmTypeReferenceWithoutReattempts(reference,
-            permissive
-        );
+            solveJvmTypeReferenceWithoutReattempts(
+                reference,
+                permissive
+            );
 
         if (result.category().isJavaVoid()) {
             ICompositeNode node = NodeModelUtils.getNode(reference);
@@ -156,11 +155,12 @@ public class TypeSolver {
                 final INode finalNode = node;
                 final JvmTypeReference reattempt =
                     module.get(ContextManager.class).currentContext().searchAs(
-                    RawTypeReferenceSolverContext.class,
-                    solver -> solver.rawResolveTypeReference(finalNode.getText().trim())
-                ).findAny().orElse(jvm.typeRef(finalNode.getText()));
+                        RawTypeReferenceSolverContext.class,
+                        solver -> solver.rawResolveTypeReference(finalNode.getText().trim())
+                    ).findAny().orElse(jvm.typeRef(finalNode.getText()));
 
-                return solveJvmTypeReferenceWithoutReattempts(reattempt,
+                return solveJvmTypeReferenceWithoutReattempts(
+                    reattempt,
                     permissive
                 );
             }
@@ -187,42 +187,50 @@ public class TypeSolver {
         JvmTypeReference reference, boolean permissive
     ) {
         if (jvm.isAssignable(JadescriptConcept.class, reference)) {
-            return new UserDefinedOntoContentType(module,
+            return new UserDefinedOntoContentType(
+                module,
                 reference,
                 builtinTypes.concept()
             );
         } else if (jvm.isAssignable(JadescriptAction.class, reference)) {
-            return new UserDefinedOntoContentType(module,
+            return new UserDefinedOntoContentType(
+                module,
                 reference,
                 builtinTypes.action()
             );
         } else if (jvm.isAssignable(JadescriptPredicate.class, reference)) {
-            return new UserDefinedOntoContentType(module,
+            return new UserDefinedOntoContentType(
+                module,
                 reference,
                 builtinTypes.predicate()
             );
-        } else if (jvm.isAssignable(JadescriptAtomicProposition.class,
+        } else if (jvm.isAssignable(
+            JadescriptAtomicProposition.class,
             reference
         )) {
-            return new UserDefinedOntoContentType(module,
+            return new UserDefinedOntoContentType(
+                module,
                 reference,
                 builtinTypes.atomicProposition()
             );
         } else if (jvm.isAssignable(JadescriptProposition.class, reference)) {
-            return new UserDefinedOntoContentType(module,
+            return new UserDefinedOntoContentType(
+                module,
                 reference,
                 builtinTypes.proposition()
             );
         } else if (jvm.isAssignable(Agent.class, reference)) {
-            return new UserDefinedAgentType(module,
+            return new UserDefinedAgentType(
+                module,
                 reference,
                 builtinTypes.agent()
             );
         } else if (jvm.isAssignable(Cyclic.class, reference)) {
             final List<JvmTypeReference> args =
-                jvm.getTypeArgumentsOfParent(reference,
-                jvm.typeRef(CyclicBehaviour.class)
-            );
+                jvm.getTypeArgumentsOfParent(
+                    reference,
+                    jvm.typeRef(CyclicBehaviour.class)
+                );
             BaseBehaviourType rootCategoryType;
             if (args.size() == 1) {
                 rootCategoryType = builtinTypes.cyclicBehaviour(
@@ -230,15 +238,17 @@ public class TypeSolver {
             } else {
                 rootCategoryType = builtinTypes.cyclicBehaviour();
             }
-            return new UserDefinedBehaviourType(module,
+            return new UserDefinedBehaviourType(
+                module,
                 reference,
                 rootCategoryType
             );
         } else if (jvm.isAssignable(OneShot.class, reference)) {
             final List<JvmTypeReference> args =
-                jvm.getTypeArgumentsOfParent(reference,
-                jvm.typeRef(OneShotBehaviour.class)
-            );
+                jvm.getTypeArgumentsOfParent(
+                    reference,
+                    jvm.typeRef(OneShotBehaviour.class)
+                );
             BaseBehaviourType rootCategoryType;
             if (args.size() == 1) {
                 rootCategoryType = builtinTypes.oneshotBehaviour(
@@ -246,16 +256,18 @@ public class TypeSolver {
             } else {
                 rootCategoryType = builtinTypes.oneshotBehaviour();
             }
-            return new UserDefinedBehaviourType(module,
+            return new UserDefinedBehaviourType(
+                module,
                 reference,
                 rootCategoryType
             );
 
         } else if (jvm.isAssignable(Base.class, reference)) {
             final List<JvmTypeReference> args =
-                jvm.getTypeArgumentsOfParent(reference,
-                jvm.typeRef(Behaviour.class)
-            );
+                jvm.getTypeArgumentsOfParent(
+                    reference,
+                    jvm.typeRef(Behaviour.class)
+                );
             BaseBehaviourType rootCategoryType;
             if (args.size() == 1) {
                 rootCategoryType = builtinTypes.behaviour(fromJvmTypeReference(
@@ -263,12 +275,14 @@ public class TypeSolver {
             } else {
                 rootCategoryType = builtinTypes.behaviour();
             }
-            return new UserDefinedBehaviourType(module,
+            return new UserDefinedBehaviourType(
+                module,
                 reference,
                 rootCategoryType
             );
         } else if (jvm.isAssignable(Ontology.class, reference)) {
-            return new UserDefinedOntologyType(module,
+            return new UserDefinedOntologyType(
+                module,
                 reference,
                 builtinTypes.ontology()
             );
@@ -307,6 +321,7 @@ public class TypeSolver {
             .get(performative).get();
     }
 
+
     public ParametricTypeSchema<? extends MessageType>
     getMessageTypeSchemaForPerformative(
         String performative
@@ -314,6 +329,59 @@ public class TypeSolver {
         return getMessageTypeSchemaForPerformative(
             index.getMessageClassToPerformativeMap().get(performative)
         );
+    }
+
+
+    public List<TypeArgument> getDefaultTypeArguments(
+        String name
+    ) {
+        if (name.equals("Message")) {
+            return List.of(builtinTypes.any(
+                "There are no type upper bounds for the content " +
+                    "of a message of root type Message."
+            ));
+
+        }
+        final Performative performative =
+            index.getMessageClassToPerformativeMap().get(name);
+
+        if(performative == null){
+            return List.of();
+        }
+
+        final IJadescriptType contentBound =
+            getContentBoundForPerformative(performative);
+
+        if(contentBound.isErroneous()){
+            return List.of();
+        }
+
+        module.get(TypeHelper.class).unpackTuple()
+
+        if (jadescriptType.category().isTuple()) {
+            return jadescriptType.typeArguments();
+        }
+        return Collections.singletonList(jadescriptType);
+    }
+
+
+
+    public IJadescriptType getContentBoundForPerformative(
+        Performative performative
+    ) {
+        final List<IJadescriptType> upperBounds =
+            index.getPerformativeToMessageSubtypeMap().get(performative)
+                .get().getUpperBounds();
+
+        if (upperBounds.isEmpty()) {
+            return builtinTypes.any(""); //TODO error message
+        }
+
+        if (upperBounds.size() == 1) {
+            return upperBounds.get(0);
+        }
+
+        return builtinTypes.tuple(new ArrayList<>(upperBounds));
     }
 
 
@@ -347,6 +415,7 @@ public class TypeSolver {
         }
     }
 
+
     private List<TypeArgument> limitMsgContentTypesToUpperBounds(
         Maybe<ParametricTypeSchema<? extends MessageType>> schema,
         List<TypeArgument> arguments
@@ -363,7 +432,8 @@ public class TypeSolver {
     public IJadescriptType fromClass(
         Class<?> class_, List<IJadescriptType> arguments
     ) {
-        return fromJvmTypeReference(this.jvm.typeRef(class_,
+        return fromJvmTypeReference(this.jvm.typeRef(
+            class_,
             arguments.stream().map(IJadescriptType::asJvmTypeReference).collect(
                 Collectors.toList())
         ));

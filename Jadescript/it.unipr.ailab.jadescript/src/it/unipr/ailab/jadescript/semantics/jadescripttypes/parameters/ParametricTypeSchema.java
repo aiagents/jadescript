@@ -249,6 +249,11 @@ public final class ParametricTypeSchema<T extends IJadescriptType> {
     }
 
 
+    public List<IJadescriptType> getUpperBounds() {
+        return this.upperBounds;
+    }
+
+
     public static class Factory {
 
         private final SemanticsModule factoryModule;

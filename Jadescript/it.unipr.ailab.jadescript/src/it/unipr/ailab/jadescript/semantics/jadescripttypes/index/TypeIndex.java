@@ -6,7 +6,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.MessageType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.ParametricTypeSchema;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.NothingType;
+
 import it.unipr.ailab.maybe.utils.LazyInit;
 import jadescript.lang.Performative;
 import org.eclipse.xtext.common.types.JvmTypeReference;
@@ -21,7 +21,6 @@ import java.util.function.Supplier;
 
 class TypeIndex {
 
-    private final SemanticsModule module;
     private final LazyInit<BuiltinTypeProvider> builtinTypeProvider;
     private final LazyInit<JvmTypeHelper> jvmTypeHelper;
 
@@ -48,7 +47,6 @@ class TypeIndex {
 
 
     public TypeIndex(SemanticsModule module) {
-        this.module = module;
 
         this.builtinTypeProvider = LazyInit.lazyInit(
             () -> module.get(BuiltinTypeProvider.class)
@@ -207,13 +205,12 @@ class TypeIndex {
     }
 
 
-    /*package-private*/ NothingType getNothingType() {
-        return builtinTypeProvider.get().nothing();
-    }
+
 
 
     /*package-private*/ Map<String, Performative>
     getMessageClassToPerformativeMap() {
+        initializeIfNecessary();
         return messageClassToPerformativeMap;
     }
 
@@ -221,11 +218,13 @@ class TypeIndex {
     /*package-private*/ Map<
         Performative, Supplier<ParametricTypeSchema<? extends MessageType>>
         > getPerformativeToMessageSubtypeMap() {
+        initializeIfNecessary();
         return performativeToMessageSubtypeMap;
     }
 
 
     /*package-private*/ Map<String, Integer> getExpectedTypeParameters() {
+        initializeIfNecessary();
         return expectedTypeParameters;
     }
 

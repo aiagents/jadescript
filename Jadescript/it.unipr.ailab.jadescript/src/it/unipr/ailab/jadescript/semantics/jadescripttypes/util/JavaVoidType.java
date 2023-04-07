@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.util;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
@@ -21,7 +22,7 @@ public class JavaVoidType extends UtilityType {
             module,
             TypeHelper.VOID_TYPEID,
             "(error)javaVoid",
-            module.get(TypeHelper.class).typeRef(void.class)
+            module.get(JvmTypeHelper.class).typeRef(void.class)
         );
     }
 

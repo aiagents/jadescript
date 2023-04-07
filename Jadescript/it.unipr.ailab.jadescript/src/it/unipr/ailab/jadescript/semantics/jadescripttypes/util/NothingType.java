@@ -14,16 +14,17 @@ import java.util.List;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
 
-public class NothingType extends UtilityType {
+public class NothingType extends ErroneousType {
 
 
-    public NothingType(SemanticsModule module) {
+    public NothingType(SemanticsModule module, String errorMessage) {
         super(
             module,
             TypeHelper.builtinPrefix + "NOTHING",
             "(error)nothing",
             module.get(JvmTypeReferenceBuilder.class).typeRef(
-                "/*NOTHING*/java.lang.Object")
+                "/*NOTHING*/java.lang.Object"),
+            errorMessage
         );
     }
 
@@ -36,18 +37,6 @@ public class NothingType extends UtilityType {
                 return true;
             }
         };
-    }
-
-
-    @Override
-    public boolean isSendable() {
-        return false;
-    }
-
-
-    @Override
-    public boolean isErroneous() {
-        return true;
     }
 
 

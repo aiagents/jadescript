@@ -1,8 +1,10 @@
 package it.unipr.ailab.jadescript.semantics.helpers;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.implicit.ImplicitConversionsHelper;
 import it.unipr.ailab.jadescript.semantics.utils.JvmTypeQualifiedNameParser;
 import it.unipr.ailab.jadescript.semantics.utils.JvmTypeReferenceSet;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import jadescript.lang.Tuple;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypeReferenceBuilder;
@@ -15,10 +17,16 @@ public class JvmTypeHelper {
 
     private final SemanticsModule module;
 
+    private final LazyInit<ImplicitConversionsHelper> conversions;
+
 
     public JvmTypeHelper(SemanticsModule module) {
         this.module = module;
+        this.conversions = LazyInit.lazyInit(() -> {
+            return module.get(ImplicitConversionsHelper.class);
+        });
     }
+
 
     public List<JvmTypeReference> getTypeArgumentsOfParent(
         JvmTypeReference type,
@@ -37,7 +45,7 @@ public class JvmTypeHelper {
     }
 
 
-    private List<JvmTypeReference> getParentChain(JvmTypeReference x) {
+    public List<JvmTypeReference> getParentChain(JvmTypeReference x) {
         List<JvmTypeReference> result = new ArrayList<>();
         result.add(x);
         if (x.getType() instanceof JvmDeclaredType) {
@@ -51,6 +59,7 @@ public class JvmTypeHelper {
         }
         return result;
     }
+
 
     private static String boxedName(String input) {
         switch (input) {
@@ -122,8 +131,14 @@ public class JvmTypeHelper {
         );
     }
 
+
     public boolean isAssignable(Class<?> toType, JvmTypeReference fromType) {
         return isAssignableRaw(typeRef(toType), fromType);
+    }
+
+
+    public JvmTypeReference objectTypeRef() {
+        return module.get(JvmTypeReferenceBuilder.class).typeRef(Object.class);
     }
 
 
@@ -145,15 +160,19 @@ public class JvmTypeHelper {
             return false;
         }
 
-        if (isPrimitiveWideningViable(fromType, toType)) {
+        if (conversions.get().isPrimitiveWideningViable(fromType, toType)) {
             return true;
         }
 
         if (toType.getType() instanceof JvmPrimitiveType) {
-            left = boxedReference((JvmPrimitiveType) toType.getType());
+            left = conversions.get().boxedReference(
+                (JvmPrimitiveType) toType.getType()
+            );
         }
         if (fromType.getType() instanceof JvmPrimitiveType) {
-            right = boxedReference((JvmPrimitiveType) fromType.getType());
+            right = conversions.get().boxedReference(
+                (JvmPrimitiveType) fromType.getType()
+            );
         }
 
         if (JvmTypeHelper.typeReferenceRawEquals(left, right)) {
@@ -205,6 +224,7 @@ public class JvmTypeHelper {
             );
         }
 
+        //noinspection IfStatementWithIdenticalBranches
         if (left instanceof JvmGenericArrayTypeReference
             && right.getType() instanceof JvmDeclaredType
             || left.getType() instanceof JvmDeclaredType
@@ -234,12 +254,12 @@ public class JvmTypeHelper {
             return false;
         }
 
-        if (isPrimitiveWideningViable(fromType, toType)) {
+        if (conversions.get().isPrimitiveWideningViable(fromType, toType)) {
             return true;
         }
 
-        left = boxedReferenceIfPrimitive(left);
-        right = boxedReferenceIfPrimitive(right);
+        left = conversions.get().boxedReferenceIfPrimitive(left);
+        right = conversions.get().boxedReferenceIfPrimitive(right);
 
         if (JvmTypeHelper.typeReferenceEquals(left, right)) {
             return true;
@@ -275,8 +295,10 @@ public class JvmTypeHelper {
                     return false;
                 } else {
                     for (int i = 0; i < leftJvmptr.getArguments().size(); ++i) {
-                        if (!JvmTypeHelper.typeReferenceEquals(leftJvmptr.getArguments().get(
-                            i), rightJvmptr.getArguments().get(i))) {
+                        if (!JvmTypeHelper.typeReferenceEquals(
+                            leftJvmptr.getArguments().get(i),
+                            rightJvmptr.getArguments().get(i)
+                        )) {
                             return false;
                         }
                     }

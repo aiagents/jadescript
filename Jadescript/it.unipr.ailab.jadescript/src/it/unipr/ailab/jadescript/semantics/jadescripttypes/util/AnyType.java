@@ -10,15 +10,16 @@ import it.unipr.ailab.maybe.Maybe;
 
 import java.util.List;
 
-public class AnyType extends UtilityType {
+public class AnyType extends ErroneousType {
 
 
-    public AnyType(SemanticsModule module) {
+    public AnyType(SemanticsModule module, String errorMessage) {
         super(
             module,
             TypeHelper.builtinPrefix + "ANY",
             "(error)any",
-            module.get(TypeHelper.class).objectTypeRef()
+            module.get(TypeHelper.class).objectTypeRef(),
+            errorMessage
         );
     }
 
@@ -31,18 +32,6 @@ public class AnyType extends UtilityType {
                 return true;
             }
         };
-    }
-
-
-    @Override
-    public boolean isSendable() {
-        return false;
-    }
-
-
-    @Override
-    public boolean isErroneous() {
-        return true;
     }
 
 

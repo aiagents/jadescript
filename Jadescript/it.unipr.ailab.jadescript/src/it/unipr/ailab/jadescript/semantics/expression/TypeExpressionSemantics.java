@@ -14,6 +14,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BaseBehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.TupleType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
@@ -273,6 +274,7 @@ public final class TypeExpressionSemantics extends Semantics {
                 nullAsFalse);
 
         final List<TypeArgument> contentTypes;
+
         if (!isExplicitContentType) {
             contentTypes =
                 typeHelper.getDefaultTypeArguments(baseTypeName.toNullable());

@@ -1,7 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters;
 
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.AnyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 
 import java.util.HashMap;
@@ -157,7 +157,8 @@ public abstract class ParametricMapBuilder<T extends IJadescriptType>
 
     protected IJadescriptType getVariadicUpperBound() {
         final Supplier<IJadescriptType> anyTypeSupplier =
-            () -> this.skeleton.module.get(AnyType.class);
+            () -> this.skeleton.module.get(BuiltinTypeProvider.class)
+                .any(""); //TODO error message
 
         if (this.skeleton.varadicTypeParameter.isNothing()) {
             return anyTypeSupplier.get();

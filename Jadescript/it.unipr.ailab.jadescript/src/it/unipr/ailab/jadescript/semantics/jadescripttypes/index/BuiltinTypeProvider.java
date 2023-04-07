@@ -38,6 +38,7 @@ import jadescript.util.JadescriptSet;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 
 import static it.unipr.ailab.maybe.utils.LazyInit.lazyInit;
 
@@ -47,12 +48,12 @@ public class BuiltinTypeProvider {
     private final SemanticsModule module;
 
     @BuiltinType(Object.class)
-    /*package-private*/ final LazyInit<AnyType> tAny =
-        fromModule(AnyType.class);
+    /*package-private*/ final LazyInit<Function<String, AnyType>> etAny =
+        lazyInit(() -> (s) -> new AnyType(getModule(), s));
 
     @BuiltinType
-    /*package-private*/ final LazyInit<NothingType> tNothing =
-        fromModule(NothingType.class);
+    /*package-private*/ final LazyInit<Function<String, NothingType>> etNothing
+        = lazyInit(() -> (s) -> new NothingType(getModule(), s));
 
     @BuiltinType({Void.class, void.class})
     /*package-private*/ final LazyInit<JavaVoidType> tVoid =
@@ -1547,15 +1548,14 @@ public class BuiltinTypeProvider {
     }
 
 
-    public AnyType any() {
-        return tAny.get();
+    public AnyType any(String errorMessage) {
+        return etAny.get().apply(errorMessage);
     }
 
 
-    public NothingType nothing() {
-        return tNothing.get();
+    public NothingType nothing(String errorMessage) {
+        return etNothing.get().apply(errorMessage);
     }
-
 
     public IntegerType integer() {
         return tInteger.get();
