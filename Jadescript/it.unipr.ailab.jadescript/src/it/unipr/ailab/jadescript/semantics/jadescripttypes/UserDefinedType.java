@@ -1,7 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
 public abstract class UserDefinedType<T extends JadescriptType>
@@ -37,12 +36,6 @@ public abstract class UserDefinedType<T extends JadescriptType>
 
     public T getRootCategoryType() {
         return rootCategoryType;
-    }
-
-
-    @Override
-    public void addBultinProperty(Property prop) {
-        // Do nothing
     }
 
 

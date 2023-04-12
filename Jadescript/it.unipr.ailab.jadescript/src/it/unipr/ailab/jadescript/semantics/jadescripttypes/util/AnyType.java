@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.util;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
@@ -18,7 +19,7 @@ public class AnyType extends ErroneousType {
             module,
             TypeHelper.builtinPrefix + "ANY",
             "(error)any",
-            module.get(TypeHelper.class).objectTypeRef(),
+            module.get(JvmTypeHelper.class).objectTypeRef(),
             errorMessage
         );
     }

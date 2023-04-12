@@ -2,8 +2,8 @@ package it.unipr.ailab.jadescript.semantics.context.c2feature;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,13 +31,13 @@ public class OnBehaviourFailureHandlerWhenExpressionContext
 
     @Override
     public IJadescriptType getFailureReasonType() {
-        return module.get(TypeHelper.class).PROPOSITION;
+        return module.get(BuiltinTypeProvider.class).proposition();
     }
 
 
     @Override
     public IJadescriptType getFailedBehaviourType() {
-        return module.get(TypeHelper.class).ANYBEHAVIOUR;
+        return module.get(BuiltinTypeProvider.class).anyBehaviour();
     }
 
 

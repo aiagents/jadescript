@@ -1,12 +1,12 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.EmptyTypeNamespace;
@@ -32,14 +32,12 @@ public class AgentEnvType extends JadescriptType {
 
     private final TypeArgument forAgent;
     private final SEMode seMode;
-    private final List<IJadescriptType> parameterUpperBounds;
 
 
     public AgentEnvType(
         SemanticsModule module,
         TypeArgument forAgent,
-        TypeArgument seMode,
-        List<IJadescriptType> parameterUpperBounds
+        TypeArgument seMode
     ) {
         super(
             module,
@@ -49,7 +47,6 @@ public class AgentEnvType extends JadescriptType {
         );
         this.forAgent = forAgent;
         this.seMode = getFromTypeArgument(seMode);
-        this.parameterUpperBounds = parameterUpperBounds;
     }
 
 
@@ -104,8 +101,8 @@ public class AgentEnvType extends JadescriptType {
     public List<TypeArgument> typeArguments() {
         return List.of(
             this.forAgent,
-            module.get(TypeHelper.class)
-                .jtFromClass(toSEModeClass(this.seMode))
+            module.get(TypeSolver.class)
+                .fromClass(toSEModeClass(this.seMode))
         );
     }
 
@@ -190,12 +187,6 @@ public class AgentEnvType extends JadescriptType {
     @Override
     public TypeNamespace namespace() {
         return module.get(EmptyTypeNamespace.class);
-    }
-
-
-    @Override
-    public void addBultinProperty(Property prop) {
-        //do nothing
     }
 
 

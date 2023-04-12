@@ -13,9 +13,11 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.NativeCall;
@@ -212,15 +214,15 @@ public class NativeCallSemantics
         Stream<JvmOperation> candidates,
         List<IJadescriptType> argTypes
     ) {
-
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         int argsSize = argTypes.size();
         return candidates.filter(op -> {
             final EList<JvmFormalParameter> parameters = op.getParameters();
             for (int i = 0; i < argsSize; i++) {
-                if (!typeHelper.isAssignable(
+                if (!jvm.isAssignable(
                     parameters.get(i).getParameterType(),
-                    argTypes.get(i).asJvmTypeReference()
+                    argTypes.get(i).asJvmTypeReference(),
+                    false
                 )) {
                     return false;
                 }
@@ -233,7 +235,7 @@ public class NativeCallSemantics
     public List<JvmOperation> mostSpecificApplicables(
         List<JvmOperation> applicables
     ) {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
         List<JvmOperation> msmSet = new LinkedList<>();
         for (JvmOperation candidate : applicables) {
@@ -256,6 +258,7 @@ public class NativeCallSemantics
             // the corresponding parameter types of candidate
             boolean allSupertypeOrEqual = true;
 
+
             for (int i = 0; i < assumedSize; i++) {
                 final JvmTypeReference aType =
                     msm.getParameters().get(i).getParameterType();
@@ -270,13 +273,13 @@ public class NativeCallSemantics
                 }
 
                 // A >: B
-                if (typeHelper.isAssignable(aType, bType)) {
+                if (jvm.isAssignable(aType, bType, false)) {
                     allSubtypeOrEqual = false;
                     continue;
                 }
 
                 // A <: B
-                if (typeHelper.isAssignable(bType, aType)) {
+                if (jvm.isAssignable(bType, aType, false)) {
                     allSupertypeOrEqual = false;
                     continue;
                 }
@@ -348,10 +351,10 @@ public class NativeCallSemantics
             .collect(Collectors.joining("."));
 
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
 
         final IJadescriptType containingClass =
-            typeHelper.jtFromFullyQualifiedName(classFQName);
+            typeSolver.fromFullyQualifiedName(classFQName);
 
         StaticState newState = state;
         int argsSize = args.size();
@@ -405,7 +408,7 @@ public class NativeCallSemantics
                 operation.toNullable().getParameters().stream()
                     .filter(Objects::nonNull)
                     .map(JvmFormalParameter::getParameterType)
-                    .map(typeHelper::jtFromJvmTypeRef)
+                    .map(typeSolver::fromJvmTypeReference)
                     .collect(Collectors.toList());
 
             adaptedArgs = compilationHelper.implicitConversionsOnRValueList(
@@ -464,6 +467,9 @@ public class NativeCallSemantics
         Maybe<NativeCall> input,
         StaticState state
     ) {
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
         boolean hasTypeClause =
             input.__(NativeCall::hasTypeClause).orElse(false);
@@ -474,8 +480,8 @@ public class NativeCallSemantics
 
 
         MaybeList<RValueExpression> args = input
-                .__(NativeCall::getSimpleArguments)
-                .__toList(SimpleArgumentList::getExpressions);
+            .__(NativeCall::getSimpleArguments)
+            .__toList(SimpleArgumentList::getExpressions);
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -488,11 +494,9 @@ public class NativeCallSemantics
         final MaybeList<String> fqnSegments =
             javaFQN.__toList(JavaFullyQualifiedName::getSegments);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-
 
         if (fqnSegments.size() < 2) {
-            return typeHelper.TOP.apply(
+            return builtins.any(
                 "Error: not enough segments in fully-qualified method name"
             );
         }
@@ -500,7 +504,7 @@ public class NativeCallSemantics
 
         if (fqnSegments.stream()
             .anyMatch(m -> m.isNothing() || m.toNullable().isBlank())) {
-            return typeHelper.TOP.apply(
+            return builtins.any(
                 "Error: invalid fully-qualified method name"
             );
         }
@@ -515,7 +519,7 @@ public class NativeCallSemantics
 
 
         final IJadescriptType containingClass =
-            typeHelper.jtFromFullyQualifiedName(classFQName);
+            typeSolver.fromFullyQualifiedName(classFQName);
 
         StaticState newState = state;
         int argsSize = args.size();
@@ -546,7 +550,7 @@ public class NativeCallSemantics
             mostSpecificApplicables(applicables.collect(Collectors.toList()));
 
         if (mostSpecific.isEmpty()) {
-            return typeHelper.TOP.apply(
+            return builtins.any(
                 "Could not resolve Java method " + methodName + "(" +
                     argTypes.stream()
                         .map(TypeArgument::compileToJavaTypeReference)
@@ -588,6 +592,9 @@ public class NativeCallSemantics
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
         StaticState newState = state;
 
         final Maybe<RValueExpression> stringExpr =
@@ -600,7 +607,7 @@ public class NativeCallSemantics
 
         if (nameValidation == VALID) {
             nameValidation = validationHelper.assertExpectedType(
-                module.get(TypeHelper.class).TEXT,
+                builtins.text(),
                 rves.inferType(stringExpr, newState),
                 "InvalidNativeCall",
                 stringExpr,
@@ -734,10 +741,11 @@ public class NativeCallSemantics
             .map(Maybe::toNullable)
             .collect(Collectors.joining("."));
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
         final IJadescriptType containingClass =
-            typeHelper.jtFromFullyQualifiedName(classFQName);
+            typeSolver.fromFullyQualifiedName(classFQName);
 
         int argsSize = args.size();
 
@@ -872,7 +880,7 @@ public class NativeCallSemantics
                 winner.getParameters().stream()
                     .filter(Objects::nonNull)
                     .map(JvmFormalParameter::getParameterType)
-                    .map(typeHelper::jtFromJvmTypeRef)
+                    .map(typeSolver::fromJvmTypeReference)
                     .collect(Collectors.toList());
 
             int assumedSize = Math.min(paramTypes.size(), argsSize);
@@ -912,12 +920,14 @@ public class NativeCallSemantics
                     return INVALID;
                 }
 
-                if (!typeHelper.isAssignable(
+                if (!jvm.isAssignable(
                     explicitReturnType.asJvmTypeReference(),
-                    winner.getReturnType()
-                ) && !typeHelper.isAssignable(
                     winner.getReturnType(),
-                    explicitReturnType.asJvmTypeReference()
+                    false
+                ) && !jvm.isAssignable(
+                    winner.getReturnType(),
+                    explicitReturnType.asJvmTypeReference(),
+                    false
                 )) {
                     // if the two types are not convertible, emit error
                     return validationHelper.emitError(

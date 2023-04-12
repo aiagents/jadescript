@@ -10,7 +10,7 @@ import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnActivateHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
@@ -74,7 +74,7 @@ public class OnActivateHandlerSemantics
         input.safeDo(handlerSafe -> members.add(jvmTypesBuilder.toMethod(
             handlerSafe,
             "onStart",
-            module.get(TypeHelper.class).typeRef(void.class),
+            module.get(JvmTypeHelper.class).typeRef(void.class),
             itMethod -> {
                 fillOnStartMethod(
                     input,
@@ -148,7 +148,7 @@ public class OnActivateHandlerSemantics
         input.safeDo(handlerSafe -> members.add(jvmTypesBuilder.toMethod(
             handlerSafe,
             "doOnActivate",
-            module.get(TypeHelper.class).typeRef(void.class),
+            module.get(JvmTypeHelper.class).typeRef(void.class),
             itMethod -> {
                 fillDoOnActivateMethod(
                     input,

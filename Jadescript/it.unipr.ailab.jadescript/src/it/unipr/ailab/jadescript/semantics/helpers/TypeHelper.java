@@ -33,8 +33,6 @@ public class TypeHelper implements SemanticsConsts {
     public static final String VOID_TYPEID = builtinPrefix + "JAVAVOID";
 
 
-    private final Map<Performative, MessageContentTupleDefaultElements>
-        defaultContentElementsMap = new HashMap<>();
 
     private final SemanticsModule module;
     private final LazyInit<JvmTypeHelper> jvm;
@@ -195,6 +193,8 @@ public class TypeHelper implements SemanticsConsts {
         }
         return List.of(t);
     }
+
+
 
 
     public boolean isTypeWithPrimitiveOntologySchema(IJadescriptType type) {

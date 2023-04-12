@@ -12,9 +12,10 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.feature.MemberBehaviourSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsDispatchHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Functional;
 import it.unipr.ailab.maybe.Maybe;
@@ -138,6 +139,7 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
         }
         exitContext(input);
     }
+
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
@@ -383,12 +385,14 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
         // Override if needed.
     }
 
+
     protected void validateAdditionalContextualizedAspectsOnSave(
         Maybe<T> input,
         ValidationMessageAcceptor acceptor
     ) {
         // Override if needed.
     }
+
 
     @Override
     public void populateMainMembers(
@@ -467,11 +471,11 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
 
         final JvmTypesBuilder jvmTypesBuilder =
             module.get(JvmTypesBuilder.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         members.add(jvmTypesBuilder.toMethod(
             inputSafe,
             "__initializeProperties",
-            typeHelper.VOID.asJvmTypeReference(),
+            jvm.typeRef(void.class),
             itMethod -> {
                 itMethod.setVisibility(JvmVisibility.PRIVATE);
                 final CompilationHelper compilationHelper =
@@ -501,7 +505,9 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
         final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
         final CompilationHelper compilationHelper = module.get(
             CompilationHelper.class);
@@ -509,20 +515,21 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
         members.add(jvmTB.toMethod(
             inputSafe,
             BEHAVIOUR_FAILURE_HANDLER_METHOD_NAME,
-            typeHelper.VOID.asJvmTypeReference(),
+            jvm.typeRef(void.class),
             itMethod -> {
                 final String behaviourParam = "__behaviour";
                 final String reasonParam = "__reason";
                 itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
                     behaviourParam,
-                    typeHelper.typeRef(
-                        "jadescript.core.behaviours.Behaviour<?>")
+                    jvm.typeRef(
+                        "jadescript.core.behaviours.Behaviour<?>"
+                    )
                 ));
                 itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
                     reasonParam,
-                    typeHelper.PROPOSITION.asJvmTypeReference()
+                    builtins.proposition().asJvmTypeReference()
                 ));
 
                 compilationHelper.createAndSetBody(
@@ -641,7 +648,7 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
         final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
         final CompilationHelper compilationHelper = module.get(
             CompilationHelper.class);
@@ -649,13 +656,13 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
         members.add(jvmTB.toMethod(
             inputSafe,
             EXCEPTION_HANDLER_METHOD_NAME,
-            typeHelper.VOID.asJvmTypeReference(),
+            jvm.typeRef(void.class),
             itMethod -> {
                 final String excParameter = "__exc";
                 itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
                     excParameter,
-                    typeHelper.typeRef(
+                    jvm.typeRef(
                         jadescript.core.exception.JadescriptException.class
                     )
                 ));
@@ -783,11 +790,10 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
         }
         final T inputSafe = input.toNullable();
 
-
         members.add(module.get(JvmTypesBuilder.class).toField(
             inputSafe,
             EXCEPTION_THROWER_NAME,
-            module.get(TypeHelper.class)
+            module.get(JvmTypeHelper.class)
                 .typeRef(jadescript.core.exception.ExceptionThrower.class),
             itField -> {
                 module.get(CompilationHelper.class).createAndSetInitializer(

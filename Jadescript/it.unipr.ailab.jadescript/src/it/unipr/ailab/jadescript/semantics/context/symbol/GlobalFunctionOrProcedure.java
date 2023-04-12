@@ -7,9 +7,11 @@ import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
@@ -82,7 +84,8 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
         List<String> paramNames = new ArrayList<>();
         Map<String, IJadescriptType> paramNamesToTypes = new HashMap<>();
 
-        final IJadescriptType anyAE = module.get(TypeHelper.class).ANY_AGENTENV;
+        final IJadescriptType anyAE =
+            module.get(BuiltinTypeProvider.class).anyAgentEnv();
 
         boolean withoutSideEffects = false;
 
@@ -112,7 +115,11 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
 
             final IJadescriptType solvedType =
                 namespace.resolveType(paramTypeRef);
-            if (anyAE.isSupertypeOrEqualTo(solvedType)) {
+
+            final TypeComparator comparator = module.get(TypeComparator.class);
+            if (TypeRelationshipQuery.superTypeOrEqual().matches(
+                comparator.compare(anyAE, solvedType)
+            )) {
                 continue;
             }
 

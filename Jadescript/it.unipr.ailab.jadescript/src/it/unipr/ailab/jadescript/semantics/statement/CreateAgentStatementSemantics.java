@@ -9,9 +9,12 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
@@ -43,22 +46,22 @@ public class CreateAgentStatementSemantics
     ) {
         final MaybeList<RValueExpression> namedArgsValues =
             someStream(input
-                    .__(CreateAgentStatement::getNamedArgs)
-                    .__(NamedArgumentList::getParameterValues))
+                .__(CreateAgentStatement::getNamedArgs)
+                .__(NamedArgumentList::getParameterValues))
                 .filter(Maybe::isPresent)
                 .collect(MaybeList.collectFromStreamOfMaybes());
 
         final MaybeList<String> namedArgsKeys =
             someStream(input
-                    .__(CreateAgentStatement::getNamedArgs)
-                    .__(NamedArgumentList::getParameterNames))
+                .__(CreateAgentStatement::getNamedArgs)
+                .__(NamedArgumentList::getParameterNames))
                 .filter(Maybe::isPresent)
                 .collect(MaybeList.collectFromStreamOfMaybes());
 
         final MaybeList<RValueExpression> simpleArgs =
             someStream(input
-                    .__(CreateAgentStatement::getSimpleArgs)
-                    .__(SimpleArgumentList::getExpressions))
+                .__(CreateAgentStatement::getSimpleArgs)
+                .__(SimpleArgumentList::getExpressions))
                 .filter(Maybe::isPresent)
                 .collect(MaybeList.collectFromStreamOfMaybes());
 
@@ -73,7 +76,7 @@ public class CreateAgentStatementSemantics
 
         if (nickNameCheck == VALID) {
             module.get(ValidationHelper.class).assertExpectedType(
-                module.get(TypeHelper.class).TEXT,
+                module.get(BuiltinTypeProvider.class).text(),
                 rves.inferType(nickName, state),
                 "InvalidAgentName",
                 nickName,
@@ -102,7 +105,7 @@ public class CreateAgentStatementSemantics
         );
 
         module.get(ValidationHelper.class).assertExpectedType(
-            module.get(TypeHelper.class).AGENT,
+            module.get(BuiltinTypeProvider.class).agent(),
             agentType,
             "InvalidAgentType",
             agentTypeEObject,
@@ -113,6 +116,10 @@ public class CreateAgentStatementSemantics
             module,
             agentType.asJvmTypeReference()
         );
+
+        if (agentNamespace == null) {
+            return state;
+        }
 
         Optional<? extends JvmOperation> createMethodOpt =
             getCreateMethod(agentNamespace);
@@ -266,7 +273,13 @@ public class CreateAgentStatementSemantics
     private Optional<? extends JvmOperation> getCreateMethod(
         JvmTypeNamespace namespace
     ) {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        if (namespace == null) {
+            return Optional.empty();
+        }
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         return namespace.searchAs(
             JvmTypeNamespace.class,
             searcher -> searcher.searchJvmOperation()
@@ -284,10 +297,14 @@ public class CreateAgentStatementSemantics
                         searcher.resolveType(param0.getParameterType());
                     final IJadescriptType param1Type =
                         searcher.resolveType(param1.getParameterType());
-                    return typeHelper.isAssignable(
-                        typeHelper.typeRef(ContainerController.class),
-                        param0Type.asJvmTypeReference()
-                    ) && typeHelper.TEXT.isSupertypeOrEqualTo(param1Type);
+                    return jvm.isAssignable(
+                        jvm.typeRef(ContainerController.class),
+                        param0Type.asJvmTypeReference(),
+                        false
+                    ) && comparator.compare(
+                        builtins.text(),
+                        param1Type
+                    ).is(TypeRelationshipQuery.superTypeOrEqual());
                 })
         ).findFirst();
     }
@@ -373,7 +390,10 @@ public class CreateAgentStatementSemantics
                 super(
                     argName,
                     expr,
-                    module.get(TypeHelper.class).ANY,
+                    module.get(BuiltinTypeProvider.class).any(
+                        "Attempted to compute the type " +
+                            "of an invalid argument."
+                    ),
                     type,
                     oldPosition,
                     -1

@@ -2,16 +2,22 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.maybe.Maybe;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+
+import static it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts.VALID;
 
 public final class ParametricTypeSchema<T extends IJadescriptType> {
 
@@ -228,8 +234,71 @@ public final class ParametricTypeSchema<T extends IJadescriptType> {
 
     }
 
+    public boolean validateApplication(
+        List<TypeArgument> arguments,
+        Maybe<? extends EObject> input,
+        ValidationMessageAcceptor acceptor
+    ){
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+        boolean argsNumberCheck = VALID;
+        boolean argsBoundCheck = VALID;
+        boolean argsValidCheck = VALID;
 
-    public T create(List<TypeArgument> arguments)
+        final List<IJadescriptType> upperBounds =
+            getUpperBounds();
+
+        argsNumberCheck = validationHelper.asserting(
+            upperBounds.size() == arguments.size(),
+            "InvalidTypeInstantiation",
+            "Invalid number of type arguments; expected: "
+                + upperBounds.size() + ", provided: " +
+                arguments.size() + ".",
+            input,
+            acceptor
+        );
+
+        int assumedSize = Math.min(
+            upperBounds.size(),
+            arguments.size()
+        );
+
+        for (int i = 0; i < assumedSize; i++) {
+            IJadescriptType upperBound = upperBounds.get(i);
+            IJadescriptType typeArgument =
+                arguments.get(i).ignoreBound();
+
+            final boolean vtemp = validationHelper.assertExpectedType(
+                upperBound,
+                typeArgument,
+                "InvalidTypeArgument",
+                input,
+                acceptor
+            );
+
+            argsBoundCheck = argsBoundCheck && vtemp;
+        }
+
+        for (TypeArgument typeArgument : arguments) {
+            boolean vtemp = validationHelper.asserting(
+                !typeArgument.ignoreBound().isErroneous(),
+                "InvalidTypeArgument",
+                "Invalid type argument. Type: '"
+                    + typeArgument.getFullJadescriptName() + "'.",
+                input,
+                acceptor
+            );
+
+            argsValidCheck = argsValidCheck && vtemp;
+        }
+
+
+        return argsNumberCheck && argsBoundCheck && argsValidCheck;
+
+    }
+
+
+    public T create(List<? extends TypeArgument> arguments)
         throws InvalidTypeInstantiatonException {
         stateCheckAndUpdate(SEALED);
 

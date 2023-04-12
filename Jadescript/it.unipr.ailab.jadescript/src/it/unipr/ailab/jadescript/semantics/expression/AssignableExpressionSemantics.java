@@ -12,6 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
@@ -344,7 +345,7 @@ public abstract class AssignableExpressionSemantics<T>
             Maybe<X> input,
             StaticState state
         ) {
-            return module.get(TypeHelper.class).BOTTOM.apply(
+            return module.get(BuiltinTypeProvider.class).nothing(
                 "Internal error: the expression '" +
                     CompilationHelper.sourceToTextAny(input) +
                     "' was associated to the semantics of the empty expression."

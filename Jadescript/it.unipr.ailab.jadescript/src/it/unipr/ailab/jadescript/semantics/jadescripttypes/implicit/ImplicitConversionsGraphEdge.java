@@ -2,14 +2,14 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes.implicit;
 
 class ImplicitConversionsGraphEdge {
 
-    private final ImplicitConversionsGraphVertex from;
-    private final ImplicitConversionsGraphVertex to;
+    private final ImplicitConversionsGraphNode from;
+    private final ImplicitConversionsGraphNode to;
     private final ImplicitConversionDefinition definition;
 
 
     public ImplicitConversionsGraphEdge(
-        ImplicitConversionsGraphVertex from,
-        ImplicitConversionsGraphVertex to,
+        ImplicitConversionsGraphNode from,
+        ImplicitConversionsGraphNode to,
         ImplicitConversionDefinition definition
     ) {
         this.from = from;
@@ -18,12 +18,12 @@ class ImplicitConversionsGraphEdge {
     }
 
 
-    public ImplicitConversionsGraphVertex getFrom() {
+    public ImplicitConversionsGraphNode getFrom() {
         return from;
     }
 
 
-    public ImplicitConversionsGraphVertex getTo() {
+    public ImplicitConversionsGraphNode getTo() {
         return to;
     }
 

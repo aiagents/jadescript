@@ -154,18 +154,18 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
             );
         }
 
-        final Map<String, ImplicitConversionsGraphVertex> map = new HashMap<>();
+        final Map<String, ImplicitConversionsGraphNode> map = new HashMap<>();
         for (ImplicitConversionDefinition edge : implicitConversions) {
             IJadescriptType from = edge.getFrom();
             IJadescriptType to = edge.getTo();
 
-            final ImplicitConversionsGraphVertex fromV = map.computeIfAbsent(
+            final ImplicitConversionsGraphNode fromV = map.computeIfAbsent(
                 edge.getFrom().getID(),
-                (__) -> new ImplicitConversionsGraphVertex(from)
+                (__) -> new ImplicitConversionsGraphNode(from)
             );
-            final ImplicitConversionsGraphVertex toV = map.computeIfAbsent(
+            final ImplicitConversionsGraphNode toV = map.computeIfAbsent(
                 edge.getTo().getID(),
-                (__) -> new ImplicitConversionsGraphVertex(to)
+                (__) -> new ImplicitConversionsGraphNode(to)
             );
 
             fromV.getAdjacents().add(
@@ -173,22 +173,22 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
             );
         }
 
-        ImplicitConversionsGraphVertex startVertex = map.get(start.getID());
-        ImplicitConversionsGraphVertex endVertex = map.get(end.getID());
+        ImplicitConversionsGraphNode startVertex = map.get(start.getID());
+        ImplicitConversionsGraphNode endVertex = map.get(end.getID());
 
         //algo
         startVertex.setDistance(0);
-        PriorityQueue<ImplicitConversionsGraphVertex> priorityQueue =
+        PriorityQueue<ImplicitConversionsGraphNode> priorityQueue =
             new PriorityQueue<>();
         priorityQueue.add(startVertex);
         startVertex.setVisited(true);
 
         while (!priorityQueue.isEmpty()) {
-            ImplicitConversionsGraphVertex currentVertex = priorityQueue.poll();
+            ImplicitConversionsGraphNode currentVertex = priorityQueue.poll();
 
             for (ImplicitConversionsGraphEdge edge :
                 currentVertex.getAdjacents()) {
-                ImplicitConversionsGraphVertex vertex = edge.getTo();
+                ImplicitConversionsGraphNode vertex = edge.getTo();
                 if (!vertex.isVisited()) {
                     int newDistance = currentVertex.getDistance() + 1;
                     if (newDistance < vertex.getDistance()) {

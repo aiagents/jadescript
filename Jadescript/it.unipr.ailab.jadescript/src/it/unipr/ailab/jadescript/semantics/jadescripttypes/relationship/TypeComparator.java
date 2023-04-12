@@ -1,11 +1,13 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.BoundedTypeArgument;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
@@ -18,6 +20,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.some;
 
@@ -25,7 +29,8 @@ public class TypeComparator {
 
     private final SemanticsModule module;
 
-    private final LazyInit<TypeHelper> th;
+    private final LazyInit<BuiltinTypeProvider> builtins;
+    private final LazyInit<JvmTypeHelper> jvm;
 
     private final LazyInit<UtilityType> any;
 
@@ -34,9 +39,14 @@ public class TypeComparator {
 
     public TypeComparator(SemanticsModule module) {
         this.module = module;
-        th = new LazyInit<>(() -> this.module.get(TypeHelper.class));
-        any = new LazyInit<>(() -> th.get().ANY);
-        nothing = new LazyInit<>(() -> th.get().NOTHING);
+        builtins = new LazyInit<>(
+            () -> this.module.get(BuiltinTypeProvider.class)
+        );
+        jvm = new LazyInit<>(
+            () -> this.module.get(JvmTypeHelper.class)
+        );
+        any = new LazyInit<>(() -> builtins.get().any(""));
+        nothing = new LazyInit<>(() -> builtins.get().nothing(""));
     }
 
 
@@ -117,8 +127,16 @@ public class TypeComparator {
         boolean rawComparison
     ) {
 
-        boolean supOrEq = th.get().isAssignable(subject, target, rawComparison);
-        boolean subOrEq = th.get().isAssignable(target, subject, rawComparison);
+        boolean supOrEq = jvm.get().isAssignable(
+            subject,
+            target,
+            rawComparison
+        );
+        boolean subOrEq = jvm.get().isAssignable(
+            target,
+            subject,
+            rawComparison
+        );
 
         if (supOrEq && subOrEq) {
             return TypeRelationship.equal();
@@ -330,8 +348,8 @@ public class TypeComparator {
         IJadescriptType target,
         boolean rawComparison
     ) {
-        final boolean subjectIsList = subject.isList();
-        final boolean targetIsList = target.isList();
+        final boolean subjectIsList = subject.category().isList();
+        final boolean targetIsList = target.category().isList();
         if (subjectIsList && targetIsList) {
             if (rawComparison) {
                 return some(TypeRelationship.equal());
@@ -356,8 +374,8 @@ public class TypeComparator {
         IJadescriptType target,
         boolean rawComparison
     ) {
-        final boolean subjectIsMap = subject.isMap();
-        final boolean targetIsMap = target.isMap();
+        final boolean subjectIsMap = subject.category().isMap();
+        final boolean targetIsMap = target.category().isMap();
         if (subjectIsMap && targetIsMap) {
             if (rawComparison) {
                 return some(TypeRelationship.equal());
@@ -437,8 +455,8 @@ public class TypeComparator {
         IJadescriptType target,
         boolean rawComparison
     ) {
-        final boolean subjectIsSet = subject.isSet();
-        final boolean targetIsSet = target.isSet();
+        final boolean subjectIsSet = subject.category().isSet();
+        final boolean targetIsSet = target.category().isSet();
         if (subjectIsSet && targetIsSet) {
             if (rawComparison) {
                 return some(TypeRelationship.equal());
@@ -574,8 +592,8 @@ public class TypeComparator {
         IJadescriptType target,
         boolean rawComparison
     ) {
-        final boolean subjectIsTuple = subject.isTuple();
-        final boolean targetIsTuple = target.isTuple();
+        final boolean subjectIsTuple = subject.category().isTuple();
+        final boolean targetIsTuple = target.category().isTuple();
         if (subjectIsTuple && targetIsTuple) {
 
             List<TypeArgument> subjectElements =
@@ -646,8 +664,8 @@ public class TypeComparator {
         IJadescriptType subject,
         IJadescriptType target
     ) {
-        final boolean subjectIsBT = subject.isBasicType();
-        final boolean targetIsBT = target.isBasicType();
+        final boolean subjectIsBT = subject.category().isBasicType();
+        final boolean targetIsBT = target.category().isBasicType();
 
         if (subjectIsBT && targetIsBT) {
             if (rawEquals(subject, target)) {
@@ -693,6 +711,14 @@ public class TypeComparator {
     }
 
 
+    public TypeRelationship compare(
+        Class<?> clazz,
+        IJadescriptType target
+    ) {
+        return compare(module.get(TypeSolver.class).fromClass(clazz), target);
+    }
+
+
     private TypeRelationship compareInternal(
         IJadescriptType subject,
         IJadescriptType target,
@@ -712,7 +738,8 @@ public class TypeComparator {
         target = target.postResolve();
 
         // If any of the two is unresolved, fall back to old JVM type comparison
-        if (subject.isUnknownJVM() || target.isUnknownJVM()) {
+        if (subject.category().isUnknownJVM()
+            || target.category().isUnknownJVM()) {
             return compareJVMTypeReferencesInternal(
                 subject.asJvmTypeReference(),
                 target.asJvmTypeReference(),
@@ -722,7 +749,7 @@ public class TypeComparator {
 
         // Checking VOID
         final Maybe<TypeRelationship> voidLeaf = pseudoleaf(
-            th.get().VOID,
+            builtins.get().javaVoid(),
             subject,
             target
         );
@@ -746,10 +773,10 @@ public class TypeComparator {
         // e.g. membership of a type to a specific sublattice.
         final Maybe<TypeRelationship> anyBehaviourBranch =
             checkIntensionalSupertypeRelationship(
-                th.get().ANYBEHAVIOUR,
+                builtins.get().anyBehaviour(),
                 subject,
                 target,
-                IJadescriptType::isBehaviour
+                t -> t.category().isBehaviour()
             );
 
         if (anyBehaviourBranch.isPresent()) {
@@ -759,10 +786,10 @@ public class TypeComparator {
 
         final Maybe<TypeRelationship> anyMessageBranch =
             checkIntensionalSupertypeRelationship(
-                th.get().ANY_MESSAGE,
+                builtins.get().anyMessage(),
                 subject,
                 target,
-                IJadescriptType::isMessage
+                t -> t.category().isMessage()
             );
 
         if (anyMessageBranch.isPresent()) {
@@ -772,11 +799,11 @@ public class TypeComparator {
 
         final Maybe<TypeRelationship> numberBranch =
             checkIntensionalSupertypeRelationship(
-                th.get().NUMBER,
+                builtins.get().number(),
                 subject,
                 target,
-                x -> rawEquals(x, th.get().INTEGER)
-                    || rawEquals(x, th.get().REAL)
+                x -> rawEquals(x, builtins.get().integer())
+                    || rawEquals(x, builtins.get().real())
             );
 
         if (numberBranch.isPresent()) {
@@ -786,10 +813,10 @@ public class TypeComparator {
 
         final Maybe<TypeRelationship> messageContentBranch =
             checkIntensionalSupertypeRelationship(
-                th.get().ANY_ONTOLOGY_ELEMENT,
+                builtins.get().anyOntologyElement(),
                 subject,
                 target,
-                IJadescriptType::isMessageContent
+                x -> x.category().isMessageContent()
             );
 
         if (messageContentBranch.isPresent()) {
@@ -800,10 +827,10 @@ public class TypeComparator {
         // Agent-env internal utility type
         final Maybe<TypeRelationship> agentEnvBranch =
             checkIntensionalSupertypeRelationship(
-                th.get().ANY_AGENTENV,
+                builtins.get().anyAgentEnv(),
                 subject,
                 target,
-                IJadescriptType::isAgentEnv
+                t -> t.category().isAgentEnv()
             );
 
         if (agentEnvBranch.isPresent()) {
@@ -814,7 +841,7 @@ public class TypeComparator {
         final Maybe<TypeRelationship> ontologyCheck =
             checkOntology(subject, target);
 
-        if(ontologyCheck.isPresent()){
+        if (ontologyCheck.isPresent()) {
             return ontologyCheck.toNullable();
         }
 
@@ -854,21 +881,21 @@ public class TypeComparator {
         }
 
 
-        if(rawEquals(subject, target)){
+        if (rawEquals(subject, target)) {
             return TypeRelationship.equal();
         }
 
         IJadescriptType finalSubject = subject;
-        if(target.allSupertypesBFS()
+        if (target.allSupertypesBFS()
             .map(IJadescriptType::getID)
-            .anyMatch(id -> Objects.equals(id, finalSubject.getID()))){
+            .anyMatch(id -> Objects.equals(id, finalSubject.getID()))) {
             return TypeRelationship.superType();
         }
 
         IJadescriptType finalTarget = target;
-        if(subject.allSupertypesBFS()
+        if (subject.allSupertypesBFS()
             .map(IJadescriptType::getID)
-            .anyMatch(id -> Objects.equals(id, finalTarget.getID()))){
+            .anyMatch(id -> Objects.equals(id, finalTarget.getID()))) {
             return TypeRelationship.subType();
         }
 
@@ -878,15 +905,17 @@ public class TypeComparator {
     }
 
 
+
+
     private Maybe<TypeRelationship> checkOntology(
         IJadescriptType subject,
         IJadescriptType target
     ) {
-        boolean subjectIsOnto = subject.isOntology();
-        boolean targetIsOnto = target.isOntology();
+        boolean subjectIsOnto = subject.category().isOntology();
+        boolean targetIsOnto = target.category().isOntology();
 
-        if(subjectIsOnto && targetIsOnto){
-            if(rawEquals(subject, target)){
+        if (subjectIsOnto && targetIsOnto) {
+            if (rawEquals(subject, target)) {
                 return some(TypeRelationship.equal());
             }
 
@@ -897,14 +926,14 @@ public class TypeComparator {
                 return some(TypeRelationship.superType());
             }
 
-            if(targetOnto.isSuperOrEqualOntology(subjectOnto)){
+            if (targetOnto.isSuperOrEqualOntology(subjectOnto)) {
                 return some(TypeRelationship.subType());
             }
 
             return some(TypeRelationship.notRelated());
         }
 
-        if(subjectIsOnto != targetIsOnto){
+        if (subjectIsOnto != targetIsOnto) {
             return some(TypeRelationship.notRelated());
         }
 

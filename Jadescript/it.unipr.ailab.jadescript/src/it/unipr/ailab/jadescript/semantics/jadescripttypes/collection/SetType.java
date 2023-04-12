@@ -5,21 +5,24 @@ import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.DeclaresOntologyAdHocClass;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import jadescript.util.JadescriptSet;
@@ -29,12 +32,16 @@ import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.helpers.TypeHelper.builtinPrefix;
 import static it.unipr.ailab.maybe.Maybe.some;
+import static it.unipr.ailab.maybe.utils.LazyInit.lazyInit;
 
 public class SetType
     extends JadescriptType
@@ -52,10 +59,7 @@ public class SetType
             return true;
         }
     };
-    private final Map<String, Property> properties = new HashMap<>();
-    private final List<Operation> operations = new ArrayList<>();
     private final TypeArgument elementType;
-    private boolean initializedProperties = false;
 
 
     public SetType(
@@ -93,110 +97,11 @@ public class SetType
 
     @Override
     public JvmTypeReference asJvmTypeReference() {
-        return module.get(TypeHelper.class).typeRef(
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+        return jvm.typeRef(
             JadescriptSet.class,
             elementType.asJvmTypeReference()
         );
-    }
-
-
-    @Override
-    public void addBultinProperty(Property prop) {
-        properties.put(prop.name(), prop);
-    }
-
-
-    private void initBuiltinProperties() {
-        if (initializedProperties) {
-            return;
-        }
-        this.addBultinProperty(
-            Property.readonlyProperty(
-                "size",
-                module.get(TypeHelper.class).INTEGER,
-                getLocation(),
-                Property.compileGetWithCustomMethod("size")
-            )
-        );
-        operations.add(Operation.operation(
-            module.get(TypeHelper.class).VOID,
-            "__add",
-            Map.of("element", getElementType()),
-            List.of("element"),
-            getLocation(),
-            false,
-            (receiver, args) -> {
-                final String s;
-                if (args.size() >= 1) {
-                    s = args.get(0);
-                } else {
-                    s = "/*internal error: missing arguments*/";
-                }
-                return receiver + ".add(" + s + ")";
-            },
-            (receiver, namedArgs) -> {
-                return receiver + ".add(" + namedArgs.get("element") + ")";
-            }
-        ));
-
-        operations.add(Operation.operation(
-            module.get(TypeHelper.class).BOOLEAN,
-            "contains",
-            Map.of("o", getElementType()),
-            List.of("o"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            module.get(TypeHelper.class).BOOLEAN,
-            "containsAll",
-            Map.of("o", this),
-            List.of("o"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            module.get(TypeHelper.class).BOOLEAN,
-            "containsAll",
-            Map.of(
-                "o",
-                module.get(TypeHelper.class).LIST.apply(Arrays.asList(
-                    getElementType()))
-            ),
-            List.of("o"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            module.get(TypeHelper.class).BOOLEAN,
-            "containsAny",
-            Map.of("o", this),
-            List.of("o"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            module.get(TypeHelper.class).BOOLEAN,
-            "containsAny",
-            Map.of(
-                "o",
-                module.get(TypeHelper.class).LIST.apply(
-                    Arrays.asList(getElementType())
-                )
-            ),
-            List.of("o"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            module.get(TypeHelper.class).VOID,
-            "clear",
-            Map.of(),
-            List.of(),
-            getLocation(),
-            false
-        ));
-        this.initializedProperties = true;
     }
 
 
@@ -230,23 +135,119 @@ public class SetType
     }
 
 
-
-
     @Override
     public String getSlotSchemaName() {
         return "\"" + SetType.getAdHocSetClassName(getElementType()) + "\"";
     }
 
 
+    private final LazyInit<BuiltinOpsNamespace> namespace =
+        lazyInit(() -> {
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
+
+
+            List<MemberName> properties = new ArrayList<>();
+            List<MemberCallable> operations = new ArrayList<>();
+
+
+            properties.add(
+                Property.readonlyProperty(
+                    "size",
+                    builtins.integer(),
+                    getLocation(),
+                    Property.compileGetWithCustomMethod("size")
+                )
+            );
+            operations.add(Operation.operation(
+                builtins.javaVoid(),
+                "__add",
+                Map.of("element", getElementType()),
+                List.of("element"),
+                getLocation(),
+                false,
+                (receiver, args) -> {
+                    final String s;
+                    if (args.size() >= 1) {
+                        s = args.get(0);
+                    } else {
+                        s = "/*internal error: missing arguments*/";
+                    }
+                    return receiver + ".add(" + s + ")";
+                },
+                (receiver, namedArgs) -> {
+                    return receiver + ".add(" + namedArgs.get("element") + ")";
+                }
+            ));
+
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "contains",
+                Map.of("o", getElementType()),
+                List.of("o"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "containsAll",
+                Map.of("o", this),
+                List.of("o"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "containsAll",
+                Map.of(
+                    "o",
+                    builtins.list(getElementType())
+                ),
+                List.of("o"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "containsAny",
+                Map.of("o", this),
+                List.of("o"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "containsAny",
+                Map.of(
+                    "o",
+                    builtins.list(getElementType())
+                ),
+                List.of("o"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.javaVoid(),
+                "clear",
+                Map.of(),
+                List.of(),
+                getLocation(),
+                false
+            ));
+
+            return new BuiltinOpsNamespace(
+                module,
+                Maybe.nothing(),
+                properties,
+                operations,
+                getLocation()
+            );
+        });
+
+
     @Override
     public TypeNamespace namespace() {
-        return new BuiltinOpsNamespace(
-            module,
-            Maybe.nothing(),
-            new ArrayList<>(getBuiltinProperties().values()),
-            operations,
-            getLocation()
-        );
+        return namespace.get();
     }
 
 
@@ -269,12 +270,6 @@ public class SetType
     }
 
 
-    private Map<String, Property> getBuiltinProperties() {
-        initBuiltinProperties();
-        return properties;
-    }
-
-
     @Override
     public Stream<IJadescriptType> declaredSupertypes() {
         return Stream.of();
@@ -291,8 +286,6 @@ public class SetType
     public boolean isErroneous() {
         return false;
     }
-
-
 
 
     @Override
@@ -328,10 +321,9 @@ public class SetType
             itClass -> {
                 itClass.setStatic(true);
                 itClass.setVisibility(JvmVisibility.PUBLIC);
-                final TypeHelper typeHelper =
-                    module.get(TypeHelper.class);
+                final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
-                itClass.getSuperTypes().add(typeHelper.typeRef(
+                itClass.getSuperTypes().add(jvm.typeRef(
                     JadescriptSet.class,
                     elementType.asJvmTypeReference()
                 ));
@@ -340,14 +332,14 @@ public class SetType
                 itClass.getMembers().add(jvmTB.toMethod(
                     featureSafe,
                     "__fromSet",
-                    typeHelper.typeRef(className),
+                    jvm.typeRef(className),
                     itMeth -> {
                         itMeth.setVisibility(JvmVisibility.PUBLIC);
                         itMeth.setStatic(true);
                         itMeth.getParameters().add(jvmTB.toParameter(
                             featureSafe,
                             "set",
-                            typeHelper.typeRef(
+                            jvm.typeRef(
                                 JadescriptSet.class,
                                 elementType.asJvmTypeReference()
                             )

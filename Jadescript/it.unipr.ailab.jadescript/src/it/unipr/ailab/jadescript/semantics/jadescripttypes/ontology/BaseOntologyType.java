@@ -1,7 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
@@ -43,9 +43,6 @@ public class BaseOntologyType
     }
 
 
-    @Override
-    public void addBultinProperty(Property prop) {
-    }
 
     @Override
     public boolean isSlottable() {
@@ -87,8 +84,8 @@ public class BaseOntologyType
 
     @Override
     public JvmTypeReference asJvmTypeReference() {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        return typeHelper.typeRef(jadescript.content.onto.Ontology.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+        return jvm.typeRef(jadescript.content.onto.Ontology.class);
     }
 
     @Override

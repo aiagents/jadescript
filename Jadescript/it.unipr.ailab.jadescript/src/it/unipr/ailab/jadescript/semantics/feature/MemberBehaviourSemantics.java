@@ -6,7 +6,7 @@ import it.unipr.ailab.jadescript.jadescript.MemberBehaviour;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDeclaration;
 import it.unipr.ailab.jadescript.semantics.topelement.BehaviourDeclarationSemantics;
 import it.unipr.ailab.maybe.Maybe;
@@ -75,7 +75,7 @@ public class MemberBehaviourSemantics
                 .__(module.get(CompilationHelper.class)::getFullyQualifiedName)
                 .__(QualifiedName::toString)
                 .nullIf(String::isBlank)
-                .__(module.get(TypeHelper.class)::typeRef);
+                .__(module.get(JvmTypeHelper.class)::typeRef);
         }
         return agentTypeRef;
     }

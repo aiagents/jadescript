@@ -483,8 +483,7 @@ public class BuiltinTypeProvider {
                     return new AgentEnvType(
                         getModule(),
                         agentType,
-                        sideEffect,
-                        getNonVariadicUpperBounds()
+                        sideEffect
                     );
                 }
             });
@@ -538,8 +537,7 @@ public class BuiltinTypeProvider {
                     return new BaseBehaviourType(
                         getModule(),
                         BehaviourType.Kind.Base,
-                        getArgument(ftpAnyAgent),
-                        ftpAnyAgent.getUpperBound()
+                        getArgument(ftpAnyAgent)
                     );
                 }
             });
@@ -568,8 +566,7 @@ public class BuiltinTypeProvider {
                     return new BaseBehaviourType(
                         getModule(),
                         BehaviourType.Kind.Cyclic,
-                        getArgument(ftpAnyAgent),
-                        ftpAnyAgent.getUpperBound()
+                        getArgument(ftpAnyAgent)
                     );
                 }
             });
@@ -594,8 +591,7 @@ public class BuiltinTypeProvider {
                     return new BaseBehaviourType(
                         getModule(),
                         BehaviourType.Kind.OneShot,
-                        getArgument(ftpAnyAgent),
-                        ftpAnyAgent.getUpperBound()
+                        getArgument(ftpAnyAgent)
                     );
                 }
             });
@@ -1133,7 +1129,7 @@ public class BuiltinTypeProvider {
     /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
         ptUnknownMessage = lazyInit(() -> {
         final FormalTypeParameter<TypeArgument> anyElement =
-            ftpFactory.get().boundedTypeParameter(anyOntologyElementType());
+            ftpFactory.get().boundedTypeParameter(anyOntologyElement());
 
         return ptFactory.get().<MessageSubType>parametricType()
             .add(anyElement)
@@ -1757,7 +1753,7 @@ public class BuiltinTypeProvider {
     }
 
 
-    public BaseMessageType messageType(TypeArgument contentType) {
+    public BaseMessageType message(TypeArgument contentType) {
         try {
             return ptMessage.get().create(contentType);
         } catch (InvalidTypeInstantiatonException e) {
@@ -1816,7 +1812,7 @@ public class BuiltinTypeProvider {
     }
 
 
-    public AnyOntologyElementType anyOntologyElementType() {
+    public AnyOntologyElementType anyOntologyElement() {
         return tAnyOntologyElement.get();
     }
 

@@ -8,8 +8,9 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.GlobalFunctionOrProced
 import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyNamedReference;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalName;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import jadescript.lang.JadescriptGlobalFunction;
 import jadescript.lang.JadescriptGlobalProcedure;
@@ -36,12 +37,12 @@ public abstract class OuterLevelAbstractContext extends Context
         JvmTypeReference jvmClassRef,
         JvmDeclaredType type
     ) {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        IJadescriptType jadescriptType = typeHelper.jtFromJvmTypeRef(
-            jvmClassRef
-        );
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+        IJadescriptType jadescriptType = typeSolver
+            .fromJvmTypeReference(jvmClassRef);
         Stream<? extends GlobalName> result;
-        if (typeHelper.isAssignable(
+        if (jvm.isAssignable(
             jade.content.onto.Ontology.class,
             jvmClassRef
         )) {
@@ -63,21 +64,20 @@ public abstract class OuterLevelAbstractContext extends Context
         JvmTypeReference methodJVMClassRef,
         JvmDeclaredType type
     ) {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         Stream<? extends GlobalCallable> result;
-        if (typeHelper.isAssignable(
+        if (jvm.isAssignable(
             jade.core.behaviours.Behaviour.class,
             methodJVMClassRef
         )) {
             JvmTypeNamespace namespace =
                 JvmTypeNamespace.resolved(module, type);
 
-
             result = searchBehaviourCtorFunction(type, namespace);
-        } else if (typeHelper.isAssignable(
+        } else if (jvm.isAssignable(
             JadescriptGlobalFunction.class,
             methodJVMClassRef
-        ) || typeHelper.isAssignable(
+        ) || jvm.isAssignable(
             JadescriptGlobalProcedure.class,
             methodJVMClassRef
         )) {
@@ -108,8 +108,8 @@ public abstract class OuterLevelAbstractContext extends Context
     protected Stream<? extends GlobalName> getGlobalNamedCellsFromFQName(
         String fqName
     ) {
-        JvmTypeReference jvmClassRef =
-            module.get(TypeHelper.class).typeRef(fqName);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+        JvmTypeReference jvmClassRef = jvm.typeRef(fqName);
         if (jvmClassRef.getType() instanceof JvmDeclaredType) {
             final JvmDeclaredType type =
                 (JvmDeclaredType) jvmClassRef.getType();
@@ -123,7 +123,7 @@ public abstract class OuterLevelAbstractContext extends Context
         String fqName
     ) {
         JvmTypeReference methodJVMClassRef =
-            module.get(TypeHelper.class).typeRef(fqName);
+            module.get(JvmTypeHelper.class).typeRef(fqName);
         if (methodJVMClassRef.getType() instanceof JvmDeclaredType) {
             final JvmDeclaredType type =
                 (JvmDeclaredType) methodJVMClassRef.getType();

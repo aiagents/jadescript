@@ -1,8 +1,10 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import org.eclipse.emf.common.notify.Adapter;
 import org.eclipse.emf.common.notify.Notification;
 import org.eclipse.emf.common.util.EList;
@@ -39,9 +41,9 @@ public class SyntheticExpression implements RValueExpression {
             return "";
         }
 
-        public IJadescriptType inferType(TypeHelper typeHelper) {
+        public IJadescriptType inferType(SemanticsModule module) {
             // Override if needed
-            return typeHelper.ANY;
+            return module.get(BuiltinTypeProvider.class).any("");
         }
 
         @SuppressWarnings("SameReturnValue")

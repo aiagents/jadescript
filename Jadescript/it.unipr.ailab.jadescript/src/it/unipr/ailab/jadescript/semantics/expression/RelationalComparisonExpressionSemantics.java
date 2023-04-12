@@ -215,14 +215,14 @@ public class RelationalComparisonExpressionSemantics
             IJadescriptType typeRight = cces.inferType(right, afterLeft);
             final ValidationHelper validationHelper =
                 module.get(ValidationHelper.class);
-            boolean ltValidation = validationHelper.assertExpectedTypes(
+            boolean ltValidation = validationHelper.assertExpectedTypesAny(
                 Arrays.asList(th.NUMBER, th.TIMESTAMP, th.DURATION),
                 typeLeft,
                 "InvalidOperandType",
                 left,
                 acceptor
             );
-            boolean rtValidation = validationHelper.assertExpectedTypes(
+            boolean rtValidation = validationHelper.assertExpectedTypesAny(
                 Arrays.asList(th.NUMBER, th.TIMESTAMP, th.DURATION),
                 typeRight,
                 "InvalidOperandType",

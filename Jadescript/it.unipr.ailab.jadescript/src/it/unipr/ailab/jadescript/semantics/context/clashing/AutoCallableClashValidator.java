@@ -8,6 +8,9 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Callable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import org.eclipse.xtext.util.Strings;
 
 import java.util.List;
@@ -36,13 +39,16 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
             final IJadescriptType toBeAddedType =
                 ((FQNameLocation) toBeAddedLocation)
                     .extractType(module);
-            // is overriding if...
-            // supertype
-            return alreadyPresentType.isSupertypeOrEqualTo(toBeAddedType) // it is a
-                // be strictly a supertype
-                && !alreadyPresentType.typeEquals(toBeAddedType) // it has to
-                // the signature is compatible (in the Java sense)
+
+            final TypeComparator comparator = module.get(TypeComparator.class);
+
+            final TypeRelationship comparison = comparator.compare(
+                alreadyPresentType, toBeAddedType
+            );
+
+            return TypeRelationshipQuery.strictSuperType().matches(comparison)
                 && isSignatureCompatibleForOverriding(
+                module,
                 alreadyPresent,
                 toBeAdded
             );
@@ -51,22 +57,35 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
     }
 
     static boolean isSignatureCompatibleForOverriding(
+        SemanticsModule module,
         Callable alreadyPresent,
         Callable toBeAdded
     ) {
         if (alreadyPresent.arity() != toBeAdded.arity()) {
             return false;
         }
-        if (!alreadyPresent.returnType().isSupertypeOrEqualTo(toBeAdded.returnType())) {
+
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        if (!TypeRelationshipQuery.superTypeOrEqual().matches(
+            comparator.compare(
+                alreadyPresent.returnType(),
+                toBeAdded.returnType()
+            ))
+        ) {
             return false;
         }
+
         final List<IJadescriptType> apTypes = alreadyPresent.parameterTypes();
         final List<IJadescriptType> tbaTypes = toBeAdded.parameterTypes();
         for (int i = 0; i < apTypes.size(); i++) {
-            if (!apTypes.get(i).typeEquals(tbaTypes.get(i))) {
+            if(!TypeRelationshipQuery.equal().matches(comparator.compare(
+                apTypes.get(i), tbaTypes.get(i)
+            ))){
                 return false;
             }
         }
+
         return true;
     }
 

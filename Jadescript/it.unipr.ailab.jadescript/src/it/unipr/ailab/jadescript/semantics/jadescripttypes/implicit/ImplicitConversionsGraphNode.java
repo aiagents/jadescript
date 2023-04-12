@@ -5,8 +5,8 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import java.util.ArrayList;
 import java.util.List;
 
-class ImplicitConversionsGraphVertex
-    implements Comparable<ImplicitConversionsGraphVertex> {
+class ImplicitConversionsGraphNode
+    implements Comparable<ImplicitConversionsGraphNode> {
 
     private final List<ImplicitConversionsGraphEdge> adjacents =
         new ArrayList<>();
@@ -16,7 +16,7 @@ class ImplicitConversionsGraphVertex
     private int distance = Integer.MAX_VALUE;
 
 
-    ImplicitConversionsGraphVertex(IJadescriptType type) {
+    ImplicitConversionsGraphNode(IJadescriptType type) {
         this.type = type;
     }
 
@@ -63,15 +63,15 @@ class ImplicitConversionsGraphVertex
 
 
     @Override
-    public int compareTo(ImplicitConversionsGraphVertex o) {
+    public int compareTo(ImplicitConversionsGraphNode o) {
         return Integer.compare(this.distance, o.distance);
     }
 
 
     @Override
     public boolean equals(Object o) {
-        return o instanceof ImplicitConversionsGraphVertex
-            && compareTo((ImplicitConversionsGraphVertex) o) == 0;
+        return o instanceof ImplicitConversionsGraphNode
+            && compareTo((ImplicitConversionsGraphNode) o) == 0;
     }
 
 

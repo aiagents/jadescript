@@ -5,15 +5,15 @@ import it.unipr.ailab.jadescript.jadescript.FeatureContainer;
 import it.unipr.ailab.jadescript.jadescript.FeatureWithBody;
 import it.unipr.ailab.jadescript.jadescript.OnExecuteHandler;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnExecuteHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
@@ -37,7 +37,9 @@ public class OnExecuteHandlerSemantics
         JvmDeclaredType beingDeclared,
         BlockElementAcceptor fieldInitializationAcceptor
     ) {
-        if (input == null) return;
+        if (input == null) {
+            return;
+        }
         final SavedContext savedContext =
             module.get(ContextManager.class).save();
         final JvmTypesBuilder jvmTypesBuilder =
@@ -47,6 +49,7 @@ public class OnExecuteHandlerSemantics
 
 
         input.safeDo(inputSafe -> {
+            final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
             JvmGenericType eventClass = jvmTypesBuilder.toClass(
                 inputSafe,
                 synthesizeBehaviourExecuteEventClassName(inputSafe),
@@ -56,7 +59,7 @@ public class OnExecuteHandlerSemantics
                     it.getMembers().add(jvmTypesBuilder.toField(
                         inputSafe,
                         MESSAGE_RECEIVED_BOOL_VAR_NAME,
-                        module.get(TypeHelper.class).typeRef(Boolean.class),
+                        jvm.typeRef(Boolean.class),
                         itField -> {
                             itField.setVisibility(JvmVisibility.DEFAULT);
                             compilationHelper.createAndSetInitializer(
@@ -70,7 +73,7 @@ public class OnExecuteHandlerSemantics
                     it.getMembers().add(jvmTypesBuilder.toMethod(
                         inputSafe,
                         "run",
-                        module.get(TypeHelper.class).typeRef(void.class),
+                        jvm.typeRef(void.class),
                         itMethod -> {
                             fillRunMethod(
                                 input,
@@ -88,7 +91,7 @@ public class OnExecuteHandlerSemantics
             members.add(jvmTypesBuilder.toField(
                 inputSafe,
                 synthesizeBehaviourExecuteEventVariableName(inputSafe),
-                module.get(TypeHelper.class).typeRef(eventClass), itField ->{
+                jvm.typeRef(eventClass), itField -> {
                     itField.setVisibility(JvmVisibility.PRIVATE);
                     compilationHelper.createAndSetInitializer(itField, scb -> {
                         scb.add(" new ")

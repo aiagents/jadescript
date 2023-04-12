@@ -16,11 +16,12 @@ public abstract class UtilityType extends JadescriptType {
 
     private final JvmTypeReference jvmType;
 
+
     public UtilityType(
-            SemanticsModule module,
-            String typeID,
-            String simpleName,
-            JvmTypeReference jvmType
+        SemanticsModule module,
+        String typeID,
+        String simpleName,
+        JvmTypeReference jvmType
     ) {
         super(module, typeID, simpleName, "OTHER");
         this.jvmType = jvmType;
@@ -45,20 +46,9 @@ public abstract class UtilityType extends JadescriptType {
     }
 
 
-
-
-
-
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
         return Maybe.nothing();
-    }
-
-
-
-    @Override
-    public void addBultinProperty(Property prop) {
-
     }
 
 
@@ -68,18 +58,22 @@ public abstract class UtilityType extends JadescriptType {
         return false;
     }
 
+
     @Override
     public boolean isReferrable() {
         return false;
     }
+
 
     @Override
     public boolean hasProperties() {
         return false;
     }
 
+
     @Override
-    public JvmTypeReference asJvmTypeReference(){
+    public JvmTypeReference asJvmTypeReference() {
         return jvmType;
     }
+
 }

@@ -11,6 +11,7 @@ import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 
@@ -86,7 +87,6 @@ public class OntologyElementStructuralPattern implements GlobalPattern {
             termTypesByName = Map.of();
         }
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
@@ -106,12 +106,12 @@ public class OntologyElementStructuralPattern implements GlobalPattern {
             return nothing();
         }
 
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+
         return some(
             new OntologyElementStructuralPattern(
                 ontoElementName,
-                typeHelper.jtFromFullyQualifiedName(
-                    ontoElementFQN.toNullable()
-                ),
+                typeSolver.fromFullyQualifiedName(ontoElementFQN.toNullable()),
                 termNames,
                 termTypesByName,
                 currentLocation

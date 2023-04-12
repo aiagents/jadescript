@@ -11,12 +11,15 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontocontent.OntoContentType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ParametricType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
@@ -77,15 +80,17 @@ public class OntologyElementSemantics extends Semantics {
         Maybe<? extends JvmParameterizedTypeReference> superTypeExpr =
             input.__(ExtendingFeature::getSuperType);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
         //if it is native...
         if (input.__(ExtendingFeature::isNative).extract(nullAsFalse)
             // ... and it has an explicit supertype ...
             && superTypeExpr.isPresent()) {
             final IJadescriptType superType =
-                typeHelper.jtFromJvmTypeRef(
-                    superTypeExpr.toNullable());
+                typeSolver.fromJvmTypeReference(superTypeExpr.toNullable());
 
             // ... and the supertype is a OntoContentType
             //     (added just for cast safety) ...
@@ -107,8 +112,7 @@ public class OntologyElementSemantics extends Semantics {
             // ... and it has an explicit supertype ...
             && superTypeExpr.isPresent()) {
             final IJadescriptType superType =
-                typeHelper.jtFromJvmTypeRef(
-                    superTypeExpr.toNullable());
+                typeSolver.fromJvmTypeReference(superTypeExpr.toNullable());
 
             // ... and the supertype is a OntoContentType
             //     (added just for cast safety) ...
@@ -150,8 +154,8 @@ public class OntologyElementSemantics extends Semantics {
             getBaseOntologyContentType(input),
             superTypeExpr
                 .__(st -> (JvmTypeReference) st)
-                .__(typeHelper::jtFromJvmTypeRef)
-                .orElse(typeHelper.ANY),
+                .__(typeSolver::fromJvmTypeReference)
+                .orElse(builtins.any("")),
             "InvalidOntologyElementSupertype",
             superTypeExpr,
             acceptor
@@ -167,7 +171,7 @@ public class OntologyElementSemantics extends Semantics {
                 //     (the previous check fails to detect this because in JADE
                 //      AgentAction extends Concept)
                 validationHelper.asserting(
-                    !typeHelper.isAssignable(
+                    !jvm.isAssignable(
                         jade.content.AgentAction.class,
                         superTypeSafe
                     ),
@@ -255,7 +259,9 @@ public class OntologyElementSemantics extends Semantics {
         HashMap<String, Maybe<SlotDeclaration>> slotSet,
         ValidationMessageAcceptor acceptor
     ) {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
 
@@ -339,7 +345,7 @@ public class OntologyElementSemantics extends Semantics {
 
                 IJadescriptType argType;
                 if (argCheck == INVALID) {
-                    argType = typeHelper.ANY;
+                    argType = builtins.any("");
                 } else {
                     argType = rves.inferType(arg, beforeInitExpr);
                 }
@@ -429,7 +435,7 @@ public class OntologyElementSemantics extends Semantics {
                     validationHelper.assertExpectedType(
                         superProperties.getOrDefault(
                             propName,
-                            typeHelper.ANY
+                            builtins.any("")
                         ),
                         argType,
                         "InvalidSlotInheritance",
@@ -444,7 +450,7 @@ public class OntologyElementSemantics extends Semantics {
                         validationHelper.assertExpectedType(
                             superProperties.getOrDefault(
                                 propName,
-                                typeHelper.ANY
+                                builtins.any("")
                             ),
                             slotTypeSet.get(propName),
                             "InvalidSlotInheritance",
@@ -493,10 +499,10 @@ public class OntologyElementSemantics extends Semantics {
         IJadescriptType slotType = tes.toJadescriptType(slotTypeExpression);
 
         return module.get(ValidationHelper.class).asserting(
-            !slotType.isCollection() ||
-                ((ParametricType) slotType).getTypeArguments().stream()
+            !slotType.category().isCollection() ||
+                slotType.typeArguments().stream()
                     .map(TypeArgument::ignoreBound)
-                    .noneMatch(IJadescriptType::isCollection),
+                    .noneMatch(t -> t.category().isCollection()),
             "InvalidSlotType",
             "Collections of collections are not supported as slot types.",
             slotTypeExpression,
@@ -623,8 +629,8 @@ public class OntologyElementSemantics extends Semantics {
             input.__(ExtendingFeature::getSuperType);
 
         if (superType.isNothing()) {
-            final TypeHelper typeHelper = module.get(TypeHelper.class);
-            itClass.getSuperTypes().add(typeHelper.typeRef(
+            final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+            itClass.getSuperTypes().add(jvm.typeRef(
                 getBaseOntologyContentType(input)
             ));
         }
@@ -748,11 +754,11 @@ public class OntologyElementSemantics extends Semantics {
         Maybe<? extends JvmParameterizedTypeReference> superType =
             input.__(ExtendingFeature::getSuperType);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
         if (superType.isNothing()) {
             itClass.getSuperTypes().add(
-                typeHelper.typeRef(getBaseOntologyContentType(input))
+                jvm.typeRef(getBaseOntologyContentType(input))
             );
         }
 
@@ -790,7 +796,7 @@ public class OntologyElementSemantics extends Semantics {
         itClass.getMembers().add(jvmTB.toMethod(
             inputSafe,
             "__isNative",
-            typeHelper.typeRef(Void.TYPE),
+            jvm.typeRef(void.class),
             itMethod -> {
                 itMethod.setDefault(true);
                 itMethod.setAbstract(false);
@@ -830,19 +836,19 @@ public class OntologyElementSemantics extends Semantics {
         JvmTypesBuilder jvmTB,
         JvmGenericType itClass
     ) {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
         final JvmTypeReference conceptTypeRef =
-            typeHelper.typeRef(fqName != null ? fqName.toString() : null);
+            jvm.typeRef(fqName != null ? fqName.toString() : null);
 
-        itClass.getSuperTypes().add(typeHelper.typeRef(
+        itClass.getSuperTypes().add(jvm.typeRef(
             NativeValueFactory.class
         ));
 
         itClass.getMembers().add(jvmTB.toMethod(
             inputSafe,
             "getImplementationClass",
-            typeHelper.typeRef(
+            jvm.typeRef(
                 "Class<? extends " + conceptTypeRef.getQualifiedName('.') + ">"
             ),
             itMethod -> {
@@ -1115,11 +1121,11 @@ public class OntologyElementSemantics extends Semantics {
         final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         members.add(jvmTB.toMethod(
             inputSafe,
             "__metadata_" + typeFullyQualifiedName,
-            typeHelper.typeRef(ontoFullQualifiedNameSafe.toString(".")),
+            jvm.typeRef(ontoFullQualifiedNameSafe.toString(".")),
             itMethod -> {
 
                 itMethod.setDefault(inInterface);
@@ -1187,19 +1193,19 @@ public class OntologyElementSemantics extends Semantics {
 
         final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
         members.add(jvmTB.toMethod(
             inputSafe,
             "equals",
-            typeHelper.typeRef(Boolean.TYPE),
+            jvm.typeRef(Boolean.TYPE),
             itMethod -> {
                 itMethod.setVisibility(JvmVisibility.PUBLIC);
 
                 itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
                     "obj",
-                    typeHelper.typeRef(Object.class)
+                    jvm.typeRef(Object.class)
                 ));
 
                 final CompilationHelper compilationHelper =
@@ -1266,13 +1272,15 @@ public class OntologyElementSemantics extends Semantics {
         final ExtendingFeature inputSafe = input.toNullable();
         final QualifiedName ontoFQNameSafe = ontoFQName.toNullable();
 
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+
         final JvmTypeReference ontoTypeRef =
-            module.get(TypeHelper.class).typeRef(ontoFQNameSafe.toString());
+            jvm.typeRef(ontoFQNameSafe.toString());
 
         members.add(module.get(JvmTypesBuilder.class).toMethod(
             inputSafe,
             "__getDeclaringOntology",
-            module.get(TypeHelper.class)
+            jvm
                 .typeRef(jade.content.onto.Ontology.class),
             it -> {
                 it.setDefault(asDefault);
@@ -1526,7 +1534,7 @@ public class OntologyElementSemantics extends Semantics {
         members.add(jvmTB.toMethod(
             slotSafe,
             "set" + Strings.toFirstUpper(slotNameSafe),
-            module.get(TypeHelper.class).typeRef(Void.TYPE),
+            module.get(JvmTypeHelper.class).typeRef(Void.TYPE),
             it -> {
                 it.getParameters().add(jvmTB.toParameter(
                     slotSafe,
@@ -1553,11 +1561,14 @@ public class OntologyElementSemantics extends Semantics {
 
         final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
         members.add(jvmTB.toMethod(
             inputSafe,
             "toString",
-            typeHelper.TEXT.asJvmTypeReference(),
+            builtins.text().asJvmTypeReference(),
             it -> {
                 it.setVisibility(JvmVisibility.PUBLIC);
                 final CompilationHelper compilationHelper =
@@ -1566,7 +1577,7 @@ public class OntologyElementSemantics extends Semantics {
                 compilationHelper.createAndSetBody(it, scb -> {
                     fillToStringMethod(
                         inputSafe,
-                        typeHelper,
+                        module,
                         compilationHelper,
                         scb
                     );
@@ -1578,10 +1589,15 @@ public class OntologyElementSemantics extends Semantics {
 
     private void fillToStringMethod(
         ExtendingFeature inputSafe,
-        TypeHelper typeHelper,
+        SemanticsModule module,
         CompilationHelper compilationHelper,
         SourceCodeBuilder scb
     ) {
+
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
         w.variable(
             "java.lang.StringBuilder",
             "_sb",
@@ -1632,7 +1648,8 @@ public class OntologyElementSemantics extends Semantics {
                     ) + "()";
 
 
-                    if (typeHelper.TEXT.isSupertypeOrEqualTo(type)) {
+                    if (comparator.compare(builtins.text(), type)
+                        .is(TypeRelationshipQuery.superTypeOrEqual())) {
                         final String quoteLiteral = "\"\\\"\"";
                         w.callStmnt(
                             "_sb.append",

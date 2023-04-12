@@ -15,8 +15,13 @@ import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
-import it.unipr.ailab.jadescript.semantics.helpers.*;
+import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.TemplateCompilationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -90,10 +95,11 @@ public class OnNativeEventHandlerSemantics
         OnNativeEventHandler inputSafe,
         JvmGenericType eventClass
     ) {
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         members.add(module.get(JvmTypesBuilder.class).toField(
             inputSafe,
             synthesizeEventFieldName(inputSafe),
-            module.get(TypeHelper.class).typeRef(eventClass), it -> {
+            jvm.typeRef(eventClass), it -> {
                 it.setVisibility(JvmVisibility.PRIVATE);
                 module.get(JvmTypesBuilder.class).setInitializer(
                     it,
@@ -103,8 +109,7 @@ public class OnNativeEventHandlerSemantics
                             TargetStringConcatenation target
                         ) {
                             target.append(" new ");
-                            target.append(module.get(TypeHelper.class)
-                                .typeRef(eventClass));
+                            target.append(jvm.typeRef(eventClass));
                             target.append("()");
                         }
                     }
@@ -128,11 +133,11 @@ public class OnNativeEventHandlerSemantics
 
                 final CompilationHelper compilationHelper = module.get(
                     CompilationHelper.class);
-                final TypeHelper typeHelper = module.get(TypeHelper.class);
+                final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
                 it.getMembers().add(jvmTypesBuilder.toField(
                     inputSafe,
                     MESSAGE_RECEIVED_BOOL_VAR_NAME,
-                    typeHelper.typeRef(Boolean.class),
+                    jvm.typeRef(Boolean.class),
                     itField -> {
                         itField.setVisibility(JvmVisibility.DEFAULT);
                         compilationHelper
@@ -147,7 +152,7 @@ public class OnNativeEventHandlerSemantics
                 it.getMembers().add(jvmTypesBuilder.toMethod(
                     inputSafe,
                     "run",
-                    typeHelper.typeRef(void.class),
+                    jvm.typeRef(void.class),
                     itMethod -> compilationHelper.createAndSetBody(
                         itMethod,
                         scb -> {
@@ -193,7 +198,10 @@ public class OnNativeEventHandlerSemantics
             whenBody.__(WhenExpression::getExpr);
 
         module.get(ContextManager.class).restore(savedContext);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
 
         module.get(ContextManager.class).enterProceduralFeature(
             OnNativeEventHandlerWhenExpressionContext::new
@@ -201,7 +209,7 @@ public class OnNativeEventHandlerSemantics
 
         StaticState beforePattern = StaticState.beginningOfOperation(module);
 
-        final IJadescriptType contentUpperBound = typeHelper.PROPOSITION;
+        final IJadescriptType contentUpperBound = builtins.proposition();
 
         IJadescriptType pattNarrowedContentType = contentUpperBound;
         IJadescriptType wexpNarrowedContentType = contentUpperBound;
@@ -343,7 +351,7 @@ public class OnNativeEventHandlerSemantics
         module.get(ContextManager.class).exit();
 
 
-        final IJadescriptType finalContentType = typeHelper.getGLB(
+        final IJadescriptType finalContentType = lattice.getGLB(
             pattNarrowedContentType,
             wexpNarrowedContentType
         );
@@ -560,9 +568,12 @@ public class OnNativeEventHandlerSemantics
             .__(OnNativeEventHandler::getPattern)
             .__(x -> (LValueExpression) x);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
 
-        final IJadescriptType contentUpperBound = typeHelper.PROPOSITION;
+        final IJadescriptType contentUpperBound = builtins.proposition();
 
         module.get(ContextManager.class).enterProceduralFeature(
             OnNativeEventHandlerWhenExpressionContext::new
@@ -674,7 +685,7 @@ public class OnNativeEventHandlerSemantics
 
         module.get(ContextManager.class).exit();
 
-        final IJadescriptType finalContentType = typeHelper.getGLB(
+        final IJadescriptType finalContentType = lattice.getGLB(
             pattNarrowedContentType,
             wexpNarrowedContentType
         );

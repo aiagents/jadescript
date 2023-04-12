@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalName;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -92,7 +93,7 @@ public class ModuleContext
 
     @Override
     public String getCurrentOperationLogName() {
-        return null;
+        return "<module declarations>";
     }
 
 
@@ -101,7 +102,7 @@ public class ModuleContext
         String typeRefIdentifier
     ) {
 
-        return Stream.of(module.get(TypeHelper.class).typeRef(
+        return Stream.of(module.get(JvmTypeHelper.class).typeRef(
             getModuleNameAsPrefix() + typeRefIdentifier
         ));
     }

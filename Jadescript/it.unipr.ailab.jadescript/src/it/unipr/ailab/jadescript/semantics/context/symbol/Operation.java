@@ -8,9 +8,10 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Dereference
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
@@ -23,6 +24,8 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 
 public class Operation implements MemberCallable {
 
@@ -115,7 +118,8 @@ public class Operation implements MemberCallable {
         List<String> paramNames = new ArrayList<>();
         Map<String, IJadescriptType> paramNamesToTypes = new HashMap<>();
 
-        final IJadescriptType anyAE = module.get(TypeHelper.class).ANY_AGENTENV;
+        final IJadescriptType anyAE =
+            module.get(BuiltinTypeProvider.class).anyAgentEnv();
 
         boolean withoutSideEffects = false;
 
@@ -145,7 +149,8 @@ public class Operation implements MemberCallable {
 
             final IJadescriptType solvedType =
                 namespace.resolveType(paramTypeRef);
-            if (anyAE.isSupertypeOrEqualTo(solvedType)) {
+            final TypeComparator comparator = module.get(TypeComparator.class);
+            if (comparator.compare(anyAE, solvedType).is(superTypeOrEqual())) {
                 continue;
             }
 

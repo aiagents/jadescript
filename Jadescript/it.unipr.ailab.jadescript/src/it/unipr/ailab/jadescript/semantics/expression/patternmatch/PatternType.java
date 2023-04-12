@@ -1,8 +1,8 @@
 package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 
 import java.util.function.Function;
 
@@ -18,7 +18,10 @@ public interface PatternType {
     }
 
     static SimplePatternType empty(SemanticsModule module) {
-        return new SimplePatternType(module.get(TypeHelper.class).NOTHING);
+        return new SimplePatternType(module.get(BuiltinTypeProvider.class)
+            .nothing(
+                "Empty pattern type escaped."
+            ));
     }
 
     IJadescriptType solve(IJadescriptType providedInputType);

@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.context.symbol.interfaces;
 
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 
@@ -81,9 +82,10 @@ public interface Name extends Located {
                 ? !getName().equals(that.getName())
                 : that.getName() != null) return false;
 
-            return getType() != null
-                ? getType().typeEquals(that.getType())
-                : that.getType() == null;
+            if (getType() != null) {
+                return TypeComparator.rawEquals(this.getType(), that.getType());
+            }
+            return that.getType() == null;
         }
 
 

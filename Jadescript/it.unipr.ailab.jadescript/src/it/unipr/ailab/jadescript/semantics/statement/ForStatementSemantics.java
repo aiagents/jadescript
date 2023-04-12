@@ -14,12 +14,12 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.LocalVariable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
@@ -63,8 +63,10 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
         IJadescriptType firstVarType;
 
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
         if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
-            firstVarType = module.get(TypeHelper.class).INTEGER;
+            firstVarType = builtins.integer();
         } else if (collectionType instanceof MapType) {
             firstVarType = ((MapType) collectionType).getKeyType();
         } else if (collectionType instanceof ListType) {
@@ -72,7 +74,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         } else if (collectionType instanceof SetType) {
             firstVarType = ((SetType) collectionType).getElementType();
         } else {
-            firstVarType = module.get(TypeHelper.class).TOP.apply(
+            firstVarType = builtins.any(
                 "Unexpected collection type: " +
                     collectionType.getFullJadescriptName()
             );
@@ -344,26 +346,28 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                 endIndex,
                 afterCollection
             );
-            validationHelper.assertExpectedType(module.get(
-                    TypeHelper.class).INTEGER, startType,
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
+            validationHelper.assertExpectedType(
+                builtins.integer(),
+                startType,
                 "InvalidIndexType",
                 input,
                 JadescriptPackage.eINSTANCE.getForStatement_Collection(),
                 acceptor
             );
-            validationHelper.assertExpectedType(module.get(
-                    TypeHelper.class).INTEGER, endType,
+            validationHelper.assertExpectedType(
+                builtins.integer(),
+                endType,
                 "InvalidIndexType",
                 input,
                 JadescriptPackage.eINSTANCE.getForStatement_EndIndex(),
                 acceptor
             );
-            IJadescriptType varType =
-                module.get(TypeHelper.class).INTEGER;
 
             final StaticState afterBody = validateBody(
                 input,
-                varType,
+                builtins.integer(),
                 nothing(),
                 afterForHeader,
                 acceptor

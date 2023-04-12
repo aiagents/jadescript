@@ -427,14 +427,14 @@ public class MultiplicativeExpressionSemantics
             th.REAL,
             th.DURATION
         );
-        boolean t1Expected = vh.assertExpectedTypes(
+        boolean t1Expected = vh.assertExpectedTypesAny(
             durationIntReal,
             t1,
             "InvalidMultiplicativeOperation",
             op1,
             acceptor
         );
-        boolean t2Expected = vh.assertExpectedTypes(
+        boolean t2Expected = vh.assertExpectedTypesAny(
             durationIntReal,
             t2,
             "InvalidMultiplicativeOperation",
@@ -449,7 +449,7 @@ public class MultiplicativeExpressionSemantics
         List<IJadescriptType> intReal = Arrays.asList(th.INTEGER, th.REAL);
         if (t1.typeEquals(th.DURATION)) {
             if (operator.wrappedEquals("*")) {
-                return vh.assertExpectedTypes(
+                return vh.assertExpectedTypesAny(
                     intReal,
                     t2,
                     "InvalidMultiplicativeOperation",
@@ -478,7 +478,7 @@ public class MultiplicativeExpressionSemantics
                 return VALID;
             } else if (operator.wrappedEquals("/")
                 || operator.wrappedEquals("%")) {
-                return vh.assertExpectedTypes(
+                return vh.assertExpectedTypesAny(
                     intReal,
                     t2,
                     "InvalidMultiplicativeOperation",

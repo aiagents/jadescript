@@ -11,8 +11,8 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementConstru
 import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementStructuralPattern;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.UserDefinedOntologyType;
 import it.unipr.ailab.maybe.Maybe;
@@ -140,7 +140,7 @@ public class OntologyDeclarationSupportContext
             return true;
         }
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
 
         final MaybeList<JvmParameterizedTypeReference> superOntologies =
             input.__toList(FeatureContainer::getSuperTypes);
@@ -163,15 +163,15 @@ public class OntologyDeclarationSupportContext
                 continue;
             }
 
-            final IJadescriptType superType = typeHelper.jtFromJvmTypeRef(
-                superOntology.toNullable());
+            final IJadescriptType superType = typeSolver.fromJvmTypeReference(
+                superOntology.toNullable()
+            );
 
-            if (superType instanceof UserDefinedOntologyType &&
-                isExtensionOfOntology(
-                    ((UserDefinedOntologyType) superType),
-                    expectedOntoName
-                )
-            ) {
+            if (superType instanceof UserDefinedOntologyType
+                && isExtensionOfOntology(
+                ((UserDefinedOntologyType) superType),
+                expectedOntoName
+            )) {
                 return true;
             }
         }

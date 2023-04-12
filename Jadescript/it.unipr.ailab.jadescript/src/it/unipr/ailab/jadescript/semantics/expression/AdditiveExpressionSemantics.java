@@ -461,7 +461,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         if (th.TEXT.typeEquals(t1) || th.TEXT.typeEquals(t2)) {
             return VALID;
         } else if (th.INTEGER.typeEquals(t1)) {
-            return vh.assertExpectedTypes(
+            return vh.assertExpectedTypesAny(
                 Arrays.asList(th.INTEGER, th.REAL, th.TEXT),
                 t2,
                 "InvalidAdditiveOperation",
@@ -470,7 +470,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             );
 
         } else if (th.REAL.typeEquals(t1)) {
-            return vh.assertExpectedTypes(
+            return vh.assertExpectedTypesAny(
                 Arrays.asList(th.REAL, th.INTEGER, th.TEXT),
                 t2,
                 "InvalidAdditiveOperation",
@@ -479,7 +479,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             );
 
         } else if (th.INTEGER.typeEquals(t2)) {
-            return vh.assertExpectedTypes(
+            return vh.assertExpectedTypesAny(
                 Arrays.asList(th.INTEGER, th.REAL, th.TEXT),
                 t1,
                 "InvalidAdditiveOperation",
@@ -488,7 +488,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             );
 
         } else if (th.REAL.typeEquals(t2)) {
-            return vh.assertExpectedTypes(
+            return vh.assertExpectedTypesAny(
                 Arrays.asList(th.REAL, th.INTEGER, th.TEXT),
                 t1,
                 "InvalidAdditiveOperation",
@@ -497,7 +497,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             );
 
         } else if (th.DURATION.typeEquals(t1)) {
-            return vh.assertExpectedTypes(
+            return vh.assertExpectedTypesAny(
                 Arrays.asList(th.DURATION, th.TIMESTAMP, th.TEXT),
                 t2,
                 "InvalidAdditiveOperation",
@@ -506,7 +506,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             );
 
         } else if (th.DURATION.typeEquals(t2)) {
-            return vh.assertExpectedTypes(
+            return vh.assertExpectedTypesAny(
                 Arrays.asList(th.DURATION, th.TIMESTAMP, th.TEXT),
                 t1,
                 "InvalidAdditiveOperation",
@@ -515,7 +515,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             );
 
         } else if (th.TIMESTAMP.typeEquals(t1)) {
-            return vh.assertExpectedTypes(
+            return vh.assertExpectedTypesAny(
                 Arrays.asList(th.TIMESTAMP, th.DURATION, th.TEXT),
                 t2,
                 "InvalidAdditiveOperation",
@@ -524,7 +524,7 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             );
 
         } else if (th.TIMESTAMP.typeEquals(t2)) {
-            return vh.assertExpectedTypes(
+            return vh.assertExpectedTypesAny(
                 Arrays.asList(th.TIMESTAMP, th.DURATION, th.TEXT),
                 t1,
                 "InvalidAdditiveOperation",

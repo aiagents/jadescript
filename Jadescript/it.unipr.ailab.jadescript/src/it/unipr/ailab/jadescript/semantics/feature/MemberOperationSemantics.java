@@ -17,8 +17,10 @@ import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -48,6 +50,7 @@ public class MemberOperationSemantics
         super(semanticsModule);
     }
 
+
     @Override
     public void generateJvmMembers(
         Maybe<FunctionOrProcedure> input,
@@ -66,8 +69,12 @@ public class MemberOperationSemantics
             module.get(TypeExpressionSemantics.class);
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
         if (type.isNothing()) {
-            returnType = typeHelper.VOID;
+            returnType = builtins.javaVoid();
         } else {
             returnType = tes.toJadescriptType(type);
         }
@@ -109,15 +116,14 @@ public class MemberOperationSemantics
                 itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
                     SemanticsConsts.AGENT_ENV,
-                    typeHelper.AGENTENV
-                        .apply(List.of(
-                            typeHelper.covariant(
-                                contextAgent.orElse(typeHelper.AGENT)
-                            ),
-                            typeHelper.jtFromClass(AgentEnvType.toSEModeClass(
-                                AgentEnvType.SEMode.WITH_SE
-                            ))
-                        )).asJvmTypeReference()
+                    builtins.agentEnv(
+                        typeHelper.covariant(
+                            contextAgent.orElse(builtins.agent())
+                        ),
+                        typeSolver.fromClass(AgentEnvType.toSEModeClass(
+                            AgentEnvType.SEMode.WITH_SE
+                        ))
+                    ).asJvmTypeReference()
                 ));
 
                 for (Maybe<FormalParameter> parameter : parameters) {

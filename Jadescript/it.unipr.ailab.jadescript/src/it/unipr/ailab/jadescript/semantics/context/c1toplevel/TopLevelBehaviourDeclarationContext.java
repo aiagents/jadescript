@@ -6,8 +6,8 @@ import it.unipr.ailab.jadescript.semantics.context.associations.BehaviourAssocia
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.search.WithSupertype;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.maybe.Maybe;
@@ -36,8 +36,8 @@ public class TopLevelBehaviourDeclarationContext
         super(module, outer, ontologyTypes, agentType);
         this.behaviourJvmType = behaviourType;
         this.behaviourType = new LazyInit<>(() ->
-            module.get(TypeHelper.class)
-                .jtFromJvmTypePermissive(behaviourJvmType)
+            module.get(TypeSolver.class)
+                .fromJvmTypePermissive(behaviourJvmType)
         );
         this.behaviourTypeNamespace = new LazyInit<>(
             () -> this.behaviourType.get().namespace()

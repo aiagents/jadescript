@@ -110,7 +110,7 @@ public class TypeLatticeComputer {
         } else if (strictSubType().matches(comparison)) {
             return t1;
         } else {
-            return builtins.get().nothing();
+            return builtins.get().nothing(""); //TODO
         }
     }
 
@@ -187,7 +187,8 @@ public class TypeLatticeComputer {
                 }
             }
         }
-        return TOP.apply("Could not compute LUB between " + t1 + " and " + t2);
+        return builtins.get().any("Could not compute LUB between "
+            + t1 + " and " + t2);
     }
 
 }

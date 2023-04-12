@@ -12,10 +12,13 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchM
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Functional.QuadFunction;
 import it.unipr.ailab.maybe.Functional.TriFunction;
@@ -37,7 +40,8 @@ import java.util.stream.Stream;
 @Singleton
 public abstract class ExpressionSemantics<T> extends Semantics {
     //TODO improvements: add upperbound expression type in evaluation semantics
-    //TODO improvements: infertype returns additional explanations on the resolved type
+    //TODO improvements: infertype returns additional
+    // explanations on the resolved type
 
 
     private final LazyInit<ExpressionSemantics<?>> EMPTY_EXPRESSION_SEMANTICS =
@@ -525,7 +529,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
                 ).findFirst();
 
             if (flowSensitiveInferredType.isPresent()) {
-                return module.get(TypeHelper.class)
+                return module.get(TypeLatticeComputer.class)
                     .getGLB(inferredType, flowSensitiveInferredType.get());
             }
         }
@@ -1356,18 +1360,18 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         ValidationMessageAcceptor acceptor
     ) {
         Maybe<T> pattern = input.getPattern();
-        Class<? extends TypeRelationship> requirement =
+        TypeRelationshipQuery requirement =
             input.getMode().getTypeRelationshipRequirement();
 
         TypeRelationship actualRelationship =
-            module.get(TypeHelper.class).getTypeRelationship(
+            module.get(TypeComparator.class).compare(
                 solvedType,
                 input.getProvidedInputType()
             );
 
         IJadescriptType providedInputType = input.getProvidedInputType();
         return module.get(ValidationHelper.class).asserting(
-            requirement.isInstance(actualRelationship),
+            requirement.matches(actualRelationship),
             "InvalidProvidedInput",
             "Cannot apply here an input of type "
                 + providedInputType.getFullJadescriptName()
@@ -1499,7 +1503,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
             Maybe<T> input,
             StaticState state
         ) {
-            return module.get(TypeHelper.class).BOTTOM.apply(
+            return module.get(BuiltinTypeProvider.class).nothing(
                 "Internal error: the expression '" +
                     CompilationHelper.sourceToTextAny(input) +
                     "' was associated to the semantics of the empty expression."

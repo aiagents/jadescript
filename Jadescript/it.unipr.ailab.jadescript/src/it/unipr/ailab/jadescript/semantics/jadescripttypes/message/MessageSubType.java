@@ -2,9 +2,11 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes.message;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.MessageTypeNamespace;
@@ -45,17 +47,20 @@ public class MessageSubType
 
 
     private IJadescriptType computeRootContentType() {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
         if (this.typeArguments().isEmpty()) {
-            return typeHelper.ANY;
+            return builtins.any(
+                "No type arguments for the content were provided."
+            );
         }
 
         if (this.typeArguments().size() == 1) {
             return typeArguments().get(0).ignoreBound();
         }
 
-        return typeHelper.TUPLE.apply(this.typeArguments());
+        return builtins.tuple(this.typeArguments());
     }
 
 
@@ -79,8 +84,10 @@ public class MessageSubType
 
     @Override
     public Stream<IJadescriptType> declaredSupertypes() {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        return Stream.of(typeHelper.MESSAGE.apply(List.of(getContentType())));
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
+        return Stream.of(builtins.message(getContentType()));
     }
 
 
@@ -92,12 +99,11 @@ public class MessageSubType
 
     @Override
     public JvmTypeReference asJvmTypeReference() {
-        return module.get(TypeHelper.class).typeRef(
+        return module.get(JvmTypeHelper.class).typeRef(
             this.messageClass,
             getContentType().asJvmTypeReference()
         );
     }
-
 
 
     @Override
@@ -124,19 +130,15 @@ public class MessageSubType
     }
 
 
-
-
     @Override
     public boolean isErroneous() {
         return false;
     }
 
 
-
-
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
-        return some(module.get(TypeHelper.class).ONTOLOGY);
+        return some(module.get(BuiltinTypeProvider.class).ontology());
     }
 
 
@@ -147,12 +149,6 @@ public class MessageSubType
             getContentType(),
             getLocation()
         );
-    }
-
-
-    @Override
-    public void addBultinProperty(Property prop) {
-
     }
 
 }

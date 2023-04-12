@@ -12,6 +12,9 @@ public abstract class TypeRelationship {
     }
 
 
+    public boolean is(TypeRelationshipQuery query){
+        return query.matches(this);
+    }
 
 
 

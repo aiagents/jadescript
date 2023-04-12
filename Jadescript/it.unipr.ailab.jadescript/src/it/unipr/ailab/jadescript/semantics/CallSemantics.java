@@ -17,9 +17,10 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.implicit.ImplicitConversionsHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils.Tuple2;
@@ -377,8 +378,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         if (namedArgs.isPresent()) {
             List<String> argNames =
                 someStream(namedArgs.__(NamedArgumentList::getParameterNames))
-                .map(Maybe::toNullable)
-                .collect(Collectors.toList());
+                    .map(Maybe::toNullable)
+                    .collect(Collectors.toList());
             argExpressions = sortToMatchParamNames(
                 argExpressions,
                 argNames,
@@ -604,7 +605,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                     String compiled = compiledArgs.get(argName);
                     IJadescriptType type = argTypes.get(argName);
                     if (destType != null) {
-                        compiled = module.get(TypeHelper.class)
+                        compiled = module.get(ImplicitConversionsHelper.class)
                             .compileWithEventualImplicitConversions(
                                 compiled, type, destType
                             );
@@ -637,7 +638,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     ) {
         return resolve(input, state, true)
             .__(CompilableCallable::returnType)
-            .orElseGet(() -> module.get(TypeHelper.class).TOP.apply(
+            .orElseGet(() -> module.get(BuiltinTypeProvider.class).any(
                 "Unresolved callable symbol."
             ));
     }
@@ -763,8 +764,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             final ValidationHelper validationHelper =
                 module.get(ValidationHelper.class);
             boolean isCorrectOperationKind = validationHelper.asserting(
-                isProcedure == module.get(TypeHelper.class)
-                    .VOID.typeEquals(match.returnType()),
+                isProcedure == match.returnType().category().isJavaVoid(),
                 errorCode,
                 "'" + nameSafe + "' is not a " + procOrFunc,
                 input,
@@ -885,8 +885,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
             boolean isCorrectOperationKind =
                 module.get(ValidationHelper.class).asserting(
-                    isProcedure == module.get(TypeHelper.class)
-                        .VOID.typeEquals(match.returnType()),
+                    isProcedure == match.returnType()
+                        .category().isJavaVoid(),
                     errorCode,
                     "'" + nameSafe + "' is not a " + procOrFunc,
                     input,

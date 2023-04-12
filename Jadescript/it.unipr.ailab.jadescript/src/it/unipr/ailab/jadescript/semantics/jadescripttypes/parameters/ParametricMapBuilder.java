@@ -31,7 +31,7 @@ public abstract class ParametricMapBuilder<T extends IJadescriptType>
 
 
     @Override
-    final T instantiateType(List<TypeArgument> arguments)
+    final T instantiateType(List<? extends TypeArgument> arguments)
         throws InvalidTypeInstantiatonException {
         if (this.skeleton == null) {
             throw new IllegalStateException("Missing skeleton.");

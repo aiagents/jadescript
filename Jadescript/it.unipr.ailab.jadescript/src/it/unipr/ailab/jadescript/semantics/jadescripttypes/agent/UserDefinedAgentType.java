@@ -4,6 +4,8 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.namespace.AgentTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
@@ -62,13 +64,13 @@ public class UserDefinedAgentType
         final JvmType type = asJvmTypeReference().getType();
         if (type instanceof JvmDeclaredType) {
             final IJadescriptType result =
-                module.get(TypeHelper.class).jtFromJvmTypeRef(
+                module.get(TypeSolver.class).fromJvmTypeReference(
                     ((JvmDeclaredType) type).getExtendedClass());
             if (result instanceof AgentType) {
                 return ((AgentType) result);
             }
         }
-        return module.get(TypeHelper.class).AGENT;
+        return module.get(BuiltinTypeProvider.class).agent();
     }
 
 }

@@ -3,8 +3,8 @@ package it.unipr.ailab.jadescript.semantics.topelement;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;
@@ -14,8 +14,6 @@ import org.eclipse.xtext.common.types.JvmMember;
 import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.List;
 
 public interface AgentAssociatedDeclarationSemantics<T> {
 
@@ -41,16 +39,18 @@ public interface AgentAssociatedDeclarationSemantics<T> {
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
         final WriterFactory w = SemanticsConsts.w;
         SemanticsUtils.extractEObject(input).safeDo(inputsafe -> {
             members.add(0, jvmTB.toField(
                 inputsafe,
                 SemanticsConsts.AGENT_ENV,
-                typeHelper.AGENTENV
-                    .apply(List.of(agentType, typeHelper.ANY_SE_MODE))
-                    .asJvmTypeReference(),
+                builtins.agentEnv(
+                    agentType,
+                    builtins.anySE()
+                ).asJvmTypeReference(),
                 itField -> {
                     itField.setVisibility(JvmVisibility.PRIVATE);
                     compilationHelper.createAndSetInitializer(
@@ -79,11 +79,12 @@ public interface AgentAssociatedDeclarationSemantics<T> {
             }
         );
 
+
         SemanticsUtils.extractEObject(input).safeDo(inputSafe -> {
             members.add(jvmTB.toMethod(
                 inputSafe,
                 "__initializeAgentEnv",
-                typeHelper.VOID.asJvmTypeReference(),
+                builtins.javaVoid().asJvmTypeReference(),
                 itMethod -> {
                     itMethod.setVisibility(JvmVisibility.PRIVATE);
                     compilationHelper.createAndSetBody(

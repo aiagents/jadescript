@@ -30,6 +30,7 @@ import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -60,7 +61,8 @@ public class TypeSolver {
 
 
     private IJadescriptType solveJvmTypeReferenceWithoutReattempts(
-        JvmTypeReference reference, boolean permissive
+        JvmTypeReference reference,
+        boolean permissive
     ) {
         final Maybe<IJadescriptType> fromJVMTypeReference =
             this.solveJVMTypeReference(
@@ -86,7 +88,7 @@ public class TypeSolver {
 
 
     private Maybe<IJadescriptType> solveJVMTypeReference(
-        JvmTypeReference typeReference
+        @NotNull JvmTypeReference typeReference
     ) {
 
         final String qualifiedName = typeReference.getQualifiedName('.');
@@ -332,6 +334,7 @@ public class TypeSolver {
     }
 
 
+    @SuppressWarnings("unchecked")
     public List<TypeArgument> getDefaultTypeArguments(
         String name
     ) {
@@ -356,12 +359,8 @@ public class TypeSolver {
             return List.of();
         }
 
-        module.get(TypeHelper.class).unpackTuple()
-
-        if (jadescriptType.category().isTuple()) {
-            return jadescriptType.typeArguments();
-        }
-        return Collections.singletonList(jadescriptType);
+        return (List<TypeArgument>) module.get(TypeHelper.class)
+            .unpackTuple(contentBound);
     }
 
 
@@ -444,6 +443,11 @@ public class TypeSolver {
         Class<?> class_, IJadescriptType... arguments
     ) {
         return fromClass(class_, Arrays.asList(arguments));
+    }
+
+
+    public IJadescriptType fromFullyQualifiedName(String fullyQualifiedName) {
+        return fromJvmTypeReference(jvm.typeRef(fullyQualifiedName));
     }
 
 }

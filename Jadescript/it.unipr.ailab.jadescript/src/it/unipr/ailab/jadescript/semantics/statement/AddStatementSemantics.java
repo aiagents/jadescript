@@ -8,12 +8,13 @@ import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -162,7 +163,10 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
             .extract(nullAsFalse);
 
         boolean putInCheck = module.get(ValidationHelper.class).asserting(
-            SemanticsUtils.implication(putOrAdd.equals("put"), inOrTo.equals("in")),
+            SemanticsUtils.implication(
+                putOrAdd.equals("put"),
+                inOrTo.equals("in")
+            ),
             "InvalidPutStatement",
             "use 'in' when using 'put'",
             input,
@@ -170,7 +174,10 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
         );
 
         boolean addToCheck = module.get(ValidationHelper.class).asserting(
-            SemanticsUtils.implication(putOrAdd.equals("add"), inOrTo.equals("to")),
+            SemanticsUtils.implication(
+                putOrAdd.equals("add"),
+                inOrTo.equals("to")
+            ),
             "InvalidAddStatement",
             "use 'to' when using 'add'",
             input,
@@ -202,9 +209,10 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
 
             IJadescriptType expectedElementType =
                 collectionType.getElementTypeIfCollection().orElse(
-                    module.get(TypeHelper.class).BOTTOM
-                        .apply("Unexpected collection type (" +
-                            collectionType.getFullJadescriptName() + ")")
+                    module.get(BuiltinTypeProvider.class).nothing(
+                        "Unexpected collection type (" +
+                            collectionType.getFullJadescriptName() + ")"
+                    )
                 );
 
             final IJadescriptType elementType = rves.inferType(element, state);
@@ -225,7 +233,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
                 if (collectionType instanceof ListType
                     || collectionType instanceof SetType) {
                     module.get(ValidationHelper.class).assertExpectedType(
-                        module.get(TypeHelper.class).jtFromClass(
+                        module.get(TypeSolver.class).fromClass(
                             Collection.class,
                             expectedElementType
                         ),

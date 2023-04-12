@@ -1,10 +1,11 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.ontocontent;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
@@ -59,12 +60,6 @@ public class BaseOntoContentType
     }
 
 
-    @Override
-    public void addBultinProperty(Property prop) {
-        // no builtin props
-    }
-
-
 
     @Override
     public boolean isSlottable() {
@@ -99,7 +94,7 @@ public class BaseOntoContentType
 
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
-        return some(module.get(TypeHelper.class).ONTOLOGY);
+        return some(module.get(BuiltinTypeProvider.class).ontology());
     }
 
 
@@ -156,19 +151,19 @@ public class BaseOntoContentType
 
     @Override
     public JvmTypeReference asJvmTypeReference() {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         switch (ontoContentKind) {
             case Action:
-                return typeHelper.typeRef(JadescriptAction.class);
+                return jvm.typeRef(JadescriptAction.class);
             case Concept:
-                return typeHelper.typeRef(JadescriptConcept.class);
+                return jvm.typeRef(JadescriptConcept.class);
             case AtomicProposition:
-                return typeHelper.typeRef(JadescriptAtomicProposition.class);
+                return jvm.typeRef(JadescriptAtomicProposition.class);
             case Predicate:
-                return typeHelper.typeRef(JadescriptPredicate.class);
+                return jvm.typeRef(JadescriptPredicate.class);
             case Proposition:
             default:
-                return typeHelper.typeRef(JadescriptProposition.class);
+                return jvm.typeRef(JadescriptProposition.class);
         }
     }
 

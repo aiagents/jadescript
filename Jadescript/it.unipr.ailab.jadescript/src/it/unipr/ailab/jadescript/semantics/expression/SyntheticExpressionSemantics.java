@@ -10,6 +10,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -69,7 +70,9 @@ public class SyntheticExpressionSemantics
         if (type.toNullable() == SyntheticExpression.SyntheticType.CUSTOM) {
             return customSemantics.inferType(module.get(TypeHelper.class));
         }
-        return module.get(TypeHelper.class).ANY;
+        return module.get(BuiltinTypeProvider.class).any(
+            "Invalid synthetic expression."
+        );
     }
 
 
@@ -116,9 +119,8 @@ public class SyntheticExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
-        Maybe<SyntheticExpression> input
-    ) {
+    protected Optional<? extends SemanticsBoundToExpression<?>>
+    traverseInternal(Maybe<SyntheticExpression> input) {
         final SyntheticExpression.SemanticsMethods customSemantics =
             input.__(SyntheticExpression::getSemanticsMethods)
                 .toOpt().orElseGet(SyntheticExpression.SemanticsMethods::new);

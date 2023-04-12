@@ -8,6 +8,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
@@ -22,10 +23,12 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
+import static it.unipr.ailab.maybe.Maybe.some;
 
-public class BasicType extends JadescriptType implements EmptyCreatable {
+public abstract class BasicType
+    extends JadescriptType
+    implements EmptyCreatable {
 
-    private final Map<String, Property> properties = new HashMap<>();
     private final String schemaName;
     private final JvmTypeReference jvmType;
     private final String defaultValue;
@@ -59,11 +62,6 @@ public class BasicType extends JadescriptType implements EmptyCreatable {
 
 
     @Override
-    public void addBultinProperty(Property prop) {
-        properties.put(prop.name(), prop);
-    }
-
-    @Override
     public boolean isSlottable() {
         return true;
     }
@@ -89,28 +87,15 @@ public class BasicType extends JadescriptType implements EmptyCreatable {
     }
 
 
-
-
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
-        return Maybe.some(module.get(TypeHelper.class).ONTOLOGY);
+        return some(module.get(BuiltinTypeProvider.class).ontology());
     }
 
 
     @Override
     public String getSlotSchemaName() {
         return this.schemaName;
-    }
-
-    @Override
-    public TypeNamespace namespace() {
-        return new BuiltinOpsNamespace(
-                module,
-                nothing(),
-                new ArrayList<>(properties.values()),
-                List.of(),
-                getLocation()
-        );
     }
 
 

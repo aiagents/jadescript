@@ -8,7 +8,7 @@ abstract class ParametricTypeBuilder<T extends IJadescriptType> {
 
     abstract void register(ParametricTypeSchema<? super T> skeleton);
 
-    abstract T instantiateType(List<TypeArgument> arguments)
+    abstract T instantiateType(List<? extends TypeArgument> arguments)
         throws InvalidTypeInstantiatonException;
 
 }

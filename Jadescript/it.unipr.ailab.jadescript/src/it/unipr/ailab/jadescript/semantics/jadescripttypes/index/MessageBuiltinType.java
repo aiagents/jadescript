@@ -1,7 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.index;
 
 import jade.lang.acl.ACLMessage;
-import jadescript.lang.Performative;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

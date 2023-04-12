@@ -148,7 +148,9 @@ public class OntologyTypeNamespace
 
 
     @Override
-    public Stream<? extends GlobalName> globalNames(@Nullable String name) {
+    public @Nullable Stream<? extends GlobalName> globalNames(
+        @Nullable String name
+    ) {
         return null;
     }
 

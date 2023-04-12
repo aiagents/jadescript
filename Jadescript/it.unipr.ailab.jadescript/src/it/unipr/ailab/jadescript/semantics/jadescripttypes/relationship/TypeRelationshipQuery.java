@@ -1,5 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship;
 
+import java.util.stream.Stream;
+
 public final class TypeRelationshipQuery {
 
     private final Class<? extends TypeRelationshipInternal> relationshipClz;
@@ -82,5 +84,7 @@ public final class TypeRelationshipQuery {
     public boolean matches(TypeRelationship relationship){
         return this.matches(relationship.getInternal());
     }
+
+
 
 }

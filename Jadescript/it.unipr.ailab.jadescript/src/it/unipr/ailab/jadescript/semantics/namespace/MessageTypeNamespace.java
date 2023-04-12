@@ -4,8 +4,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.MessageType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 
 import java.util.List;
@@ -53,18 +52,19 @@ public class MessageTypeNamespace extends BuiltinOpsNamespace {
         TypeArgument contentType,
         SearchLocation location
     ) {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
         return new MessageTypeNamespace(
             module,
             Property.readonlyProperty(
                 "sender",
-                typeHelper.AID,
+                builtins.aid(),
                 location,
                 Property.compileWithJVMGetter("sender")
             ),
             Property.readonlyProperty(
                 "performative",
-                typeHelper.PERFORMATIVE,
+                builtins.performative(),
                 location,
                 Property.compileGetWithCustomMethod(
                     "getJadescriptPerformative"
@@ -80,7 +80,7 @@ public class MessageTypeNamespace extends BuiltinOpsNamespace {
             ),
             Property.readonlyProperty(
                 "ontology",
-                typeHelper.ONTOLOGY,
+                builtins.ontology(),
                 location,
                 Property.compileWithJVMGetter("ontology")
             ),

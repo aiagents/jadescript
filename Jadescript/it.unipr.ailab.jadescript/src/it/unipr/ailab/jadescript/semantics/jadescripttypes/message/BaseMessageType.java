@@ -1,11 +1,12 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.message;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.MessageTypeNamespace;
@@ -46,14 +47,6 @@ public final class BaseMessageType
 
 
     @Override
-    public void addBultinProperty(Property prop) {
-
-    }
-
-
-
-
-    @Override
     public boolean isSlottable() {
         return false;
     }
@@ -87,7 +80,7 @@ public final class BaseMessageType
 
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
-        return some(module.get(TypeHelper.class).ONTOLOGY);
+        return some(module.get(BuiltinTypeProvider.class).ontology());
     }
 
 
@@ -115,7 +108,7 @@ public final class BaseMessageType
 
     @Override
     public JvmTypeReference asJvmTypeReference() {
-        return module.get(TypeHelper.class).typeRef(
+        return module.get(JvmTypeHelper.class).typeRef(
             jadescript.core.message.Message.class,
             contentType.asJvmTypeReference()
         );

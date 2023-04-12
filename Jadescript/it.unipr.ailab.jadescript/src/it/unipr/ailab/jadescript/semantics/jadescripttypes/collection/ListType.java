@@ -5,21 +5,23 @@ import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.DeclaresOntologyAdHocClass;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import jadescript.util.JadescriptList;
@@ -29,12 +31,16 @@ import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.helpers.TypeHelper.builtinPrefix;
 import static it.unipr.ailab.maybe.Maybe.some;
+import static it.unipr.ailab.maybe.utils.LazyInit.lazyInit;
 
 public class ListType
     extends JadescriptType
@@ -53,10 +59,8 @@ public class ListType
             return true;
         }
     };
-    private final Map<String, Property> properties = new HashMap<>();
-    private final List<Operation> operations = new ArrayList<>();
+
     private final TypeArgument elementType;
-    private boolean initializedProperties = false;
 
 
     public ListType(
@@ -98,229 +102,6 @@ public class ListType
     }
 
 
-    private void initBuiltinProperties() {
-        if (initializedProperties) {
-            return;
-        }
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        this.addBultinProperty(
-            Property.readonlyProperty(
-                "length",
-                typeHelper.INTEGER,
-                getLocation(),
-                Property.compileGetWithCustomMethod("size")
-            )
-        );
-        this.addBultinProperty(
-            new Property(
-                true,
-                "head",
-                getElementType(),
-                getLocation(),
-                (o, a) -> o + ".get(0)",
-                (o, r, a) -> a.accept(
-                    SemanticsConsts.w
-                        .simpleStmt(o + ".set(0, " + r + ")")
-                )
-            )
-        );
-        this.addBultinProperty(
-            new Property(
-                false,
-                "tail",
-                this,
-                getLocation(),
-                (e, a) -> "jadescript.util.JadescriptCollections" +
-                    ".getRest(" + e + ", 1)",
-                (e, re, a) -> a.accept(
-                    SemanticsConsts.w
-                        .simpleStmt("jadescript.util.JadescriptCollections" +
-                            ".getRest(" + e + ", 1)")
-                )
-            )
-        );
-        this.addBultinProperty(
-            new Property(
-                true,
-                "last",
-                this,
-                getLocation(),
-                (e, a) -> e + ".get(" + e + ".size()-1)",
-                (e, re, a) -> a.accept(
-                    SemanticsConsts.w
-                        .simpleStmt(e + ".set(" + e + ".size()-1, " + re + ")")
-                )
-            )
-        );
-        operations.add(Operation.operation(
-            typeHelper.VOID,
-            "__add",
-            Map.of("element", getElementType()),
-            List.of("element"),
-            getLocation(),
-            false,
-            (receiver, args) -> {
-                final String s;
-                if (args.size() >= 1) {
-                    s = args.get(0);
-                } else {
-                    s = "/*internal error: missing arguments*/";
-                }
-                return receiver + ".add(" + s + ")";
-            },
-            (receiver, namedArgs) -> {
-                return receiver + ".add(" + namedArgs.get("element") + ")";
-            }
-        ));
-        operations.add(Operation.operation(
-            typeHelper.VOID,
-            "__addAt",
-            Map.of(
-                "index", typeHelper.INTEGER,
-                "element", getElementType()
-            ),
-            List.of("index", "element"),
-            getLocation(),
-            false,
-            (receiver, args) -> {
-                final String e;
-                final String i;
-                if (args.size() >= 2) {
-                    i = args.get(0);
-                    e = args.get(1);
-                } else {
-                    i = "/*internal error: missing arguments*/";
-                    e = "/*internal error: missing arguments*/";
-                }
-                return receiver + ".add(" + i + ", " + e + ")";
-            },
-            (receiver, namedArgs) -> {
-                return receiver + ".add(" + namedArgs.get("index") + ", " +
-                    namedArgs.get("element") + ")";
-            }
-        ));
-        operations.add(Operation.operation(
-            typeHelper.VOID,
-            "__addAll",
-            Map.of("elements", this),
-            List.of("elements"),
-            getLocation(),
-            false,
-            (receiver, args) -> {
-                final String e;
-                if (args.size() >= 1) {
-                    e = args.get(1);
-                } else {
-                    e = "/*internal error: missing arguments*/";
-                }
-                return receiver + ".addAll(" + e + ")";
-            },
-            (receiver, namedArgs) -> {
-                return receiver + ".addAll(" + namedArgs.get("elements") + ")";
-            }
-        ));
-        operations.add(Operation.operation(
-            typeHelper.VOID,
-            "__addAllAt",
-            Map.of(
-                "index", typeHelper.INTEGER,
-                "elements", this
-            ),
-            List.of("index", "elements"),
-            getLocation(),
-            false,
-            (receiver, args) -> {
-                final String e;
-                final String i;
-                if (args.size() >= 2) {
-                    i = args.get(0);
-                    e = args.get(1);
-                } else {
-                    i = "/*internal error: missing arguments*/";
-                    e = "/*internal error: missing arguments*/";
-                }
-                return receiver + ".addAll(" + i + ", " + e + ")";
-            },
-            (receiver, namedArgs) -> {
-                return receiver + ".addAll(" + namedArgs.get("index") + ", " +
-                    namedArgs.get("elements") + ")";
-            }
-        ));
-        operations.add(Operation.operation(
-            getElementType(),
-            "get",
-            Map.of("index", typeHelper.INTEGER),
-            List.of("index"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            typeHelper.VOID,
-            "set",
-            Map.of(
-                "index", typeHelper.INTEGER,
-                "element", getElementType()
-            ),
-            List.of("index", "element"),
-            getLocation(),
-            false
-        ));
-        operations.add(Operation.operation(
-            typeHelper.BOOLEAN,
-            "contains",
-            Map.of("o", getElementType()),
-            List.of("o"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            typeHelper.BOOLEAN,
-            "containsAll",
-            Map.of("o", this),
-            List.of("o"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            typeHelper.BOOLEAN,
-            "containsAll",
-            Map.of(
-                "o", typeHelper.SET.apply(Arrays.asList(getElementType()))
-            ),
-            List.of("o"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            typeHelper.BOOLEAN,
-            "containsAny",
-            Map.of("o", this),
-            List.of("o"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            typeHelper.BOOLEAN,
-            "containsAny",
-            Map.of(
-                "o",
-                typeHelper.SET.apply(Arrays.asList(getElementType()))
-            ),
-            List.of("o"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            typeHelper.VOID,
-            "clear",
-            Map.of(),
-            List.of(),
-            getLocation(),
-            false
-        ));
-        this.initializedProperties = true;
-    }
-
 
     public IJadescriptType getElementType() {
         return this.elementType.ignoreBound();
@@ -335,16 +116,11 @@ public class ListType
 
     @Override
     public JvmTypeReference asJvmTypeReference() {
-        return module.get(TypeHelper.class).typeRef(
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+        return jvm.typeRef(
             JadescriptList.class,
             this.elementType.asJvmTypeReference()
         );
-    }
-
-
-    @Override
-    public void addBultinProperty(Property prop) {
-        this.properties.put(prop.name(), prop);
     }
 
 
@@ -384,21 +160,253 @@ public class ListType
     }
 
 
-    private Map<String, Property> getBuiltinProperties() {
-        initBuiltinProperties();
-        return properties;
-    }
+
+
+    private final LazyInit<BuiltinOpsNamespace> namespace =
+        lazyInit(() -> {
+
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
+
+            List<MemberName> properties = new ArrayList<>();
+            properties.add(
+                Property.readonlyProperty(
+                    "length",
+                    builtins.integer(),
+                    getLocation(),
+                    Property.compileGetWithCustomMethod("size")
+                )
+            );
+
+            properties.add(
+                new Property(
+                    true,
+                    "head",
+                    ListType.this.getElementType(),
+                    getLocation(),
+                    (o, a) -> o + ".get(0)",
+                    (o, r, a) -> a.accept(
+                        SemanticsConsts.w
+                            .simpleStmt(o + ".set(0, " + r + ")")
+                    )
+                )
+            );
+            properties.add(
+                new Property(
+                    false,
+                    "tail",
+                    ListType.this,
+                    getLocation(),
+                    (e, a) -> "jadescript.util.JadescriptCollections" +
+                        ".getRest(" + e + ", 1)",
+                    (e, re, a) -> a.accept(
+                        SemanticsConsts.w
+                            .simpleStmt("jadescript.util" +
+                                ".JadescriptCollections" +
+                                ".getRest(" + e + ", 1)")
+                    )
+                )
+            );
+            properties.add(
+                new Property(
+                    true,
+                    "last",
+                    ListType.this.getElementType(),
+                    getLocation(),
+                    (e, a) -> e + ".get(" + e + ".size()-1)",
+                    (e, re, a) -> a.accept(
+                        SemanticsConsts.w
+                            .simpleStmt(e + ".set(" + e + ".size()-1, "
+                                + re + ")")
+                    )
+                )
+            );
+
+            List<Operation> operations = new ArrayList<>();
+
+            operations.add(Operation.operation(
+                builtins.javaVoid(),
+                "__add",
+                Map.of("element", ListType.this.getElementType()),
+                List.of("element"),
+                getLocation(),
+                false,
+                (receiver, args) -> {
+                    final String s;
+                    if (args.size() >= 1) {
+                        s = args.get(0);
+                    } else {
+                        s = "/*internal error: missing arguments*/";
+                    }
+                    return receiver + ".add(" + s + ")";
+                },
+                (receiver, namedArgs) -> {
+                    return receiver + ".add(" + namedArgs.get("element") + ")";
+                }
+            ));
+            operations.add(Operation.operation(
+                builtins.javaVoid(),
+                "__addAt",
+                Map.of(
+                    "index", builtins.integer(),
+                    "element", ListType.this.getElementType()
+                ),
+                List.of("index", "element"),
+                getLocation(),
+                false,
+                (receiver, args) -> {
+                    final String e;
+                    final String i;
+                    if (args.size() >= 2) {
+                        i = args.get(0);
+                        e = args.get(1);
+                    } else {
+                        i = "/*internal error: missing arguments*/";
+                        e = "/*internal error: missing arguments*/";
+                    }
+                    return receiver + ".add(" + i + ", " + e + ")";
+                },
+                (receiver, namedArgs) -> {
+                    return receiver + ".add(" + namedArgs.get("index") + ", " +
+                        namedArgs.get("element") + ")";
+                }
+            ));
+            operations.add(Operation.operation(
+                builtins.javaVoid(),
+                "__addAll",
+                Map.of("elements", ListType.this),
+                List.of("elements"),
+                getLocation(),
+                false,
+                (receiver, args) -> {
+                    final String e;
+                    if (args.size() >= 1) {
+                        e = args.get(1);
+                    } else {
+                        e = "/*internal error: missing arguments*/";
+                    }
+                    return receiver + ".addAll(" + e + ")";
+                },
+                (receiver, namedArgs) -> {
+                    return receiver + ".addAll(" +
+                        namedArgs.get("elements") +
+                        ")";
+                }
+            ));
+            operations.add(Operation.operation(
+                builtins.javaVoid(),
+                "__addAllAt",
+                Map.of(
+                    "index", builtins.integer(),
+                    "elements", ListType.this
+                ),
+                List.of("index", "elements"),
+                getLocation(),
+                false,
+                (receiver, args) -> {
+                    final String e;
+                    final String i;
+                    if (args.size() >= 2) {
+                        i = args.get(0);
+                        e = args.get(1);
+                    } else {
+                        i = "/*internal error: missing arguments*/";
+                        e = "/*internal error: missing arguments*/";
+                    }
+                    return receiver + ".addAll(" + i + ", " + e + ")";
+                },
+                (receiver, namedArgs) -> {
+                    return receiver + ".addAll(" + namedArgs.get("index") +
+                        ", " +
+                        namedArgs.get("elements") + ")";
+                }
+            ));
+            operations.add(Operation.operation(
+                ListType.this.getElementType(),
+                "get",
+                Map.of("index", builtins.integer()),
+                List.of("index"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.javaVoid(),
+                "set",
+                Map.of(
+                    "index", builtins.integer(),
+                    "element", ListType.this.getElementType()
+                ),
+                List.of("index", "element"),
+                getLocation(),
+                false
+            ));
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "contains",
+                Map.of("o", ListType.this.getElementType()),
+                List.of("o"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "containsAll",
+                Map.of("o", ListType.this),
+                List.of("o"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "containsAll",
+                Map.of(
+                    "o", builtins.set(getElementType())
+                ),
+                List.of("o"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "containsAny",
+                Map.of("o", ListType.this),
+                List.of("o"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "containsAny",
+                Map.of(
+                    "o",
+                    builtins.set(getElementType())
+                ),
+                List.of("o"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.javaVoid(),
+                "clear",
+                Map.of(),
+                List.of(),
+                getLocation(),
+                false
+            ));
+
+            return new BuiltinOpsNamespace(
+                ListType.this.module,
+                Maybe.nothing(),
+                properties,
+                operations,
+                ListType.this.getLocation()
+            );
+        });
 
 
     @Override
     public TypeNamespace namespace() {
-        return new BuiltinOpsNamespace(
-            module,
-            Maybe.nothing(),
-            new ArrayList<>(getBuiltinProperties().values()),
-            operations,
-            getLocation()
-        );
+        return namespace.get();
     }
 
 
@@ -443,16 +451,16 @@ public class ListType
         final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
 
+
         members.add(jvmTB.toClass(
             featureSafe,
             className,
             itClass -> {
                 itClass.setStatic(true);
                 itClass.setVisibility(JvmVisibility.PUBLIC);
-                final TypeHelper typeHelper =
-                    module.get(TypeHelper.class);
+                final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
-                itClass.getSuperTypes().add(typeHelper.typeRef(
+                itClass.getSuperTypes().add(jvm.typeRef(
                     JadescriptList.class,
                     elementType.asJvmTypeReference()
                 ));
@@ -460,14 +468,14 @@ public class ListType
                 itClass.getMembers().add(jvmTB.toMethod(
                     featureSafe,
                     "__fromList",
-                    typeHelper.typeRef(className),
+                    jvm.typeRef(className),
                     itMeth -> {
                         itMeth.setVisibility(JvmVisibility.PUBLIC);
                         itMeth.setStatic(true);
                         itMeth.getParameters().add(jvmTB.toParameter(
                             featureSafe,
                             "list",
-                            typeHelper.typeRef(
+                            jvm.typeRef(
                                 JadescriptList.class,
                                 elementType.asJvmTypeReference()
                             )

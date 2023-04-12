@@ -2,7 +2,8 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship;
 
 
 /**
- * Identifies the type of subtyping relationship that a type has w.r.t. to another.
+ * Identifies the type of subtyping relationship that a type has w.r.t.
+ * to another.
  */
 interface TypeRelationshipInternal {
 

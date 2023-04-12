@@ -1,10 +1,11 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.namespace.BehaviourTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
@@ -13,13 +14,13 @@ import org.eclipse.xtext.common.types.JvmType;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
 import java.util.Collections;
-import java.util.List;
 
 public class UserDefinedBehaviourType
     extends UserDefinedType<BaseBehaviourType>
     implements EmptyCreatable, BehaviourType {
 
     private final Maybe<IJadescriptType> superType;
+
 
     public UserDefinedBehaviourType(
         SemanticsModule module,
@@ -29,6 +30,7 @@ public class UserDefinedBehaviourType
         super(module, jvmType, rootCategoryType);
         this.superType = Maybe.nothing();
     }
+
 
     public UserDefinedBehaviourType(//TODO ?
         SemanticsModule module,
@@ -59,9 +61,6 @@ public class UserDefinedBehaviourType
     }
 
 
-
-
-
     @Override
     public boolean requiresAgentEnvParameter() {
         return true;
@@ -81,14 +80,6 @@ public class UserDefinedBehaviourType
 
 
     @Override
-    public boolean isCollection() {
-        return false;
-    }
-
-
-
-
-    @Override
     public BehaviourTypeNamespace namespace() {
         return new BehaviourTypeNamespace(
             module,
@@ -99,21 +90,23 @@ public class UserDefinedBehaviourType
 
 
     public BehaviourType getSuperBehaviourType() {
-        if(superType.isPresent()
-            && superType.toNullable() instanceof BehaviourType){
+        if (superType.isPresent()
+            && superType.toNullable() instanceof BehaviourType) {
             return ((BehaviourType) superType.toNullable());
         }
 
         final JvmType type = asJvmTypeReference().getType();
         if (type instanceof JvmDeclaredType) {
-            final IJadescriptType result = module.get(TypeHelper.class)
-                .jtFromJvmTypeRef(((JvmDeclaredType) type).getExtendedClass());
+            final IJadescriptType result = module.get(TypeSolver.class)
+                .fromJvmTypeReference(
+                    ((JvmDeclaredType) type).getExtendedClass()
+                );
             if (result instanceof BehaviourType) {
                 return ((BehaviourType) result);
             }
         }
-        return module.get(TypeHelper.class).BEHAVIOUR.apply(List.of(
-            getForAgentType()));
+        return module.get(BuiltinTypeProvider.class)
+            .behaviour(getForAgentType());
     }
 
 }

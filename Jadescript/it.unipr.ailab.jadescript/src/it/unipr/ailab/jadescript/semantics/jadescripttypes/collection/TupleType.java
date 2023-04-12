@@ -4,20 +4,21 @@ import it.unipr.ailab.jadescript.jadescript.ExtendingFeature;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.DeclaresOntologyAdHocClass;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.emf.common.util.EList;
@@ -26,10 +27,14 @@ import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static it.unipr.ailab.maybe.utils.LazyInit.lazyInit;
 
 public class TupleType
     extends JadescriptType
@@ -42,8 +47,6 @@ public class TupleType
         }
     };
     private final List<TypeArgument> elementTypes;
-    private final Map<String, Property> properties = new HashMap<>();
-    private boolean initializedProperties = false;
 
 
     public TupleType(SemanticsModule module, List<TypeArgument> elementTypes) {
@@ -57,9 +60,6 @@ public class TupleType
     }
 
 
-    public TupleType(SemanticsModule module, IJadescriptType... elementTypes) {
-        this(module, Arrays.asList(elementTypes));
-    }
 
 
     public static String compileNewInstance(
@@ -132,8 +132,6 @@ public class TupleType
     }
 
 
-
-
     public List<IJadescriptType> getElementTypes() {
         return elementTypes.stream()
             .map(TypeArgument::ignoreBound)
@@ -146,66 +144,16 @@ public class TupleType
     }
 
 
-    private void initBuiltinProperties() {
-        if (!initializedProperties) {
-            this.addBultinProperty(Property.readonlyProperty(
-                    "length",
-                    module.get(TypeHelper.class).INTEGER,
-                    getLocation(),
-                    (o, a) -> "" + elementTypes.size()
-                )
-            );
-
-            if (getElementTypes().size() > 0) {
-                this.addBultinProperty(Property.readonlyProperty(
-                    "head",
-                    getElementTypes().get(0),
-                    getLocation(),
-                    (o, a) -> compileGet(o, 0)
-                ));
-                this.addBultinProperty(Property.readonlyProperty(
-                    "tail",
-                    new TupleType(
-                        module,
-                        elementTypes.subList(1, elementTypes.size())
-                    ),
-                    getLocation(),
-                    (o, a) -> {
-                        List<TypeArgument> tailTypes = new ArrayList<>();
-                        List<String> tailCompiles = new ArrayList<>();
-                        for (int i = 1; i < elementTypes.size(); i++) {
-                            tailTypes.add(elementTypes.get(i).ignoreBound());
-                            tailCompiles.add(compileGet(o, i));
-                        }
-                        return compileNewInstance(tailCompiles, tailTypes);
-                    }
-                ));
-                this.addBultinProperty(Property.readonlyProperty(
-                    "last",
-                    getElementTypes().get(elementTypes.size() - 1),
-                    getLocation(),
-                    (o, a) -> compileGet(o, elementTypes.size() - 1)
-                ));
-            }
-        }
-        this.initializedProperties = true;
-    }
-
 
     @Override
     public JvmTypeReference asJvmTypeReference() {
-        return module.get(TypeHelper.class).typeRef(
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+        return jvm.typeRef(
             "jadescript.lang.Tuple$Tuple" + elementTypes.size(),
             elementTypes.stream()
                 .map(TypeArgument::asJvmTypeReference)
                 .toArray(JvmTypeReference[]::new)
         );
-    }
-
-
-    @Override
-    public void addBultinProperty(Property prop) {
-        this.properties.put(prop.name(), prop);
     }
 
 
@@ -249,7 +197,9 @@ public class TupleType
         } else if (size == 1) {
             return getElementTypes().get(0).getDeclaringOntology();
         } else {
-            return module.get(TypeHelper.class).getOntologyGLB(
+            final TypeLatticeComputer lattice =
+                module.get(TypeLatticeComputer.class);
+            return lattice.getOntologyGLB(
                 getElementTypes().get(0).getDeclaringOntology(),
                 getElementTypes().get(1).getDeclaringOntology(),
                 getElementTypes().subList(1, size).stream()
@@ -258,8 +208,6 @@ public class TupleType
             );
         }
     }
-
-
 
 
     @Override
@@ -321,16 +269,16 @@ public class TupleType
 
         final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
         members.add(jvmTB.toClass(featureSafe, className, itClass -> {
+            final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
             itClass.setStatic(true);
             itClass.setVisibility(JvmVisibility.PUBLIC);
             final JvmTypeReference asJvmTypeReference =
                 asJvmTypeReference();
             itClass.getSuperTypes().add(asJvmTypeReference);
-            final TypeHelper typeHelper = module.get(TypeHelper.class);
             itClass.getMembers().add(jvmTB.toMethod(
                 featureSafe,
                 "__fromTuple",
-                typeHelper.typeRef(className),
+                jvm.typeRef(className),
                 itMeth -> {
                     itMeth.setVisibility(JvmVisibility.PUBLIC);
                     itMeth.setStatic(true);
@@ -395,21 +343,67 @@ public class TupleType
     }
 
 
-    private Map<String, Property> getBuiltinProperties() {
-        initBuiltinProperties();
-        return properties;
-    }
+    private final LazyInit<BuiltinOpsNamespace> namespace =
+        lazyInit(() -> {
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
+
+            List<MemberName> properties = new ArrayList<>();
+
+            final List<IJadescriptType> elementTypes = getElementTypes();
+
+            properties.add(Property.readonlyProperty(
+                    "length",
+                    builtins.integer(),
+                    getLocation(),
+                    (o, a) -> "" + elementTypes.size()
+                )
+            );
+
+            if (elementTypes.size() > 0) {
+                properties.add(Property.readonlyProperty(
+                    "head",
+                    elementTypes.get(0),
+                    getLocation(),
+                    (o, a) -> compileGet(o, 0)
+                ));
+                properties.add(Property.readonlyProperty(
+                    "tail",
+                    builtins.tuple(
+                        typeArguments().subList(1, typeArguments().size())
+                    ),
+                    getLocation(),
+                    (o, a) -> {
+                        List<TypeArgument> tailTypes = new ArrayList<>();
+                        List<String> tailCompiles = new ArrayList<>();
+                        for (int i = 1; i < elementTypes.size(); i++) {
+                            tailTypes.add(elementTypes.get(i).ignoreBound());
+                            tailCompiles.add(compileGet(o, i));
+                        }
+                        return compileNewInstance(tailCompiles, tailTypes);
+                    }
+                ));
+                properties.add(Property.readonlyProperty(
+                    "last",
+                    elementTypes.get(elementTypes.size() - 1),
+                    getLocation(),
+                    (o, a) -> compileGet(o, elementTypes.size() - 1)
+                ));
+            }
+
+            return new BuiltinOpsNamespace(
+                module,
+                Maybe.nothing(),
+                properties,
+                List.of(),
+                getLocation()
+            );
+        });
 
 
     @Override
     public TypeNamespace namespace() {
-        return new BuiltinOpsNamespace(
-            module,
-            Maybe.nothing(),
-            new ArrayList<>(getBuiltinProperties().values()),
-            List.of(),
-            getLocation()
-        );
+        return namespace.get();
     }
 
 

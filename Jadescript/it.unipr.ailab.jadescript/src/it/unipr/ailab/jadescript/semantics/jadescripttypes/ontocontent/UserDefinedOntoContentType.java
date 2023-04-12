@@ -4,18 +4,19 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.UnknownJVMType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.UserDefinedOntologyType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.UnknownJVMType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.UserDefinedOntologyType;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
-import it.unipr.ailab.maybe.utils.LazyInit;
+import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import org.eclipse.xtext.common.types.*;
 import org.jetbrains.annotations.Nullable;
 
@@ -131,7 +132,7 @@ public class UserDefinedOntoContentType
                 return some(new UserDefinedOntologyType(
                     module,
                     returnType.asJvmTypeReference(),
-                    module.get(TypeHelper.class).ONTOLOGY
+                    module.get(BuiltinTypeProvider.class).ontology()
                 ));
             }
         }
@@ -215,8 +216,8 @@ public class UserDefinedOntoContentType
         public Maybe<? extends TypeNamespace> getSuperTypeNamespace() {
             return some(jvmDeclaredType.getExtendedClass()).__(
                 extendedClass ->
-                    module.get(TypeHelper.class)
-                        .jtFromJvmTypeRef(extendedClass)
+                    module.get(TypeSolver.class)
+                        .fromJvmTypeReference(extendedClass)
                         .namespace()
             );
         }

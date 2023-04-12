@@ -13,6 +13,7 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.implicit.ImplicitConversionsHelper;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -261,14 +262,15 @@ public class CompilationHelper implements IQualifiedNameProvider {
         List<IJadescriptType> destinationTypes
     ) {
         List<String> result = new ArrayList<>();
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final ImplicitConversionsHelper conversions
+            = module.get(ImplicitConversionsHelper.class);
         final int assumedSize = Math.min(
             compiledArgs.size(),
             Math.min(argTypes.size(), destinationTypes.size())
         );
         for (int i = 0; i < assumedSize; i++) {
             result.add(
-                typeHelper.compileWithEventualImplicitConversions(
+                conversions.compileWithEventualImplicitConversions(
                     compiledArgs.get(i),
                     argTypes.get(i),
                     destinationTypes.get(i)
@@ -334,7 +336,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
             type = startType;
         } else {
             returnExpr =
-                module.get(TypeHelper.class)
+                module.get(ImplicitConversionsHelper.class)
                     .compileWithEventualImplicitConversions(
                         compiled,
                         startType,

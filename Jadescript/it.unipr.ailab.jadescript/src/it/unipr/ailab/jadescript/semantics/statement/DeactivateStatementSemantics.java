@@ -7,8 +7,8 @@ import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -86,8 +86,8 @@ public class DeactivateStatementSemantics
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-
-        final TypeHelper th = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
@@ -97,7 +97,7 @@ public class DeactivateStatementSemantics
         StaticState runningState;
         if (check == VALID) {
             validationHelper.assertExpectedType(
-                module.get(TypeHelper.class).ANYBEHAVIOUR,
+                builtins.anyBehaviour(),
                 rves.inferType(target, state),
                 "InvalidDeactivateStatement",
                 target,
@@ -112,7 +112,7 @@ public class DeactivateStatementSemantics
             check = rves.validate(delay, runningState, acceptor);
             if (check == VALID) {
                 validationHelper.assertExpectedType(
-                    th.DURATION,
+                    builtins.duration(),
                     rves.inferType(delay, runningState),
                     "InvalidDelayType",
                     delay,
@@ -126,7 +126,7 @@ public class DeactivateStatementSemantics
             check = rves.validate(end, runningState, acceptor);
             if (check == VALID) {
                 validationHelper.assertExpectedType(
-                    th.TIMESTAMP,
+                    builtins.timestamp(),
                     rves.inferType(end, runningState),
                     "InvalidDelayType",
                     end,

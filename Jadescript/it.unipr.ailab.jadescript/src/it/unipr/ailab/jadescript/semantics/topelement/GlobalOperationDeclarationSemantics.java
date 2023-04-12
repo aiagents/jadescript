@@ -24,8 +24,10 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -154,7 +156,10 @@ public class GlobalOperationDeclarationSemantics
             });
         }
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
 
         for (int mI = 0; mI < methodsMap.get(name).size(); mI++) {
             Maybe<GlobalFunctionOrProcedure> method =
@@ -167,8 +172,9 @@ public class GlobalOperationDeclarationSemantics
             for (int i = 0; i < ontologies.size(); i++) {
                 Maybe<JvmTypeReference> ontologyTypeRef = ontologies.get(i);
                 IJadescriptType ontology = ontologyTypeRef
-                    .__(typeHelper::jtFromJvmTypeRef)
-                    .orElse(typeHelper.ANY);
+                    .__(typeSolver::fromJvmTypeReference)
+                    .orElse(builtins.any("No used ontology " +
+                        "provided."));
 
 
                 validationHelper.assertExpectedType(
@@ -265,8 +271,10 @@ public class GlobalOperationDeclarationSemantics
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
 
-        final TypeHelper typeHelper =
-            module.get(TypeHelper.class);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
         final ContextManager contextManager =
             module.get(ContextManager.class);
@@ -282,7 +290,7 @@ public class GlobalOperationDeclarationSemantics
         for (Maybe<GlobalFunctionOrProcedure> method : methodsMap.get(name)) {
             IJadescriptType returnType = method
                 .__(GlobalFunctionOrProcedure::getType)
-                .extractOrElse(tes::toJadescriptType, typeHelper.VOID);
+                .extractOrElse(tes::toJadescriptType, builtins.javaVoid());
 
 
             final Maybe<String> methodName =
@@ -324,14 +332,14 @@ public class GlobalOperationDeclarationSemantics
                     itMethod.getParameters().add(jvmTB.toParameter(
                         methodSafe,
                         SemanticsConsts.AGENT_ENV,
-                        typeHelper.AGENTENV.apply(List.of(
+                        builtins.agentEnv(
                             typeHelper.covariant(
-                                contextAgent.orElse(typeHelper.AGENT)
+                                contextAgent.orElse(builtins.agent())
                             ),
-                            typeHelper.jtFromClass(AgentEnvType.toSEModeClass(
+                            typeSolver.fromClass(AgentEnvType.toSEModeClass(
                                 AgentEnvType.SEMode.WITH_SE
                             ))
-                        )).asJvmTypeReference()
+                        ).asJvmTypeReference()
                     ));
 
 
@@ -490,10 +498,10 @@ public class GlobalOperationDeclarationSemantics
             input.__(GlobalFunctionOrProcedure::isProcedure)
                 .extract(nullAsTrue);
         if (isProcedure) {
-            return Optional.of(module.get(TypeHelper.class).jtFromClass(
+            return Optional.of(module.get(TypeSolver.class).fromClass(
                 jadescript.lang.JadescriptGlobalProcedure.class));
         } else { //input.isFunction()
-            return Optional.of(module.get(TypeHelper.class).jtFromClass(
+            return Optional.of(module.get(TypeSolver.class).fromClass(
                 jadescript.lang.JadescriptGlobalFunction.class));
         }
     }

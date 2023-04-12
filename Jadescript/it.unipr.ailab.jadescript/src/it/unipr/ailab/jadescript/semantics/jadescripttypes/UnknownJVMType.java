@@ -1,10 +1,10 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.namespace.EmptyTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
@@ -56,10 +56,6 @@ public class UnknownJVMType
     }
 
 
-    @Override
-    public void addBultinProperty(Property prop) {
-
-    }
 
 
 
@@ -101,8 +97,8 @@ public class UnknownJVMType
             return new PermissiveJvmBasedNamespace(
                 module,
                 this.jvmNamespace(),
-                () -> module.get(TypeHelper.class)
-                    .jtFromJvmTypeRef(this.asJvmTypeReference())
+                () -> module.get(TypeSolver.class)
+                    .fromJvmTypeReference(this.asJvmTypeReference())
                     .namespace().getSuperTypeNamespace(),
                 getLocation()
             );
@@ -122,7 +118,7 @@ public class UnknownJVMType
 
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
-        if (module.get(TypeHelper.class).isAssignable(
+        if (module.get(JvmTypeHelper.class).isAssignable(
             JadescriptOntoElement.class,
             asJvmTypeReference()
         )) {

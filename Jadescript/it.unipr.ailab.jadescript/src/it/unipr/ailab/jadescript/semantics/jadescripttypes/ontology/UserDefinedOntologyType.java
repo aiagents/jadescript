@@ -4,12 +4,15 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.OntologyTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmField;
 import org.eclipse.xtext.common.types.JvmTypeReference;
+
+import static it.unipr.ailab.maybe.Maybe.some;
 
 
 public class UserDefinedOntologyType
@@ -52,8 +55,10 @@ public class UserDefinedOntologyType
     public OntologyType getSuperOntologyType() { //TODO multiple ontologies
         JvmTypeNamespace jvmNamespace = jvmNamespace();
 
+        final BaseOntologyType baseOntology =
+            module.get(BuiltinTypeProvider.class).ontology();
         if (jvmNamespace == null) {
-            return module.get(TypeHelper.class).ONTOLOGY;
+            return baseOntology;
         }
 
         return jvmNamespace.searchJvmField()
@@ -63,7 +68,7 @@ public class UserDefinedOntologyType
             .map(jvmNamespace::resolveType)
             .filter(t -> t instanceof OntologyType)
             .map(t -> (OntologyType) t)
-            .orElse(module.get(TypeHelper.class).ONTOLOGY);
+            .orElse(baseOntology);
     }
 
 
@@ -74,7 +79,8 @@ public class UserDefinedOntologyType
             return true;
         }
 
-        final BaseOntologyType basic = module.get(TypeHelper.class).ONTOLOGY;
+        final BaseOntologyType basic = module.get(BuiltinTypeProvider.class)
+            .ontology();
 
         if (TypeComparator.rawEquals(this, basic)) {
             return true;

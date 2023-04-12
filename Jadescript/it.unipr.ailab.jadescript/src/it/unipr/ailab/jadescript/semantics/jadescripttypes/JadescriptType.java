@@ -60,7 +60,6 @@ public abstract class JadescriptType
     }
 
 
-    public abstract void addBultinProperty(Property prop);
 
 
     @Override
@@ -85,75 +84,14 @@ public abstract class JadescriptType
     ) {
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
-        boolean erroneousCheck = validationHelper.asserting(
+
+        return validationHelper.asserting(
             !isErroneous(),
             "InvalidType",
             "Invalid type: '" + this.getFullJadescriptName() + "'.",
             input,
             acceptor
         );
-
-        if (erroneousCheck) {
-            return INVALID;
-        }
-
-        boolean argsNumberCheck = VALID;
-        boolean argsBoundCheck = VALID;
-        boolean argsValidCheck = VALID;
-
-        final @Nullable List<IJadescriptType> upperBounds =
-            typeParametersUpperBounds();
-
-        if (upperBounds != null) {
-            final List<TypeArgument> typeArguments = typeArguments();
-            argsNumberCheck = validationHelper.asserting(
-                upperBounds.size() == typeArguments.size(),
-                "InvalidTypeInstantiation",
-                "Invalid number of type arguments; expected: "
-                    + upperBounds.size() + ", provided: " +
-                    typeArguments.size() + ".",
-                input,
-                acceptor
-            );
-
-            int assumedSize = Math.min(
-                upperBounds.size(),
-                typeArguments.size()
-            );
-
-            for (int i = 0; i < assumedSize; i++) {
-                IJadescriptType upperBound = upperBounds.get(i);
-                IJadescriptType typeArgument =
-                    typeArguments.get(i).ignoreBound();
-
-                final boolean vtemp = validationHelper.assertExpectedType(
-                    upperBound,
-                    typeArgument,
-                    "InvalidTypeArgument",
-                    input,
-                    acceptor
-                );
-
-                argsBoundCheck = argsBoundCheck && vtemp;
-            }
-
-            for (TypeArgument typeArgument : typeArguments) {
-                boolean vtemp = validationHelper.asserting(
-                    !typeArgument.ignoreBound().isErroneous(),
-                    "InvalidTypeArgument",
-                    "Invalid type argument. Type: '"
-                        + typeArgument.getFullJadescriptName() + "'.",
-                    input,
-                    acceptor
-                );
-
-                argsValidCheck = argsValidCheck && vtemp;
-            }
-
-
-        }
-
-        return argsNumberCheck && argsBoundCheck && argsValidCheck;
     }
 
 

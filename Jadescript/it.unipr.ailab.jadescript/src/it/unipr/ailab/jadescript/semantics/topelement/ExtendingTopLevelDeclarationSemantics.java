@@ -3,9 +3,10 @@ package it.unipr.ailab.jadescript.semantics.topelement;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.ExtendingElement;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmParameterizedTypeReference;
@@ -16,6 +17,8 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 
 /**
  * Created on 27/04/18.
@@ -40,7 +43,7 @@ public abstract class ExtendingTopLevelDeclarationSemantics<T extends ExtendingE
 
         return eListMaybe
             .__(elist -> elist.get(0))
-            .__(module.get(TypeHelper.class)::jtFromJvmTypeRef);
+            .__(module.get(TypeSolver.class)::fromJvmTypeReference);
     }
 
 
@@ -69,8 +72,9 @@ public abstract class ExtendingTopLevelDeclarationSemantics<T extends ExtendingE
 
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
-        final TypeHelper typeHelper =
-            module.get(TypeHelper.class);
+
+            final TypeSolver typeSolver = module.get(TypeSolver.class);
+            final TypeComparator comparator = module.get(TypeComparator.class);
 
         if (!allowedSuperTypes.isEmpty()) {
             for (Maybe<JvmParameterizedTypeReference> declaredSuperType :
@@ -85,9 +89,11 @@ public abstract class ExtendingTopLevelDeclarationSemantics<T extends ExtendingE
 
                 validationHelper.asserting(
                     allowedSuperTypes.stream().anyMatch(sup -> {
-                        final IJadescriptType sub =
-                            typeHelper.jtFromJvmTypeRef(declaredSuperTypeSafe);
-                        return sup.isSupertypeOrEqualTo(sub);
+                        final IJadescriptType sub = typeSolver
+                            .fromJvmTypeReference(declaredSuperTypeSafe);
+
+                        return comparator.compare(sup, sub)
+                            .is(superTypeOrEqual());
                     }),
                     "InvalidSupertype",
                     "Here is expected a subtype of or same type as " +

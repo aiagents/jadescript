@@ -6,8 +6,8 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.search.WithSupertype;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.maybe.Maybe;
@@ -31,7 +31,7 @@ public class OntologyDeclarationContext
         super(module, outer);
         this.ontology = ontology;
         this.ontoType = new LazyInit<>(() ->
-            module.get(TypeHelper.class).jtFromJvmType(this.ontology));
+            module.get(TypeSolver.class).fromJvmType(this.ontology));
         this.ontoNamespace = new LazyInit<>(() ->
             this.ontoType.get().namespace());
     }

@@ -11,8 +11,10 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCalla
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 
 import static it.unipr.ailab.jadescript.semantics.context.symbol.GlobalFunctionOrProcedure.defaultInvokeByArity;
 import static it.unipr.ailab.jadescript.semantics.context.symbol.GlobalFunctionOrProcedure.defaultInvokeByName;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public class OntologyElementConstructor implements GlobalCallable {
@@ -73,7 +76,8 @@ public class OntologyElementConstructor implements GlobalCallable {
         List<String> paramNames = new ArrayList<>();
         Map<String, IJadescriptType> paramNamesToTypes = new HashMap<>();
 
-        final IJadescriptType anyAE = module.get(TypeHelper.class).ANY_AGENTENV;
+        final IJadescriptType anyAE =
+            module.get(BuiltinTypeProvider.class).anyAgentEnv();
 
 
         for (JvmFormalParameter parameter : parameters) {
@@ -94,7 +98,10 @@ public class OntologyElementConstructor implements GlobalCallable {
 
             final IJadescriptType solvedType =
                 jvmTypeNamespace.resolveType(paramTypeRef);
-            if (anyAE.isSupertypeOrEqualTo(solvedType)) {
+
+            final TypeComparator comparator = module.get(TypeComparator.class);
+
+            if (comparator.compare(anyAE, solvedType).is(superTypeOrEqual())) {
                 continue;
             }
 
@@ -161,7 +168,9 @@ public class OntologyElementConstructor implements GlobalCallable {
             ontoFQName,
             ontologyElement.getName() == null ? "" : ontologyElement.getName(),
             new LazyInit<>(() -> {
-                final TypeHelper typeHelper = module.get(TypeHelper.class);
+                final TypeSolver typeSolver = module.get(TypeSolver.class);
+                final BuiltinTypeProvider builtins =
+                    module.get(BuiltinTypeProvider.class);
                 final CompilationHelper compilationHelper =
                     module.get(CompilationHelper.class);
 
@@ -170,8 +179,8 @@ public class OntologyElementConstructor implements GlobalCallable {
                 )
                     .__(fqn -> fqn.toString("."))
                     .nullIf(String::isBlank)
-                    .__(typeHelper::jtFromFullyQualifiedName)
-                    .orElse(typeHelper.ANY_ONTOLOGY_ELEMENT);
+                    .__(typeSolver::fromFullyQualifiedName)
+                    .orElse(builtins.anyOntologyElement());
 
             }),
             paramTypesByName,

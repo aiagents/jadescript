@@ -10,7 +10,7 @@ import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnDestroyHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
@@ -68,7 +68,7 @@ public class OnDestroyHandlerSemantics
         input.safeDo(handlerSafe -> members.add(jvmTypesBuilder.toMethod(
             handlerSafe,
             "__onDestroy",
-            module.get(TypeHelper.class).typeRef(void.class),
+            module.get(JvmTypeHelper.class).typeRef(void.class),
             itMethod -> {
                 fillTakeDownMethod(
                     input,
@@ -143,7 +143,7 @@ public class OnDestroyHandlerSemantics
                 .toMethod(
                     handlerSafe,
                     "doOnDestroy",
-                    module.get(TypeHelper.class).typeRef(void.class),
+                    module.get(JvmTypeHelper.class).typeRef(void.class),
                     itMethod -> {
                         fillDoOnDestroyMethod(
                             input,

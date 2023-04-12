@@ -7,17 +7,17 @@ import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.Arrays;
-
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 
@@ -55,11 +55,16 @@ public class RemoveStatementSemantics
             ));
             return rves.advance(index, state);
         } else {
-            final TypeHelper typeHelper = module.get(TypeHelper.class);
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
+            final TypeComparator comparator = module.get(TypeComparator.class);
+
             final IJadescriptType elementType = rves.inferType(element, state);
+
             String elementCompiled = rves.compile(element, state, acceptor);
 
-            if (typeHelper.INTEGER.isSupertypeOrEqualTo(elementType)) {
+            if (comparator.compare(builtins.integer(), elementType)
+                .is(superTypeOrEqual())) {
                 //Using a cast to (java.lang.Integer) to specify the removal
                 // of the Integer element, not the removal by int index.
                 elementCompiled = "(Integer) " + elementCompiled;
@@ -265,16 +270,22 @@ public class RemoveStatementSemantics
                 element,
                 afterCollection
             );
-            final TypeHelper typeHelper = module.get(TypeHelper.class);
-            final ListType expectedList = typeHelper.LIST.apply(Arrays.asList(
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
+            final TypeComparator comparator = module.get(TypeComparator.class);
+
+            final ListType expectedList = builtins.list(
                 collectionType.getElementTypeIfCollection().toNullable()
-            ));
-            final SetType expectedSet = typeHelper.SET.apply(Arrays.asList(
+            );
+            final SetType expectedSet = builtins.set(
                 collectionType.getElementTypeIfCollection().toNullable()
-            ));
+            );
+
             validationHelper.asserting(
-                typeHelper.isAssignable(expectedList, elementType)
-                    || typeHelper.isAssignable(expectedSet, elementType),
+                comparator.compare(expectedList, elementType)
+                    .is(superTypeOrEqual())
+                    || comparator.compare(expectedSet, elementType)
+                    .is(superTypeOrEqual()),
                 "Invalid" + (isRetain ? "Retain" : "Remove") + "Statement",
                 "invalid type; found: '" + elementType.getFullJadescriptName() +
                     "'; expected: '" + expectedSet.getFullJadescriptName() +

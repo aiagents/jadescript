@@ -15,9 +15,9 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.ActualParameter;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
@@ -63,7 +63,8 @@ public interface OperationDeclarationSemantics
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
         IJadescriptType returnType;
         if (type.isPresent()) {
@@ -72,10 +73,10 @@ public interface OperationDeclarationSemantics
             if (returnTypeCheck == VALID) {
                 returnType = tes.toJadescriptType(type);
             } else {
-                returnType = typeHelper.VOID;
+                returnType = builtins.javaVoid();
             }
         } else {
-            returnType = typeHelper.VOID;
+            returnType = builtins.javaVoid();
         }
 
 
@@ -105,7 +106,7 @@ public interface OperationDeclarationSemantics
             } else {
                 namesToTypes.put(
                     paramName,
-                    typeHelper.ANY
+                    builtins.any("")
                 );
             }
         }
@@ -126,7 +127,6 @@ public interface OperationDeclarationSemantics
     }
 
 
-
     default void validateGenericFunctionOrProcedureOnEdit(
         Maybe<? extends EObject> input,
         Maybe<String> name,
@@ -142,7 +142,10 @@ public interface OperationDeclarationSemantics
             return;
         }
         ValidationHelper validationHelper = module.get(ValidationHelper.class);
-        TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
         TypeExpressionSemantics tes = module.get(TypeExpressionSemantics.class);
         BlockSemantics blockSemantics = module.get(BlockSemantics.class);
 
@@ -178,10 +181,10 @@ public interface OperationDeclarationSemantics
             if (returnTypeCheck == VALID) {
                 returnType = tes.toJadescriptType(type);
             } else {
-                returnType = typeHelper.VOID;
+                returnType = builtins.javaVoid();
             }
         } else {
-            returnType = typeHelper.VOID;
+            returnType = builtins.javaVoid();
         }
 
         List<String> paramNames = new ArrayList<>();
@@ -204,7 +207,7 @@ public interface OperationDeclarationSemantics
             if (paramTypeCheck == VALID) {
                 paramTypes.add(tes.toJadescriptType(paramTypeExpr));
             } else {
-                paramTypes.add(typeHelper.ANY);
+                paramTypes.add(builtins.any(""));
             }
         }
 
@@ -276,9 +279,6 @@ public interface OperationDeclarationSemantics
         }
 
         module.get(ContextManager.class).exit();
-
-
-
 
 
     }

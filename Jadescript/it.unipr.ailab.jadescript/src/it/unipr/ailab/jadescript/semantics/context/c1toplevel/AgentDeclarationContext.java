@@ -9,8 +9,8 @@ import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.search.WithSupertype;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedName;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
@@ -42,9 +42,9 @@ public class AgentDeclarationContext
     ) {
         super(module, outer, ontologyTypes);
         this.agentJvmType = agentType;
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
         this.agentType = new LazyInit<>(() ->
-            typeHelper.jtFromJvmTypePermissive(agentJvmType)
+            typeSolver.fromJvmTypePermissive(agentJvmType)
         );
         this.agentTypeNamespace = new LazyInit<>(() ->
             this.agentType.get().namespace()

@@ -5,21 +5,21 @@ import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.DeclaresOntologyAdHocClass;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import jadescript.util.JadescriptMap;
 import org.eclipse.emf.common.util.EList;
@@ -28,12 +28,17 @@ import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.helpers.TypeHelper.builtinPrefix;
+import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.some;
+import static it.unipr.ailab.maybe.utils.LazyInit.lazyInit;
 
 public class MapType
     extends JadescriptType
@@ -52,11 +57,8 @@ public class MapType
         }
 
     };
-    private final Map<String, Property> properties = new HashMap<>();
-    private final List<Operation> operations = new ArrayList<>();
     private final TypeArgument keyType;
     private final TypeArgument valueType;
-    private boolean initializedProperties = false;
 
 
     public MapType(
@@ -128,7 +130,8 @@ public class MapType
 
     @Override
     public JvmTypeReference asJvmTypeReference() {
-        return module.get(TypeHelper.class).typeRef(
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+        return jvm.typeRef(
             JadescriptMap.class,
             getKeyType().asJvmTypeReference(),
             getValueType().asJvmTypeReference()
@@ -139,143 +142,6 @@ public class MapType
     @Override
     public Maybe<IJadescriptType> getElementTypeIfCollection() {
         return some(getValueType());
-    }
-
-
-    @Override
-    public void addBultinProperty(Property prop) {
-        properties.put(prop.name(), prop);
-    }
-
-
-    private void initBuiltinProperties() {
-        if (initializedProperties) {
-            return;
-        }
-
-        this.addBultinProperty(
-            Property.readonlyProperty(
-                "size",
-                module.get(TypeHelper.class).INTEGER,
-                getLocation(),
-                Property.compileGetWithCustomMethod("size")
-            )
-        );
-        this.addBultinProperty(
-            Property.readonlyProperty(
-                "values",
-                module.get(TypeHelper.class).SET.apply(
-                    Arrays.asList(getValueType())
-                ),
-                getLocation(),
-                Property.compileGetWithCustomMethod("values")
-            )
-        );
-        this.addBultinProperty(
-            Property.readonlyProperty(
-                "keys",
-                module.get(TypeHelper.class).SET.apply(
-                    Arrays.asList(getKeyType())
-                ),
-                getLocation(),
-                Property.compileGetWithCustomMethod("keySet")
-            )
-        );
-
-        operations.add(Operation.operation(
-            module.get(TypeHelper.class).VOID,
-            "__addAt",
-
-            Map.of(
-                "index", getKeyType(),
-                "element", getValueType()
-            ),
-            List.of("index", "element"),
-            getLocation(),
-            false,
-            (receiver, args) -> {
-                final String e;
-                final String i;
-                if (args.size() >= 2) {
-                    i = args.get(0);
-                    e = args.get(1);
-                } else {
-                    i = "/*internal error: missing arguments*/";
-                    e = "/*internal error: missing arguments*/";
-                }
-                return receiver + ".put(" + i + ", " + e + ")";
-            },
-            (receiver, namedArgs) -> {
-                return receiver + ".put(" + namedArgs.get("index") + "," +
-                    namedArgs.get("element") + ")";
-            }
-        ));
-        operations.add(Operation.operation(
-            getValueType(),
-            "get",
-            Map.of("key", getKeyType()),
-            List.of("key"),
-            getLocation(),
-            true // assuming no exceptions are thrown
-        ));
-        operations.add(Operation.operation(
-            getValueType(),
-            "put",
-            Map.of(
-                "key", getKeyType(),
-                "value", getValueType()
-            ),
-            List.of("key", "value"),
-            getLocation(),
-            false
-        ));
-        operations.add(Operation.operation(
-            module.get(TypeHelper.class).BOOLEAN,
-            "containsKey",
-            Map.of("k", getKeyType()),
-            List.of("k"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            module.get(TypeHelper.class).BOOLEAN,
-            "containsValue",
-            Map.of("v", getValueType()),
-            List.of("v"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            module.get(TypeHelper.class).BOOLEAN,
-            "containsAll",
-            Map.of("m", this),
-            List.of("m"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            module.get(TypeHelper.class).BOOLEAN,
-            "containsAny",
-            Map.of("m", this),
-            List.of("m"),
-            getLocation(),
-            true
-        ));
-        operations.add(Operation.operation(
-            module.get(TypeHelper.class).VOID,
-            "clear",
-            Map.of(),
-            List.of(),
-            getLocation(),
-            false
-        ));
-        this.initializedProperties = true;
-    }
-
-
-    private Map<String, Property> getBuiltinProperties() {
-        initBuiltinProperties();
-        return properties;
     }
 
 
@@ -308,13 +174,13 @@ public class MapType
 
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
-        return module.get(TypeHelper.class).getOntologyGLB(
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
+        return lattice.getOntologyGLB(
             getKeyType().getDeclaringOntology(),
             getValueType().getDeclaringOntology()
         );
     }
-
-
 
 
     @Override
@@ -326,15 +192,140 @@ public class MapType
     }
 
 
+    private final LazyInit<BuiltinOpsNamespace> namespace =
+        lazyInit(() -> {
+
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
+
+            List<MemberName> properties = new ArrayList<>();
+            List<MemberCallable> operations = new ArrayList<>();
+            properties.add(
+                Property.readonlyProperty(
+                    "size",
+                    builtins.integer(),
+                    getLocation(),
+                    Property.compileGetWithCustomMethod("size")
+                )
+            );
+            properties.add(
+                Property.readonlyProperty(
+                    "values",
+                    builtins.set(getValueType()),
+                    getLocation(),
+                    Property.compileGetWithCustomMethod("values")
+                )
+            );
+            properties.add(
+                Property.readonlyProperty(
+                    "keys",
+                    builtins.set(getKeyType()),
+                    getLocation(),
+                    Property.compileGetWithCustomMethod("keySet")
+                )
+            );
+
+            operations.add(Operation.operation(
+                builtins.javaVoid(),
+                "__addAt",
+
+                Map.of(
+                    "index", getKeyType(),
+                    "element", getValueType()
+                ),
+                List.of("index", "element"),
+                getLocation(),
+                false,
+                (receiver, args) -> {
+                    final String e;
+                    final String i;
+                    if (args.size() >= 2) {
+                        i = args.get(0);
+                        e = args.get(1);
+                    } else {
+                        i = "/*internal error: missing arguments*/";
+                        e = "/*internal error: missing arguments*/";
+                    }
+                    return receiver + ".put(" + i + ", " + e + ")";
+                },
+                (receiver, namedArgs) -> {
+                    return receiver + ".put(" + namedArgs.get("index") + "," +
+                        namedArgs.get("element") + ")";
+                }
+            ));
+            operations.add(Operation.operation(
+                getValueType(),
+                "get",
+                Map.of("key", getKeyType()),
+                List.of("key"),
+                getLocation(),
+                true // assuming no exceptions are thrown
+            ));
+            operations.add(Operation.operation(
+                getValueType(),
+                "put",
+                Map.of(
+                    "key", getKeyType(),
+                    "value", getValueType()
+                ),
+                List.of("key", "value"),
+                getLocation(),
+                false
+            ));
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "containsKey",
+                Map.of("k", getKeyType()),
+                List.of("k"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "containsValue",
+                Map.of("v", getValueType()),
+                List.of("v"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "containsAll",
+                Map.of("m", this),
+                List.of("m"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.boolean_(),
+                "containsAny",
+                Map.of("m", this),
+                List.of("m"),
+                getLocation(),
+                true
+            ));
+            operations.add(Operation.operation(
+                builtins.javaVoid(),
+                "clear",
+                Map.of(),
+                List.of(),
+                getLocation(),
+                false
+            ));
+
+            return new BuiltinOpsNamespace(
+                MapType.this.module,
+                nothing(),
+                properties,
+                operations,
+                MapType.this.getLocation()
+            );
+        });
+
+
     @Override
     public TypeNamespace namespace() {
-        return new BuiltinOpsNamespace(
-            module,
-            Maybe.nothing(),
-            new ArrayList<>(getBuiltinProperties().values()),
-            operations,
-            getLocation()
-        );
+        return namespace.get();
     }
 
 
@@ -352,14 +343,10 @@ public class MapType
     }
 
 
-
-
     @Override
     public boolean isErroneous() {
         return false;
     }
-
-
 
 
     @Override
@@ -389,23 +376,24 @@ public class MapType
             module.get(JvmTypesBuilder.class);
 
         members.add(jvmTB.toClass(featureSafe, className, itClass -> {
+            final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+
             itClass.setStatic(true);
             itClass.setVisibility(JvmVisibility.PUBLIC);
             itClass.getSuperTypes().add(asJvmTypeReference());
 
-            final TypeHelper typeHelper = module.get(TypeHelper.class);
 
             itClass.getMembers().add(jvmTB.toMethod(
                 featureSafe,
                 "__fromMap",
-                typeHelper.typeRef(className),
+                jvm.typeRef(className),
                 itMeth -> {
                     itMeth.setVisibility(JvmVisibility.PUBLIC);
                     itMeth.setStatic(true);
                     itMeth.getParameters().add(jvmTB.toParameter(
                         featureSafe,
                         "map",
-                        typeHelper.typeRef(
+                        jvm.typeRef(
                             Map.class,
                             keyType.asJvmTypeReference(),
                             elementType.asJvmTypeReference()

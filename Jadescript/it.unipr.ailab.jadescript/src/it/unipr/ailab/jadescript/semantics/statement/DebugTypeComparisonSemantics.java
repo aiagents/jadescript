@@ -7,8 +7,12 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.*;
 
 public class DebugTypeComparisonSemantics
     extends StatementSemantics<DebugTypeComparison> {
@@ -55,17 +59,25 @@ public class DebugTypeComparisonSemantics
             "Type B: " + type2.getDebugPrint() + "\n" +
             "\n";
 
-        if (type1.typeEquals(type2)) {
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        final TypeRelationship comparison = comparator.compare(type1, type2);
+
+        if (comparison.is(equal())) {
             result += "TypeA(" + type1 + ") and TypeB(" + type2 +
                 ") are equal.\n";
         }
 
-        if (type1.isSupertypeOrEqualTo(type2)) {
-            result += "TypeA(" + type1 + ") >= TypeB(" + type2 + ").\n";
+        if (comparison.is(strictSuperType())) {
+            result += "TypeA(" + type1 + ") > TypeB(" + type2 + ").\n";
         }
 
-        if (type2.isSupertypeOrEqualTo(type1)) {
-            result += "TypeA(" + type1 + ") <= TypeB(" + type2 + ").\n";
+        if (comparison.is(strictSubType())) {
+            result += "TypeA(" + type1 + ") < TypeB(" + type2 + ").\n";
+        }
+
+        if(comparison.is(notRelated())) {
+            result += "TypeA(" + type1 + ") and TypeB(" + type2 + ") are not " +
+                "related.";
         }
         return result;
     }

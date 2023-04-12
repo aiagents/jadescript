@@ -11,11 +11,13 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OntologyDeclarationSupportContext;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BaseBehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.TupleType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BaseBehaviourType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.InvalidTypeInstantiatonException;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
@@ -23,15 +25,16 @@ import jadescript.content.JadescriptOntoElement;
 import org.eclipse.xtext.common.types.JvmOperation;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.equal;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 /**
@@ -42,7 +45,6 @@ public final class TypeExpressionSemantics extends Semantics {
     public TypeExpressionSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
-
 
 
     public boolean validate(
@@ -62,17 +64,12 @@ public final class TypeExpressionSemantics extends Semantics {
         final Maybe<BuiltinHierarchicType> builtinHierarchicType =
             input.__(TypeExpression::getBuiltinHiearchic);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        final ValidationHelper validationHelper =
-            module.get(ValidationHelper.class);
-
         if (jvmtype.isPresent()) {
             return validateJVMType(
                 input,
                 acceptor,
                 jvmtype,
-                typeHelper,
-                validationHelper
+                module
             );
         } else if (collectionType.isPresent()) {
             return validateCollectionType(
@@ -84,7 +81,7 @@ public final class TypeExpressionSemantics extends Semantics {
                 input,
                 acceptor,
                 subExprs,
-                validationHelper
+                module
             );
         } else if (builtinHierarchicType.isPresent()) {
             return validateBuiltinHierarchic(
@@ -101,8 +98,11 @@ public final class TypeExpressionSemantics extends Semantics {
         Maybe<TypeExpression> input,
         ValidationMessageAcceptor acceptor,
         MaybeList<TypeExpression> subExprs,
-        ValidationHelper validationHelper
+        SemanticsModule module
     ) {
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
         boolean result = validationHelper.asserting(
             subExprs.size() <= 20,
             "TooBigTuple",
@@ -148,11 +148,14 @@ public final class TypeExpressionSemantics extends Semantics {
         Maybe<TypeExpression> input,
         ValidationMessageAcceptor acceptor,
         Maybe<JvmTypeReference> jvmtype,
-        TypeHelper typeHelper,
-        ValidationHelper validationHelper
+        SemanticsModule module
     ) {
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
         final IJadescriptType jdType =
-            typeHelper.jtFromJvmTypeRef(jvmtype.toNullable());
+            typeSolver.fromJvmTypeReference(jvmtype.toNullable());
         boolean result = validationHelper.assertTypeReferable(
             input,
             "Invalid type reference",
@@ -160,7 +163,8 @@ public final class TypeExpressionSemantics extends Semantics {
             acceptor
         );
 
-        if (typeHelper.isAssignable(JadescriptOntoElement.class, jdType)) {
+        if (comparator.compare(JadescriptOntoElement.class, jdType)
+            .is(superTypeOrEqual())) {
             final JvmTypeNamespace jvmNamespace = jdType.jvmNamespace();
             Optional<IJadescriptType> declaringOntology =
                 jvmNamespace
@@ -173,18 +177,19 @@ public final class TypeExpressionSemantics extends Semantics {
                 IJadescriptType ontoType = declaringOntology.get();
                 final boolean hasMatchingOntoAssociations =
                     module.get(ContextManager.class).currentContext()
-                    .actAs(OntologyAssociationComputer.class)
-                    .findFirst()
-                    .orElse(OntologyAssociationComputer
-                        .EMPTY_ONTOLOGY_ASSOCIATIONS)
-                    .computeAllOntologyAssociations()
-                    .anyMatch(oa ->
-                        oa.getOntology().typeEquals(ontoType)
-                    );
+                        .actAs(OntologyAssociationComputer.class)
+                        .findFirst()
+                        .orElse(OntologyAssociationComputer
+                            .EMPTY_ONTOLOGY_ASSOCIATIONS)
+                        .computeAllOntologyAssociations()
+                        .anyMatch(oa ->
+                            comparator.compare(oa.getOntology(), ontoType)
+                                .is(equal())
+                        );
 
 
                 boolean ontologyAccessible;
-                if(!hasMatchingOntoAssociations){
+                if (!hasMatchingOntoAssociations) {
                     Optional<OntologyDeclarationSupportContext> supportContext =
                         module.get(ContextManager.class)
                             .currentContext()
@@ -208,7 +213,7 @@ public final class TypeExpressionSemantics extends Semantics {
                         input,
                         acceptor
                     );
-                }else{
+                } else {
                     ontologyAccessible = VALID;
                 }
 
@@ -219,30 +224,35 @@ public final class TypeExpressionSemantics extends Semantics {
         return result;
     }
 
+
     private boolean validateBuiltinHierarchic(
         Maybe<BuiltinHierarchicType> builtinHierarchicType,
         ValidationMessageAcceptor acceptor
     ) {
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
 
-        Function<List<TypeArgument>, BaseBehaviourType> behaviourTypeFunction =
+        Function<TypeArgument, BaseBehaviourType> behaviourTypeFunction =
             getBaseBehaviourTypeFunction(builtinHierarchicType);
 
         if (behaviourTypeFunction != null) {
-            IJadescriptType agentType = getAgentArgumentType(
-                builtinHierarchicType);
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
+            final ValidationHelper validationHelper = module.get(
+                ValidationHelper.class);
+
+            IJadescriptType agentType =
+                getAgentArgumentType(builtinHierarchicType);
             final boolean expectedTypeValidation =
-                module.get(ValidationHelper.class).assertExpectedType(
-                    typeHelper.AGENT,
+                validationHelper.assertExpectedType(
+                    builtins.agent(),
                     agentType,
                     "InvalidBehaviourTypeArgument",
                     builtinHierarchicType
                         .__(BuiltinHierarchicType::getArgumentAgentRef),
                     acceptor
                 );
-            final boolean agentTypeValidation = behaviourTypeFunction.apply(
-                    Arrays.asList(agentType))
+            final boolean agentTypeValidation = behaviourTypeFunction
+                .apply(agentType)
                 .validateType(builtinHierarchicType, acceptor);
             return expectedTypeValidation && agentTypeValidation;
         } else {
@@ -264,6 +274,9 @@ public final class TypeExpressionSemantics extends Semantics {
         Maybe<MessageType> messageTypeMaybe
     ) {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
         final Maybe<String> baseTypeName =
             messageTypeMaybe.__(MessageType::getBaseType);
         final IJadescriptType contentType =
@@ -273,35 +286,41 @@ public final class TypeExpressionSemantics extends Semantics {
             messageTypeMaybe.__(MessageType::isWithOf).extract(
                 nullAsFalse);
 
-        final List<TypeArgument> contentTypes;
+        final List<? extends TypeArgument> contentTypes;
 
         if (!isExplicitContentType) {
             contentTypes =
-                typeHelper.getDefaultTypeArguments(baseTypeName.toNullable());
+                typeSolver.getDefaultTypeArguments(baseTypeName.toNullable());
         } else {
-            if (contentType instanceof TupleType) {
-                contentTypes = ((TupleType) contentType).getTypeArguments();
-            } else {
-                contentTypes = Collections.singletonList(contentType);
-            }
+            contentTypes = typeHelper.unpackTuple(contentType);
         }
         return baseTypeName
-            .__(typeHelper::getMessageType)
-            .<IJadescriptType>__(f -> f.apply(contentTypes))
-            .orElse(typeHelper.ANY_MESSAGE);
+            .__(typeSolver::getMessageTypeSchemaForPerformative)
+            .__(f -> {
+                try {
+                    return f.create(contentTypes);
+                } catch (InvalidTypeInstantiatonException e) {
+                    e.printStackTrace();
+                    return builtins.any(e.getMessage());
+                }
+            })
+            .orElse(builtins.any("Could not resolve message type " +
+                "for performative " + baseTypeName));
     }
 
 
     private IJadescriptType getAgentArgumentType(
-        Maybe<BuiltinHierarchicType> bhType
+        @NotNull Maybe<BuiltinHierarchicType> bhType
     ) {
-        TypeHelper typeHelper = module.get(TypeHelper.class);
-        IJadescriptType agentType = typeHelper.AGENT;
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        IJadescriptType agentType = builtins.agent();
         if (bhType.__(BuiltinHierarchicType::isFor).extract(nullAsFalse)) {
             final Maybe<JvmTypeReference> agentArgumentRef =
                 bhType.__(BuiltinHierarchicType::getArgumentAgentRef);
             if (agentArgumentRef.isPresent()) {
-                agentType = typeHelper.jtFromJvmTypeRef(
+                agentType = typeSolver.fromJvmTypeReference(
                     agentArgumentRef.toNullable()
                 );
             }
@@ -311,37 +330,39 @@ public final class TypeExpressionSemantics extends Semantics {
 
 
     @Nullable
-    private Function<List<TypeArgument>, BaseBehaviourType>
+    private Function<TypeArgument, BaseBehaviourType>
     getBaseBehaviourTypeFunction(
         Maybe<BuiltinHierarchicType> bhType
     ) {
-        Function<List<TypeArgument>, BaseBehaviourType> behaviourTypeFunction
-            = null;
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        Function<TypeArgument, BaseBehaviourType> behaviourTypeFunction = null;
         if (
             bhType.__(BuiltinHierarchicType::isBaseBehaviour)
                 .extract(nullAsFalse)
         ) {
-            behaviourTypeFunction = typeHelper.BEHAVIOUR;
+            behaviourTypeFunction = builtins::behaviour;
         } else if (
             bhType.__(BuiltinHierarchicType::isCyclicBehaviour)
                 .extract(nullAsFalse)
         ) {
-            behaviourTypeFunction = typeHelper.CYCLIC_BEHAVIOUR;
+            behaviourTypeFunction = builtins::cyclicBehaviour;
         } else if (
             bhType.__(BuiltinHierarchicType::isOneshotBehaviour)
                 .extract(nullAsFalse)
         ) {
-            behaviourTypeFunction = typeHelper.ONESHOT_BEHAVIOUR;
+            behaviourTypeFunction = builtins::oneshotBehaviour;
         }
         return behaviourTypeFunction;
     }
 
 
     public IJadescriptType toJadescriptType(Maybe<TypeExpression> input) {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
         if (input == null) {
-            return typeHelper.BOTTOM.apply(
+            return builtins.nothing(
                 "Input type expression was empty."
             );
         }
@@ -352,62 +373,60 @@ public final class TypeExpressionSemantics extends Semantics {
         final MaybeList<TypeExpression> subExprs =
             input.__toListNullsRemoved(TypeExpression::getSubExprs);
 
-        final Function<List<TypeArgument>, BaseBehaviourType>
+        final Function<TypeArgument, BaseBehaviourType>
             baseBehaviourTypeFunction =
             getBaseBehaviourTypeFunction(hierarchicType);
 
         if (input.__(TypeExpression::isAid).extract(nullAsFalse)) {
-            return typeHelper.AID;
+            return builtins.aid();
         } else if (input.__(TypeExpression::isBoolean).extract(nullAsFalse)) {
-            return typeHelper.BOOLEAN;
+            return builtins.boolean_();
         } else if (input.__(TypeExpression::isReal).extract(nullAsFalse)) {
-            return typeHelper.REAL;
+            return builtins.real();
         } else if (input.__(TypeExpression::isInteger).extract(nullAsFalse)) {
-            return typeHelper.INTEGER;
+            return builtins.integer();
         } else if (input.__(TypeExpression::isDuration).extract(nullAsFalse)) {
-            return typeHelper.DURATION;
+            return builtins.duration();
         } else if (input.__(TypeExpression::isTimestamp).extract(nullAsFalse)) {
-            return typeHelper.TIMESTAMP;
+            return builtins.timestamp();
         } else if (input.__(TypeExpression::isText).extract(nullAsFalse)) {
-            return typeHelper.TEXT;
+            return builtins.text();
         } else if (input.__(TypeExpression::isPerformative)
             .extract(nullAsFalse)) {
-            return typeHelper.PERFORMATIVE;
+            return builtins.performative();
         } else if (subExprs.size() == 1) {
             return toJadescriptType(subExprs.get(0));
         } else if (subExprs.size() > 1) {
             List<TypeArgument> elementTypes = subExprs.stream()
                 .map(this::toJadescriptType)
                 .collect(Collectors.toList());
-            return typeHelper.TUPLE.apply(elementTypes);
+            return builtins.tuple(elementTypes);
         }
-        if (hierarchicType.__(BuiltinHierarchicType::isAgent).extract(
-            nullAsFalse)) {
-            return typeHelper.AGENT;
+        if (hierarchicType.__(BuiltinHierarchicType::isAgent)
+            .extract(nullAsFalse)) {
+            return builtins.agent();
         } else if (hierarchicType.__(BuiltinHierarchicType::isOntology).extract(
             nullAsFalse)) {
-            return typeHelper.ONTOLOGY;
+            return builtins.ontology();
         } else if (baseBehaviourTypeFunction != null) {
-            return baseBehaviourTypeFunction.apply(Arrays.asList(
-                getAgentArgumentType(hierarchicType)));
-        } else if (hierarchicType.__(BuiltinHierarchicType::isConcept).extract(
-            nullAsFalse)) {
-            return typeHelper.CONCEPT;
+            return baseBehaviourTypeFunction.apply(
+                getAgentArgumentType(hierarchicType)
+            );
+        } else if (hierarchicType.__(BuiltinHierarchicType::isConcept)
+            .extract(nullAsFalse)) {
+            return builtins.concept();
         } else if (hierarchicType.__(BuiltinHierarchicType::isProposition)
-            .extract(
-            nullAsFalse)) {
-            return typeHelper.PROPOSITION;
+            .extract(nullAsFalse)) {
+            return builtins.proposition();
         } else if (hierarchicType.__(BuiltinHierarchicType::isPredicate)
-            .extract(
-            nullAsFalse)) {
-            return typeHelper.PREDICATE;
+            .extract(nullAsFalse)) {
+            return builtins.predicate();
         } else if (hierarchicType.__(BuiltinHierarchicType::isAtomicProposition)
-            .extract(
-            nullAsFalse)) {
-            return typeHelper.ATOMIC_PROPOSITION;
-        } else if (hierarchicType.__(BuiltinHierarchicType::isAction).extract(
-            nullAsFalse)) {
-            return typeHelper.ACTION;
+            .extract(nullAsFalse)) {
+            return builtins.atomicProposition();
+        } else if (hierarchicType.__(BuiltinHierarchicType::isAction)
+            .extract(nullAsFalse)) {
+            return builtins.action();
         } else if (hierarchicType.__(BuiltinHierarchicType::getMessageType)
             .isPresent()) {
             return getMessageType(hierarchicType
@@ -418,28 +437,52 @@ public final class TypeExpressionSemantics extends Semantics {
             ).map(this::toJadescriptType)
                 .collect(Collectors.toList());
 
-            switch (collectionType
+            String extract = collectionType
                 .__(CollectionTypeExpression::getCollectionType)
-                .extract(nullAsEmptyString)) {
-                case "list": {
-                    return typeHelper.LIST.apply(typeParameters);
+                .extract(nullAsEmptyString);
+            if (extract.equals("list")) {
+                if (typeParameters.isEmpty()) {
+                    return builtins.list(builtins.any(
+                        "Missing element type specification."
+                    ));
                 }
-                case "map": {
-                    return typeHelper.MAP.apply(typeParameters);
+                return builtins.list(typeParameters.get(0));
+            }
+            if (extract.equals("map")) {
+                if (typeParameters.isEmpty()) {
+                    return builtins.map(
+                        builtins.any("Missing key type specification."),
+                        builtins.any("Missing value type specification.")
+                    );
                 }
-                case "set": {
-                    return typeHelper.SET.apply(typeParameters);
+                if (typeParameters.size() < 2) {
+                    return builtins.map(
+                        typeParameters.get(0),
+                        builtins.any("Missing value type specification.")
+                    );
                 }
+                return builtins.map(
+                    typeParameters.get(0),
+                    typeParameters.get(1)
+                );
+            }
+            if (extract.equals("set")) {
+                if (typeParameters.isEmpty()) {
+                    return builtins.set(
+                        builtins.any("Missing element type specification.")
+                    );
+                }
+                return builtins.set(typeParameters.get(0));
             }
         }
 
 
         return input
             .__(TypeExpression::getJvmType)
-            .__(typeHelper::jtFromJvmTypeRef)
-            .orElse(typeHelper.ANY);
+            .__(typeSolver::fromJvmTypeReference)
+            .orElse(builtins.any("Could not resolve type from " +
+                "type expression."));
     }
-
 
 
 }

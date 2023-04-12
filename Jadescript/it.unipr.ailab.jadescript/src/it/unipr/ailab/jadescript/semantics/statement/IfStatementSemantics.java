@@ -14,6 +14,7 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
@@ -374,7 +375,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
 
 
         conditionCheck = module.get(ValidationHelper.class).assertExpectedType(
-            module.get(TypeHelper.class).BOOLEAN,
+            module.get(BuiltinTypeProvider.class).boolean_(),
             condType,
             "InvalidCondition",
             input,

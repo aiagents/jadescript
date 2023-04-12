@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.util;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
@@ -23,7 +24,7 @@ public class AnyOntologyElementType extends UtilityType {
     ) {
         this(
             module,
-            module.get(TypeHelper.class).typeRef(JadescriptOntoElement.class)
+            module.get(JvmTypeHelper.class).typeRef(JadescriptOntoElement.class)
         );
     }
 
