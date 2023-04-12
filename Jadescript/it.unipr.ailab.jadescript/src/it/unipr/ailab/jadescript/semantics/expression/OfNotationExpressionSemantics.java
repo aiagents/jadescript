@@ -13,12 +13,14 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.implicit.ImplicitConversionsHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.maybe.utils.ImmutableList;
-import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -28,6 +30,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.*;
 
 
@@ -50,7 +53,11 @@ public class OfNotationExpressionSemantics
         boolean isAssignment
     ) {
         if (propName.equals("size") || propName.equals("length")) {
-            if (module.get(TypeHelper.class).TEXT.isSupertypeOrEqualTo(prevType)) {
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
+            final TypeComparator comparator = module.get(TypeComparator.class);
+            if (comparator.compare(builtins.text(), prevType)
+                .is(superTypeOrEqual())) {
                 return "length";
             } else {
                 return "size";
@@ -168,7 +175,7 @@ public class OfNotationExpressionSemantics
                 String prevCompiled = r.toString();
                 r = new StringBuilder(
                     property.get()
-                        .dereference((__)-> prevCompiled)
+                        .dereference((__) -> prevCompiled)
                         .compileRead(acceptor)
                 );
             } else {
@@ -217,7 +224,9 @@ public class OfNotationExpressionSemantics
         );
 
         IJadescriptType prevType = ales.inferType(aidLiteral, state);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        final ImplicitConversionsHelper implicits =
+            module.get(ImplicitConversionsHelper.class);
 
         // NOT NEEDED:
         // StaticState afterSubExpr = ales.advance(aidLiteral, state);
@@ -232,7 +241,7 @@ public class OfNotationExpressionSemantics
                     s -> s.memberNames(propName)
                 ).findFirst();
 
-            final String rExprConverted = typeHelper
+            final String rExprConverted = implicits
                 .compileWithEventualImplicitConversions(
                     compiledExpression,
                     exprType,
@@ -354,7 +363,7 @@ public class OfNotationExpressionSemantics
             ).findFirst()
             .map(MemberName::readingType)
             .orElseGet(() ->
-                module.get(TypeHelper.class).BOTTOM.apply(
+                module.get(BuiltinTypeProvider.class).nothing(
                     "Could not resolve property '" + propSafe + "' of value " +
                         "of type "
                         + prevType.getFullJadescriptName()
@@ -369,7 +378,9 @@ public class OfNotationExpressionSemantics
         Maybe<RValueExpression> expression,
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
+        if (input == null) {
+            return VALID;
+        }
 
         final MaybeList<String> properties =
             input.__toList(OfNotation::getProperties);
@@ -598,7 +609,9 @@ public class OfNotationExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
+        if (input == null) {
+            return VALID;
+        }
 
         final MaybeList<String> properties =
             input.__toList(OfNotation::getProperties);
@@ -616,40 +629,54 @@ public class OfNotationExpressionSemantics
         //NOT NEEDED:
 //        StaticState afterSubExpr = ales.advance(aidLiteral, state);
 
-        IJadescriptType afterLastOfType = module.get(
-            AidLiteralExpressionSemantics.class).inferType(aidLiteral, state);
         List<Maybe<String>> props = properties.toListOfMaybes();
-        if (!props.isEmpty()) {
-            IJadescriptType prevType = afterLastOfType;
-            for (int i = props.size() - 1; i >= 0; i--) { //reverse
-                Maybe<String> prop = props.get(i);
-                boolean result = VALID;
-                final TypeHelper typeHelper = module.get(TypeHelper.class);
-                if (!prop.wrappedEquals("length")
-                    || !typeHelper.TEXT.isSupertypeOrEqualTo(prevType)) {
-                    result = module.get(ValidationHelper.class)
-                        .assertPropertiesOfTypeAccessible(
-                            input,
-                            "Cannot access properties of values of type '" +
-                                prevType.getFullJadescriptName() + "'.",
-                            prevType,
-                            acceptor
-                        );
-                }
-                final boolean propertyCheck = validateProperty(
-                    input,
-                    acceptor,
-                    i,
-                    prop,
-                    prevType
-                );
-                result = result && propertyCheck;
-                if (result == VALID) {
-                    prevType = inferTypeProperty(prop, prevType);
-                } else {
-                    return result;
-                }
+
+        if (props.isEmpty()) {
+            return VALID;
+        }
+
+        IJadescriptType afterLastOfType =
+            module.get(AidLiteralExpressionSemantics.class)
+                .inferType(aidLiteral, state);
+
+
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        IJadescriptType prevType = afterLastOfType;
+        for (int i = props.size() - 1; i >= 0; i--) { //reverse
+            Maybe<String> prop = props.get(i);
+            boolean result = VALID;
+            if (!prop.wrappedEquals("length")
+                || !comparator.compare(builtins.text(), prevType)
+                .is(superTypeOrEqual())) {
+
+                result = module.get(ValidationHelper.class)
+                    .assertPropertiesOfTypeAccessible(
+                        input,
+                        "Cannot access properties of values of type '" +
+                            prevType.getFullJadescriptName() + "'.",
+                        prevType,
+                        acceptor
+                    );
             }
+
+            final boolean propertyCheck = validateProperty(
+                input,
+                acceptor,
+                i,
+                prop,
+                prevType
+            );
+
+            result = result && propertyCheck;
+
+            if (result == INVALID) {
+                return result;
+            }
+
+            prevType = inferTypeProperty(prop, prevType);
         }
 
         return VALID;

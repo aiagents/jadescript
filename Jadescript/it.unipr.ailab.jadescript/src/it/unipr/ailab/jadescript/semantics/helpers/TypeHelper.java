@@ -83,105 +83,6 @@ public class TypeHelper implements SemanticsConsts {
     }
 
 
-    //TODO reimplement in TypeSolver
-    public IJadescriptType adaptMessageContentDefaultTypes(
-        Maybe<String> performative,
-        IJadescriptType inputContentType
-    ) {
-        if (performative.isNothing() || performative.toNullable().isBlank()) {
-            return inputContentType;
-        }
-        final Performative perf = performativeByName.getOrDefault(
-            performative.toNullable(),
-            UNKNOWN
-        );
-        final MessageContentTupleDefaultElements mctde =
-            defaultContentElementsMap.get(perf);
-        if (mctde == null) {
-            return inputContentType;
-        } else if (inputContentType instanceof TupleType) {
-            final List<IJadescriptType> inputElementTypes =
-                ((TupleType) inputContentType).getElementTypes();
-            final int inputArgsCount = inputElementTypes.size();
-            final int requiredArgCount =
-                mctde.getTargetCount() - mctde.getDefaultCount();
-
-            if (inputArgsCount >= requiredArgCount
-                && inputArgsCount < mctde.getTargetCount()) {
-                List<TypeArgument> elements = new ArrayList<>(
-                    mctde.getTargetCount()
-                );
-                for (int i = 0; i < mctde.getTargetCount(); i++) {
-                    if (i < inputArgsCount) {
-                        elements.add(inputElementTypes.get(i));
-                    } else {
-                        elements.add(covariant(
-                            mctde.getDefaultType(i)
-                                .orElse(builtins.get().any(""))
-                        ));
-                    }
-                }
-                return builtins.get().tuple(elements);
-            } else {
-                return inputContentType;
-            }
-        } else {
-            final int requiredArgCount =
-                mctde.getTargetCount() - mctde.getDefaultCount();
-            if (requiredArgCount <= 1) {
-                List<TypeArgument> elements =
-                    new ArrayList<>(mctde.getTargetCount());
-                for (int i = 0; i < mctde.getTargetCount(); i++) {
-                    if (i == 0) {
-                        elements.add(inputContentType);
-                    } else {
-                        elements.add(covariant(mctde.getDefaultType(i)
-                            .orElse(builtins.get().any(""))));
-                    }
-                }
-                return builtins.get().tuple(elements);
-            } else {
-                return inputContentType;
-            }
-        }
-    }
-
-
-    //TODO reimplement in TypeSolver
-    public String adaptMessageContentDefaultCompile(
-        Maybe<String> performative,
-        IJadescriptType inputContentType,
-        String inputExpression
-    ) {
-        if (performative.isNothing() || performative.toNullable().isBlank()) {
-            return inputExpression;
-        }
-        final Performative perf = performativeByName.getOrDefault(
-            performative.toNullable(),
-            UNKNOWN
-        );
-        final MessageContentTupleDefaultElements mctde =
-            defaultContentElementsMap.get(perf);
-
-        if (mctde == null) {
-            return inputExpression;
-        } else {
-            final int inputArgsCount = inputContentType instanceof TupleType
-                ? ((TupleType) inputContentType).getElementTypes().size()
-                : 1;
-            String result = inputExpression;
-            for (int i = inputArgsCount; i < mctde.getTargetCount(); i++) {
-                result = mctde.compile(
-                    i,
-                    inputContentType,
-                    result
-                );
-            }
-            return result;
-        }
-    }
-
-
     /**
      * If {@code t} is a Tuple type, it returns the types of its elements.
      * Otherwise, it returns a singleton list
@@ -227,27 +128,7 @@ public class TypeHelper implements SemanticsConsts {
         }
 
 
-        public static BiFunction<TypeArgument, String, String> promoteToTuple2(
-            String defaultValue,
-            TypeArgument defaultType
-        ) {
-            return (inputType, inputExpression) -> TupleType.compileNewInstance(
-                List.of(inputExpression, defaultValue),
-                List.of(inputType, defaultType)
-            );
-        }
 
-
-        public static BiFunction<TypeArgument, String, String> addToTuple(
-            String defaultValue,
-            TypeArgument defaultType
-        ) {
-            return (inputType, inputExpression) -> TupleType.compileAddToTuple(
-                inputExpression,
-                defaultValue,
-                defaultType
-            );
-        }
 
 
         public MessageContentTupleDefaultElements addEntry(

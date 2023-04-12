@@ -7,7 +7,6 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
@@ -68,7 +67,7 @@ public class SyntheticExpressionSemantics
         final Maybe<SyntheticExpression.SyntheticType> type = input.__(
             SyntheticExpression::getSyntheticType);
         if (type.toNullable() == SyntheticExpression.SyntheticType.CUSTOM) {
-            return customSemantics.inferType(module.get(TypeHelper.class));
+            return customSemantics.inferType(module);
         }
         return module.get(BuiltinTypeProvider.class).any(
             "Invalid synthetic expression."

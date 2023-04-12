@@ -2,15 +2,15 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.StringLiteralSimple;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
@@ -41,7 +41,9 @@ public class StringLiteralSemantics
                     Pattern.quote("\\$"),
                     Matcher.quoteReplacement("$")
                 );
-            } else if (stringSafe.startsWith("'") && stringSafe.endsWith("'")) {
+            }
+
+            if (stringSafe.startsWith("'") && stringSafe.endsWith("'")) {
                 // case Simple string: '...'
                 // replace escaping, removing suffix/prefix ' , adding "
                 // delimiters
@@ -55,7 +57,9 @@ public class StringLiteralSemantics
                         )
                     )
                 ) + "\"";
-            } else return "\"" + stringSafe + "\"";
+            }
+
+            return "\"" + stringSafe + "\"";
         });
     }
 
@@ -104,45 +108,66 @@ public class StringLiteralSemantics
         ValidationMessageAcceptor acceptor
     ) {
         boolean result = VALID;
-        if (string.length() > 2) {
-            String text = string.substring(1, string.length() - 1);
-            for (int i = 0; i < text.length(); i++) {
-                char c = text.charAt(i);
-                if (c == '\\') {
-                    i++;
-                    if (i < text.length()) {
-                        char nextC = text.charAt(i);
-                        switch (nextC) {
-                            case 't':
-                            case '\'':
-                            case '"':
-                            case 'r':
-                            case '\\':
-                            case 'n':
-                            case 'f':
-                            case 'b':
-                            case '$':
-                                //ok
-                                break;
-                            default:
-                                int finalI = i;
-                                SemanticsUtils.extractEObject(input)
-                                    .safeDo(inputSafe -> acceptor.acceptError(
-                                        "Invalid escape sequence '" + c +
-                                            nextC + "'.",
-                                        inputSafe,
-                                        SemanticsUtils.getLocationForEObject(inputSafe)
-                                            .getOffset() + finalI,
-                                        2,
-                                        "InvalidTextEscape"
-                                    ));
-                                result = INVALID;
-                        }
-                    }
-                }
+        if (string.length() <= 2) {
+            return result;
+        }
+        String text = string.substring(1, string.length() - 1);
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c != '\\') {
+                continue;
+            }
+
+            i++;
+
+            if (i >= text.length()) {
+                continue;
+            }
+
+            char nextC = text.charAt(i);
+
+            switch (nextC) {
+                case 't':
+                case '\'':
+                case '"':
+                case 'r':
+                case '\\':
+                case 'n':
+                case 'f':
+                case 'b':
+                case '$':
+                    //ok
+                    break;
+                default:
+                    result = invalidEscapeSequence(
+                        input,
+                        acceptor,
+                        i,
+                        c,
+                        nextC
+                    );
             }
         }
         return result;
+    }
+
+
+    private boolean invalidEscapeSequence(
+        Maybe<? extends EObject> input,
+        ValidationMessageAcceptor acceptor,
+        int i,
+        char c,
+        char nextC
+    ) {
+        SemanticsUtils.extractEObject(input)
+            .safeDo(inputSafe -> acceptor.acceptError(
+                "Invalid escape sequence '" + c + nextC + "'.",
+                inputSafe,
+                SemanticsUtils.getLocationForEObject(inputSafe).getOffset() + i,
+                2,
+                "InvalidTextEscape"
+            ));
+        return INVALID;
     }
 
 
@@ -182,7 +207,7 @@ public class StringLiteralSemantics
         Maybe<StringLiteralSimple> input,
         StaticState state
     ) {
-        return module.get(TypeHelper.class).TEXT;
+        return module.get(BuiltinTypeProvider.class).text();
     }
 
 

@@ -11,10 +11,11 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.implicit.ImplicitConversionsHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -22,6 +23,9 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.equal;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 
 
 /**
@@ -55,7 +59,9 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        if (operands.isEmpty()) return "";
+        if (operands.isEmpty()) {
+            return "";
+        }
         IJadescriptType t = module.get(MultiplicativeExpressionSemantics.class)
             .inferType(operands.get(0), state);
         String op0c = module.get(MultiplicativeExpressionSemantics.class)
@@ -111,8 +117,11 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         MaybeList<String> operators,
         StaticState state
     ) {
-        if (operands.isEmpty()) return module.get(TypeHelper.class).BOTTOM
-            .apply("No operands found.");
+        if (operands.isEmpty()) {
+            return module.get(BuiltinTypeProvider.class).nothing(
+                "No operands found."
+            );
+        }
         IJadescriptType t = module.get(MultiplicativeExpressionSemantics.class)
             .inferType(operands.get(0), state);
         for (int i = 1; i < operands.size() && i - 1 < operators.size(); i++) {
@@ -131,6 +140,46 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     }
 
 
+    private boolean isDuration(IJadescriptType type) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(builtins.duration(), type)
+            .is(superTypeOrEqual());
+    }
+
+
+    private boolean isTimestamp(IJadescriptType type) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(builtins.timestamp(), type)
+            .is(superTypeOrEqual());
+    }
+
+
+    private boolean isText(IJadescriptType type) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(builtins.text(), type)
+            .is(superTypeOrEqual());
+    }
+
+
+    private boolean isNumber(IJadescriptType type) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(builtins.number(), type)
+            .is(superTypeOrEqual());
+    }
+
+
     private String compilePair(
         String op1c,
         StaticState op1s,
@@ -141,52 +190,56 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     ) {
         final MultiplicativeExpressionSemantics mes =
             module.get(MultiplicativeExpressionSemantics.class);
+
         IJadescriptType t2 = mes.inferType(op2, op1s);
         String op2c = mes.compile(op2, op1s, acceptor);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        if (t1.typeEquals(typeHelper.DURATION)
-            && t2.typeEquals(typeHelper.DURATION)) {
+
+        if (isDuration(t1) && isDuration(t2)) {
             if (op.wrappedEquals("-")) {
                 return "jadescript.lang.Duration.subtraction("
                     + op1c + ", " + op2c + ")";
-            } else {
-                return "jadescript.lang.Duration.sum("
-                    + op1c + ", " + op2c + ")";
             }
-        } else if ((t1.typeEquals(typeHelper.TIMESTAMP)
-            && t2.typeEquals(typeHelper.DURATION))
-            || (t1.typeEquals(typeHelper.DURATION)
-            && t2.typeEquals(typeHelper.TIMESTAMP))) {
+
+            return "jadescript.lang.Duration.sum("
+                + op1c + ", " + op2c + ")";
+        }
+
+        if ((isTimestamp(t1) && isDuration(t2))
+            || (isDuration(t1) && isTimestamp(t2))) {
             if (op.wrappedEquals("-")) {
                 return "jadescript.lang.Timestamp.minus("
                     + op1c + ", " + op2c + ")";
-            } else {
-                return "jadescript.lang.Timestamp.plus("
-                    + op1c + ", " + op2c + ")";
             }
-        } else if (t1.typeEquals(typeHelper.TIMESTAMP)
-            && t2.typeEquals(typeHelper.TIMESTAMP)
-            && op.wrappedEquals("-")) {
+
+            return "jadescript.lang.Timestamp.plus("
+                + op1c + ", " + op2c + ")";
+        }
+
+        if (isTimestamp(t1) && isTimestamp(t2) && op.wrappedEquals("-")) {
             return "jadescript.lang.Timestamp.subtract("
                 + op1c + ", " + op2c + ")";
-        } else if ((t1.typeEquals(typeHelper.TEXT)
-            || t2.typeEquals(typeHelper.TEXT))
-            && op.wrappedEquals("+")) {
+        }
+
+        if ((isText(t1) || isText(t2)) && op.wrappedEquals("+")) {
             return "java.lang.String.valueOf(" + op1c + ") " +
                 "+ java.lang.String.valueOf(" + op2c + ")";
-        } else {
-            String c1 = op1c;
-            String c2 = op2c;
-
-            if (typeHelper.implicitConversionCanOccur(t1, t2)) {
-                c1 = typeHelper.compileImplicitConversion(c1, t1, t2);
-            }
-
-            if (typeHelper.implicitConversionCanOccur(t2, t1)) {
-                c2 = typeHelper.compileImplicitConversion(c2, t2, t1);
-            }
-            return c1 + " " + op.orElse("+") + " " + c2;
         }
+
+        String c1 = op1c;
+        String c2 = op2c;
+
+        final ImplicitConversionsHelper implicits =
+            module.get(ImplicitConversionsHelper.class);
+
+        if (implicits.implicitConversionCanOccur(t1, t2)) {
+            c1 = implicits.compileImplicitConversion(c1, t1, t2);
+        }
+
+        if (implicits.implicitConversionCanOccur(t2, t1)) {
+            c2 = implicits.compileImplicitConversion(c2, t2, t1);
+        }
+
+        return c1 + " " + op.orElse("+") + " " + c2;
     }
 
 
@@ -197,33 +250,28 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
     ) {
         IJadescriptType t2 = module.get(MultiplicativeExpressionSemantics.class)
             .inferType(op2, state);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        if (t1.typeEquals(typeHelper.DURATION)
-            && t2.typeEquals(typeHelper.DURATION)) {
-            return typeHelper.DURATION;
-        } else if ((t1.typeEquals(typeHelper.TIMESTAMP)
-            && t2.typeEquals(typeHelper.DURATION))
-            || (t1.typeEquals(typeHelper.DURATION)
-            && t2.typeEquals(typeHelper.TIMESTAMP))) {
-            return typeHelper.TIMESTAMP;
-        } else if (t1.typeEquals(typeHelper.TIMESTAMP)
-            && t2.typeEquals(typeHelper.TIMESTAMP)
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        ImplicitConversionsHelper impicits =
+            module.get(ImplicitConversionsHelper.class);
+        if (isDuration(t1) && isDuration(t2)) {
+            return builtins.duration();
+        } else if ((isTimestamp(t1) && isDuration(t2))
+            || (isDuration(t1) && isTimestamp(t2))) {
+            return builtins.timestamp();
+        } else if (isTimestamp(t1) && isTimestamp(t2)
             && op.wrappedEquals("-")) {
-            return typeHelper.DURATION;
-        } else if ((t1.typeEquals(typeHelper.TEXT)
-            || t2.typeEquals(typeHelper.TEXT))
-            && op.wrappedEquals("+")) {
-            return typeHelper.TEXT;
-        } else if (typeHelper.NUMBER.isSupertypeOrEqualTo(t1)
-            || typeHelper.NUMBER.isSupertypeOrEqualTo(t2)) {
-
-            if (typeHelper.implicitConversionCanOccur(t1, t2)) {
+            return builtins.duration();
+        } else if ((isText(t1) || isText(t2)) && op.wrappedEquals("+")) {
+            return builtins.text();
+        } else if (isNumber(t1) || isNumber(t2)) {
+            if (impicits.implicitConversionCanOccur(t1, t2)) {
                 return t2;
             } else {
                 return t1;
             }
         }
-        return typeHelper.TOP.apply(
+        return builtins.any(
             "One or more operands of the + operation has invalid types."
         );
     }
@@ -408,7 +456,9 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (operands.isEmpty()) return VALID;
+        if (operands.isEmpty()) {
+            return VALID;
+        }
         IJadescriptType t = module.get(MultiplicativeExpressionSemantics.class)
             .inferType(operands.get(0), state);
         Maybe<Multiplicative> op1 = operands.get(0);
@@ -456,104 +506,147 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         IJadescriptType t2,
         ValidationMessageAcceptor acceptor
     ) {
-        TypeHelper th = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
         ValidationHelper vh = module.get(ValidationHelper.class);
-        if (th.TEXT.typeEquals(t1) || th.TEXT.typeEquals(t2)) {
+        if (isText(t1) || isText(t2)) {
             return VALID;
-        } else if (th.INTEGER.typeEquals(t1)) {
-            return vh.assertExpectedTypesAny(
-                Arrays.asList(th.INTEGER, th.REAL, th.TEXT),
-                t2,
-                "InvalidAdditiveOperation",
-                op2,
-                acceptor
-            );
-
-        } else if (th.REAL.typeEquals(t1)) {
-            return vh.assertExpectedTypesAny(
-                Arrays.asList(th.REAL, th.INTEGER, th.TEXT),
-                t2,
-                "InvalidAdditiveOperation",
-                op2,
-                acceptor
-            );
-
-        } else if (th.INTEGER.typeEquals(t2)) {
-            return vh.assertExpectedTypesAny(
-                Arrays.asList(th.INTEGER, th.REAL, th.TEXT),
-                t1,
-                "InvalidAdditiveOperation",
-                op1,
-                acceptor
-            );
-
-        } else if (th.REAL.typeEquals(t2)) {
-            return vh.assertExpectedTypesAny(
-                Arrays.asList(th.REAL, th.INTEGER, th.TEXT),
-                t1,
-                "InvalidAdditiveOperation",
-                op1,
-                acceptor
-            );
-
-        } else if (th.DURATION.typeEquals(t1)) {
-            return vh.assertExpectedTypesAny(
-                Arrays.asList(th.DURATION, th.TIMESTAMP, th.TEXT),
-                t2,
-                "InvalidAdditiveOperation",
-                op2,
-                acceptor
-            );
-
-        } else if (th.DURATION.typeEquals(t2)) {
-            return vh.assertExpectedTypesAny(
-                Arrays.asList(th.DURATION, th.TIMESTAMP, th.TEXT),
-                t1,
-                "InvalidAdditiveOperation",
-                op1,
-                acceptor
-            );
-
-        } else if (th.TIMESTAMP.typeEquals(t1)) {
-            return vh.assertExpectedTypesAny(
-                Arrays.asList(th.TIMESTAMP, th.DURATION, th.TEXT),
-                t2,
-                "InvalidAdditiveOperation",
-                op2,
-                acceptor
-            );
-
-        } else if (th.TIMESTAMP.typeEquals(t2)) {
-            return vh.assertExpectedTypesAny(
-                Arrays.asList(th.TIMESTAMP, th.DURATION, th.TEXT),
-                t1,
-                "InvalidAdditiveOperation",
-                op1,
-                acceptor
-            );
-
-        } else {
-            // at least one of the two operands has to be TEXT, INTEGER,
-            // REAL, DURATION or TIMESTAMP
-            vh.asserting(
-                th.TEXT.isSupertypeOrEqualTo(t1) ||
-                    th.INTEGER.isSupertypeOrEqualTo(t1) ||
-                    th.REAL.isSupertypeOrEqualTo(t1) ||
-                    th.DURATION.isSupertypeOrEqualTo(t1) ||
-                    th.TIMESTAMP.isSupertypeOrEqualTo(t1) ||
-                    th.TEXT.isSupertypeOrEqualTo(t2) ||
-                    th.INTEGER.isSupertypeOrEqualTo(t2) ||
-                    th.REAL.isSupertypeOrEqualTo(t2) ||
-                    th.DURATION.isSupertypeOrEqualTo(t2) ||
-                    th.TIMESTAMP.isSupertypeOrEqualTo(t2),
-                "InvalidAdditiveOperation",
-                "At least one of the two operands has to be of type " +
-                    "'integer', 'real', " +
-                    "'text', 'timestamp' or 'duration'.",
-                op1,
-                acceptor
-            );
         }
+
+        if (comparator.compare(builtins.integer(), t1).is(equal())) {
+            return vh.assertExpectedTypesAny(
+                Arrays.asList(
+                    builtins.integer(),
+                    builtins.real(),
+                    builtins.text()
+                ),
+                t2,
+                "InvalidAdditiveOperation",
+                op2,
+                acceptor
+            );
+
+        }
+
+        if (comparator.compare(builtins.real(), t1).is(equal())) {
+            return vh.assertExpectedTypesAny(
+                Arrays.asList(
+                    builtins.real(),
+                    builtins.integer(),
+                    builtins.text()
+                ),
+                t2,
+                "InvalidAdditiveOperation",
+                op2,
+                acceptor
+            );
+
+        }
+        if (comparator.compare(builtins.integer(), t2).is(equal())) {
+            return vh.assertExpectedTypesAny(
+                Arrays.asList(
+                    builtins.integer(),
+                    builtins.real(),
+                    builtins.text()
+                ),
+                t1,
+                "InvalidAdditiveOperation",
+                op1,
+                acceptor
+            );
+
+        }
+
+        if (comparator.compare(builtins.real(), t2).is(equal())) {
+            return vh.assertExpectedTypesAny(
+                Arrays.asList(
+                    builtins.real(),
+                    builtins.integer(),
+                    builtins.text()
+                ),
+                t1,
+                "InvalidAdditiveOperation",
+                op1,
+                acceptor
+            );
+
+        }
+
+        if (isDuration(t1)) {
+            return vh.assertExpectedTypesAny(
+                Arrays.asList(
+                    builtins.duration(),
+                    builtins.timestamp(),
+                    builtins.text()
+                ),
+                t2,
+                "InvalidAdditiveOperation",
+                op2,
+                acceptor
+            );
+
+        } else if (isDuration(t2)) {
+            return vh.assertExpectedTypesAny(
+                Arrays.asList(
+                    builtins.duration(),
+                    builtins.timestamp(),
+                    builtins.text()
+                ),
+                t1,
+                "InvalidAdditiveOperation",
+                op1,
+                acceptor
+            );
+
+        } else if (isTimestamp(t1)) {
+            return vh.assertExpectedTypesAny(
+                Arrays.asList(
+                    builtins.timestamp(),
+                    builtins.duration(),
+                    builtins.text()
+                ),
+                t2,
+                "InvalidAdditiveOperation",
+                op2,
+                acceptor
+            );
+
+        } else if (isTimestamp(t2)) {
+            return vh.assertExpectedTypesAny(
+                Arrays.asList(
+                    builtins.timestamp(),
+                    builtins.duration(),
+                    builtins.text()
+                ),
+                t1,
+                "InvalidAdditiveOperation",
+                op1,
+                acceptor
+            );
+
+        }
+        // at least one of the two operands has to be TEXT, INTEGER,
+        // REAL, DURATION or TIMESTAMP
+        vh.asserting(
+            Stream.of(
+                builtins.text(),
+                builtins.integer(),
+                builtins.real(),
+                builtins.duration(),
+                builtins.timestamp()
+            ).anyMatch(t0 ->
+                comparator.compare(t0, t1).is(superTypeOrEqual())
+                    || comparator.compare(t0, t2).is(superTypeOrEqual())
+            ),
+            "InvalidAdditiveOperation",
+            "At least one of the two operands has to be of type " +
+                "'integer', 'real', " +
+                "'text', 'timestamp' or 'duration'.",
+            op1,
+            acceptor
+        );
 
         return VALID;
     }
@@ -577,11 +670,10 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         //not needed: StaticState op2s = mes.advance(op2, state);
         IJadescriptType t2 = mes.inferType(op2, state);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
-        if ((t1.typeEquals(typeHelper.TEXT) || t2.typeEquals(typeHelper.TEXT))
-            && op.wrappedEquals("-")) {
+
+        if ((isText(t1) || isText(t2)) && op.wrappedEquals("-")) {
             return validationHelper.emitError(
                 "InvalidStringConcatenation",
                 "Invalid '-' operator in a string concatenation operation.",
@@ -591,11 +683,8 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         }
 
         boolean cannotSumTimestamps = validationHelper.asserting(
-            SemanticsUtils.implication(
-                t1.typeEquals(typeHelper.TIMESTAMP)
-                    && t2.typeEquals(typeHelper.TIMESTAMP),
-                op.wrappedEquals("-")
-            ),
+            //Implication: (both timestamps) => (operator is '-')
+            !(isTimestamp(t1) && isTimestamp(t2)) || op.wrappedEquals("-"),
             "InvalidOperation",
             "Can not sum two timestamps.",
             op2,

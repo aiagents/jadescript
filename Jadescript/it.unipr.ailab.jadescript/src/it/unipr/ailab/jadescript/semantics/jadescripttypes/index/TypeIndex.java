@@ -6,8 +6,8 @@ import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.MessageType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.ParametricTypeSchema;
-
 import it.unipr.ailab.maybe.utils.LazyInit;
+import it.unipr.ailab.maybe.utils.Utils;
 import jadescript.lang.Performative;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.jetbrains.annotations.NotNull;
@@ -162,8 +162,7 @@ class TypeIndex {
                     messageClassToPerformativeMap.put(fqn, performative);
                     performativeToMessageSubtypeMap.put(
                         performative,
-                        (Supplier<ParametricTypeSchema<? extends MessageType>>)
-                            parametricTypeSchemaSupplier
+                        Utils.castSupplier(parametricTypeSchemaSupplier)
                     );
                 }
 
@@ -203,9 +202,6 @@ class TypeIndex {
         initializeIfNecessary();
         return this.parametricTypeTable;
     }
-
-
-
 
 
     /*package-private*/ Map<String, Performative>

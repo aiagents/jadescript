@@ -75,7 +75,7 @@ public class SendMessageStatementSemantics
 
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
@@ -142,12 +142,11 @@ public class SendMessageStatementSemantics
 
 
         final IJadescriptType adaptedContentType =
-            typeHelper.adaptMessageContentDefaultTypes(
+            typeSolver.adaptMessageContentDefaultTypes(
                 performative,
                 inputContentType
             );
 
-        final TypeSolver typeSolver = module.get(TypeSolver.class);
         final IJadescriptType contentBound = typeSolver
             .getContentBoundForPerformative(
                 Performative.performativeByName.get(performative.toNullable())
@@ -379,12 +378,12 @@ public class SendMessageStatementSemantics
             state
         );
         final IJadescriptType adaptedContentType =
-            module.get(TypeHelper.class).adaptMessageContentDefaultTypes(
+            module.get(TypeSolver.class).adaptMessageContentDefaultTypes(
                 performative,
                 inputContentType
             );
         final String adaptedCompiledContent =
-            module.get(TypeHelper.class).adaptMessageContentDefaultCompile(
+            module.get(TypeSolver.class).adaptMessageContentDefaultCompile(
                 performative,
                 inputContentType,
                 rves.compile(contentExpr, state, acceptor)

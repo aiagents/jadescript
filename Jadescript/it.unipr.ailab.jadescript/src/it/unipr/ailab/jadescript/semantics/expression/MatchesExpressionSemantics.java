@@ -17,6 +17,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -297,7 +298,7 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
         Maybe<Matches> input,
         StaticState state
     ) {
-        return module.get(TypeHelper.class).BOOLEAN;
+        return module.get(BuiltinTypeProvider.class).boolean_();
     }
 
 

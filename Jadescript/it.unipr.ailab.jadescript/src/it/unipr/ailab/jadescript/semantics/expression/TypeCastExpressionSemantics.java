@@ -10,9 +10,11 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -22,6 +24,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.related;
 import static it.unipr.ailab.maybe.Maybe.someStream;
 
 
@@ -137,7 +140,9 @@ public class TypeCastExpressionSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        if (input == null) return "";
+        if (input == null){
+            return "";
+        }
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
         final MaybeList<TypeExpression> typeCasts =
             input.__toList(TypeCast::getTypeCasts);
@@ -256,8 +261,9 @@ public class TypeCastExpressionSemantics
         Maybe<TypeCast> input,
         StaticState state
     ) {
-        if (input == null)
-            return module.get(TypeHelper.class).ANY;
+        if (input == null) {
+            return module.get(BuiltinTypeProvider.class).any("");
+        }
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
         final MaybeList<TypeExpression> typeCasts =
             input.__toList(TypeCast::getTypeCasts);
@@ -528,7 +534,9 @@ public class TypeCastExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
+        if (input == null) {
+            return VALID;
+        }
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
         final MaybeList<TypeExpression> typeCasts =
             input.__toList(TypeCast::getTypeCasts);
@@ -613,12 +621,19 @@ public class TypeCastExpressionSemantics
 
 
     private boolean isNumber(IJadescriptType type) {
-        return module.get(TypeHelper.class).NUMBER.isSupertypeOrEqualTo(type);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(builtins.number(), type)
+            .is(TypeRelationshipQuery.superTypeOrEqual());
     }
 
 
     private boolean isCastable(IJadescriptType x1, IJadescriptType x2) {
-        return x1.isSupertypeOrEqualTo(x2) || x1.isSupertypeOrEqualTo(x1);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(x1, x2).is(related());
     }
 
 

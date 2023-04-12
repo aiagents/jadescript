@@ -10,10 +10,12 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.UnknownJVMType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.UserDefinedAgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BaseBehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.UserDefinedBehaviourType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.TupleType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.MessageType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontocontent.UserDefinedOntoContentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.UserDefinedOntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.InvalidTypeInstantiatonException;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.MessageTypeSchema;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.ParametricTypeSchema;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.maybe.Maybe;
@@ -33,11 +35,8 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Supplier;
+import java.util.*;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
@@ -348,21 +347,20 @@ public class TypeSolver {
         final Performative performative =
             index.getMessageClassToPerformativeMap().get(name);
 
-        if(performative == null){
+        if (performative == null) {
             return List.of();
         }
 
         final IJadescriptType contentBound =
             getContentBoundForPerformative(performative);
 
-        if(contentBound.isErroneous()){
+        if (contentBound.isErroneous()) {
             return List.of();
         }
 
         return (List<TypeArgument>) module.get(TypeHelper.class)
             .unpackTuple(contentBound);
     }
-
 
 
     public IJadescriptType getContentBoundForPerformative(
@@ -381,6 +379,94 @@ public class TypeSolver {
         }
 
         return builtinTypes.tuple(new ArrayList<>(upperBounds));
+    }
+
+
+    /**
+     * Given an inferred input content type and an input performative,
+     * this method might produce a "fixed" content type which includes
+     * additional default type arguments.
+     */
+    public IJadescriptType adaptMessageContentDefaultTypes(
+        Maybe<String> performative,
+        IJadescriptType inputContentType
+    ) {
+        if (performative.isNothing() || performative.toNullable().isBlank()) {
+            return inputContentType;
+        }
+        final @Nullable Performative perf = performativeByName.get(
+            performative.toNullable()
+        );
+
+        if (perf == null) {
+            return inputContentType;
+        }
+
+        final ParametricTypeSchema<? extends MessageType> schema =
+            getMessageTypeSchemaForPerformative(perf);
+
+
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        final List<? extends TypeArgument> typeArguments =
+            typeHelper.unpackTuple(inputContentType);
+
+        final MessageType messageType;
+        try {
+            messageType = schema.create(typeArguments);
+        } catch (InvalidTypeInstantiatonException e) {
+            e.printStackTrace();
+            return inputContentType;
+        }
+
+        return messageType.getContentType();
+    }
+
+
+    //TODO reimplement in TypeSolver
+    public String adaptMessageContentDefaultCompile(
+        Maybe<String> performative,
+        IJadescriptType inputContentType,
+        String inputExpression
+    ) {
+        if (performative.isNothing() || performative.toNullable().isBlank()) {
+            return inputExpression;
+        }
+        final @Nullable Performative perf = performativeByName.get(
+            performative.toNullable()
+        );
+
+        if (perf == null) {
+            return inputExpression;
+        }
+
+        final ParametricTypeSchema<? extends MessageType> schema =
+            getMessageTypeSchemaForPerformative(perf);
+
+
+        if (!(schema instanceof MessageTypeSchema)) {
+            return inputExpression;
+        }
+
+
+        MessageTypeSchema messageSchema = (MessageTypeSchema) schema;
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        final int inputArgsCount =
+            typeHelper.unpackTuple(inputContentType).size();
+
+
+        String result = inputExpression;
+
+        final int parameterCount = messageSchema.getParameterCount();
+        for (int i = inputArgsCount; i < parameterCount; i++) {
+            messageSchema.adaptContentExpression(
+                i,
+                inputContentType,
+                result
+            );
+        }
+        return result;
     }
 
 
@@ -448,6 +534,85 @@ public class TypeSolver {
 
     public IJadescriptType fromFullyQualifiedName(String fullyQualifiedName) {
         return fromJvmTypeReference(jvm.typeRef(fullyQualifiedName));
+    }
+
+
+    private static final class MessageContentTupleDefaultElements {
+
+        private final Map<Integer, IJadescriptType> argumentToDefault =
+            new HashMap<>();
+
+        private final Map<Integer, BiFunction<TypeArgument, String, String>>
+            argumentToCompile = new HashMap<>();
+
+        private final int targetCount;
+
+
+        private MessageContentTupleDefaultElements(int targetCount) {
+            this.targetCount = targetCount;
+        }
+
+
+        public static BiFunction<TypeArgument, String, String> promoteToTuple2(
+            String defaultValue,
+            TypeArgument defaultType
+        ) {
+            return (inputType, inputExpression) -> TupleType.compileNewInstance(
+                List.of(inputExpression, defaultValue),
+                List.of(inputType, defaultType)
+            );
+        }
+
+
+        public static BiFunction<TypeArgument, String, String> addToTuple(
+            String defaultValue,
+            TypeArgument defaultType
+        ) {
+            return (inputType, inputExpression) -> TupleType.compileAddToTuple(
+                inputExpression,
+                defaultValue,
+                defaultType
+            );
+        }
+
+
+        public MessageContentTupleDefaultElements addEntry(
+            int argumentPosition,
+            IJadescriptType defaultType,
+            BiFunction<TypeArgument, String, String> compile
+        ) {
+            argumentToDefault.put(argumentPosition, defaultType);
+            argumentToCompile.put(argumentPosition, compile);
+            return this;
+        }
+
+
+        public Maybe<IJadescriptType> getDefaultType(int argumentPosition) {
+            return Maybe.some(argumentToDefault.get(argumentPosition));
+        }
+
+
+        public String compile(
+            int argumentPosition,
+            TypeArgument inputType,
+            String inputExpression
+        ) {
+            return argumentToCompile.getOrDefault(
+                argumentPosition,
+                (t, s) -> s
+            ).apply(inputType, inputExpression);
+        }
+
+
+        public int getTargetCount() {
+            return targetCount;
+        }
+
+
+        public int getDefaultCount() {
+            return Math.min(argumentToDefault.size(), argumentToCompile.size());
+        }
+
     }
 
 }

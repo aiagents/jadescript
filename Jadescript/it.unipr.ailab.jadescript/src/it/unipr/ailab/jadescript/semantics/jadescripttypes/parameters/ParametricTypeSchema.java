@@ -4,13 +4,13 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,7 +19,7 @@ import java.util.List;
 
 import static it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts.VALID;
 
-public final class ParametricTypeSchema<T extends IJadescriptType> {
+public class ParametricTypeSchema<T extends IJadescriptType> {
 
     private final static int INIT = 0;
     private final static int DEFAULTS = 1;
@@ -39,7 +39,7 @@ public final class ParametricTypeSchema<T extends IJadescriptType> {
     private int state = INIT;
 
 
-    private ParametricTypeSchema(
+    /*package-private*/ ParametricTypeSchema(
         SemanticsModule module
     ) {
         this.module = module;
@@ -79,8 +79,9 @@ public final class ParametricTypeSchema<T extends IJadescriptType> {
     }
 
 
+    @Contract("_ -> this")
     public <A extends TypeArgument> ParametricTypeSchema<T> add(
-        FormalTypeParameter<A> parameter
+        @NotNull FormalTypeParameter<A> parameter
     ) {
         if (parameter.hasDefaultArgument()) {
             stateCheckAndUpdate(DEFAULTS);
@@ -100,8 +101,9 @@ public final class ParametricTypeSchema<T extends IJadescriptType> {
     }
 
 
+    @Contract("_ -> this")
     public <A extends TypeArgument> ParametricTypeSchema<T> add(
-        VariadicTypeParameter<A> parameter
+        @NotNull VariadicTypeParameter<A> parameter
     ) {
         stateCheckAndUpdate(VARIADIC);
         int index = formalTypeParameters.size();
@@ -323,22 +325,8 @@ public final class ParametricTypeSchema<T extends IJadescriptType> {
     }
 
 
-    public static class Factory {
-
-        private final SemanticsModule factoryModule;
-
-
-        public Factory(SemanticsModule module) {
-            this.factoryModule = module;
-        }
-
-
-        public <S extends IJadescriptType> ParametricTypeSchema<S>
-        parametricType() {
-            return new ParametricTypeSchema<>(this.factoryModule);
-        }
-
+    public int getParameterCount() {
+        return formalTypeParameters.size();
     }
-
 
 }

@@ -4,6 +4,8 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.maybe.Maybe;
 
+import java.util.function.BiFunction;
+
 public class TypeParameterFactory {
 
     private final SemanticsModule factoryModule;
@@ -61,6 +63,20 @@ public class TypeParameterFactory {
         return new VariadicTypeParameter<>(
             factoryModule,
             Maybe.nothing()
+        );
+    }
+
+    public <A extends TypeArgument> MessageTypeParameter<A>
+    messageTypeParameter(
+        IJadescriptType upperBound,
+        A defaultArg,
+        BiFunction<TypeArgument, String, String> contentDefaultPromoter
+    ) {
+        return new MessageTypeParameter<>(
+            factoryModule,
+            upperBound,
+            defaultArg,
+            contentDefaultPromoter
         );
     }
 

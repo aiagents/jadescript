@@ -18,10 +18,10 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -272,7 +272,12 @@ public class UnaryPrefixExpressionSemantics
         Maybe<UnaryPrefix> input,
         StaticState state
     ) {
-        if (input == null) return module.get(TypeHelper.class).ANY;
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        if (input == null) {
+            return builtins.any("");
+        }
+
         final Maybe<OfNotation> ofNotation =
             input.__(UnaryPrefix::getOfNotation);
         final Maybe<String> unaryPrefixOp =
@@ -288,7 +293,7 @@ public class UnaryPrefixExpressionSemantics
             input.__(UnaryPrefix::isDebugSearchCall).orElse(false);
 
         if (isDebugSearchName || isDebugSearchCall) {
-            return module.get(TypeHelper.class).TEXT;
+            return builtins.text();
         }
 
         if (unaryPrefixOp.isPresent()) {
@@ -301,24 +306,24 @@ public class UnaryPrefixExpressionSemantics
                         .inferType(ofNotation, state);
                 case "not":
                     //it has to be boolean
-                    return module.get(TypeHelper.class).BOOLEAN;
+                    return builtins.boolean_();
                 default:
-                    return module.get(TypeHelper.class).ANY;
+                    return builtins.any("");
             }
         }
 
         if (performativeConst.isPresent()) {
-            return module.get(TypeHelper.class).PERFORMATIVE;
+            return builtins.performative();
         }
 
         if (isIndexOfElemOperation) {
             final IJadescriptType collectionType =
                 module.get(OfNotationExpressionSemantics.class)
                     .inferType(ofNotation, state);
-            if (collectionType instanceof ListType) {
-                return module.get(TypeHelper.class).INTEGER;
+            if (collectionType.category().isList()) {
+                return builtins.integer();
             } else {
-                return module.get(TypeHelper.class).ANY;
+                return builtins.any("");
             }
         }
 
@@ -401,7 +406,7 @@ public class UnaryPrefixExpressionSemantics
             inferredType = ones.inferType(ofNotation, newState);
 
             boolean evr = validationHelper.asserting(
-                inferredType instanceof ListType,
+                inferredType.category().isList(),
                 "InvalidIndexExpression",
                 "Invalid type; expected: 'list', provided: " +
                     inferredType.getFullJadescriptName(),
@@ -413,11 +418,14 @@ public class UnaryPrefixExpressionSemantics
                 return INVALID;
             }
 
-            if (inferredType instanceof ListType) {
+            if (inferredType.category().isList()) {
+                assert inferredType instanceof ListType;
+
                 IJadescriptType inferredIndexType = ones.inferType(
                     index,
                     state
                 );
+
                 return validationHelper.assertExpectedType(
                     ((ListType) inferredType).getElementType(),
                     inferredIndexType,
@@ -426,6 +434,7 @@ public class UnaryPrefixExpressionSemantics
                     acceptor
                 );
             }
+
         } else {
             newState = state;
             inferredType = ones.inferType(ofNotation, state);
@@ -434,49 +443,43 @@ public class UnaryPrefixExpressionSemantics
         if (unaryPrefixOp.isPresent()) {
             String op = unaryPrefixOp.extract(nullAsEmptyString);
 
-            switch (op) {
-                case "+":
-                case "-": {
-                    boolean subValidation = ones.validate(
-                        ofNotation,
-                        newState,
+            if (op.equals("+") || op.equals("-")) {
+                boolean subValidation = ones.validate(
+                    ofNotation,
+                    newState,
+                    acceptor
+                );
+
+                if (subValidation == VALID) {
+                    return validationHelper.assertExpectedType(
+                        Number.class,
+                        inferredType,
+                        "InvalidUnaryPrefix",
+                        input,
+                        JadescriptPackage.eINSTANCE
+                            .getUnaryPrefix_OfNotation(),
                         acceptor
                     );
-                    if (subValidation == VALID) {
-                        return validationHelper.assertExpectedType(
-                            Number.class,
-                            inferredType,
-                            "InvalidUnaryPrefix",
-                            input,
-                            JadescriptPackage.eINSTANCE
-                                .getUnaryPrefix_OfNotation(),
-                            acceptor
-                        );
-                    }
-                    break;
                 }
-
-                case "not": {
-                    boolean subValidation = ones.validate(
-                        ofNotation,
-                        newState,
+            } else if (op.equals("not")) {
+                boolean subValidation = ones.validate(
+                    ofNotation,
+                    newState,
+                    acceptor
+                );
+                if (subValidation == VALID) {
+                    return validationHelper.assertExpectedType(
+                        Boolean.class,
+                        inferredType,
+                        "InvalidUnaryPrefix",
+                        input,
+                        JadescriptPackage.eINSTANCE
+                            .getUnaryPrefix_OfNotation(),
                         acceptor
                     );
-                    if (subValidation == VALID) {
-                        return validationHelper.assertExpectedType(
-                            Boolean.class,
-                            inferredType,
-                            "InvalidUnaryPrefix",
-                            input,
-                            JadescriptPackage.eINSTANCE
-                                .getUnaryPrefix_OfNotation(),
-                            acceptor
-                        );
-                    } else {
-                        return subValidation;
-                    }
+                } else {
+                    return subValidation;
                 }
-
             }
         }
 

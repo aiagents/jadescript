@@ -10,10 +10,10 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.emf.common.util.EList;
@@ -62,7 +62,9 @@ public class LogicalOrExpressionSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        if (input == null) return "";
+        if (input == null) {
+            return "";
+        }
         StringBuilder result = new StringBuilder();
         MaybeList<LogicalAnd> ands = input.__toList(LogicalOr::getLogicalAnd);
 
@@ -225,7 +227,7 @@ public class LogicalOrExpressionSemantics
         Maybe<LogicalOr> input,
         StaticState state
     ) {
-        return module.get(TypeHelper.class).BOOLEAN;
+        return module.get(BuiltinTypeProvider.class).boolean_();
     }
 
 

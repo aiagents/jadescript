@@ -11,14 +11,18 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescrip
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.LocalVariable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.PatternMatchUnifiedVariable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.*;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.FlowSensitiveSymbol;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchMode;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.implicit.ImplicitConversionsHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
@@ -178,7 +182,9 @@ public class SingleIdentifierExpressionSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        if (input == null) return "";
+        if (input == null) {
+            return "";
+        }
         Maybe<String> ident = input.__(SingleIdentifier::getIdent);
         if (ident.wrappedEquals(THIS)) {
             return SemanticsUtils.getOuterClassThisReference(
@@ -220,8 +226,6 @@ public class SingleIdentifierExpressionSemantics
             resolveAsNamedSymbol(input, state);
 
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-
         if (!variable.isPresent()) {
             // Inferred declaration
             String name = ident.orElse("");
@@ -240,11 +244,14 @@ public class SingleIdentifierExpressionSemantics
         String adaptedExpression = compiledExpression;
         final CompilableName variableSafe = variable.toNullable();
 
-        if (typeHelper.implicitConversionCanOccur(
+        final ImplicitConversionsHelper implicits =
+            module.get(ImplicitConversionsHelper.class);
+
+        if (implicits.implicitConversionCanOccur(
             exprType,
             variableSafe.writingType()
         )) {
-            adaptedExpression = typeHelper.compileImplicitConversion(
+            adaptedExpression = implicits.compileImplicitConversion(
                 compiledExpression,
                 exprType,
                 variableSafe.writingType()
@@ -261,7 +268,9 @@ public class SingleIdentifierExpressionSemantics
         IJadescriptType exprType,
         StaticState state
     ) {
-        if (input == null) return state;
+        if (input == null) {
+            return state;
+        }
         final Maybe<String> ident = input.__(SingleIdentifier::getIdent);
 
         final Maybe<CompilableName> variable =
@@ -294,13 +303,15 @@ public class SingleIdentifierExpressionSemantics
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
-        if (input == null) return module.get(TypeHelper.class).ANY;
+        if (input == null) {
+            return module.get(BuiltinTypeProvider.class).any("");
+        }
         final Maybe<String> ident = input.__(SingleIdentifier::getIdent);
         final Maybe<Either<CompilableName, CompilableCallable>>
             resolved = resolveAsExpression(input, state);
 
         if (resolved.isNothing()) {
-            return module.get(TypeHelper.class).BOTTOM.apply(
+            return module.get(BuiltinTypeProvider.class).nothing(
                 "Cannot infer the type of the expression. Reason: cannot " +
                     "resolve name '" + ident.toNullable() + "'"
             );

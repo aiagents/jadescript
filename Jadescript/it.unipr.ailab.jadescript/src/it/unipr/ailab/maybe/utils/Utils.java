@@ -1,5 +1,7 @@
 package it.unipr.ailab.maybe.utils;
 
+import java.util.function.Supplier;
+
 public class Utils {
     private Utils(){} // Do not instantiate.
 
@@ -10,6 +12,11 @@ public class Utils {
         }
 
         return Math.min(max, Math.max(min, value));
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> Supplier<T> castSupplier(Supplier<?> other){
+        return () -> (T) other.get();
     }
 
 }

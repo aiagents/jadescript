@@ -14,7 +14,9 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
@@ -29,7 +31,8 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static com.google.common.collect.Streams.zip;
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 public class MapLiteralExpressionSemantics
     extends AssignableExpressionSemantics<MapOrSetLiteral> {
@@ -96,13 +99,12 @@ public class MapLiteralExpressionSemantics
             || values.stream().allMatch(Maybe::isNothing)
             || keys.stream().allMatch(Maybe::isNothing)) {
 
-            return module.get(TypeHelper.class).MAP
-                .apply(List.of(
-                    module.get(TypeExpressionSemantics.class)
-                        .toJadescriptType(keysTypeParameter),
-                    module.get(TypeExpressionSemantics.class)
-                        .toJadescriptType(valuesTypeParameter)
-                )).compileNewEmptyInstance();
+            return module.get(BuiltinTypeProvider.class).map(
+                module.get(TypeExpressionSemantics.class)
+                    .toJadescriptType(keysTypeParameter),
+                module.get(TypeExpressionSemantics.class)
+                    .toJadescriptType(valuesTypeParameter)
+            ).compileNewEmptyInstance();
         }
 
         final RValueExpressionSemantics rves =
@@ -146,16 +148,18 @@ public class MapLiteralExpressionSemantics
         final Maybe<TypeExpression> valuesTypeParameter =
             input.__(MapOrSetLiteral::getValueTypeParameter);
 
-
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
 
         if (keysTypeParameter.isPresent() && valuesTypeParameter.isPresent()) {
             final TypeExpressionSemantics tes =
                 module.get(TypeExpressionSemantics.class);
-            return typeHelper.MAP.apply(List.of(
+            return builtins.map(
                 tes.toJadescriptType(keysTypeParameter),
                 tes.toJadescriptType(valuesTypeParameter)
-            ));
+            );
         }
 
 
@@ -165,27 +169,27 @@ public class MapLiteralExpressionSemantics
         int assumedSize = Math.min(keys.size(), values.size());
 
 
-        IJadescriptType lubKeys = typeHelper.NOTHING;
-        IJadescriptType lubValues = typeHelper.NOTHING;
+        IJadescriptType lubKeys = builtins.nothing("");
+        IJadescriptType lubValues = builtins.nothing("");
         StaticState newState = state;
         for (int i = 0; i < assumedSize; i++) {
             final Maybe<RValueExpression> key = keys.get(i);
             final Maybe<RValueExpression> value = values.get(i);
 
-            lubKeys = typeHelper.getLUB(
+            lubKeys = lattice.getLUB(
                 lubKeys,
                 rves.inferType(key, newState)
             );
             newState = rves.advance(key, newState);
 
-            lubValues = typeHelper.getLUB(
+            lubValues = lattice.getLUB(
                 lubValues,
                 rves.inferType(value, newState)
             );
             newState = rves.advance(value, newState);
         }
 
-        return typeHelper.MAP.apply(List.of(lubKeys, lubValues));
+        return builtins.map(lubKeys, lubValues);
     }
 
 
@@ -195,7 +199,9 @@ public class MapLiteralExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
+        if (input == null) {
+            return VALID;
+        }
         final MaybeList<RValueExpression> values =
             input.__toList(MapOrSetLiteral::getValues);
         final MaybeList<RValueExpression> keys =
@@ -221,10 +227,15 @@ public class MapLiteralExpressionSemantics
         int assumedSize = Math.min(keys.size(), values.size());
 
         StaticState newState = state;
-        IJadescriptType keysLub = module.get(TypeHelper.class).BOTTOM.apply(
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
+
+        IJadescriptType keysLub = builtins.nothing(
             "Cannot infer the type of the keys of the map."
         );
-        IJadescriptType valuesLub = module.get(TypeHelper.class).BOTTOM.apply(
+        IJadescriptType valuesLub = builtins.nothing(
             "Cannot infer the type of the values of the map."
         );
         for (int i = 0; i < assumedSize; i++) {
@@ -232,14 +243,15 @@ public class MapLiteralExpressionSemantics
             final Maybe<RValueExpression> value = values.get(i);
 
             boolean keyCheck = rves.validate(key, newState, acceptor);
-            keysLub = module.get(TypeHelper.class).getLUB(
+
+            keysLub = lattice.getLUB(
                 keysLub,
                 rves.inferType(key, newState)
             );
             newState = rves.advance(key, newState);
 
             boolean valCheck = rves.validate(value, newState, acceptor);
-            valuesLub = module.get(TypeHelper.class).getLUB(
+            valuesLub = lattice.getLUB(
                 valuesLub,
                 rves.inferType(value, newState)
             );
@@ -429,7 +441,7 @@ public class MapLiteralExpressionSemantics
         if (solvedPatternType instanceof MapType) {
             valueType = ((MapType) solvedPatternType).getValueType();
         } else {
-            valueType = module.get(TypeHelper.class).TOP.apply(
+            valueType = module.get(BuiltinTypeProvider.class).any(
                 PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
             );
         }
@@ -504,7 +516,7 @@ public class MapLiteralExpressionSemantics
         if (solvedPatternType instanceof MapType) {
             valueType = ((MapType) solvedPatternType).getValueType();
         } else {
-            valueType = module.get(TypeHelper.class).TOP.apply(
+            valueType = module.get(BuiltinTypeProvider.class).any(
                 PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
             );
         }
@@ -568,7 +580,7 @@ public class MapLiteralExpressionSemantics
         if (solvedPatternType instanceof MapType) {
             valueType = ((MapType) solvedPatternType).getValueType();
         } else {
-            valueType = module.get(TypeHelper.class).TOP.apply(
+            valueType = module.get(BuiltinTypeProvider.class).any(
                 PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
             );
         }
@@ -632,168 +644,168 @@ public class MapLiteralExpressionSemantics
                 solvedPatternType,
                 "__x.isEmpty()"
             );
-        } else {
-            final RValueExpressionSemantics rves =
-                module.get(RValueExpressionSemantics.class);
+        }
 
-            final List<PatternMatcher> subResults =
-                new ArrayList<>(prePipeElementCount * 2 + (isWithPipe ? 1 : 0));
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
 
-            final List<String> keyReferences =
-                new ArrayList<>(prePipeElementCount);
-            final List<StatementWriter> auxStatements =
-                new ArrayList<>(prePipeElementCount);
+        final List<PatternMatcher> subResults =
+            new ArrayList<>(prePipeElementCount * 2 + (isWithPipe ? 1 : 0));
 
-            final List<SubPattern<RValueExpression, MapOrSetLiteral>>
-                valuesSubPatterns = new ArrayList<>();
+        final List<String> keyReferences =
+            new ArrayList<>(prePipeElementCount);
+        final List<StatementWriter> auxStatements =
+            new ArrayList<>(prePipeElementCount);
 
-            StaticState runningState = state;
-            if (prePipeElementCount > 0) {
-                IJadescriptType keyType;
-                IJadescriptType valueType;
-                if (solvedPatternType instanceof MapType) {
-                    keyType = ((MapType) solvedPatternType).getKeyType();
-                    valueType = ((MapType) solvedPatternType).getValueType();
-                } else {
-                    keyType = module.get(TypeHelper.class).TOP.apply(
-                        PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("key")
-                    );
-                    valueType = module.get(TypeHelper.class).TOP.apply(
-                        PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
-                    );
-                }
+        final List<SubPattern<RValueExpression, MapOrSetLiteral>>
+            valuesSubPatterns = new ArrayList<>();
 
-
-                for (int i = 0; i < prePipeElementCount; i++) {
-                    Maybe<RValueExpression> kterm = keys.get(i);
-                    Maybe<RValueExpression> vterm = values.get(i);
-                    String compiledKey = rves.compile(kterm, state, acceptor);
-                    runningState = rves.advance(kterm, runningState);
-
-                    final String keyReferenceName = "__key" + i;
-                    keyReferences.add(keyReferenceName);
-                    auxStatements.add(w.variable(
-                        keyType.compileToJavaTypeReference(),
-                        keyReferenceName,
-                        w.expr(compiledKey)
-                    ));
-
-                    final PatternMatcher keyOutput =
-                        input.subPatternGroundTerm(keyType,
-                            __ -> kterm.toNullable(), "_mapkey" + i
-                        ).createInlineConditionOutput(
-                            (ignored) -> "__x.containsKey(" +
-                                keyReferenceName + ")"
-                        );
-                    subResults.add(keyOutput);
-
-
-                    final SubPattern<RValueExpression, MapOrSetLiteral>
-                        valueSubpattern = input.subPattern(
-                        valueType,
-                        __ -> vterm.toNullable(),
-                        "_mapval" + i
-                    );
-
-                    valuesSubPatterns.add(valueSubpattern);
-
-                    if (i > 0) {
-                        runningState = rves.assertDidMatch(
-                            valuesSubPatterns.get(i - 1),
-                            runningState
-                        );
-                    }
-
-                    final PatternMatcher valOutput = rves.compilePatternMatch(
-                        valueSubpattern,
-                        runningState,
-                        acceptor
-                    );
-                    runningState = rves.advancePattern(
-                        valueSubpattern,
-                        runningState
-                    );
-                    subResults.add(valOutput);
-                }
+        StaticState runningState = state;
+        if (prePipeElementCount > 0) {
+            IJadescriptType keyType;
+            IJadescriptType valueType;
+            if (solvedPatternType instanceof MapType) {
+                keyType = ((MapType) solvedPatternType).getKeyType();
+                valueType = ((MapType) solvedPatternType).getValueType();
+            } else {
+                keyType = module.get(BuiltinTypeProvider.class).any(
+                    PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("key")
+                );
+                valueType = module.get(BuiltinTypeProvider.class).any(
+                    PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
+                );
             }
 
-            if (isWithPipe) {
-                final SubPattern<RValueExpression, MapOrSetLiteral>
-                    restSubpattern =
-                    input.subPattern(
-                        solvedPatternType,
-                        __ -> rest.toNullable(),
-                        "_maprest"
-                    );
 
-                if (!valuesSubPatterns.isEmpty()) {
+            for (int i = 0; i < prePipeElementCount; i++) {
+                Maybe<RValueExpression> kterm = keys.get(i);
+                Maybe<RValueExpression> vterm = values.get(i);
+                String compiledKey = rves.compile(kterm, state, acceptor);
+                runningState = rves.advance(kterm, runningState);
+
+                final String keyReferenceName = "__key" + i;
+                keyReferences.add(keyReferenceName);
+                auxStatements.add(w.variable(
+                    keyType.compileToJavaTypeReference(),
+                    keyReferenceName,
+                    w.expr(compiledKey)
+                ));
+
+                final PatternMatcher keyOutput =
+                    input.subPatternGroundTerm(keyType,
+                        __ -> kterm.toNullable(), "_mapkey" + i
+                    ).createInlineConditionOutput(
+                        (ignored) -> "__x.containsKey(" +
+                            keyReferenceName + ")"
+                    );
+                subResults.add(keyOutput);
+
+
+                final SubPattern<RValueExpression, MapOrSetLiteral>
+                    valueSubpattern = input.subPattern(
+                    valueType,
+                    __ -> vterm.toNullable(),
+                    "_mapval" + i
+                );
+
+                valuesSubPatterns.add(valueSubpattern);
+
+                if (i > 0) {
                     runningState = rves.assertDidMatch(
-                        valuesSubPatterns.get(valuesSubPatterns.size() - 1),
+                        valuesSubPatterns.get(i - 1),
                         runningState
                     );
                 }
 
-                final PatternMatcher restOutput = rves.compilePatternMatch(
-                    restSubpattern,
+                final PatternMatcher valOutput = rves.compilePatternMatch(
+                    valueSubpattern,
                     runningState,
                     acceptor
                 );
-                // Not needed:
-                subResults.add(restOutput);
+                runningState = rves.advancePattern(
+                    valueSubpattern,
+                    runningState
+                );
+                subResults.add(valOutput);
             }
-
-
-            int prePipeTotalSubResults = prePipeElementCount * 2;
-            Function<Integer, String> compiledSubInputs;
-            if (isWithPipe) {
-                compiledSubInputs = (i) -> {
-                    if (i < 0 || i > prePipeTotalSubResults) {
-                        return "/* Index out of bounds */";
-                    } else if (i == prePipeTotalSubResults) {
-                        return "jadescript.util.JadescriptCollections.getRest" +
-                            "(__x)";
-                    } else if (i % 2 == 0) {
-                        // Ignored, since no element is acutally extracted
-                        // from the map, but we just check if the map
-                        // contains the specified input value in its keyset.
-                        // Note: this string should not appear in the
-                        // generated source code.
-                        return "__x/*ignored*/";
-                    } else {
-                        // 'i' is odd and, if integer-divided by two, within
-                        // bounds
-                        return "__x.get(" + keyReferences.get(i / 2) + ")";
-                    }
-                };
-            } else {
-                compiledSubInputs = (i) -> {
-                    if (i < 0 || i >= prePipeTotalSubResults) {
-                        return "/* Index out of bounds */";
-                    } else if (i % 2 == 0) {
-                        // Ignored, since no element is acutally extracted
-                        // from the map, but we just check if the map
-                        // contains the specified input value in its keyset.
-                        // Note: this string should not appear in the
-                        // generated source code.
-                        return "__x/*ignored*/";
-                    } else {
-                        // 'i' is odd and, if integer-divided by two, within
-                        // bounds
-                        return "__x.get(" + keyReferences.get(i / 2) + ")";
-                    }
-                };
-            }
-
-            String sizeOp = isWithPipe ? ">=" : "==";
-
-            return input.createCompositeMethodOutput(
-                auxStatements,
-                solvedPatternType,
-                List.of("__x.size() " + sizeOp + " " + prePipeElementCount),
-                compiledSubInputs,
-                subResults
-            );
         }
+
+        if (isWithPipe) {
+            final SubPattern<RValueExpression, MapOrSetLiteral>
+                restSubpattern =
+                input.subPattern(
+                    solvedPatternType,
+                    __ -> rest.toNullable(),
+                    "_maprest"
+                );
+
+            if (!valuesSubPatterns.isEmpty()) {
+                runningState = rves.assertDidMatch(
+                    valuesSubPatterns.get(valuesSubPatterns.size() - 1),
+                    runningState
+                );
+            }
+
+            final PatternMatcher restOutput = rves.compilePatternMatch(
+                restSubpattern,
+                runningState,
+                acceptor
+            );
+            // Not needed:
+            subResults.add(restOutput);
+        }
+
+
+        int prePipeTotalSubResults = prePipeElementCount * 2;
+        Function<Integer, String> compiledSubInputs;
+        if (isWithPipe) {
+            compiledSubInputs = (i) -> {
+                if (i < 0 || i > prePipeTotalSubResults) {
+                    return "/* Index out of bounds */";
+                } else if (i == prePipeTotalSubResults) {
+                    return "jadescript.util.JadescriptCollections.getRest" +
+                        "(__x)";
+                } else if (i % 2 == 0) {
+                    // Ignored, since no element is acutally extracted
+                    // from the map, but we just check if the map
+                    // contains the specified input value in its keyset.
+                    // Note: this string should not appear in the
+                    // generated source code.
+                    return "__x/*ignored*/";
+                } else {
+                    // 'i' is odd and, if integer-divided by two, within
+                    // bounds
+                    return "__x.get(" + keyReferences.get(i / 2) + ")";
+                }
+            };
+        } else {
+            compiledSubInputs = (i) -> {
+                if (i < 0 || i >= prePipeTotalSubResults) {
+                    return "/* Index out of bounds */";
+                } else if (i % 2 == 0) {
+                    // Ignored, since no element is acutally extracted
+                    // from the map, but we just check if the map
+                    // contains the specified input value in its keyset.
+                    // Note: this string should not appear in the
+                    // generated source code.
+                    return "__x/*ignored*/";
+                } else {
+                    // 'i' is odd and, if integer-divided by two, within
+                    // bounds
+                    return "__x.get(" + keyReferences.get(i / 2) + ")";
+                }
+            };
+        }
+
+        String sizeOp = isWithPipe ? ">=" : "==";
+
+        return input.createCompositeMethodOutput(
+            auxStatements,
+            solvedPatternType,
+            List.of("__x.size() " + sizeOp + " " + prePipeElementCount),
+            compiledSubInputs,
+            subResults
+        );
     }
 
 
@@ -807,22 +819,24 @@ public class MapLiteralExpressionSemantics
         }
 
         return PatternType.holed(inputType -> {
-            final TypeHelper typeHelper = module.get(TypeHelper.class);
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
             if (inputType instanceof MapType) {
                 final IJadescriptType keyType =
                     ((MapType) inputType).getKeyType();
                 final IJadescriptType valType =
                     ((MapType) inputType).getValueType();
-                return typeHelper.MAP.apply(List.of(keyType, valType));
+
+                return builtins.map(keyType, valType);
             } else {
-                return typeHelper.MAP.apply(List.of(
-                    typeHelper.TOP.apply(
+                return builtins.map(
+                    builtins.any(
                         PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("key")
                     ),
-                    typeHelper.TOP.apply(
+                    builtins.any(
                         PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
                     )
-                ));
+                );
             }
         });
     }
@@ -869,10 +883,10 @@ public class MapLiteralExpressionSemantics
                 keyType = ((MapType) solvedPatternType).getKeyType();
                 valueType = ((MapType) solvedPatternType).getValueType();
             } else {
-                keyType = module.get(TypeHelper.class).TOP.apply(
+                keyType = module.get(BuiltinTypeProvider.class).any(
                     PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("key")
                 );
-                valueType = module.get(TypeHelper.class).TOP.apply(
+                valueType = module.get(BuiltinTypeProvider.class).any(
                     PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
                 );
             }
@@ -979,7 +993,7 @@ public class MapLiteralExpressionSemantics
             if (solvedPatternType instanceof MapType) {
                 valueType = ((MapType) solvedPatternType).getValueType();
             } else {
-                valueType = module.get(TypeHelper.class).TOP.apply(
+                valueType = module.get(BuiltinTypeProvider.class).any(
                     PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
                 );
             }
@@ -1067,7 +1081,7 @@ public class MapLiteralExpressionSemantics
         if (solvedPatternType instanceof MapType) {
             valueType = ((MapType) solvedPatternType).getValueType();
         } else {
-            valueType = module.get(TypeHelper.class).TOP.apply(
+            valueType = module.get(BuiltinTypeProvider.class).any(
                 PROVIDED_TYPE_TO_PATTERN_IS_NOT_MAP_MESSAGE("value")
             );
         }

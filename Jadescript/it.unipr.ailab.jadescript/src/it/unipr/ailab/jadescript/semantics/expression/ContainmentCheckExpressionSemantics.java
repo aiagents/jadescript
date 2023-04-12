@@ -11,12 +11,13 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCalla
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -25,6 +26,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.equal;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.not;
 import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
@@ -206,7 +209,7 @@ public class ContainmentCheckExpressionSemantics
         Maybe<ContainmentCheck> input
         , StaticState state
     ) {
-        return module.get(TypeHelper.class).BOOLEAN;
+        return module.get(BuiltinTypeProvider.class).boolean_();
     }
 
 
@@ -399,16 +402,23 @@ public class ContainmentCheckExpressionSemantics
                 methodName = operationName = "contains";
             }
 
-            final TypeHelper typeHelper = module.get(TypeHelper.class);
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
+            final TypeComparator comparator = module.get(TypeComparator.class);
+
             final List<? extends MemberCallable> matches = collectionType
                 .namespace().searchAs(
                     MemberCallable.Namespace.class,
                     s -> s.memberCallables(methodName)
-                        .filter(mc -> mc.returnType()
-                            .typeEquals(typeHelper.BOOLEAN))
+                        .filter(mc -> comparator.compare(
+                            mc.returnType(),
+                            builtins.boolean_()
+                        ).is(equal()))
                         .filter(mc -> mc.arity() == 1)
-                        .filter(mc -> mc.parameterTypes().get(0)
-                            .isSupertypeOrEqualTo(elementType))
+                        .filter(mc -> comparator.compare(
+                            mc.parameterTypes().get(0),
+                            elementType
+                        ).is(superTypeOrEqual()))
                 ).collect(Collectors.toList());
 
 

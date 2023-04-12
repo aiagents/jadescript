@@ -12,8 +12,8 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.TupledExpressions;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
@@ -200,10 +200,11 @@ public class PrimaryExpressionSemantics
         Maybe<Primary> input,
         StaticState state
     ) {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
         if (input == null) {
-            return typeHelper.ANY;
+            return builtins.any("");
         }
 
         final MaybeList<RValueExpression> exprs =
@@ -213,7 +214,7 @@ public class PrimaryExpressionSemantics
             return module.get(RValueExpressionSemantics.class)
                 .inferType(exprs.get(0), state);
         } else {
-            return typeHelper.ANY;
+            return builtins.any("");
         }
     }
 
@@ -294,7 +295,9 @@ public class PrimaryExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
+        if (input == null) {
+            return VALID;
+        }
         final MaybeList<RValueExpression> exprs =
             input.__toListNullsRemoved(Primary::getExprs);
 

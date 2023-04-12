@@ -10,10 +10,10 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.SubPattern;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.TupleType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.TupledExpressions;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
@@ -245,7 +245,7 @@ public class TupleExpressionSemantics
             typeArguments.add(iJadescriptType);
             runningState = rves.advance(expr, runningState);
         }
-        return module.get(TypeHelper.class).TUPLE.apply(typeArguments);
+        return module.get(BuiltinTypeProvider.class).tuple(typeArguments);
     }
 
 
@@ -309,7 +309,9 @@ public class TupleExpressionSemantics
         final RValueExpressionSemantics rves = module.get(
             RValueExpressionSemantics.class);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
         final List<PatternMatcher> subResults = new ArrayList<>(elementCount);
 
         StaticState runningState = state;
@@ -323,7 +325,7 @@ public class TupleExpressionSemantics
                 if (elementTypes.size() > i) {
                     termType = elementTypes.get(i);
                 } else {
-                    termType = typeHelper.TOP.apply(
+                    termType = builtins.any(
                         PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
                             i,
                             elementCount
@@ -331,7 +333,7 @@ public class TupleExpressionSemantics
                     );
                 }
             } else {
-                termType = typeHelper.TOP.apply(
+                termType = builtins.any(
                     PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
                         i,
                         elementCount
@@ -386,7 +388,9 @@ public class TupleExpressionSemantics
         }
 
         return PatternType.holed(inputType -> {
-            final TypeHelper typeHelper = module.get(TypeHelper.class);
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
+
             final RValueExpressionSemantics rves = module.get(
                 RValueExpressionSemantics.class);
             List<TypeArgument> elementTypes = new ArrayList<>();
@@ -411,7 +415,7 @@ public class TupleExpressionSemantics
                             i,
                             exprs.size()
                         );
-                    inputElementType = typeHelper.TOP.apply(message);
+                    inputElementType = builtins.any(message);
                 }
 
                 final SubPattern<RValueExpression, TupledExpressions>
@@ -429,7 +433,7 @@ public class TupleExpressionSemantics
                     runningState
                 );
             }
-            return typeHelper.TUPLE.apply(elementTypes);
+            return builtins.tuple(elementTypes);
         });
 
     }
@@ -451,7 +455,8 @@ public class TupleExpressionSemantics
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
         boolean sizeCheck = validateTupleSize(
             input.getPattern(),
@@ -470,7 +475,7 @@ public class TupleExpressionSemantics
                 if (i < elementTypes.size()) {
                     termType = elementTypes.get(i);
                 } else {
-                    termType = typeHelper.TOP.apply(
+                    termType = builtins.any(
                         PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
                             i,
                             elementCount
@@ -478,7 +483,7 @@ public class TupleExpressionSemantics
                     );
                 }
             } else {
-                termType = typeHelper.TOP.apply(
+                termType = builtins.any(
                     PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
                         i,
                         elementCount
@@ -519,7 +524,8 @@ public class TupleExpressionSemantics
 
         final RValueExpressionSemantics rves = module.get(
             RValueExpressionSemantics.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
 
         StaticState runningState = state;
@@ -532,7 +538,7 @@ public class TupleExpressionSemantics
                 if (elementTypes.size() > i) {
                     termType = elementTypes.get(i);
                 } else {
-                    termType = typeHelper.TOP.apply(
+                    termType = builtins.any(
                         PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
                             i,
                             elementCount
@@ -540,7 +546,7 @@ public class TupleExpressionSemantics
                     );
                 }
             } else {
-                termType = typeHelper.TOP.apply(
+                termType = builtins.any(
                     PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
                         i,
                         elementCount
@@ -554,7 +560,7 @@ public class TupleExpressionSemantics
                 "_tupleelem" + i
             );
             runningState = rves.advancePattern(termSubpattern, runningState);
-            if(i < terms.size() - 1){
+            if (i < terms.size() - 1) {
                 runningState = rves.assertDidMatch(
                     termSubpattern,
                     runningState
@@ -580,7 +586,8 @@ public class TupleExpressionSemantics
 
         final RValueExpressionSemantics rves = module.get(
             RValueExpressionSemantics.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
 
         StaticState runningState = state;
@@ -593,7 +600,7 @@ public class TupleExpressionSemantics
                 if (elementTypes.size() > i) {
                     termType = elementTypes.get(i);
                 } else {
-                    termType = typeHelper.TOP.apply(
+                    termType = builtins.any(
                         PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
                             i,
                             elementCount
@@ -601,7 +608,7 @@ public class TupleExpressionSemantics
                     );
                 }
             } else {
-                termType = typeHelper.TOP.apply(
+                termType = builtins.any(
                     PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
                         i,
                         elementCount
@@ -669,7 +676,8 @@ public class TupleExpressionSemantics
 
         final RValueExpressionSemantics rves = module.get(
             RValueExpressionSemantics.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
         StaticState runningState = state;
         for (int i = 0; i < terms.size(); i++) {
@@ -681,7 +689,7 @@ public class TupleExpressionSemantics
                 if (elementTypes.size() > i) {
                     termType = elementTypes.get(i);
                 } else {
-                    termType = typeHelper.TOP.apply(
+                    termType = builtins.any(
                         PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
                             i,
                             elementCount
@@ -689,7 +697,7 @@ public class TupleExpressionSemantics
                     );
                 }
             } else {
-                termType = typeHelper.TOP.apply(
+                termType = builtins.any(
                     PROVIDED_TYPE_TO_PATTERN_IS_NOT_TUPLE_MESSAGE(
                         i,
                         elementCount
@@ -703,10 +711,10 @@ public class TupleExpressionSemantics
                 "_tupleelem" + i
             );
 
-            if(!rves.isPredictablePatternMatchSuccess(
+            if (!rves.isPredictablePatternMatchSuccess(
                 termSubpattern,
                 runningState
-            )){
+            )) {
                 return false;
             }
 

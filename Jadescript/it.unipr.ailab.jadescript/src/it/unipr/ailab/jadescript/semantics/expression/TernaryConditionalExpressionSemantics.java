@@ -11,10 +11,10 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -171,7 +171,7 @@ public class TernaryConditionalExpressionSemantics
             .inferType(expression1, afterC);
         IJadescriptType type2 = module.get(RValueExpressionSemantics.class)
             .inferType(expression2, afterC);
-        return module.get(TypeHelper.class).getLUB(type1, type2);
+        return module.get(TypeLatticeComputer.class).getLUB(type1, type2);
     }
 
 
@@ -183,7 +183,8 @@ public class TernaryConditionalExpressionSemantics
 
 
     @Override
-    protected Optional<? extends SemanticsBoundToExpression<?>> traverseInternal(
+    protected Optional<? extends SemanticsBoundToExpression<?>>
+    traverseInternal(
         Maybe<TernaryConditional> input
     ) {
         final Maybe<LogicalOr> condition =
@@ -240,7 +241,9 @@ public class TernaryConditionalExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
+        if (input == null){
+            return VALID;
+        }
         final Maybe<LogicalOr> condition =
             input.__(TernaryConditional::getCondition);
         final Maybe<RValueExpression> expression1 =

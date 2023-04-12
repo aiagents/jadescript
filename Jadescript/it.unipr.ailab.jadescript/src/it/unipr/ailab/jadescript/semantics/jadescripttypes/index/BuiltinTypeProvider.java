@@ -38,8 +38,10 @@ import jadescript.util.JadescriptSet;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import static it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts.ONTOLOGY_TRUE_VALUE;
 import static it.unipr.ailab.maybe.utils.LazyInit.lazyInit;
 
 @SuppressWarnings({"unused", "DefaultAnnotationParam"})
@@ -198,8 +200,8 @@ public class BuiltinTypeProvider {
     private final LazyInit<TypeParameterFactory> ftpFactory =
         lazyInit(() -> getModule().get(TypeParameterFactory.class));
     // Factory for parametric type schemas
-    private final LazyInit<ParametricTypeSchema.Factory> ptFactory =
-        lazyInit(() -> getModule().get(ParametricTypeSchema.Factory.class));
+    private final LazyInit<ParametricTypeSchemaFactory> ptFactory =
+        lazyInit(() -> getModule().get(ParametricTypeSchemaFactory.class));
 
     @BuiltinType(
         value = JadescriptList.class,
@@ -231,14 +233,14 @@ public class BuiltinTypeProvider {
         maxArgs = 1
     )
     @MessageBuiltinType(ACLMessage.INFORM_REF)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptInformRefMessage = lazyInit(() -> {
         final FormalTypeParameter<OntoContentType> concepts =
             ftpFactory.get().boundedTypeParameter(
                 list(covariant(concept()))
             );
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(concepts)
             .seal(new ParametricMapBuilder<>() {
                 @Override
@@ -259,14 +261,14 @@ public class BuiltinTypeProvider {
         maxArgs = 1
     )
     @MessageBuiltinType(ACLMessage.QUERY_REF)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptQueryRefMessage = lazyInit(() -> {
         final FormalTypeParameter<OntoContentType> concepts =
             ftpFactory.get().boundedTypeParameter(
                 list(covariant(concept()))
             );
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(concepts)
             .seal(new ParametricMapBuilder<>() {
                 @Override
@@ -287,13 +289,13 @@ public class BuiltinTypeProvider {
         maxArgs = 1
     )
     @MessageBuiltinType(ACLMessage.SUBSCRIBE)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptSubscribeMessage = lazyInit(() -> {
 
         final FormalTypeParameter<TypeArgument> concepts =
             ftpFactory.get().boundedTypeParameter(list(covariant(concept())));
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(concepts)
             .seal(new ParametricMapBuilder<>() {
                 @Override
@@ -314,7 +316,7 @@ public class BuiltinTypeProvider {
         maxArgs = 3
     )
     @MessageBuiltinType(ACLMessage.PROXY)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptProxyMesssage = lazyInit(() -> {
         final FormalTypeParameter<TypeArgument> aids =
             ftpFactory.get().boundedTypeParameter(list(aid()));
@@ -323,12 +325,16 @@ public class BuiltinTypeProvider {
             ftpFactory.get().boundedTypeParameter(anyMessage());
 
         final FormalTypeParameter<OntoContentType> propositionOrTrue =
-            ftpFactory.get().boundedTypeParameterWithDefault(
+            ftpFactory.get().messageTypeParameter(
                 proposition(),
-                trueProposition()
+                trueProposition(),
+                addToTuple(
+                    "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                    trueProposition()
+                )
             );
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(aids)
             .add(message)
             .add(propositionOrTrue)
@@ -353,7 +359,7 @@ public class BuiltinTypeProvider {
         maxArgs = 3
     )
     @MessageBuiltinType(ACLMessage.PROPAGATE)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptPropagateMesssage = lazyInit(() -> {
         final FormalTypeParameter<TypeArgument> aids =
             ftpFactory.get().boundedTypeParameter(list(aid()));
@@ -362,12 +368,16 @@ public class BuiltinTypeProvider {
             ftpFactory.get().boundedTypeParameter(anyMessage());
 
         final FormalTypeParameter<OntoContentType> propositionOrTrue =
-            ftpFactory.get().boundedTypeParameterWithDefault(
+            ftpFactory.get().messageTypeParameter(
                 proposition(),
-                trueProposition()
+                trueProposition(),
+                addToTuple(
+                    "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                    trueProposition()
+                )
             );
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(aids)
             .add(message)
             .add(propositionOrTrue)
@@ -603,18 +613,22 @@ public class BuiltinTypeProvider {
         maxArgs = 2
     )
     @MessageBuiltinType(ACLMessage.ACCEPT_PROPOSAL)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptAcceptProposalMessage = lazyInit(() -> {
         final FormalTypeParameter<OntoContentType> action =
             ftpFactory.get().boundedTypeParameter(action());
 
         final FormalTypeParameter<OntoContentType> defaultProp =
-            ftpFactory.get().boundedTypeParameterWithDefault(
+            ftpFactory.get().messageTypeParameter(
                 proposition(),
-                trueProposition()
+                trueProposition(),
+                promoteToTuple2(
+                    "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                    trueProposition()
+                )
             );
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(action)
             .add(defaultProp)
             .seal(new ParametricMapBuilder<>() {
@@ -637,18 +651,22 @@ public class BuiltinTypeProvider {
         maxArgs = 2
     )
     @MessageBuiltinType(ACLMessage.AGREE)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptAgreeMessage = lazyInit(() -> {
         final FormalTypeParameter<OntoContentType> action =
             ftpFactory.get().boundedTypeParameter(action());
 
         final FormalTypeParameter<OntoContentType> defaultProp =
-            ftpFactory.get().boundedTypeParameterWithDefault(
+            ftpFactory.get().messageTypeParameter(
                 proposition(),
-                trueProposition()
+                trueProposition(),
+                promoteToTuple2(
+                    "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                    trueProposition()
+                )
             );
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(action)
             .add(defaultProp)
             .seal(new ParametricMapBuilder<>() {
@@ -671,12 +689,12 @@ public class BuiltinTypeProvider {
         maxArgs = 1
     )
     @MessageBuiltinType(ACLMessage.CANCEL)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptCancelMessage = lazyInit(() -> {
         final FormalTypeParameter<OntoContentType> action =
             ftpFactory.get().boundedTypeParameter(action());
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(action)
             .seal(new ParametricMapBuilder<>() {
                 @Override
@@ -697,18 +715,22 @@ public class BuiltinTypeProvider {
         maxArgs = 2
     )
     @MessageBuiltinType(ACLMessage.CFP)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptCFPMessage = lazyInit(() -> {
         final FormalTypeParameter<OntoContentType> action =
             ftpFactory.get().boundedTypeParameter(action());
 
         final FormalTypeParameter<OntoContentType> defaultProp =
-            ftpFactory.get().boundedTypeParameterWithDefault(
+            ftpFactory.get().messageTypeParameter(
                 proposition(),
-                trueProposition()
+                trueProposition(),
+                promoteToTuple2(
+                    "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                    trueProposition()
+                )
             );
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(action)
             .add(defaultProp)
             .seal(new ParametricMapBuilder<>() {
@@ -731,13 +753,13 @@ public class BuiltinTypeProvider {
         maxArgs = 1
     )
     @MessageBuiltinType(ACLMessage.CONFIRM)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptConfirmMessage = lazyInit(() -> {
         final FormalTypeParameter<OntoContentType> proposition =
             ftpFactory.get().boundedTypeParameter(proposition());
 
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(proposition)
             .seal(new ParametricMapBuilder<>() {
                 @Override
@@ -758,13 +780,13 @@ public class BuiltinTypeProvider {
         maxArgs = 1
     )
     @MessageBuiltinType(ACLMessage.DISCONFIRM)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptDisconfirmMessage = lazyInit(() -> {
         final FormalTypeParameter<OntoContentType> proposition =
             ftpFactory.get().boundedTypeParameter(proposition());
 
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(proposition)
             .seal(new ParametricMapBuilder<>() {
                 @Override
@@ -785,19 +807,23 @@ public class BuiltinTypeProvider {
         maxArgs = 2
     )
     @MessageBuiltinType(ACLMessage.FAILURE)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptFailureMessage = lazyInit(() -> {
         final FormalTypeParameter<OntoContentType> action =
             ftpFactory.get().boundedTypeParameter(action());
 
         final FormalTypeParameter<OntoContentType> defaultProp =
-            ftpFactory.get().boundedTypeParameterWithDefault(
+            ftpFactory.get().messageTypeParameter(
                 proposition(),
-                trueProposition()
+                trueProposition(),
+                promoteToTuple2(
+                    "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                    trueProposition()
+                )
             );
 
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(action)
             .add(defaultProp)
             .seal(new ParametricMapBuilder<>() {
@@ -820,12 +846,12 @@ public class BuiltinTypeProvider {
         maxArgs = 1
     )
     @MessageBuiltinType(ACLMessage.INFORM)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptInformMessage = lazyInit(() -> {
         final FormalTypeParameter<OntoContentType> proposition =
             ftpFactory.get().boundedTypeParameter(proposition());
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(proposition)
             .seal(new ParametricMapBuilder<>() {
                 @Override
@@ -846,12 +872,12 @@ public class BuiltinTypeProvider {
         maxArgs = 1
     )
     @MessageBuiltinType(ACLMessage.INFORM_IF)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptInformIfMessage = lazyInit(() -> {
         final FormalTypeParameter<OntoContentType> proposition =
             ftpFactory.get().boundedTypeParameter(proposition());
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(proposition)
             .seal(new ParametricMapBuilder<>() {
                 @Override
@@ -872,17 +898,22 @@ public class BuiltinTypeProvider {
         maxArgs = 2
     )
     @MessageBuiltinType(ACLMessage.NOT_UNDERSTOOD)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptNotUnderstoodMessage = lazyInit(() -> {
         final FormalTypeParameter<TypeArgument> anyMessage =
             ftpFactory.get().boundedTypeParameter(anyMessage());
 
         final FormalTypeParameter<OntoContentType> propositionOrTrue =
-            ftpFactory.get().boundedTypeParameterWithDefault(
-                proposition(), trueProposition()
+            ftpFactory.get().messageTypeParameter(
+                proposition(),
+                trueProposition(),
+                promoteToTuple2(
+                    "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                    trueProposition()
+                )
             );
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(anyMessage)
             .add(propositionOrTrue)
             .seal(new ParametricMapBuilder<>() {
@@ -905,17 +936,22 @@ public class BuiltinTypeProvider {
         maxArgs = 2
     )
     @MessageBuiltinType(ACLMessage.PROPOSE)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptProposeMessage = lazyInit(() -> {
         final FormalTypeParameter<TypeArgument> action =
             ftpFactory.get().boundedTypeParameter(action());
 
         final FormalTypeParameter<OntoContentType> propositionOrTrue =
-            ftpFactory.get().boundedTypeParameterWithDefault(
-                proposition(), trueProposition()
+            ftpFactory.get().messageTypeParameter(
+                proposition(),
+                trueProposition(),
+                promoteToTuple2(
+                    "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                    trueProposition()
+                )
             );
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(action)
             .add(propositionOrTrue)
             .seal(new ParametricMapBuilder<>() {
@@ -938,12 +974,12 @@ public class BuiltinTypeProvider {
         maxArgs = 1
     )
     @MessageBuiltinType(ACLMessage.QUERY_IF)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptQueryIfMessage = lazyInit(() -> {
         final FormalTypeParameter<OntoContentType> proposition =
             ftpFactory.get().boundedTypeParameter(proposition());
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(proposition)
             .seal(new ParametricMapBuilder<>() {
                 @Override
@@ -964,17 +1000,22 @@ public class BuiltinTypeProvider {
         maxArgs = 2
     )
     @MessageBuiltinType(ACLMessage.REFUSE)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptRefuseMessage = lazyInit(() -> {
         final FormalTypeParameter<TypeArgument> action =
             ftpFactory.get().boundedTypeParameter(action());
 
         final FormalTypeParameter<OntoContentType> propositionOrTrue =
-            ftpFactory.get().boundedTypeParameterWithDefault(
-                proposition(), trueProposition()
+            ftpFactory.get().messageTypeParameter(
+                proposition(),
+                trueProposition(),
+                promoteToTuple2(
+                    "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                    trueProposition()
+                )
             );
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(action)
             .add(propositionOrTrue)
             .seal(new ParametricMapBuilder<>() {
@@ -997,22 +1038,32 @@ public class BuiltinTypeProvider {
         maxArgs = 3
     )
     @MessageBuiltinType(ACLMessage.REJECT_PROPOSAL)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptRejectProposalMessage = lazyInit(() -> {
         final FormalTypeParameter<TypeArgument> action =
             ftpFactory.get().boundedTypeParameter(action());
 
         final FormalTypeParameter<OntoContentType> propositionOrTrue1 =
-            ftpFactory.get().boundedTypeParameterWithDefault(
-                proposition(), trueProposition()
+            ftpFactory.get().messageTypeParameter(
+                proposition(),
+                trueProposition(),
+                promoteToTuple2(
+                    "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                    trueProposition()
+                )
             );
 
         final FormalTypeParameter<OntoContentType> propositionOrTrue2 =
-            ftpFactory.get().boundedTypeParameterWithDefault(
-                proposition(), trueProposition()
+            ftpFactory.get().messageTypeParameter(
+                proposition(),
+                trueProposition(),
+                addToTuple(
+                    "/*default value*/" + ONTOLOGY_TRUE_VALUE,
+                    trueProposition()
+                )
             );
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(action)
             .add(propositionOrTrue1)
             .add(propositionOrTrue2)
@@ -1037,13 +1088,13 @@ public class BuiltinTypeProvider {
         maxArgs = 1
     )
     @MessageBuiltinType(ACLMessage.REQUEST)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptRequestMessage = lazyInit(() -> {
         final FormalTypeParameter<TypeArgument> action =
             ftpFactory.get().boundedTypeParameter(action());
 
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(action)
             .seal(new ParametricMapBuilder<>() {
                 @Override
@@ -1064,7 +1115,7 @@ public class BuiltinTypeProvider {
         maxArgs = 2
     )
     @MessageBuiltinType(ACLMessage.REQUEST_WHEN)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptRequestWhenMessage = lazyInit(() -> {
         final FormalTypeParameter<TypeArgument> action =
             ftpFactory.get().boundedTypeParameter(action());
@@ -1072,7 +1123,7 @@ public class BuiltinTypeProvider {
         final FormalTypeParameter<TypeArgument> proposition =
             ftpFactory.get().boundedTypeParameter(proposition());
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(action)
             .add(proposition)
             .seal(new ParametricMapBuilder<>() {
@@ -1095,7 +1146,7 @@ public class BuiltinTypeProvider {
         maxArgs = 2
     )
     @MessageBuiltinType(ACLMessage.REQUEST_WHENEVER)
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptRequestWheneverMessage = lazyInit(() -> {
         final FormalTypeParameter<TypeArgument> action =
             ftpFactory.get().boundedTypeParameter(action());
@@ -1103,7 +1154,7 @@ public class BuiltinTypeProvider {
         final FormalTypeParameter<TypeArgument> proposition =
             ftpFactory.get().boundedTypeParameter(proposition());
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(action)
             .add(proposition)
             .seal(new ParametricMapBuilder<>() {
@@ -1126,12 +1177,12 @@ public class BuiltinTypeProvider {
         maxArgs = 1
     )
     @MessageBuiltinType()
-    /*package-private*/ final LazyInit<ParametricTypeSchema<MessageSubType>>
+    /*package-private*/ final LazyInit<MessageTypeSchema>
         ptUnknownMessage = lazyInit(() -> {
         final FormalTypeParameter<TypeArgument> anyElement =
             ftpFactory.get().boundedTypeParameter(anyOntologyElement());
 
-        return ptFactory.get().<MessageSubType>parametricType()
+        return ptFactory.get().<MessageSubType>messageType()
             .add(anyElement)
             .seal(new ParametricMapBuilder<>() {
                 @Override
@@ -1171,6 +1222,31 @@ public class BuiltinTypeProvider {
         } catch (InvalidTypeInstantiatonException e) {
             throw new RuntimeException(e);
         }
+    }
+
+
+    @SuppressWarnings("SameParameterValue")
+    private static BiFunction<TypeArgument, String, String> promoteToTuple2(
+        String defaultValue,
+        TypeArgument defaultType
+    ) {
+        return (inputType, inputExpression) -> TupleType.compileNewInstance(
+            List.of(inputExpression, defaultValue),
+            List.of(inputType, defaultType)
+        );
+    }
+
+
+    @SuppressWarnings("SameParameterValue")
+    private static BiFunction<TypeArgument, String, String> addToTuple(
+        String defaultValue,
+        TypeArgument defaultType
+    ) {
+        return (inputType, inputExpression) -> TupleType.compileAddToTuple(
+            inputExpression,
+            defaultValue,
+            defaultType
+        );
     }
 
 
@@ -1552,6 +1628,7 @@ public class BuiltinTypeProvider {
     public NothingType nothing(String errorMessage) {
         return etNothing.get().apply(errorMessage);
     }
+
 
     public IntegerType integer() {
         return tInteger.get();

@@ -3,17 +3,15 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes.util;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.MessageType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
-import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
+import it.unipr.ailab.jadescript.semantics.namespace.MessageTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import jadescript.core.message.Message;
-
-import java.util.List;
 
 import static it.unipr.ailab.maybe.Maybe.some;
 
@@ -45,12 +43,18 @@ public class AnyMessageType extends UtilityType implements MessageType {
 
 
     @Override
-    public TypeNamespace namespace() {
-        return new BuiltinOpsNamespace(
+    public IJadescriptType getContentType() {
+        return module.get(BuiltinTypeProvider.class).anyOntologyElement();
+    }
+
+
+    @Override
+    public MessageTypeNamespace namespace() {
+        return MessageTypeNamespace.messageTypeNamespace(
             module,
-            Maybe.nothing(),
-            List.of(),
-            List.of(),
+            module.get(TypeHelper.class).covariant(
+                module.get(BuiltinTypeProvider.class).anyOntologyElement()
+            ),
             getLocation()
         );
     }
@@ -70,6 +74,19 @@ public class AnyMessageType extends UtilityType implements MessageType {
     @Override
     public boolean isSendable() {
         return true;
+    }
+
+
+    @Override
+    public String compileNewEmptyInstance() {
+        return "new jadescript.core.message.Message<>(" +
+            "jadescript.lang.Performative.UNKNOWN)";
+    }
+
+
+    @Override
+    public boolean requiresAgentEnvParameter() {
+        return false;
     }
 
 }
