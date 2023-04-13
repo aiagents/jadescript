@@ -11,7 +11,6 @@ import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
@@ -24,7 +23,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
  * Created on 26/04/18.
@@ -169,7 +167,7 @@ public class IfStatementSemantics extends StatementSemantics<IfStatement> {
         }
 
 
-        if (input.__(IfStatement::isWithElseBranch).extract(nullAsFalse)) {
+        if (input.__(IfStatement::isWithElseBranch).orElse(false)) {
             inElseBranch = inElseBranch.enterScope();
 
             PSR<BlockWriter> elseBranchPSR =

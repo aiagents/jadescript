@@ -24,7 +24,8 @@ import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.T
  * Created on 27/04/18.
  */
 @Singleton
-public abstract class ExtendingTopLevelDeclarationSemantics<T extends ExtendingElement>
+public abstract class ExtendingTopLevelDeclarationSemantics
+    <T extends ExtendingElement>
     extends MemberContainerTopLevelDeclarationSemantics<T> {
 
     public ExtendingTopLevelDeclarationSemantics(SemanticsModule semanticsModule) {
@@ -37,7 +38,7 @@ public abstract class ExtendingTopLevelDeclarationSemantics<T extends ExtendingE
         final Maybe<EList<JvmParameterizedTypeReference>> eListMaybe =
             input.__(ExtendingElement::getSuperTypes);
 
-        if (eListMaybe.__(List::isEmpty).extract(Maybe.nullAsTrue)) {
+        if (eListMaybe.__(List::isEmpty).orElse(true)) {
             return Maybe.nothing();
         }
 
@@ -48,7 +49,10 @@ public abstract class ExtendingTopLevelDeclarationSemantics<T extends ExtendingE
 
 
     @Override
-    public void validateOnEdit(Maybe<T> input, ValidationMessageAcceptor acceptor) {
+    public void validateOnEdit(
+        Maybe<T> input,
+        ValidationMessageAcceptor acceptor
+    ) {
         if (input == null) {
             return;
         }
@@ -138,7 +142,7 @@ public abstract class ExtendingTopLevelDeclarationSemantics<T extends ExtendingE
         EList<JvmTypeReference> superTypes
     ) {
         if (!input.__(ExtendingElement::getSuperTypes)
-            .__(EList::isEmpty).extract(Maybe.nullAsTrue)) {
+            .__(EList::isEmpty).orElse(true)) {
 
             final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
 

@@ -219,9 +219,12 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
             .collect(Collectors.toList());
     }
 
+    private SemanticsModule module(){
+        return this.module;
+    }
 
     private final LazyInit<JvmTypeHelper> jvm = LazyInit.lazyInit(
-        () -> ImplicitConversionsHelper.this.module.get(JvmTypeHelper.class)
+        () -> module().get(JvmTypeHelper.class)
     );
 
     public boolean isPrimitiveWideningViable(

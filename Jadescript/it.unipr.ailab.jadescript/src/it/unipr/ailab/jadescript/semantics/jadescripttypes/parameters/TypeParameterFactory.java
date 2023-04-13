@@ -16,9 +16,9 @@ public class TypeParameterFactory {
     }
 
 
-    public <A extends TypeArgument> FormalTypeParameter<A>
+    public FormalTypeParameter
     typeParameter() {
-        return new FormalTypeParameter<>(
+        return new FormalTypeParameter(
             factoryModule,
             Maybe.nothing(),
             Maybe.nothing()
@@ -26,9 +26,10 @@ public class TypeParameterFactory {
     }
 
 
-    public <A extends TypeArgument> FormalTypeParameter<A>
-    boundedTypeParameter(IJadescriptType upperBound) {
-        return new FormalTypeParameter<>(
+    public FormalTypeParameter boundedTypeParameter(
+        IJadescriptType upperBound
+    ) {
+        return new FormalTypeParameter(
             factoryModule,
             Maybe.some(upperBound),
             Maybe.nothing()
@@ -36,9 +37,10 @@ public class TypeParameterFactory {
     }
 
 
-    public <A extends TypeArgument> FormalTypeParameter<A>
-    typeParameterWithDefault(A defaultArgument) {
-        return new FormalTypeParameter<>(
+    public FormalTypeParameter typeParameterWithDefault(
+        TypeArgument defaultArgument
+    ) {
+        return new FormalTypeParameter(
             factoryModule,
             Maybe.nothing(),
             Maybe.some(defaultArgument)
@@ -46,33 +48,32 @@ public class TypeParameterFactory {
     }
 
 
-    public <A extends TypeArgument> FormalTypeParameter<A>
-    boundedTypeParameterWithDefault(
+    public FormalTypeParameter boundedTypeParameterWithDefault(
         IJadescriptType upperBound,
-        A defaultArg
+        TypeArgument defaultArg
     ) {
-        return new FormalTypeParameter<>(
+        return new FormalTypeParameter(
             factoryModule,
             Maybe.some(upperBound),
             Maybe.some(defaultArg)
         );
     }
 
-    public <A extends TypeArgument> VariadicTypeParameter<A>
-    varadicTypeParameter(){
-        return new VariadicTypeParameter<>(
+
+    public VariadicTypeParameter varadicTypeParameter() {
+        return new VariadicTypeParameter(
             factoryModule,
             Maybe.nothing()
         );
     }
 
-    public <A extends TypeArgument> MessageTypeParameter<A>
-    messageTypeParameter(
+
+    public MessageTypeParameter messageTypeParameter(
         IJadescriptType upperBound,
-        A defaultArg,
+        TypeArgument defaultArg,
         BiFunction<TypeArgument, String, String> contentDefaultPromoter
     ) {
-        return new MessageTypeParameter<>(
+        return new MessageTypeParameter(
             factoryModule,
             upperBound,
             defaultArg,

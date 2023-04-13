@@ -8,18 +8,17 @@ import java.util.function.BiFunction;
 
 import static it.unipr.ailab.maybe.Maybe.some;
 
-public class MessageTypeParameter<A extends TypeArgument>
-    extends FormalTypeParameter<A> {
+public class MessageTypeParameter extends FormalTypeParameter {
 
     /*package-private*/ final SemanticsModule module;
     /*package-private*/ final IJadescriptType upperBound;
-    /*package-private*/ final A defaultArgumentType;
+    /*package-private*/ final TypeArgument defaultArgumentType;
     /*package-private*/ final BiFunction<TypeArgument, String, String> promoter;
 
     /*package-private*/ MessageTypeParameter(
         SemanticsModule module,
         IJadescriptType upperBound,
-        A defaultArgumentType,
+        TypeArgument defaultArgumentType,
         BiFunction<TypeArgument, String, String> promoter
     ){
         super(module, some(upperBound), some(defaultArgumentType));
@@ -45,7 +44,7 @@ public class MessageTypeParameter<A extends TypeArgument>
 
 
     @Override
-    public Maybe<A> getDefaultArgument() {
+    public Maybe<TypeArgument> getDefaultArgument() {
         return some(defaultArgumentType);
     }
 

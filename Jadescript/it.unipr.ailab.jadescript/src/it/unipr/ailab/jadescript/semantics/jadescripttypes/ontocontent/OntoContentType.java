@@ -15,7 +15,7 @@ public interface OntoContentType
 
     final TypeCategory CATEGORY = new TypeCategoryAdapter() {
         @Override
-        public boolean isMessageContent() {
+        public boolean isOntoContent() {
             return true;
         }
     };

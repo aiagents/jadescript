@@ -98,6 +98,8 @@ public class TypeHelper implements SemanticsConsts {
 
 
 
+
+
     public boolean isTypeWithPrimitiveOntologySchema(IJadescriptType type) {
         final BuiltinTypeProvider builtins = this.builtins.get();
         return Stream.of(

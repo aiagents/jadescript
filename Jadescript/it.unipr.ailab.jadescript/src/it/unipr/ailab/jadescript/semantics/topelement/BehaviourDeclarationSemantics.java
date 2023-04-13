@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.someStream;
 
 public class BehaviourDeclarationSemantics
@@ -59,7 +58,7 @@ public class BehaviourDeclarationSemantics
 
 
         if (input.__(BehaviourDeclaration::isMemberBehaviour)
-            .extract(nullAsFalse)) {
+            .orElse(false)) {
             contextManager.enterEmulatedFile();
         }
 
@@ -91,7 +90,7 @@ public class BehaviourDeclarationSemantics
         module.get(ContextManager.class).exit();
 
         if (input.__(BehaviourDeclaration::isMemberBehaviour)
-            .extract(nullAsFalse)) {
+            .orElse(false)) {
             //From EmulatedFileContext:
             module.get(ContextManager.class).exit();
         }
@@ -130,9 +129,10 @@ public class BehaviourDeclarationSemantics
             typeArgs.add(builtins.agent());
         }
 
-        if (Maybe.nullAsFalse(input
+        if (input
             .__(BehaviourDeclaration::getType)
-            .__partial2(String::equals, "cyclic"))) {
+            .__partial2(String::equals, "cyclic")
+            .orElse(false)) {
 
             return Collections.singletonList(typeSolver.fromClass(
                 jadescript.core.behaviours.CyclicBehaviour.class,
@@ -199,7 +199,7 @@ public class BehaviourDeclarationSemantics
         final Optional<OnCreateHandler> onCreateHandler =
             someStream(input.__(BehaviourDeclaration::getFeatures))
                 .filter(j -> j.__(f -> f instanceof OnCreateHandler)
-                    .extract(nullAsFalse))
+                    .orElse(false))
                 .map(Maybe::toOpt)
                 .findFirst()
                 .flatMap(x -> x)

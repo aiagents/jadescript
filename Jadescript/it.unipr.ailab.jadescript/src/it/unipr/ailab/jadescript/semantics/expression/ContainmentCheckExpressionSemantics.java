@@ -29,7 +29,6 @@ import java.util.stream.Stream;
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.equal;
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.not;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 
 /**
@@ -120,11 +119,11 @@ public class ContainmentCheckExpressionSemantics
     ) {
         final Maybe<Additive> collection =
             input.__(ContainmentCheck::getCollection);
-        boolean isAny = input.__(ContainmentCheck::isAny).extract(nullAsFalse);
-        boolean isAll = input.__(ContainmentCheck::isAll).extract(nullAsFalse);
-        boolean isKey = input.__(ContainmentCheck::isKey).extract(nullAsFalse);
+        boolean isAny = input.__(ContainmentCheck::isAny).orElse(false);
+        boolean isAll = input.__(ContainmentCheck::isAll).orElse(false);
+        boolean isKey = input.__(ContainmentCheck::isKey).orElse(false);
         boolean isValue = input.__(ContainmentCheck::isValue)
-            .extract(nullAsFalse);
+            .orElse(false);
 
         final String collectionCompiled =
             module.get(AdditiveExpressionSemantics.class)
@@ -216,7 +215,7 @@ public class ContainmentCheckExpressionSemantics
     @Override
     protected boolean mustTraverse(Maybe<ContainmentCheck> input) {
         return input.__(ContainmentCheck::isContains).__(not)
-            .extract(Maybe.nullAsFalse);
+            .orElse(false);
     }
 
 
@@ -353,11 +352,11 @@ public class ContainmentCheckExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        boolean isAny = input.__(ContainmentCheck::isAny).extract(nullAsFalse);
-        boolean isAll = input.__(ContainmentCheck::isAll).extract(nullAsFalse);
-        boolean isKey = input.__(ContainmentCheck::isKey).extract(nullAsFalse);
+        boolean isAny = input.__(ContainmentCheck::isAny).orElse(false);
+        boolean isAll = input.__(ContainmentCheck::isAll).orElse(false);
+        boolean isKey = input.__(ContainmentCheck::isKey).orElse(false);
         boolean isValue =
-            input.__(ContainmentCheck::isValue).extract(nullAsFalse);
+            input.__(ContainmentCheck::isValue).orElse(false);
 
         Maybe<Additive> collection = input.__(ContainmentCheck::getCollection);
         final AdditiveExpressionSemantics aes =

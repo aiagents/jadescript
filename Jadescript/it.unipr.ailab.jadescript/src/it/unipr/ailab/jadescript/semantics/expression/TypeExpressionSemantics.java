@@ -125,7 +125,7 @@ public final class TypeExpressionSemantics extends Semantics {
         boolean result = VALID;
         final String collectionTypeString =
             collectionType.__(CollectionTypeExpression::getCollectionType)
-                .extract(nullAsEmptyString);
+                .orElse("");
         switch (collectionTypeString) {
             case "map":
             case "list":
@@ -283,8 +283,7 @@ public final class TypeExpressionSemantics extends Semantics {
             messageTypeMaybe.__(MessageType::getContentType)
                 .extract(this::toJadescriptType);
         boolean isExplicitContentType =
-            messageTypeMaybe.__(MessageType::isWithOf).extract(
-                nullAsFalse);
+            messageTypeMaybe.__(MessageType::isWithOf).orElse(false);
 
         final List<? extends TypeArgument> contentTypes;
 
@@ -316,7 +315,7 @@ public final class TypeExpressionSemantics extends Semantics {
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
         IJadescriptType agentType = builtins.agent();
-        if (bhType.__(BuiltinHierarchicType::isFor).extract(nullAsFalse)) {
+        if (bhType.__(BuiltinHierarchicType::isFor).orElse(false)) {
             final Maybe<JvmTypeReference> agentArgumentRef =
                 bhType.__(BuiltinHierarchicType::getArgumentAgentRef);
             if (agentArgumentRef.isPresent()) {
@@ -339,17 +338,17 @@ public final class TypeExpressionSemantics extends Semantics {
         Function<TypeArgument, BaseBehaviourType> behaviourTypeFunction = null;
         if (
             bhType.__(BuiltinHierarchicType::isBaseBehaviour)
-                .extract(nullAsFalse)
+                .orElse(false)
         ) {
             behaviourTypeFunction = builtins::behaviour;
         } else if (
             bhType.__(BuiltinHierarchicType::isCyclicBehaviour)
-                .extract(nullAsFalse)
+                .orElse(false)
         ) {
             behaviourTypeFunction = builtins::cyclicBehaviour;
         } else if (
             bhType.__(BuiltinHierarchicType::isOneshotBehaviour)
-                .extract(nullAsFalse)
+                .orElse(false)
         ) {
             behaviourTypeFunction = builtins::oneshotBehaviour;
         }
@@ -377,22 +376,22 @@ public final class TypeExpressionSemantics extends Semantics {
             baseBehaviourTypeFunction =
             getBaseBehaviourTypeFunction(hierarchicType);
 
-        if (input.__(TypeExpression::isAid).extract(nullAsFalse)) {
+        if (input.__(TypeExpression::isAid).orElse(false)) {
             return builtins.aid();
-        } else if (input.__(TypeExpression::isBoolean).extract(nullAsFalse)) {
+        } else if (input.__(TypeExpression::isBoolean).orElse(false)) {
             return builtins.boolean_();
-        } else if (input.__(TypeExpression::isReal).extract(nullAsFalse)) {
+        } else if (input.__(TypeExpression::isReal).orElse(false)) {
             return builtins.real();
-        } else if (input.__(TypeExpression::isInteger).extract(nullAsFalse)) {
+        } else if (input.__(TypeExpression::isInteger).orElse(false)) {
             return builtins.integer();
-        } else if (input.__(TypeExpression::isDuration).extract(nullAsFalse)) {
+        } else if (input.__(TypeExpression::isDuration).orElse(false)) {
             return builtins.duration();
-        } else if (input.__(TypeExpression::isTimestamp).extract(nullAsFalse)) {
+        } else if (input.__(TypeExpression::isTimestamp).orElse(false)) {
             return builtins.timestamp();
-        } else if (input.__(TypeExpression::isText).extract(nullAsFalse)) {
+        } else if (input.__(TypeExpression::isText).orElse(false)) {
             return builtins.text();
         } else if (input.__(TypeExpression::isPerformative)
-            .extract(nullAsFalse)) {
+            .orElse(false)) {
             return builtins.performative();
         } else if (subExprs.size() == 1) {
             return toJadescriptType(subExprs.get(0));
@@ -403,29 +402,29 @@ public final class TypeExpressionSemantics extends Semantics {
             return builtins.tuple(elementTypes);
         }
         if (hierarchicType.__(BuiltinHierarchicType::isAgent)
-            .extract(nullAsFalse)) {
+            .orElse(false)) {
             return builtins.agent();
-        } else if (hierarchicType.__(BuiltinHierarchicType::isOntology).extract(
-            nullAsFalse)) {
+        } else if (hierarchicType.__(BuiltinHierarchicType::isOntology)
+            .orElse(false)) {
             return builtins.ontology();
         } else if (baseBehaviourTypeFunction != null) {
             return baseBehaviourTypeFunction.apply(
                 getAgentArgumentType(hierarchicType)
             );
         } else if (hierarchicType.__(BuiltinHierarchicType::isConcept)
-            .extract(nullAsFalse)) {
+            .orElse(false)) {
             return builtins.concept();
         } else if (hierarchicType.__(BuiltinHierarchicType::isProposition)
-            .extract(nullAsFalse)) {
+            .orElse(false)) {
             return builtins.proposition();
         } else if (hierarchicType.__(BuiltinHierarchicType::isPredicate)
-            .extract(nullAsFalse)) {
+            .orElse(false)) {
             return builtins.predicate();
         } else if (hierarchicType.__(BuiltinHierarchicType::isAtomicProposition)
-            .extract(nullAsFalse)) {
+            .orElse(false)) {
             return builtins.atomicProposition();
         } else if (hierarchicType.__(BuiltinHierarchicType::isAction)
-            .extract(nullAsFalse)) {
+            .orElse(false)) {
             return builtins.action();
         } else if (hierarchicType.__(BuiltinHierarchicType::getMessageType)
             .isPresent()) {
@@ -439,7 +438,7 @@ public final class TypeExpressionSemantics extends Semantics {
 
             String extract = collectionType
                 .__(CollectionTypeExpression::getCollectionType)
-                .extract(nullAsEmptyString);
+                .orElse("");
             if (extract.equals("list")) {
                 if (typeParameters.isEmpty()) {
                     return builtins.list(builtins.any(

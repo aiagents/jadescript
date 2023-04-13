@@ -272,7 +272,7 @@ public class SetType
 
     @Override
     public Stream<IJadescriptType> declaredSupertypes() {
-        return Stream.of();
+        return Stream.empty();
     }
 
 

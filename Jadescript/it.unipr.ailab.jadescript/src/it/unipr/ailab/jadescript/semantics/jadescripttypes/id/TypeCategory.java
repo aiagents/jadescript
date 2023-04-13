@@ -20,7 +20,7 @@ public interface TypeCategory {
 
     boolean isMessage();
 
-    boolean isMessageContent();//TODO rename
+    boolean isOntoContent();
 
     boolean isAgentEnv();
 

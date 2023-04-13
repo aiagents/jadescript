@@ -26,12 +26,12 @@ public class ParametricTypeSchema<T extends IJadescriptType> {
     private final static int VARIADIC = 2;
     private final static int SEALED = 3;
     /*package-private*/ final SemanticsModule module;
-    /*package-private*/ final List<FormalTypeParameter<?>> formalTypeParameters
+    /*package-private*/ final List<FormalTypeParameter> formalTypeParameters
         = new LinkedList<>();
     /*package-private*/ final List<IJadescriptType> upperBounds
         = new LinkedList<>();
     /*package-private*/ int defaultParametersCount = 0;
-    /*package-private*/ Maybe<VariadicTypeParameter<?>> varadicTypeParameter =
+    /*package-private*/ Maybe<VariadicTypeParameter> varadicTypeParameter =
         Maybe.nothing();
     /*package-private*/ Maybe<IJadescriptType> variadicUpperBound =
         Maybe.nothing();
@@ -80,11 +80,12 @@ public class ParametricTypeSchema<T extends IJadescriptType> {
 
 
     @Contract("_ -> this")
-    public <A extends TypeArgument> ParametricTypeSchema<T> add(
-        @NotNull FormalTypeParameter<A> parameter
+    public ParametricTypeSchema<T> add(
+        @NotNull FormalTypeParameter parameter
     ) {
         if (parameter.hasDefaultArgument()) {
             stateCheckAndUpdate(DEFAULTS);
+            this.defaultParametersCount++;
         } else {
             stateCheckAndUpdate(INIT);
         }
@@ -102,8 +103,8 @@ public class ParametricTypeSchema<T extends IJadescriptType> {
 
 
     @Contract("_ -> this")
-    public <A extends TypeArgument> ParametricTypeSchema<T> add(
-        @NotNull VariadicTypeParameter<A> parameter
+    public ParametricTypeSchema<T> add(
+        @NotNull VariadicTypeParameter parameter
     ) {
         stateCheckAndUpdate(VARIADIC);
         int index = formalTypeParameters.size();
@@ -131,7 +132,7 @@ public class ParametricTypeSchema<T extends IJadescriptType> {
 
 
     public List<TypeArgument> limitToUpperBounds(List<TypeArgument> arguments) {
-        List<TypeArgument> result = new ArrayList<>(arguments);
+        List<TypeArgument> result = new ArrayList<>(arguments.size());
 
         final TypeComparator typeComparator =
             module.get(TypeComparator.class);
@@ -169,7 +170,7 @@ public class ParametricTypeSchema<T extends IJadescriptType> {
                 return false;
             }
 
-            for (final FormalTypeParameter<?> formalTypeParameter :
+            for (final FormalTypeParameter formalTypeParameter :
                 formalTypeParameters) {
                 if (formalTypeParameter.index >= argSize
                     && !formalTypeParameter.hasDefaultArgument()) {
@@ -191,14 +192,12 @@ public class ParametricTypeSchema<T extends IJadescriptType> {
         }
 
 
-        final VariadicTypeParameter<?> variadicTypeParameter =
-            varadicTypeParameter.toNullable();
         final Maybe<IJadescriptType> variadicUpperBound =
             this.variadicUpperBound;
 
 
         int i = -1;
-        for (FormalTypeParameter<?> formalTypeParameter
+        for (FormalTypeParameter formalTypeParameter
             : formalTypeParameters) {
 
             if (formalTypeParameter.index >= argSize) {

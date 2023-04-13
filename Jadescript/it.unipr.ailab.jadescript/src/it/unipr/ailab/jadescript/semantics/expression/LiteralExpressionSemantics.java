@@ -22,7 +22,6 @@ import org.eclipse.xtext.xbase.typesystem.computation.NumberLiterals;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 
 /**
@@ -88,7 +87,7 @@ public class LiteralExpressionSemantics
      * happens when there is no type specification.
      */
     private boolean isMapT(Maybe<MapOrSetLiteral> input) {
-        return input.__(MapOrSetLiteral::isIsMapT).extract(nullAsFalse)
+        return input.__(MapOrSetLiteral::isIsMapT).orElse(false)
             || input.__(MapOrSetLiteral::getValueTypeParameter).isPresent();
     }
 
@@ -99,7 +98,7 @@ public class LiteralExpressionSemantics
      * its an empty ('{:}') map literal.
      */
     private boolean isMapV(Maybe<MapOrSetLiteral> input) {
-        return input.__(MapOrSetLiteral::isIsMap).extract(nullAsFalse);
+        return input.__(MapOrSetLiteral::isIsMap).orElse(false);
     }
 
 

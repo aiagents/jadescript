@@ -130,17 +130,20 @@ public class OntologyDeclarationSemantics extends
         Maybe<EList<JvmParameterizedTypeReference>> superTypes =
             input.__(FeatureContainer::getSuperTypes);//TODO multiple ontologies
 
-        if (!superTypes.__(List::isEmpty).extract(nullAsTrue)) {
+        if (!superTypes.__(List::isEmpty).orElse(true)) {
             final ValidationHelper validationHelper =
                 module.get(ValidationHelper.class);
+            final BuiltinTypeProvider builtins = module.get(
+                BuiltinTypeProvider.class);
             validationHelper.assertExpectedType(
-                jade.content.onto.Ontology.class,
+                builtins.ontology(),
                 superTypes//TODO multiple ontologies
                     .__partial2(EList::get, 0)
                     .__(st -> module.get(TypeSolver.class)
                         .fromJvmTypeReference(st))
-                    .orElse(module.get(BuiltinTypeProvider.class)
-                        .any("Could not resolve ontology supertype.")),
+                    .orElse(builtins.any(
+                        "Could not resolve ontology supertype."
+                    )),
                 "NotAValidOntologyTypeReference",
                 input,
                 JadescriptPackage.eINSTANCE.getFeatureContainer_SuperTypes(),
@@ -278,7 +281,7 @@ public class OntologyDeclarationSemantics extends
                 if (input
                     .__(FeatureContainer::getFeatures)
                     .__(List::isEmpty)
-                    .extract(nullAsTrue)) {
+                    .orElse(true)) {
                     return;
                 }
 
@@ -315,7 +318,7 @@ public class OntologyDeclarationSemantics extends
                 for (Maybe<? extends Feature> feature :
                     iterate(input.__(FeatureContainer::getFeatures))) {
                     if (feature.__(f -> f instanceof FeatureWithSlots)
-                        .extract(nullAsFalse)
+                        .orElse(false)
                         && feature.isPresent()
                         && isSchemaCompilable(feature.toNullable())) {
                         scb.line(compileSchemaDescription(
@@ -558,15 +561,13 @@ public class OntologyDeclarationSemantics extends
         final TypeComparator comparator = module.get(TypeComparator.class);
 
 
-        if (type.category().isMap() || type.category().isSet()) {
+        if (type.category().isMap()
+            || type.category().isSet()
+            || type.category().isList()) {
             return some("jade.content.schema.ConceptSchema");
         }
         if (type.category().isTuple()) {
             return some("jade.content.schema.AgentActionSchema");
-        }
-        if (type.category().isList()) { //TODO <- list now has specifi JVM
-            // class: check!
-            return some("jade.content.schema.TermSchema");
         }
         if (Stream.of(
                 builtins.concept(),
@@ -652,11 +653,11 @@ public class OntologyDeclarationSemantics extends
         }).orElse(jvm.objectTypeRef());
 
         String featureName = feature.__(ExtendingFeature::getName)
-            .extract(nullAsEmptyString);
+            .orElse("");
 
         final String obtainClass;
 
-        if (feature.__(ExtendingFeature::isNative).extract(nullAsFalse)) {
+        if (feature.__(ExtendingFeature::isNative).orElse(false)) {
             obtainClass = retrieveNativeTypeFactory(
                 //feature in this branch is safe to extract:
                 feature.toNullable()
@@ -678,14 +679,13 @@ public class OntologyDeclarationSemantics extends
         addVocabularyElement(members, feature, vocabularyName, vocabularyName);
 
         if (feature.__(f -> f instanceof FeatureWithSlots)
-            .extract(nullAsFalse)) {
+            .orElse(false)) {
             for (Maybe<SlotDeclaration> slot :
                 iterate(((Maybe<FeatureWithSlots>) feature).__(
                     FeatureWithSlots::getSlots))) {
                 Maybe<String> slotName = slot.__(SlotDeclaration::getName);
                 Maybe<String> name =
-                    vocabularyName.__(v -> v + "_" + slotName.extract(
-                        nullAsEmptyString));
+                    vocabularyName.__(v -> v + "_" + slotName.orElse(""));
                 addVocabularyElement(members, feature, name, slotName);
             }
         }
@@ -799,7 +799,7 @@ public class OntologyDeclarationSemantics extends
 
                 if (ontoElement
                     .__(ExtendingFeature::isNative)
-                    .extract(nullAsFalse)) {
+                    .orElse(false)) {
 
                     final String methodNamePrefix =
                         retrieveNativeTypeFactory(ontoElementSafe);

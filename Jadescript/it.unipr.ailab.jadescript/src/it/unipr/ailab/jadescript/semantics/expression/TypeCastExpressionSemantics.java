@@ -566,19 +566,20 @@ public class TypeCastExpressionSemantics
             IJadescriptType typeOfCast0 = tes.toJadescriptType(cast0);
             boolean result = tes.validate(cast0, acceptor);
 
-            module.get(ValidationHelper.class).advice(
-                isNumberToNumberCast(
-                    typeOfExpression,
-                    typeOfCast0
-                ) || isCastable(typeOfExpression, typeOfCast0),
-                "InvalidCast",
-                typeOfExpression + " seems not to be convertible to "
-                    + typeOfCast0,
-                input,
-                JadescriptPackage.eINSTANCE.getTypeCast_TypeCasts(),
-                0,
-                acceptor
-            );
+            //TODO fix to include conversion semantics and re-enable
+//            module.get(ValidationHelper.class).advice(
+//                isNumberToNumberCast(
+//                    typeOfExpression,
+//                    typeOfCast0
+//                ) || isCastable(typeOfExpression, typeOfCast0),
+//                "InvalidCast",
+//                typeOfExpression + " seems not to be convertible to "
+//                    + typeOfCast0,
+//                input,
+//                JadescriptPackage.eINSTANCE.getTypeCast_TypeCasts(),
+//                0,
+//                acceptor
+//            );
 
             for (int i = 1; i < typeCasts.size(); i++) {
                 final Maybe<TypeExpression> casti = typeCasts.get(i - 1);
@@ -592,18 +593,17 @@ public class TypeCastExpressionSemantics
                 result = result && typeExpressionValidationNext;
                 IJadescriptType typeAfter =
                     tes.toJadescriptType(typeCasts.get(i));
-                module.get(ValidationHelper.class).advice(
-                    isNumberToNumberCast(typeBefore, typeAfter) || isCastable(
-                        typeBefore,
-                        typeAfter
-                    ),
-                    "InvalidCast",
-                    typeBefore + " seems not to be castable to " + typeAfter,
-                    input,
-                    JadescriptPackage.eINSTANCE.getTypeCast_TypeCasts(),
-                    i,
-                    acceptor
-                );
+                //TODO fix to include conversion semantics and re-enable
+//                module.get(ValidationHelper.class).advice(
+//                    isNumberToNumberCast(typeBefore, typeAfter)
+//                        || isCastable(typeBefore, typeAfter),
+//                    "InvalidCast",
+//                    typeBefore + " seems not to be castable to " + typeAfter,
+//                    input,
+//                    JadescriptPackage.eINSTANCE.getTypeCast_TypeCasts(),
+//                    i,
+//                    acceptor
+//                );
             }
 
             return result;

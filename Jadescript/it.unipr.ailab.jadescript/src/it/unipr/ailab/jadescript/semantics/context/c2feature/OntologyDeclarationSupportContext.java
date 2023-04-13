@@ -52,10 +52,10 @@ public class OntologyDeclarationSupportContext
     ) {
         return someStream(input.__(Ontology::getFeatures))
             .filter(f -> f.__(ff -> ff instanceof ExtendingFeature)
-                .extract(nullAsFalse))
+                .orElse(false))
             .map(f -> f.__(ff -> (ExtendingFeature) ff))
             .filter(f -> f.__(ff -> ff.getName().equals(name))
-                .extract(nullAsFalse))
+                .orElse(false))
             .map(f ->
                 OntologyElementConstructor.fromFeature(
                     module,
@@ -74,10 +74,10 @@ public class OntologyDeclarationSupportContext
     ) {
         return someStream(input.__(Ontology::getFeatures))
             .filter(f -> f.__(ff -> ff instanceof ExtendingFeature)
-                .extract(nullAsFalse))
+                .orElse(false))
             .map(f -> f.__(ff -> (ExtendingFeature) ff))
             .filter(f -> f.__(ff -> ff.getName().equals(name))
-                .extract(nullAsFalse))
+                .orElse(false))
             .map(f -> OntologyElementStructuralPattern.fromFeature(
                 module, f, currentLocation()
             )).filter(Maybe::isPresent)
@@ -86,7 +86,7 @@ public class OntologyDeclarationSupportContext
 
 
     public String getOntologyName() {
-        return input.__(NamedElement::getName).extract(nullAsEmptyString);
+        return input.__(NamedElement::getName).orElse("");
     }
 
 

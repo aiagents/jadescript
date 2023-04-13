@@ -14,12 +14,11 @@ public abstract class ParametricMapBuilder<T extends IJadescriptType>
     extends ParametricTypeBuilder<T> {
 
 
-    private final Map<FormalTypeParameter<?>, TypeArgument>
+    private final Map<FormalTypeParameter, TypeArgument>
         parameterArgumentMap = new HashMap<>();
     private int variadicParameterHash = new Object().hashCode();
-    private Maybe<List<? extends TypeArgument>> variadicArgument =
+    private Maybe<List<TypeArgument>> variadicArgument =
         Maybe.nothing();
-
 
     private ParametricTypeSchema<? super T> skeleton = null;
 
@@ -37,10 +36,10 @@ public abstract class ParametricMapBuilder<T extends IJadescriptType>
             throw new IllegalStateException("Missing skeleton.");
         }
 
-        List<FormalTypeParameter<?>> typeParameters =
+        List<FormalTypeParameter> typeParameters =
             this.skeleton.formalTypeParameters;
 
-        final Maybe<VariadicTypeParameter<?>> variadicTypeParameter =
+        final Maybe<VariadicTypeParameter> variadicTypeParameter =
             this.skeleton.varadicTypeParameter;
 
 
@@ -76,7 +75,7 @@ public abstract class ParametricMapBuilder<T extends IJadescriptType>
 
         int i;
         for (i = 0; i < typeParameters.size(); i++) {
-            FormalTypeParameter<?> formalTypeParameter =
+            FormalTypeParameter formalTypeParameter =
                 typeParameters.get(i);
 
             TypeArgument arg;
@@ -101,7 +100,7 @@ public abstract class ParametricMapBuilder<T extends IJadescriptType>
         }
 
         if (variadicTypeParameter.isPresent()) {
-            VariadicTypeParameter<?> vtparam =
+            VariadicTypeParameter vtparam =
                 variadicTypeParameter.toNullable();
 
             List<TypeArgument> vtarg = new LinkedList<>();
@@ -119,10 +118,8 @@ public abstract class ParametricMapBuilder<T extends IJadescriptType>
     }
 
 
-    @SuppressWarnings("unchecked")
-    protected <A extends TypeArgument> A getArgument(
-        FormalTypeParameter<A> parameter
-    ) throws InvalidTypeInstantiatonException {
+    protected TypeArgument getArgument(FormalTypeParameter parameter)
+        throws InvalidTypeInstantiatonException {
         if (!parameterArgumentMap.containsKey(parameter)) {
             throw new InvalidTypeInstantiatonException(
                 "Missing argument for parameter in position " +
@@ -130,13 +127,12 @@ public abstract class ParametricMapBuilder<T extends IJadescriptType>
             );
         }
 
-        return (A) parameterArgumentMap.get(parameter);
+        return parameterArgumentMap.get(parameter);
     }
 
 
-    @SuppressWarnings("unchecked")
-    protected <A extends TypeArgument> List<A> getVariadic(
-        VariadicTypeParameter<A> parameter
+    protected List<TypeArgument> getVariadic(
+        VariadicTypeParameter parameter
     ) throws InvalidTypeInstantiatonException {
         if (variadicArgument.isNothing()
             || variadicParameterHash != parameter.hashCode()) {
@@ -146,7 +142,7 @@ public abstract class ParametricMapBuilder<T extends IJadescriptType>
             );
         }
 
-        return (List<A>) variadicArgument.toNullable();
+        return variadicArgument.toNullable();
     }
 
 
@@ -158,7 +154,7 @@ public abstract class ParametricMapBuilder<T extends IJadescriptType>
     protected IJadescriptType getVariadicUpperBound() {
         final Supplier<IJadescriptType> anyTypeSupplier =
             () -> this.skeleton.module.get(BuiltinTypeProvider.class)
-                .any(""); //TODO error message
+                .any("");
 
         if (this.skeleton.varadicTypeParameter.isNothing()) {
             return anyTypeSupplier.get();

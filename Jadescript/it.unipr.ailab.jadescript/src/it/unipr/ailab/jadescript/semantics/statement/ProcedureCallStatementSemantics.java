@@ -90,8 +90,7 @@ public class ProcedureCallStatementSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input.__(ProcedureCallStatement::isNothing)
-            .extract(Maybe.nullAsTrue)) {
+        if (input.__(ProcedureCallStatement::isNothing).orElse(true)) {
             //do nothing
             return state;
         }

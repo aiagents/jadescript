@@ -18,7 +18,6 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 
 /**
@@ -135,11 +134,11 @@ public class RemoveStatementSemantics
         StaticState afterCollection = rves.advance(collection, state);
 
         final boolean isRetain =
-            input.__(RemoveStatement::isRetain).extract(nullAsFalse);
+            input.__(RemoveStatement::isRetain).orElse(false);
         final boolean isWithIndex =
-            input.__(RemoveStatement::isWithIndex).extract(nullAsFalse);
+            input.__(RemoveStatement::isWithIndex).orElse(false);
         final boolean isAll =
-            input.__(RemoveStatement::isAll).extract(nullAsFalse);
+            input.__(RemoveStatement::isAll).orElse(false);
         final Maybe<RValueExpression> index =
             input.__(RemoveStatement::getIndex);
         final Maybe<RValueExpression> element =
@@ -186,18 +185,20 @@ public class RemoveStatementSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return state;
+        if (input == null) {
+            return state;
+        }
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
         Maybe<RValueExpression> collection =
             input.__(RemoveStatement::getCollection);
         final boolean isRetain =
-            input.__(RemoveStatement::isRetain).extract(nullAsFalse);
+            input.__(RemoveStatement::isRetain).orElse(false);
         final boolean isWithIndex =
-            input.__(RemoveStatement::isWithIndex).extract(nullAsFalse);
+            input.__(RemoveStatement::isWithIndex).orElse(false);
         final boolean isAll =
-            input.__(RemoveStatement::isAll).extract(nullAsFalse);
+            input.__(RemoveStatement::isAll).orElse(false);
         final Maybe<RValueExpression> index =
             input.__(RemoveStatement::getIndex);
         final Maybe<RValueExpression> element =

@@ -5,17 +5,17 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 
-public class FormalTypeParameter<A extends TypeArgument>
+public class FormalTypeParameter
     implements TypeParameter {
 
     /*package-private*/ final SemanticsModule module;
     /*package-private*/ final Maybe<IJadescriptType> upperBound;
-    /*package-private*/ final Maybe<A> defaultArgument;
+    /*package-private*/ final Maybe<TypeArgument> defaultArgument;
     /*package-private*/ int index = -1;
     /*package-private*/ FormalTypeParameter(
         SemanticsModule module,
         Maybe<IJadescriptType> upperBound,
-        Maybe<A> defaultArgument
+        Maybe<TypeArgument> defaultArgument
     ) {
         this.module = module;
         this.upperBound = upperBound;
@@ -29,7 +29,7 @@ public class FormalTypeParameter<A extends TypeArgument>
     }
 
 
-    public Maybe<A> getDefaultArgument() {
+    public Maybe<TypeArgument> getDefaultArgument() {
         return defaultArgument;
     }
 
@@ -43,7 +43,8 @@ public class FormalTypeParameter<A extends TypeArgument>
     public IJadescriptType getUpperBound() {
         if (this.upperBound.isNothing()) {
             return module.get(BuiltinTypeProvider.class)
-                .any("");//TODO error message
+                .any("No upper bound specified for type " +
+                    "parameter at position " + index);
 
         }
 

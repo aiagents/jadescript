@@ -35,8 +35,7 @@ public class BreakStatementSemantics
         StatementWriter result;
 
         switch (input
-            .__(BreakStatement::getKeyword)
-            .extract(Maybe.nullAsEmptyString)) {
+            .__(BreakStatement::getKeyword).orElse("")) {
             case "break": {
                 result = w.breakStmnt();
             }
@@ -72,8 +71,7 @@ public class BreakStatementSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        final String keyword = input.__(BreakStatement::getKeyword)
-            .extract(Maybe.nullAsEmptyString);
+        final String keyword = input.__(BreakStatement::getKeyword).orElse("");
         boolean inLoop = module.get(ValidationHelper.class).asserting(
             input.__partial2(
                 EcoreUtil2::getContainerOfType,

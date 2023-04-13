@@ -38,7 +38,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.iterate;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 /**
  * Created on 27/04/18.
@@ -86,7 +87,7 @@ public class OntologyElementSemantics extends Semantics {
         final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
         //if it is native...
-        if (input.__(ExtendingFeature::isNative).extract(nullAsFalse)
+        if (input.__(ExtendingFeature::isNative).orElse(false)
             // ... and it has an explicit supertype ...
             && superTypeExpr.isPresent()) {
             final IJadescriptType superType =
@@ -108,7 +109,7 @@ public class OntologyElementSemantics extends Semantics {
         }
 
         //if it is NOT native ...
-        if (!input.__(ExtendingFeature::isNative).extract(nullAsFalse)
+        if (!input.__(ExtendingFeature::isNative).orElse(false)
             // ... and it has an explicit supertype ...
             && superTypeExpr.isPresent()) {
             final IJadescriptType superType =
@@ -150,8 +151,12 @@ public class OntologyElementSemantics extends Semantics {
 
         // ensures that the supertype extends the basic type for that
         // kind of declaration ('concept', 'action' etc...)
+        final IJadescriptType expectedSuperType =
+            module.get(TypeSolver.class).fromClass(
+                getBaseOntologyContentType(input)
+            );
         boolean superTypeCheck = validationHelper.assertExpectedType(
-            getBaseOntologyContentType(input),
+            expectedSuperType,
             superTypeExpr
                 .__(st -> (JvmTypeReference) st)
                 .__(typeSolver::fromJvmTypeReference)
@@ -163,7 +168,7 @@ public class OntologyElementSemantics extends Semantics {
 
         if (superTypeCheck == VALID) {
             // if it is a concept ...
-            if (input.__(i -> i instanceof Concept).extract(nullAsFalse)
+            if (input.__(i -> i instanceof Concept).orElse(false)
                 && superTypeExpr.isPresent()) {
                 final JvmParameterizedTypeReference superTypeSafe =
                     superTypeExpr.toNullable();
@@ -189,7 +194,7 @@ public class OntologyElementSemantics extends Semantics {
 
 
         final Boolean hasSlots = input.__(i -> i instanceof FeatureWithSlots)
-            .extract(nullAsFalse);
+            .orElse(false);
 
         boolean allSlotsCheck = VALID;
         if (hasSlots) {
@@ -297,7 +302,7 @@ public class OntologyElementSemantics extends Semantics {
 
         boolean isWithSuperSlots =
             input.__(ExtendingFeature::isWithSuperSlots)
-                .extract(nullAsFalse);
+                .orElse(false);
 
         if (isWithSuperSlots) {
             Maybe<NamedArgumentList> superSlots =
@@ -538,7 +543,7 @@ public class OntologyElementSemantics extends Semantics {
                         "Duplicate slot '" + entry.getKey() +
                             "' in ' " + inputWithSlots
                             .__(ExtendingFeature::getName)
-                            .extract(nullAsEmptyString) + "''",
+                            .orElse("") + "''",
                         d,
                         JadescriptPackage.eINSTANCE.getSlotDeclaration_Name(),
                         ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
@@ -556,7 +561,7 @@ public class OntologyElementSemantics extends Semantics {
         boolean isPreIndexingPhase
     ) {
         return input.toSingleList().stream().flatMap(inputSafe -> {
-            if (input.__(ExtendingFeature::isNative).extract(nullAsFalse)) {
+            if (input.__(ExtendingFeature::isNative).orElse(false)) {
                 return generateNativeTypes(
                     input,
                     ontoFullQualifiedName,
@@ -770,8 +775,7 @@ public class OntologyElementSemantics extends Semantics {
         );
 
         final Boolean hasSlots =
-            input.__(i -> i instanceof FeatureWithSlots).extract(
-                nullAsFalse);
+            input.__(i -> i instanceof FeatureWithSlots).orElse(false);
         if (hasSlots) {
 
             final Maybe<EList<SlotDeclaration>> slots = input
@@ -871,7 +875,7 @@ public class OntologyElementSemantics extends Semantics {
 
         final Boolean hasSlots = input
             .__(i -> i instanceof FeatureWithSlots)
-            .extract(nullAsFalse);
+            .orElse(false);
 
         if (hasSlots) {
             Maybe<FeatureWithSlots> inputWithSlots =
@@ -1319,7 +1323,7 @@ public class OntologyElementSemantics extends Semantics {
 
         final boolean hasSlots = input
             .__(i -> i instanceof FeatureWithSlots)
-            .extract(nullAsFalse);
+            .orElse(false);
 
         // Add empty constructor, for default value initialization and for
         //  deserialization from messages

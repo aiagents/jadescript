@@ -11,7 +11,6 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.SubPattern;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
@@ -31,7 +30,6 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static com.google.common.collect.Streams.zip;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.someStream;
 
 public class MapLiteralExpressionSemantics
@@ -208,7 +206,7 @@ public class MapLiteralExpressionSemantics
             input.__toList(MapOrSetLiteral::getKeys);
         final boolean hasTypeSpecifiers =
             input.__(MapOrSetLiteral::isWithTypeSpecifiers)
-                .extract(Maybe.nullAsFalse);
+                .orElse(false);
         final Maybe<TypeExpression> keysTypeParameter =
             input.__(MapOrSetLiteral::getKeyTypeParameter);
         final Maybe<TypeExpression> valuesTypeParameter =
@@ -422,7 +420,7 @@ public class MapLiteralExpressionSemantics
         //NOTE: map patterns cannot have holes as keys (enforced by validator)
         boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
-                .extract(nullAsFalse);
+                .orElse(false);
         Maybe<RValueExpression> rest = input.getPattern()
             .__(MapOrSetLiteral::getRest);
 
@@ -488,7 +486,7 @@ public class MapLiteralExpressionSemantics
         //NOTE: map patterns cannot have holes as keys (enforced by validator)
         boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
-                .extract(nullAsFalse);
+                .orElse(false);
         Maybe<RValueExpression> rest = input.getPattern()
             .__(MapOrSetLiteral::getRest);
 
@@ -502,7 +500,7 @@ public class MapLiteralExpressionSemantics
             input.getPattern().__(MapOrSetLiteral::getValueTypeParameter);
         boolean hasTypeSpecifiers =
             input.getPattern().__(MapOrSetLiteral::isWithTypeSpecifiers)
-                .extract(nullAsFalse);
+                .orElse(false);
 
         if (hasTypeSpecifiers && valueTypeParameter.isPresent()) {
             return false;
@@ -561,7 +559,7 @@ public class MapLiteralExpressionSemantics
         //NOTE: map patterns cannot have holes as keys (enforced by validator)
         boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
-                .extract(nullAsFalse);
+                .orElse(false);
         Maybe<RValueExpression> rest = input.getPattern()
             .__(MapOrSetLiteral::getRest);
 
@@ -625,7 +623,7 @@ public class MapLiteralExpressionSemantics
         BlockElementAcceptor acceptor
     ) {
         boolean isWithPipe = input.getPattern()
-            .__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
+            .__(MapOrSetLiteral::isWithPipe).orElse(false);
         Maybe<RValueExpression> rest = input.getPattern()
             .__(MapOrSetLiteral::getRest);
         final MaybeList<RValueExpression> keys =
@@ -850,7 +848,7 @@ public class MapLiteralExpressionSemantics
     ) {
         boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
-                .extract(nullAsFalse);
+                .orElse(false);
         final MaybeList<RValueExpression> keys =
             input.getPattern().__toList(MapOrSetLiteral::getKeys);
         final MaybeList<RValueExpression> values =
@@ -967,7 +965,7 @@ public class MapLiteralExpressionSemantics
     ) {
         boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
-                .extract(nullAsFalse);
+                .orElse(false);
         final MaybeList<RValueExpression> keys =
             input.getPattern().__toList(MapOrSetLiteral::getKeys);
         final MaybeList<RValueExpression> values =
@@ -1065,7 +1063,7 @@ public class MapLiteralExpressionSemantics
 
         boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
-                .extract(nullAsFalse);
+                .orElse(false);
         final MaybeList<RValueExpression> values =
             input.getPattern().__toList(MapOrSetLiteral::getValues);
         PatternType patternType = inferPatternType(input, state);
@@ -1191,7 +1189,7 @@ public class MapLiteralExpressionSemantics
      * happens when there is no type specification.
      */
     private boolean isMapT(Maybe<MapOrSetLiteral> input) {
-        return input.__(MapOrSetLiteral::isIsMapT).extract(nullAsFalse)
+        return input.__(MapOrSetLiteral::isIsMapT).orElse(false)
             || input.__(MapOrSetLiteral::getValueTypeParameter).isPresent();
     }
 
@@ -1202,7 +1200,7 @@ public class MapLiteralExpressionSemantics
      * its an empty ('{:}') map literal.
      */
     private boolean isMapV(Maybe<MapOrSetLiteral> input) {
-        return input.__(MapOrSetLiteral::isIsMap).extract(nullAsFalse);
+        return input.__(MapOrSetLiteral::isIsMap).orElse(false);
     }
 
 

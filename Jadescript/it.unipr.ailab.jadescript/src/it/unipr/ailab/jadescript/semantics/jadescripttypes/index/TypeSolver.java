@@ -9,8 +9,8 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.UnknownJVMType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.UserDefinedAgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BaseBehaviourType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.UserDefinedBehaviourType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.TupleType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.MessageType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontocontent.UserDefinedOntoContentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.UserDefinedOntologyType;
@@ -35,8 +35,12 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
-import java.util.function.BiFunction;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
@@ -44,6 +48,8 @@ import static it.unipr.ailab.maybe.Maybe.some;
 import static jadescript.lang.Performative.performativeByName;
 
 public class TypeSolver {
+
+    private static final boolean storeNonBuiltins = true;
 
     private final SemanticsModule module;
     private final TypeIndex index;
@@ -78,7 +84,7 @@ public class TypeSolver {
                 solveTupleType(((JvmParameterizedTypeReference) reference));
         } else {
             result = resolveNonBuiltinType(reference, permissive);
-            if (!result.category().isUnknownJVM()) {
+            if (storeNonBuiltins && !result.category().isUnknownJVM()) {
                 index.store(reference, result);
             }
         }
@@ -99,7 +105,8 @@ public class TypeSolver {
         final String noGenericsTypeName = JvmTypeHelper.noGenericsTypeName(
             qualifiedName);
 
-        if (!index.getParametricTypeTable().containsKey(noGenericsTypeName) || !(typeReference instanceof JvmParameterizedTypeReference)) {
+        if (!index.getParametricTypeTable().containsKey(noGenericsTypeName)
+            || !(typeReference instanceof JvmParameterizedTypeReference)) {
             return nothing();
         }
 
@@ -157,7 +164,9 @@ public class TypeSolver {
                 final JvmTypeReference reattempt =
                     module.get(ContextManager.class).currentContext().searchAs(
                         RawTypeReferenceSolverContext.class,
-                        solver -> solver.rawResolveTypeReference(finalNode.getText().trim())
+                        solver -> solver.rawResolveTypeReference(
+                            finalNode.getText().trim()
+                        )
                     ).findAny().orElse(jvm.typeRef(finalNode.getText()));
 
                 return solveJvmTypeReferenceWithoutReattempts(
@@ -227,59 +236,19 @@ public class TypeSolver {
                 builtinTypes.agent()
             );
         } else if (jvm.isAssignable(Cyclic.class, reference)) {
-            final List<JvmTypeReference> args =
-                jvm.getTypeArgumentsOfParent(
-                    reference,
-                    jvm.typeRef(CyclicBehaviour.class)
-                );
-            BaseBehaviourType rootCategoryType;
-            if (args.size() == 1) {
-                rootCategoryType = builtinTypes.cyclicBehaviour(
-                    fromJvmTypeReference(args.get(0)));
-            } else {
-                rootCategoryType = builtinTypes.cyclicBehaviour();
-            }
-            return new UserDefinedBehaviourType(
-                module,
+            return resolveUserDefinedBehaviourType(
                 reference,
-                rootCategoryType
+                BehaviourType.Kind.Cyclic
             );
         } else if (jvm.isAssignable(OneShot.class, reference)) {
-            final List<JvmTypeReference> args =
-                jvm.getTypeArgumentsOfParent(
-                    reference,
-                    jvm.typeRef(OneShotBehaviour.class)
-                );
-            BaseBehaviourType rootCategoryType;
-            if (args.size() == 1) {
-                rootCategoryType = builtinTypes.oneshotBehaviour(
-                    fromJvmTypeReference(args.get(0)));
-            } else {
-                rootCategoryType = builtinTypes.oneshotBehaviour();
-            }
-            return new UserDefinedBehaviourType(
-                module,
+            return resolveUserDefinedBehaviourType(
                 reference,
-                rootCategoryType
+                BehaviourType.Kind.OneShot
             );
-
         } else if (jvm.isAssignable(Base.class, reference)) {
-            final List<JvmTypeReference> args =
-                jvm.getTypeArgumentsOfParent(
-                    reference,
-                    jvm.typeRef(Behaviour.class)
-                );
-            BaseBehaviourType rootCategoryType;
-            if (args.size() == 1) {
-                rootCategoryType = builtinTypes.behaviour(fromJvmTypeReference(
-                    args.get(0)));
-            } else {
-                rootCategoryType = builtinTypes.behaviour();
-            }
-            return new UserDefinedBehaviourType(
-                module,
+            return resolveUserDefinedBehaviourType(
                 reference,
-                rootCategoryType
+                BehaviourType.Kind.Base
             );
         } else if (jvm.isAssignable(Ontology.class, reference)) {
             return new UserDefinedOntologyType(
@@ -291,6 +260,71 @@ public class TypeSolver {
 
         return new UnknownJVMType(module, reference, permissive);
 
+    }
+
+
+    public IJadescriptType resolveUserDefinedBehaviourType(
+        JvmTypeReference reference,
+        BehaviourType.Kind kind
+    ) {
+        Class<?> rootClass;
+        Function<TypeArgument, BaseBehaviourType> builtinWithArg;
+        Supplier<BaseBehaviourType> builtinWithoutArg;
+        switch (kind){
+            case Cyclic:
+                rootClass = CyclicBehaviour.class;
+                builtinWithArg = builtinTypes::cyclicBehaviour;
+                builtinWithoutArg = builtinTypes::cyclicBehaviour;
+                break;
+            case OneShot:
+                rootClass = OneShotBehaviour.class;
+                builtinWithArg = builtinTypes::oneshotBehaviour;
+                builtinWithoutArg = builtinTypes::oneshotBehaviour;
+                break;
+            default:
+            case Base:
+                rootClass = Behaviour.class;
+                builtinWithArg = builtinTypes::behaviour;
+                builtinWithoutArg = builtinTypes::behaviour;
+                break;
+        }
+        final List<JvmTypeReference> args =
+            jvm.getTypeArgumentsOfParent(
+                reference,
+                jvm.typeRef(rootClass)
+            );
+        BaseBehaviourType rootCategoryType;
+        if (args.size() == 1) {
+            rootCategoryType = builtinWithArg.apply(
+                fromJvmTypeReference(args.get(0))
+            );
+
+        } else {
+            rootCategoryType = builtinWithoutArg.get();
+        }
+
+        final Optional<JvmTypeReference> extendedBehaviour =
+            jvm.getParentClasses(reference)
+                .filter(x -> jvm.isAssignable(Behaviour.class, x))
+                .findFirst();
+
+        Maybe<IJadescriptType> superType;
+        if (extendedBehaviour.isPresent()) {
+            superType = some(fromJvmTypeReference(
+                extendedBehaviour.get(),
+                true
+            ));
+        }else{
+            superType = nothing();
+        }
+
+
+        return new UserDefinedBehaviourType(
+            module,
+            reference,
+            superType,
+            rootCategoryType
+        );
     }
 
 
@@ -371,14 +405,20 @@ public class TypeSolver {
                 .get().getUpperBounds();
 
         if (upperBounds.isEmpty()) {
-            return builtinTypes.any(""); //TODO error message
+            return builtinTypes.any(
+                "No upper bounds form perfomrative " + performative
+            );
         }
 
         if (upperBounds.size() == 1) {
             return upperBounds.get(0);
         }
 
-        return builtinTypes.tuple(new ArrayList<>(upperBounds));
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        return builtinTypes.tuple(upperBounds.stream()
+            .map(typeHelper::covariant)
+            .collect(Collectors.toList()));
     }
 
 
@@ -423,7 +463,6 @@ public class TypeSolver {
     }
 
 
-    //TODO reimplement in TypeSolver
     public String adaptMessageContentDefaultCompile(
         Maybe<String> performative,
         IJadescriptType inputContentType,
@@ -456,17 +495,15 @@ public class TypeSolver {
             typeHelper.unpackTuple(inputContentType).size();
 
 
-        String result = inputExpression;
-
         final int parameterCount = messageSchema.getParameterCount();
         for (int i = inputArgsCount; i < parameterCount; i++) {
             messageSchema.adaptContentExpression(
                 i,
                 inputContentType,
-                result
+                inputExpression
             );
         }
-        return result;
+        return inputExpression;
     }
 
 
@@ -536,83 +573,5 @@ public class TypeSolver {
         return fromJvmTypeReference(jvm.typeRef(fullyQualifiedName));
     }
 
-
-    private static final class MessageContentTupleDefaultElements {
-
-        private final Map<Integer, IJadescriptType> argumentToDefault =
-            new HashMap<>();
-
-        private final Map<Integer, BiFunction<TypeArgument, String, String>>
-            argumentToCompile = new HashMap<>();
-
-        private final int targetCount;
-
-
-        private MessageContentTupleDefaultElements(int targetCount) {
-            this.targetCount = targetCount;
-        }
-
-
-        public static BiFunction<TypeArgument, String, String> promoteToTuple2(
-            String defaultValue,
-            TypeArgument defaultType
-        ) {
-            return (inputType, inputExpression) -> TupleType.compileNewInstance(
-                List.of(inputExpression, defaultValue),
-                List.of(inputType, defaultType)
-            );
-        }
-
-
-        public static BiFunction<TypeArgument, String, String> addToTuple(
-            String defaultValue,
-            TypeArgument defaultType
-        ) {
-            return (inputType, inputExpression) -> TupleType.compileAddToTuple(
-                inputExpression,
-                defaultValue,
-                defaultType
-            );
-        }
-
-
-        public MessageContentTupleDefaultElements addEntry(
-            int argumentPosition,
-            IJadescriptType defaultType,
-            BiFunction<TypeArgument, String, String> compile
-        ) {
-            argumentToDefault.put(argumentPosition, defaultType);
-            argumentToCompile.put(argumentPosition, compile);
-            return this;
-        }
-
-
-        public Maybe<IJadescriptType> getDefaultType(int argumentPosition) {
-            return Maybe.some(argumentToDefault.get(argumentPosition));
-        }
-
-
-        public String compile(
-            int argumentPosition,
-            TypeArgument inputType,
-            String inputExpression
-        ) {
-            return argumentToCompile.getOrDefault(
-                argumentPosition,
-                (t, s) -> s
-            ).apply(inputType, inputExpression);
-        }
-
-
-        public int getTargetCount() {
-            return targetCount;
-        }
-
-
-        public int getDefaultCount() {
-            return Math.min(argumentToDefault.size(), argumentToCompile.size());
-        }
-
-    }
 
 }

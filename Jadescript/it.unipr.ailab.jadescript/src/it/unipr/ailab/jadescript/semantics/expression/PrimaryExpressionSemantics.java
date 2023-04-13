@@ -222,7 +222,7 @@ public class PrimaryExpressionSemantics
     @Override
     protected boolean mustTraverse(Maybe<Primary> input) {
         final boolean isPlaceholder = input.__(Primary::isPlaceholder)
-            .extract(nullAsFalse);
+            .orElse(false);
         final MaybeList<RValueExpression> exprs =
             input.__toListNullsRemoved(Primary::getExprs);
 
@@ -242,7 +242,7 @@ public class PrimaryExpressionSemantics
     protected Optional<? extends SemanticsBoundToAssignableExpression<?>>
     traverseInternal(Maybe<Primary> input) {
         final boolean isPlaceholder =
-            input.__(Primary::isPlaceholder).extract(nullAsFalse);
+            input.__(Primary::isPlaceholder).orElse(false);
         final MaybeList<RValueExpression> exprs =
             input.__toListNullsRemoved(Primary::getExprs);
 

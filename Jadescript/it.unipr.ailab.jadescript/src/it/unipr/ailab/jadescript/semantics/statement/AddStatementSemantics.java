@@ -21,7 +21,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Collection;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 
 /**
@@ -75,7 +74,7 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
 
 
         String putOrAdd = input.__(AddStatement::getPutOrAdd)
-            .extract(Maybe.nullAsEmptyString);
+            .orElse("");
         final IJadescriptType collectionType = rves.inferType(
             collection,
             state
@@ -85,12 +84,12 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
         if (isSetCollection) {
             putOrAdd = "add"; //overrides "put" if it's a set
         }
-        String all = input.__(AddStatement::isAll).extract(nullAsFalse)
+        String all = input.__(AddStatement::isAll).orElse(false)
             ? "All"
             : "";
         final String methodName = collectionCompiled + "." + putOrAdd + all;
         final StaticState result;
-        if (!input.__(AddStatement::isWithIndex).extract(nullAsFalse)) {
+        if (!input.__(AddStatement::isWithIndex).orElse(false)) {
             acceptor.accept(w.callStmnt(methodName, w.expr(elementCompiled)));
             result = afterCollection;
         } else {
@@ -154,13 +153,13 @@ public class AddStatementSemantics extends StatementSemantics<AddStatement> {
         }
 
         String putOrAdd = input.__(AddStatement::getPutOrAdd)
-            .extract(Maybe.nullAsEmptyString);
+            .orElse("");
         boolean isWithIndex = input.__(AddStatement::isWithIndex)
-            .extract(nullAsFalse);
+            .orElse(false);
         String inOrTo = input.__(AddStatement::getInOrTo)
-            .extract(Maybe.nullAsEmptyString);
+            .orElse("");
         final boolean isAll = input.__(AddStatement::isAll)
-            .extract(nullAsFalse);
+            .orElse(false);
 
         boolean putInCheck = module.get(ValidationHelper.class).asserting(
             SemanticsUtils.implication(

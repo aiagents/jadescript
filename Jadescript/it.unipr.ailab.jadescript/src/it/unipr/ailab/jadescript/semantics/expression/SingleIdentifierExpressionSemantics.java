@@ -34,7 +34,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 
@@ -60,8 +59,7 @@ public class SingleIdentifierExpressionSemantics
     ) {
         Maybe<Either<CompilableName, CompilableCallable>> resolved =
             resolveAsExpression(input, state);
-        final String ident = input.__(SingleIdentifier::getIdent)
-            .extract(nullAsEmptyString);
+        final String ident = input.__(SingleIdentifier::getIdent).orElse("");
         if (resolved.isNothing() || ident.isBlank()) {
             return Maybe.nothing();
         } else if (resolved.toNullable() instanceof Either.Left) {
@@ -90,8 +88,7 @@ public class SingleIdentifierExpressionSemantics
     ) {
         Maybe<Either<CompilableName, CompilableCallable>>
             resolved = resolveAsExpression(input, state);
-        final String ident = input.__(SingleIdentifier::getIdent)
-            .extract(nullAsEmptyString);
+        final String ident = input.__(SingleIdentifier::getIdent).orElse("");
 
         if (resolved.isNothing() || ident.isBlank()
             || resolved.toNullable() instanceof Either.Left) {

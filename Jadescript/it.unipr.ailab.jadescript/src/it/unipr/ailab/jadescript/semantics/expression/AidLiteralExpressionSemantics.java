@@ -22,8 +22,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
-import static it.unipr.ailab.maybe.Maybe.nullAsTrue;
+
 
 public class AidLiteralExpressionSemantics
     extends AssignableExpressionSemantics<AidLiteral> {
@@ -48,7 +47,7 @@ public class AidLiteralExpressionSemantics
         boolean rightTypeValidation = VALID;
 
         if (leftValidation == VALID
-            && input.__(AidLiteral::isIsAidExpr).extract(nullAsFalse)) {
+            && input.__(AidLiteral::isIsAidExpr).orElse(false)) {
             leftTypeValidation = module.get(ValidationHelper.class)
                 .assertExpectedType(
                     module.get(BuiltinTypeProvider.class).text(),
@@ -515,7 +514,7 @@ public class AidLiteralExpressionSemantics
 
     @Override
     protected boolean mustTraverse(Maybe<AidLiteral> input) {
-        return !input.__(AidLiteral::isIsAidExpr).extract(nullAsTrue);
+        return !input.__(AidLiteral::isIsAidExpr).orElse(true);
     }
 
 

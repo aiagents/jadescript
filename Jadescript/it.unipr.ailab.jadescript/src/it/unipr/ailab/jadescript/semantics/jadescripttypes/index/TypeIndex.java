@@ -78,9 +78,14 @@ class TypeIndex {
                 continue;
             }
 
+            if(!Supplier.class.isAssignableFrom(declaredField.getType())){
+                throw new RuntimeException("Wrong type of the builtin-type " +
+                    "field '" + declaredField.getName() + "'.");
+            }
+
             final boolean isParametric =
                 builtinTypeAnnotation.variadic()
-                    || builtinTypeAnnotation.maxArgs() >= 0;
+                    || builtinTypeAnnotation.maxArgs() > 0;
 
             if (isParametric) {
                 registerBuiltinParametricType(
@@ -182,7 +187,7 @@ class TypeIndex {
 
 
     private void initializeIfNecessary() {
-        if (this.initialized) {
+        if (!this.initialized) {
             doInitialize();
         }
     }
@@ -229,6 +234,7 @@ class TypeIndex {
         JvmTypeReference input,
         IJadescriptType output
     ) {
+        initializeIfNecessary();
         typeTable.put(
             input.getQualifiedName('.'),
             () -> output

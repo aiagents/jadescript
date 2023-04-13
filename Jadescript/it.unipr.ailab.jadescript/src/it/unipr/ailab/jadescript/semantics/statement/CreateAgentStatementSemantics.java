@@ -27,7 +27,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyList;
 import static it.unipr.ailab.maybe.Maybe.someStream;
 
 public class CreateAgentStatementSemantics
@@ -574,9 +573,9 @@ public class CreateAgentStatementSemantics
 
             args = CallSemantics.sortToMatchParamNames(
                 args,
-                nullAsEmptyList(input.__(CreateAgentStatement::getNamedArgs)
-                    .__(NamedArgumentList::getParameterNames)
-                    .__(ArrayList::new)),
+                input.__(CreateAgentStatement::getNamedArgs)
+                    .<List<String>>__(NamedArgumentList::getParameterNames)
+                    .orElseGet(ArrayList::new),
                 paramNames.subList(2, paramNames.size())
             );
         }

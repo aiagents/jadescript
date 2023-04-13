@@ -50,7 +50,7 @@ public class JvmTypeLocation extends FQNameLocation {
 
     @Override
     public String toString() {
-        return "(JVM type declaration: " + getFullyQualifiedName() + ")";
+        return "(location in JVM: " + getFullyQualifiedName() + ")";
     }
 
 }

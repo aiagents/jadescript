@@ -101,7 +101,7 @@ public abstract class BasicType
 
     @Override
     public Stream<IJadescriptType> declaredSupertypes() {
-        return Stream.of();
+        return Stream.empty();
     }
 
 

@@ -107,7 +107,7 @@ public class GlobalOperationDeclarationSemantics
 
     public void addMethod(Maybe<GlobalFunctionOrProcedure> gfop) {
         String name = gfop.__(NamedElement::getName)
-            .extract(nullAsEmptyString);
+            .orElse("");
 
         methodsMap.computeIfAbsent(name, (n) -> {
             originalMethodMap.put(n, gfop);
@@ -129,10 +129,10 @@ public class GlobalOperationDeclarationSemantics
     ) {
         super.validateAdditionalContextualizedAspectsOnSave(input, acceptor);
         final String name = input.__(NamedElement::getName)
-            .extract(nullAsEmptyString);
+            .orElse("");
 
         boolean mustBeFunction = input.__(GlobalFunctionOrProcedure::isFunction)
-            .extract(nullAsFalse);
+            .orElse(false);
 
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
@@ -141,7 +141,7 @@ public class GlobalOperationDeclarationSemantics
             .allMatch(funcOrProc ->
                 funcOrProc.__(GlobalFunctionOrProcedure::isFunction)
                     .__partial2(Boolean::equals, mustBeFunction)
-                    .extract(nullAsTrue));
+                    .orElse(true));
 
         if (!allSameNature) {
             methodsMap.get(name).forEach(o -> {
@@ -178,7 +178,7 @@ public class GlobalOperationDeclarationSemantics
 
 
                 validationHelper.assertExpectedType(
-                    Ontology.class,
+                    builtins.ontology(),
                     ontology,
                     "InvalidOntologyType",
                     input,
@@ -199,7 +199,7 @@ public class GlobalOperationDeclarationSemantics
                 method.__(GlobalFunctionOrProcedure::getBody),
                 module,
                 method.__(GlobalFunctionOrProcedure::isFunction)
-                    .extract(nullAsFalse),
+                    .orElse(false),
                 module.get(ContextManager.class).currentContext()
                     .actAs(ModuleContext.class)
                     .findFirst()
@@ -220,7 +220,7 @@ public class GlobalOperationDeclarationSemantics
         super.validateAdditionalContextualizedAspectsOnEdit(input, acceptor);
 
         final String name = input.__(NamedElement::getName)
-            .extract(nullAsEmptyString);
+            .orElse("");
 
         for (int mI = 0; mI < methodsMap.get(name).size(); mI++) {
             Maybe<GlobalFunctionOrProcedure> gfop =
@@ -234,7 +234,7 @@ public class GlobalOperationDeclarationSemantics
                 gfop.__(GlobalFunctionOrProcedure::getBody),
                 module,
                 gfop.__(GlobalFunctionOrProcedure::isFunction)
-                    .extract(nullAsFalse),
+                    .orElse(false),
                 module.get(ContextManager.class).currentContext()
                     .actAs(ModuleContext.class)
                     .findFirst()
@@ -266,7 +266,7 @@ public class GlobalOperationDeclarationSemantics
     ) {
         super.populateAdditionalContextualizedMembers(input, members, itClass);
         final String name = input.__(NamedElement::getName)
-            .extract(nullAsEmptyString);
+            .orElse("");
 
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
@@ -421,7 +421,7 @@ public class GlobalOperationDeclarationSemantics
 
         final Boolean isFunction =
             input.__(GlobalFunctionOrProcedure::isFunction)
-                .extract(nullAsFalse);
+                .orElse(false);
 
         if (isFunction) {
             contextManager.enterProceduralFeature((mod, out) ->
@@ -496,13 +496,15 @@ public class GlobalOperationDeclarationSemantics
 
         final Boolean isProcedure =
             input.__(GlobalFunctionOrProcedure::isProcedure)
-                .extract(nullAsTrue);
+                .orElse(true);
         if (isProcedure) {
             return Optional.of(module.get(TypeSolver.class).fromClass(
-                jadescript.lang.JadescriptGlobalProcedure.class));
+                jadescript.lang.JadescriptGlobalProcedure.class
+            ));
         } else { //input.isFunction()
             return Optional.of(module.get(TypeSolver.class).fromClass(
-                jadescript.lang.JadescriptGlobalFunction.class));
+                jadescript.lang.JadescriptGlobalFunction.class
+            ));
         }
     }
 

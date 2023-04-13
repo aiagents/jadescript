@@ -390,7 +390,7 @@ public class OnMessageHandlerSemantics
             TemplateCompilationHelper.notNative()
         );
 
-        if (input.__(OnMessageHandler::isStale).extract(nullAsFalse)) {
+        if (input.__(OnMessageHandler::isStale).orElse(false)) {
             // add staleness constraint
             messageTemplateExpressions.add(
                 TemplateCompilationHelper.isStale()

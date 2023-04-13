@@ -11,15 +11,6 @@ import java.util.stream.Stream;
  */
 public class Maybe<OfType> {
 
-    public static final Function<Maybe<Boolean>, Boolean> nullAsFalse =
-        Maybe::nullAsFalse;
-
-    public static final Function<Maybe<Boolean>, Boolean> nullAsTrue =
-        Maybe::nullAsTrue;
-
-    public static final Function<Maybe<String>, String> nullAsEmptyString =
-        Maybe::nullAsEmptyString;
-
     public static final Function<Boolean, Boolean> not = (b) -> !b;
 
     private static final Maybe<?> EMPTY = new Maybe<>(null);
@@ -54,59 +45,6 @@ public class Maybe<OfType> {
     }
 
 
-    //TODO remove-> use orElse/orElseGet
-    public static <T1, T2 extends List<T1>> List<T1> nullAsEmptyList(
-        Maybe<T2> maybeList
-    ) {
-        if (maybeList.isPresent()) {
-            return maybeList.o;
-        }
-        return Collections.emptyList();
-    }
-
-
-    //TODO remove-> use orElse/orElseGet
-    public static <T1, T2 extends Iterable<T1>> Iterable<T1> nullAsEmpty(
-        Maybe<T2> maybeCollection
-    ) {
-        if (maybeCollection.isPresent()) {
-            return maybeCollection.o;
-        }
-
-        return Collections.emptyList();
-    }
-
-
-    //TODO remove-> use orElse/orElseGet
-    public static Boolean nullAsFalse(Maybe<Boolean> maybeABoolean) {
-        if (maybeABoolean.isPresent()) {
-            return maybeABoolean.o;
-        }
-
-        return Boolean.FALSE;
-    }
-
-
-    //TODO remove-> use orElse/orElseGet
-    public static Boolean nullAsTrue(Maybe<Boolean> maybeABoolean) {
-        if (maybeABoolean.isPresent()) {
-            return maybeABoolean.o;
-        }
-
-        return Boolean.TRUE;
-    }
-
-
-    //TODO remove-> use orElse/orElseGet
-    public static String nullAsEmptyString(Maybe<String> maybeAString) {
-        if (maybeAString.isPresent()) {
-            return maybeAString.o;
-        }
-
-        return "";
-    }
-
-
     public static <T> Maybe<T> flatten(Maybe<Maybe<T>> input) {
         if (input.isPresent()) {
             return input.o;
@@ -115,12 +53,16 @@ public class Maybe<OfType> {
     }
 
 
-
     public static <T1> Iterable<Maybe<T1>> iterate(
         Maybe<?
             extends Iterable<T1>> maybeCollection
     ) {
-        Iterable<T1> collection = nullAsEmpty(maybeCollection);
+        Iterable<T1> collection;
+        if (maybeCollection.isPresent()) {
+            collection = maybeCollection.o;
+        } else {
+            collection = Collections.emptyList();
+        }
         Iterator<T1> iterator = collection.iterator();
         return () -> new Iterator<>() {
             @Override
@@ -237,6 +179,7 @@ public class Maybe<OfType> {
         return MaybeList.someList(toList.apply(o));
     }
 
+
     public <OfType2> MaybeList<OfType2> __toListCopy(
         Function<? super OfType, ? extends Collection<OfType2>> toList
     ) {
@@ -248,16 +191,18 @@ public class Maybe<OfType> {
         return MaybeList.someList(new ArrayList<>(toList.apply(o)));
     }
 
+
     public <OfType2> MaybeList<OfType2> __toListNullsRemoved(
         Function<? super OfType, ? extends Collection<OfType2>> toList
     ) {
         Objects.requireNonNull(toList);
-        if(isNothing()){
+        if (isNothing()) {
             return MaybeList.empty();
         }
 
         return MaybeList.someListNullsRemoved(toList.apply(o));
     }
+
 
     public <OfType2, ArgType> Maybe<OfType2> __partial1(
         BiFunction<? super ArgType, ? super OfType, ? extends OfType2> function,
@@ -344,6 +289,16 @@ public class Maybe<OfType> {
     }
 
 
+    @SuppressWarnings("unchecked")
+    public <T2> Maybe<T2> safeCast(Class<? extends T2> c) {
+        if (isInstanceOf(c)) {
+            return this.__(x -> (T2) x);
+        } else {
+            return nothing();
+        }
+    }
+
+
     /**
      * Returns a {@link java.util.Optional} with the wrapped object/null
      * reference.
@@ -426,9 +381,10 @@ public class Maybe<OfType> {
         }
     }
 
-    public Maybe<OfType> orGetMaybe(Supplier<Maybe<OfType>> alternative){
+
+    public Maybe<OfType> orGetMaybe(Supplier<Maybe<OfType>> alternative) {
         Objects.requireNonNull(alternative);
-        if(isPresent()){
+        if (isPresent()) {
             return this;
         } else {
             final Maybe<OfType> alt = alternative.get();
@@ -437,16 +393,15 @@ public class Maybe<OfType> {
         }
     }
 
-    public Maybe<OfType> orGet(Supplier<?extends OfType> alternative){
+
+    public Maybe<OfType> orGet(Supplier<? extends OfType> alternative) {
         Objects.requireNonNull(alternative);
-        if(isPresent()){
+        if (isPresent()) {
             return this;
         } else {
             return this.__((__) -> alternative.get());
         }
     }
-
-
 
 
     public Maybe<OfType> nullIf(Predicate<OfType> predicate) {
@@ -514,8 +469,6 @@ public class Maybe<OfType> {
             return Stream.empty();
         }
     }
-
-
 
 
 }

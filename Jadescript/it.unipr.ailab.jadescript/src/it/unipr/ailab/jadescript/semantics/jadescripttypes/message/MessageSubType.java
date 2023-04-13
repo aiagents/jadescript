@@ -1,7 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.message;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
@@ -16,6 +15,7 @@ import org.eclipse.xtext.common.types.JvmTypeReference;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.some;
@@ -101,7 +101,10 @@ public class MessageSubType
     public JvmTypeReference asJvmTypeReference() {
         return module.get(JvmTypeHelper.class).typeRef(
             this.messageClass,
-            getContentType().asJvmTypeReference()
+            module.get(TypeHelper.class).unpackTuple(
+                    getContentType()
+                ).stream().map(TypeArgument::asJvmTypeReference)
+                .collect(Collectors.toList())
         );
     }
 

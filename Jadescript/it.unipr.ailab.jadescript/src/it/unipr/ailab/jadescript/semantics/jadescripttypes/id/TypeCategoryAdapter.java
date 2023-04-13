@@ -45,7 +45,7 @@ public class TypeCategoryAdapter implements TypeCategory{
 
 
     @Override
-    public boolean isMessageContent() {
+    public boolean isOntoContent() {
         return false;
     }
 

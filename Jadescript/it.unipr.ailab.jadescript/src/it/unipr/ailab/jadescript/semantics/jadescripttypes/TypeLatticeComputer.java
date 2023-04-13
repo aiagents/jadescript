@@ -110,8 +110,12 @@ public class TypeLatticeComputer {
         } else if (strictSubType().matches(comparison)) {
             return t1;
         } else {
-            return builtins.get().nothing(""); //TODO
+            return builtins.get().nothing(
+                "No greatest lower bound found for types " + t1 +
+                    " and " + t2
+            );
         }
+
     }
 
 
@@ -134,7 +138,7 @@ public class TypeLatticeComputer {
         final boolean noT1 = t1.isNothing();
         final boolean noT2 = t2.isNothing();
 
-        if(noT1 && noT2){
+        if (noT1 && noT2) {
             return nothing();
         }
 
@@ -174,7 +178,7 @@ public class TypeLatticeComputer {
         if (t1.asJvmTypeReference().getType() instanceof JvmDeclaredType
             && t2.asJvmTypeReference().getType() instanceof JvmDeclaredType) {
             List<JvmTypeReference> parentChainOfA =
-                jvm.get().getParentChain(t1.asJvmTypeReference());
+                jvm.get().getParentChainIncluded(t1.asJvmTypeReference());
             for (JvmTypeReference candidateCommonParent : parentChainOfA) {
                 if (jvm.get().isAssignable(
                     candidateCommonParent,

@@ -85,17 +85,17 @@ public class UnaryPrefixExpressionSemantics
         final Maybe<String> firstOrLast = input.__(UnaryPrefix::getFirstOrLast);
         final boolean isIndexOfElemOperation =
             input.__(UnaryPrefix::isIndexOfElemOperation)
-                .extract(nullAsFalse);
+                .orElse(false);
         final Maybe<OfNotation> index = input.__(UnaryPrefix::getIndex);
         final boolean isDebugScope = input.__(UnaryPrefix::isDebugScope)
-            .extract(nullAsFalse);
+            .orElse(false);
         final boolean isDebugType = input.__(UnaryPrefix::isDebugInferredType)
-            .extract(nullAsFalse);
+            .orElse(false);
         final boolean isDebugSearchName =
             input.__(UnaryPrefix::isDebugSearchName)
-                .extract(nullAsFalse);
+                .orElse(false);
         final boolean isDebugSearchCall =
-            input.__(UnaryPrefix::isDebugSearchCall).extract(nullAsFalse);
+            input.__(UnaryPrefix::isDebugSearchCall).orElse(false);
         final Maybe<String> performativeConst =
             input.__(UnaryPrefix::getPerformativeConst)
                 .__(PerformativeExpression::getPerformativeValue);
@@ -297,7 +297,7 @@ public class UnaryPrefixExpressionSemantics
         }
 
         if (unaryPrefixOp.isPresent()) {
-            String op = unaryPrefixOp.extract(nullAsEmptyString);
+            String op = unaryPrefixOp.orElse("");
             switch (op) {
                 case "+":
                 case "-":
@@ -441,7 +441,7 @@ public class UnaryPrefixExpressionSemantics
         }
 
         if (unaryPrefixOp.isPresent()) {
-            String op = unaryPrefixOp.extract(nullAsEmptyString);
+            String op = unaryPrefixOp.orElse("");
 
             if (op.equals("+") || op.equals("-")) {
                 boolean subValidation = ones.validate(
@@ -452,7 +452,7 @@ public class UnaryPrefixExpressionSemantics
 
                 if (subValidation == VALID) {
                     return validationHelper.assertExpectedType(
-                        Number.class,
+                        module.get(BuiltinTypeProvider.class).number(),
                         inferredType,
                         "InvalidUnaryPrefix",
                         input,
@@ -469,7 +469,7 @@ public class UnaryPrefixExpressionSemantics
                 );
                 if (subValidation == VALID) {
                     return validationHelper.assertExpectedType(
-                        Boolean.class,
+                        module.get(BuiltinTypeProvider.class).boolean_(),
                         inferredType,
                         "InvalidUnaryPrefix",
                         input,

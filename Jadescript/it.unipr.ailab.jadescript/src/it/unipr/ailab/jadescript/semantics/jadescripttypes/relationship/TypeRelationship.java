@@ -17,6 +17,10 @@ public abstract class TypeRelationship {
     }
 
 
+    public String getHumanReadableString() {
+        return relationship.toString();
+    }
+
 
     private static final TypeRelationship EQUAL =
         new TypeRelationship(TypeRelationshipInternal.EQUAL) {

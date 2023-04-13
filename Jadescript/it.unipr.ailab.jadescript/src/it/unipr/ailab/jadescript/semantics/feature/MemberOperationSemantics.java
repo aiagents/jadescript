@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
  * Created on 27/04/18.
@@ -172,7 +171,7 @@ public class MemberOperationSemantics
 
                     final boolean isFunction =
                         input.__(FunctionOrProcedure::isFunction)
-                            .extract(nullAsFalse);
+                            .orElse(false);
 
                     if (isFunction) {
                         contextManager.enterProceduralFeature(
@@ -230,7 +229,7 @@ public class MemberOperationSemantics
             input.__(FunctionOrProcedure::getType),
             input.__(FeatureWithBody::getBody),
             module,
-            input.__(FunctionOrProcedure::isFunction).extract(nullAsFalse),
+            input.__(FunctionOrProcedure::isFunction).orElse(false),
             getLocationOfThis(),
             acceptor
         );
@@ -250,7 +249,7 @@ public class MemberOperationSemantics
             input.__(FunctionOrProcedure::getType),
             input.__(FeatureWithBody::getBody),
             module,
-            input.__(FunctionOrProcedure::isFunction).extract(nullAsFalse),
+            input.__(FunctionOrProcedure::isFunction).orElse(false),
             getLocationOfThis(),
             acceptor
         );

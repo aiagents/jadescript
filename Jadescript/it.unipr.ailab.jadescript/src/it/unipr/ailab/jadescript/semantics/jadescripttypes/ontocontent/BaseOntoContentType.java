@@ -3,8 +3,8 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes.ontocontent;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
@@ -58,7 +58,6 @@ public class BaseOntoContentType
     public boolean requiresAgentEnvParameter() {
         return false;
     }
-
 
 
     @Override
@@ -139,7 +138,17 @@ public class BaseOntoContentType
 
     @Override
     public Stream<IJadescriptType> declaredSupertypes() {
-        return Stream.of();
+        switch (ontoContentKind) {
+            case Predicate:
+            case AtomicProposition:
+                return Stream.of(module.get(BuiltinTypeProvider.class)
+                    .proposition());
+            case Concept:
+            case Action:
+            case Proposition:
+            default:
+                return Stream.empty();
+        }
     }
 
 

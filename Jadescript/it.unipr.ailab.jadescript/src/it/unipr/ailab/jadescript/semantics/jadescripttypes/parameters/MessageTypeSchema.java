@@ -18,8 +18,8 @@ public class MessageTypeSchema
 
     @Override
     @Contract("_ -> this")
-    public <A extends TypeArgument> MessageTypeSchema add(
-        @NotNull FormalTypeParameter<A> parameter
+    public MessageTypeSchema add(
+        @NotNull FormalTypeParameter parameter
     ) {
         super.add(parameter);
         return this;
@@ -28,8 +28,8 @@ public class MessageTypeSchema
 
     @Override
     @Contract("_ -> this")
-    public <A extends TypeArgument> MessageTypeSchema add(
-        @NotNull VariadicTypeParameter<A> parameter
+    public MessageTypeSchema add(
+        @NotNull VariadicTypeParameter parameter
     ) {
         super.add(parameter);
         return this;
@@ -55,15 +55,15 @@ public class MessageTypeSchema
             return inputExpression;
         }
 
-        final FormalTypeParameter<?> formalTypeParameter =
+        final FormalTypeParameter formalTypeParameter =
             formalTypeParameters.get(argumentIndex);
 
         if (!(formalTypeParameter instanceof MessageTypeParameter)) {
             return inputExpression;
         }
 
-        MessageTypeParameter<?> typeParameter =
-            (MessageTypeParameter<?>) formalTypeParameter;
+        MessageTypeParameter typeParameter =
+            (MessageTypeParameter) formalTypeParameter;
 
         return typeParameter.promoter.apply(
             inputContentType,

@@ -22,7 +22,6 @@ import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
  * Created on 28/12/16.
@@ -197,7 +196,7 @@ public class TypeComparisonExpressionSemantics
     @Override
     protected boolean mustTraverse(Maybe<TypeComparison> input) {
         final boolean isOp = input.__(TypeComparison::isIsOp)
-            .extract(nullAsFalse);
+            .orElse(false);
         return !isOp;
     }
 

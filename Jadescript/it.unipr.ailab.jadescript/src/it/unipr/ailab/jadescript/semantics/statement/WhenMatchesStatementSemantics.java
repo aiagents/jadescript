@@ -173,7 +173,7 @@ public class WhenMatchesStatementSemantics
 
         if (ifsp != null &&
             input.__(WhenMatchesStatement::isWithElseBranch)
-                .extract(nullAsFalse)) {
+                .orElse(false)) {
 
             inElseBranch = inElseBranch.enterScope();
 

@@ -53,7 +53,7 @@ public abstract class OuterLevelAbstractContext extends Context
                 name
             ));
         } else {
-            result = Stream.of();
+            result = Stream.empty();
         }
         return result;
     }

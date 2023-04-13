@@ -141,7 +141,7 @@ public class ActivateStatementSemantics
         IJadescriptType exprType = rves.inferType(expr, state);
         if (behaviourCheck == VALID) {
             validationHelper.assertExpectedType(
-                Behaviour.class,
+                module.get(BuiltinTypeProvider.class).anyBehaviour(),
                 exprType,
                 "InvalidBehaviourExpressionType",
                 expr,

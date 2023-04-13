@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 public class SubscriptExpressionSemantics
     extends AssignableExpressionSemantics<Subscript> {
@@ -52,7 +51,7 @@ public class SubscriptExpressionSemantics
         return input.__(Subscript::getRest)
             .__(ReversedTrailerChain::getElements)
             .__(List::isEmpty)
-            .extract(nullAsFalse);
+            .orElse(false);
     }
 
 

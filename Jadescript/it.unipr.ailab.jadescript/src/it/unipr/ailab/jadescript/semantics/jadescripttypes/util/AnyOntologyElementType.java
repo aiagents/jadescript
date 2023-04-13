@@ -46,7 +46,7 @@ public class AnyOntologyElementType extends UtilityType {
     public TypeCategory category() {
         return new TypeCategoryAdapter() {
             @Override
-            public boolean isMessageContent() {
+            public boolean isOntoContent() {
                 return true;
             }
         };

@@ -11,7 +11,6 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.OntologyDeclaration
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
@@ -43,7 +42,6 @@ import static it.unipr.ailab.jadescript.semantics.context.associations.OntologyA
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.equal;
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.iterate;
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
 /**
  * Created on 11/03/18.
@@ -403,8 +401,7 @@ public class SendMessageStatementSemantics
             w.callExpr(
                 "new jadescript.core.message.Message",
                 w.expr("jadescript.core.message.Message." +
-                    performative.__(String::toUpperCase)
-                        .extract(nullAsEmptyString)
+                    performative.__(String::toUpperCase).orElse("")
                 )
             )
         ));

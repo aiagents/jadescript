@@ -18,7 +18,7 @@ interface TypeRelationshipInternal {
     NotRelated NOT_RELATED = new NotRelated() {
         @Override
         public String toString() {
-            return "NotRelated";
+            return "not related to";
         }
     };
 
@@ -34,7 +34,7 @@ interface TypeRelationshipInternal {
     Equal EQUAL = new Equal() {
         @Override
         public String toString() {
-            return "Equal";
+            return "equal to";
         }
     };
 
@@ -44,7 +44,7 @@ interface TypeRelationshipInternal {
     StrictSubtype STRICT_SUBTYPE = new StrictSubtype() {
         @Override
         public String toString() {
-            return "StricSubtype";
+            return "a strict subtype of";
         }
     };
 
@@ -54,7 +54,7 @@ interface TypeRelationshipInternal {
     StrictSupertype STRICT_SUPERTYPE = new StrictSupertype() {
         @Override
         public String toString() {
-            return "StrictSupertype";
+            return "a strict supertype of";
         }
     };
 

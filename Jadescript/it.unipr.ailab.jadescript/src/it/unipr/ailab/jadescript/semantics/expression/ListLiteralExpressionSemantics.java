@@ -30,7 +30,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.someStream;
 import static it.unipr.ailab.maybe.MaybeList.fromMaybeAList;
 
@@ -85,7 +84,7 @@ public class ListLiteralExpressionSemantics
             input.__(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter =
             input.__(ListLiteral::getTypeParameter);
-        if (values.__(List::isEmpty).extract(Maybe.nullAsTrue)) {
+        if (values.__(List::isEmpty).orElse(true)) {
             final TypeExpressionSemantics tes =
                 module.get(TypeExpressionSemantics.class);
 
@@ -128,9 +127,9 @@ public class ListLiteralExpressionSemantics
         Maybe<TypeExpression> typeParameter =
             input.__(ListLiteral::getTypeParameter);
         boolean hasTypeSpecifier =
-            input.__(ListLiteral::isWithTypeSpecifier).extract(nullAsFalse);
+            input.__(ListLiteral::isWithTypeSpecifier).orElse(false);
         boolean isWithPipe =
-            input.__(ListLiteral::isWithPipe).extract(nullAsFalse);
+            input.__(ListLiteral::isWithPipe).orElse(false);
         Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
 
 
@@ -185,7 +184,7 @@ public class ListLiteralExpressionSemantics
     ) {
         Maybe<EList<RValueExpression>> values =
             input.__(ListLiteral::getValues);
-        if (values.__(List::isEmpty).extract(Maybe.nullAsTrue)) {
+        if (values.__(List::isEmpty).orElse(true)) {
             return state;
         }
 
@@ -274,7 +273,7 @@ public class ListLiteralExpressionSemantics
         Maybe<RValueExpression> rest =
             input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe =
-            input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse)
+            input.getPattern().__(ListLiteral::isWithPipe).orElse(false)
                 && rest.isPresent();
         int prePipeElementCount = values.size();
         PatternType patternType = inferPatternType(input, state);
@@ -385,7 +384,7 @@ public class ListLiteralExpressionSemantics
             input.getPattern().__(ListLiteral::getTypeParameter);
         boolean hasTypeSpecifier =
             input.getPattern().__(ListLiteral::isWithTypeSpecifier)
-                .extract(nullAsFalse);
+                .orElse(false);
         if (hasTypeSpecifier && typeParameter.isPresent()) {
             return false;
         } else {
@@ -414,7 +413,7 @@ public class ListLiteralExpressionSemantics
         Maybe<RValueExpression> rest =
             input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe =
-            input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse)
+            input.getPattern().__(ListLiteral::isWithPipe).orElse(false)
                 && rest.isPresent();
         int prePipeElementCount = values.size();
         PatternType patternType = inferPatternType(input, state);
@@ -519,7 +518,7 @@ public class ListLiteralExpressionSemantics
         Maybe<RValueExpression> rest =
             input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe =
-            input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse)
+            input.getPattern().__(ListLiteral::isWithPipe).orElse(false)
                 && rest.isPresent();
         int prePipeElementCount = values.size();
         PatternType patternType = inferPatternType(input, state);
@@ -692,7 +691,7 @@ public class ListLiteralExpressionSemantics
             input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe = input.getPattern()
             .__(ListLiteral::isWithPipe)
-            .extract(nullAsFalse)
+            .orElse(false)
             && rest.isPresent();
         int prePipeElementCount = values.size();
         PatternType patternType = inferPatternType(input, state);
@@ -782,7 +781,7 @@ public class ListLiteralExpressionSemantics
         Maybe<TypeExpression> typeParameter =
             input.__(ListLiteral::getTypeParameter);
         boolean hasTypeSpecifier =
-            input.__(ListLiteral::isWithTypeSpecifier).extract(nullAsFalse);
+            input.__(ListLiteral::isWithTypeSpecifier).orElse(false);
 
         boolean stage1 = VALID;
         StaticState newState = state;

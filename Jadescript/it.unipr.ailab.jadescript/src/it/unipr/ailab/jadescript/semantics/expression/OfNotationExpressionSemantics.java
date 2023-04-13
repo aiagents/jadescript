@@ -165,7 +165,7 @@ public class OfNotationExpressionSemantics
         //NOT NEEDED:
 //        StaticState afterSubExpr = ales.advance(aidLiteral, state);
         for (int i = properties.size() - 1; i >= 0; i--) {
-            String propName = properties.get(i).extract(nullAsEmptyString);
+            String propName = properties.get(i).orElse("");
             Optional<? extends MemberName> property =
                 prev.namespace().searchAs(
                     MemberName.Namespace.class,
@@ -231,7 +231,7 @@ public class OfNotationExpressionSemantics
         // NOT NEEDED:
         // StaticState afterSubExpr = ales.advance(aidLiteral, state);
         for (int i = properties.size() - 1; i >= 0; i--) {
-            String propName = properties.get(i).extract(nullAsEmptyString);
+            String propName = properties.get(i).orElse("");
             IJadescriptType currentPropType =
                 inferTypeProperty(some(propName), prevType);
 
@@ -356,7 +356,7 @@ public class OfNotationExpressionSemantics
         Maybe<String> prop,
         IJadescriptType prevType
     ) {
-        String propSafe = prop.extract(nullAsEmptyString);
+        String propSafe = prop.orElse("");
         return prevType.namespace().searchAs(
                 MemberName.Namespace.class,
                 s -> s.memberNames(propSafe)

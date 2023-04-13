@@ -20,7 +20,7 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
@@ -37,7 +37,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -248,7 +247,7 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
-    //TODO unify with SubscriptExpressionSemantics
+    //TODO unify in SubscriptExpressionSemantics
     public boolean validateIndex(
         IJadescriptType collectionType,
         Maybe<RValueExpression> indexExpression,
@@ -289,7 +288,7 @@ public class ValidationHelper implements SemanticsConsts {
             );
         } else {
             return assertExpectedType(
-                Integer.class,
+                module.get(BuiltinTypeProvider.class).integer(),
                 rves.inferType(indexExpression, beforeIndex),
                 "InvalidIndexType",
                 indexExpression,
@@ -506,82 +505,6 @@ public class ValidationHelper implements SemanticsConsts {
             issueCode,
             "invalid type; found: '" + actual.getFullJadescriptName() +
                 "'; expected: '" + expected.getFullJadescriptName() +
-                "' or subtype",
-            object,
-            feature,
-            index,
-            acceptor
-        );
-    }
-
-
-    public boolean assertExpectedType(
-        Class<?> expected,
-        IJadescriptType actual,
-        String issueCode,
-        Maybe<? extends EObject> object,
-        ValidationMessageAcceptor acceptor
-    ) {
-        Objects.requireNonNull(expected);
-        final IJadescriptType expectedType =
-            module.get(TypeSolver.class).fromClass(expected);
-        final TypeComparator comparator = module.get(TypeComparator.class);
-        return asserting(
-            comparator.compare(expected, actual).is(superTypeOrEqual()),
-            issueCode,
-            "invalid type; found: '" + actual.getFullJadescriptName() +
-                "'; expected: '" + expectedType.getFullJadescriptName() +
-                "' or subtype",
-            object,
-            acceptor
-        );
-    }
-
-
-    public boolean assertExpectedType(
-        Class<?> expected,
-        IJadescriptType actual,
-        String issueCode,
-        Maybe<? extends EObject> object,
-        EStructuralFeature feature,
-        ValidationMessageAcceptor acceptor
-    ) {
-        Objects.requireNonNull(expected);
-        final IJadescriptType expectedType =
-            module.get(TypeSolver.class).fromClass(expected);
-        final TypeComparator comparator = module.get(TypeComparator.class);
-        return asserting(
-            comparator.compare(expectedType, actual).is(superTypeOrEqual()),
-            issueCode,
-            "invalid type; found: '" + actual.getFullJadescriptName() +
-                "'; expected: '" + expectedType.getFullJadescriptName() +
-                "' or subtype",
-            object,
-            feature,
-            acceptor
-        );
-    }
-
-
-    @SuppressWarnings("UnusedReturnValue")
-    public boolean assertExpectedType(
-        Class<?> expected,
-        IJadescriptType actual,
-        String issueCode,
-        Maybe<? extends EObject> object,
-        EStructuralFeature feature,
-        int index,
-        ValidationMessageAcceptor acceptor
-    ) {
-        Objects.requireNonNull(expected);
-        final IJadescriptType expectedType =
-            module.get(TypeSolver.class).fromClass(expected);
-        final TypeComparator comparator = module.get(TypeComparator.class);
-        return asserting(
-            comparator.compare(expectedType, actual).is(superTypeOrEqual()),
-            issueCode,
-            "invalid type; found: '" + actual.getFullJadescriptName() +
-                "'; expected: '" + expectedType.getFullJadescriptName() +
                 "' or subtype",
             object,
             feature,

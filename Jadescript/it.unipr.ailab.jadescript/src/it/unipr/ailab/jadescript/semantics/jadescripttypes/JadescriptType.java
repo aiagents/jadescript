@@ -3,7 +3,6 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.JadescriptTypeLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
-import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
@@ -45,9 +44,6 @@ public abstract class JadescriptType
     }
 
 
-
-
-
     @Override
     public String getCategoryName() {
         return categoryName;
@@ -60,11 +56,13 @@ public abstract class JadescriptType
     }
 
 
-
-
     @Override
     public String getID() {
-        return this.getRawID() +
+        final String result = this.getRawID();
+        if(typeArguments().isEmpty()){
+            return result;
+        }
+        return result +
             typeArguments().stream()
                 .map(TypeArgument::getID)
                 .collect(Collectors.joining(", ", "[", "]"));
@@ -114,6 +112,10 @@ public abstract class JadescriptType
             ? getParametricListDelimiterOpen()
             : " " + getParametricIntroductor().trim() +
             " " + getParametricListDelimiterOpen();
+
+        if (typeArguments().isEmpty()) {
+            return result;
+        }
 
         return result + typeArguments().stream()
             .map(TypeArgument::getFullJadescriptName)

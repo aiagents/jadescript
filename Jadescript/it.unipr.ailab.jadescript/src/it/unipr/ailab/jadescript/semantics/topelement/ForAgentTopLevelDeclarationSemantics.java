@@ -12,8 +12,14 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
+import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDeclaration;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
+import jadescript.core.behaviours.Base;
+import jadescript.util.Util;
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EReference;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmMember;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -119,9 +125,14 @@ public abstract class ForAgentTopLevelDeclarationSemantics<T extends ForElement>
 
         final IJadescriptType agent = getAssociatedAgentType(input, null);
 
-        if (!agent.isErroneous()) {
+
+        final Maybe<? extends EObject> extracted =
+            SemanticsUtils.extractEObject(input);
+        if(!extracted.safeCast(BehaviourDeclaration.class)
+            .__(BehaviourDeclaration::isMemberBehaviour).orElse(false)
+        && !agent.isErroneous()){
             module.get(ValidationHelper.class).assertExpectedType(
-                jade.core.Agent.class,
+                module.get(BuiltinTypeProvider.class).agent(),
                 agent,
                 "InvalidAgentType",
                 input,

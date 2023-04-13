@@ -211,7 +211,7 @@ public class AgentDeclarationSemantics
         ).filter(maybeF ->
                 //f instanceof OnCreateHandler
                 maybeF.__(f -> f instanceof OnCreateHandler)
-                    .extract(nullAsFalse)
+                    .orElse(false)
             ).map(maybeF -> maybeF.__(f -> (OnCreateHandler) f)).findAny()
             .orElse(Maybe.nothing());
 

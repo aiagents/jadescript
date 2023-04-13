@@ -258,7 +258,7 @@ public class OnCreateHandlerSemantics
             && typeExpr.__(CollectionTypeExpression::getCollectionType)
             .wrappedEquals("list")
             && typeParameters.get(0)
-            .__(TypeExpression::isText).extract(nullAsFalse);
+            .__(TypeExpression::isText).orElse(false);
     }
 
 
@@ -416,7 +416,7 @@ public class OnCreateHandlerSemantics
         List<ActualParameter> extractedParameters = new ArrayList<>();
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
-        if (!parameters.__(List::isEmpty).extract(nullAsTrue)) {
+        if (!parameters.__(List::isEmpty).orElse(true)) {
 
             for (Maybe<FormalParameter> parameter : iterate(parameters)) {
                 boolean paramTypeCheck = tes.validate(

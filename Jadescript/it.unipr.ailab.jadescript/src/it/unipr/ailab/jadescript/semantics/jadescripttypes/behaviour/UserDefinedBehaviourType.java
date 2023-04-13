@@ -25,16 +25,6 @@ public class UserDefinedBehaviourType
     public UserDefinedBehaviourType(
         SemanticsModule module,
         JvmTypeReference jvmType,
-        BaseBehaviourType rootCategoryType
-    ) {
-        super(module, jvmType, rootCategoryType);
-        this.superType = Maybe.nothing();
-    }
-
-
-    public UserDefinedBehaviourType(//TODO ?
-        SemanticsModule module,
-        JvmTypeReference jvmType,
         Maybe<IJadescriptType> superType,
         BaseBehaviourType rootCategoryType
     ) {

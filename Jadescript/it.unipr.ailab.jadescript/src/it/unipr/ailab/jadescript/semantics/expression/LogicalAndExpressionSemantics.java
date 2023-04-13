@@ -284,7 +284,7 @@ public class LogicalAndExpressionSemantics
                 IJadescriptType type = eces.inferType(equ, newState);
                 final boolean operandType =
                     module.get(ValidationHelper.class).assertExpectedType(
-                        Boolean.class,
+                        module.get(BuiltinTypeProvider.class).boolean_(),
                         type,
                         "InvalidOperandType",
                         equ,

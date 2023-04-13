@@ -43,7 +43,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public class OnNativeEventHandlerSemantics
@@ -362,7 +361,7 @@ public class OnNativeEventHandlerSemantics
         // add "is a native event" constraint
         templateExpressions.add(TemplateCompilationHelper.isNative());
 
-        if (input.__(OnNativeEventHandler::isStale).extract(nullAsFalse)) {
+        if (input.__(OnNativeEventHandler::isStale).orElse(false)) {
             // add staleness constraint
             templateExpressions.add(TemplateCompilationHelper.isStale());
         }

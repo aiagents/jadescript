@@ -208,12 +208,26 @@ public class RelationalComparisonExpressionSemantics
     }
 
 
-    private boolean isNumber(IJadescriptType type) {
+    private boolean isInteger(IJadescriptType type){
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
         final TypeComparator comparator = module.get(TypeComparator.class);
 
-        return comparator.compare(type, builtins.number()).is(subTypeOrEqual());
+        return comparator.compare(type, builtins.integer())
+            .is(subTypeOrEqual());
+    }
+
+    private boolean isReal(IJadescriptType type){
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(type, builtins.real())
+            .is(subTypeOrEqual());
+    }
+
+    private boolean isNumber(IJadescriptType type) {
+        return isInteger(type) || isReal(type);
     }
 
 
@@ -264,7 +278,8 @@ public class RelationalComparisonExpressionSemantics
                 module.get(ValidationHelper.class);
             boolean ltValidation = validationHelper.assertExpectedTypesAny(
                 List.of(
-                    builtins.number(),
+                    builtins.integer(),
+                    builtins.real(),
                     builtins.timestamp(),
                     builtins.duration()
                 ),
@@ -275,7 +290,8 @@ public class RelationalComparisonExpressionSemantics
             );
             boolean rtValidation = validationHelper.assertExpectedTypesAny(
                 List.of(
-                    builtins.number(),
+                    builtins.integer(),
+                    builtins.real(),
                     builtins.timestamp(),
                     builtins.duration()
                 ),

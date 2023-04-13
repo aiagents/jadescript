@@ -29,8 +29,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
-
 public class SetLiteralExpressionSemantics
     extends AssignableExpressionSemantics<MapOrSetLiteral> {
 
@@ -170,7 +168,7 @@ public class SetLiteralExpressionSemantics
             input.__(MapOrSetLiteral::getKeyTypeParameter);
 
         boolean isWithPipe =
-            input.__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
+            input.__(MapOrSetLiteral::isWithPipe).orElse(false);
         Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
 
         final BuiltinTypeProvider builtins =
@@ -223,7 +221,7 @@ public class SetLiteralExpressionSemantics
             input.__toList(MapOrSetLiteral::getKeys);
         final boolean hasTypeSpecifiers =
             input.__(MapOrSetLiteral::isWithTypeSpecifiers)
-                .extract(nullAsFalse);
+                .orElse(false);
         final Maybe<TypeExpression> keysTypeParameter =
             input.__(MapOrSetLiteral::getKeyTypeParameter);
 
@@ -317,7 +315,7 @@ public class SetLiteralExpressionSemantics
             input.getPattern().__(MapOrSetLiteral::getRest);
         final boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
-                .extract(nullAsFalse);
+                .orElse(false);
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
@@ -353,7 +351,7 @@ public class SetLiteralExpressionSemantics
     ) {
         final boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
-                .extract(nullAsFalse);
+                .orElse(false);
 
         if (!isWithPipe) {
             return state;
@@ -448,7 +446,7 @@ public class SetLiteralExpressionSemantics
         // by validator)
         boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
-                .extract(nullAsFalse);
+                .orElse(false);
 
         Maybe<RValueExpression> rest = input.getPattern().
             __(MapOrSetLiteral::getRest);
@@ -484,14 +482,14 @@ public class SetLiteralExpressionSemantics
         // by validator)
         boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
-                .extract(nullAsFalse);
+                .orElse(false);
         Maybe<RValueExpression> rest = input.getPattern()
             .__(MapOrSetLiteral::getRest);
         final Maybe<TypeExpression> typeParameter =
             input.getPattern().__(MapOrSetLiteral::getKeyTypeParameter);
         boolean hasTypeSpecifier =
             input.getPattern().__(MapOrSetLiteral::isWithTypeSpecifiers)
-                .extract(nullAsFalse);
+                .orElse(false);
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
@@ -528,7 +526,7 @@ public class SetLiteralExpressionSemantics
         // by validator)
         boolean isWithPipe =
             input.getPattern().__(MapOrSetLiteral::isWithPipe)
-                .extract(nullAsFalse);
+                .orElse(false);
 
         Maybe<RValueExpression> rest = input.getPattern()
             .__(MapOrSetLiteral::getRest);
@@ -567,7 +565,7 @@ public class SetLiteralExpressionSemantics
         MaybeList<RValueExpression> values =
             input.getPattern().__toList(MapOrSetLiteral::getKeys);
         boolean isWithPipe = input.getPattern()
-            .__(MapOrSetLiteral::isWithPipe).extract(nullAsFalse);
+            .__(MapOrSetLiteral::isWithPipe).orElse(false);
         Maybe<RValueExpression> rest = input.getPattern()
             .__(MapOrSetLiteral::getRest);
         PatternType patternType = inferPatternType(input, state);
@@ -716,8 +714,7 @@ public class SetLiteralExpressionSemantics
         MaybeList<RValueExpression> values =
             input.getPattern().__toList(MapOrSetLiteral::getKeys);
         boolean isWithPipe =
-            input.getPattern().__(MapOrSetLiteral::isWithPipe).extract(
-                nullAsFalse);
+            input.getPattern().__(MapOrSetLiteral::isWithPipe).orElse(false);
         IJadescriptType solvedPatternType = inferPatternType(input, state)
             .solve(input.getProvidedInputType());
         int prePipeElementCount = values.size();

@@ -12,6 +12,7 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypeReferenceBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class JvmTypeHelper {
 
@@ -32,7 +33,7 @@ public class JvmTypeHelper {
         JvmTypeReference type,
         JvmTypeReference targetParentNoParams
     ) {
-        for (JvmTypeReference x : getParentChain(type)) {
+        for (JvmTypeReference x : getParentChainIncluded(type)) {
             if (x instanceof JvmParameterizedTypeReference
                 && x.getType().getQualifiedName().equals(
                 targetParentNoParams.getQualifiedName()
@@ -44,13 +45,31 @@ public class JvmTypeHelper {
         return new ArrayList<>();
     }
 
+    public Stream<JvmTypeReference> getParentClasses(JvmTypeReference x){
+        if (!(x.getType() instanceof JvmDeclaredType)) {
+            return Stream.empty();
+        }
 
-    public List<JvmTypeReference> getParentChain(JvmTypeReference x) {
+        JvmDeclaredType type = (JvmDeclaredType) x.getType();
+
+        final JvmTypeReference extendedClass = type.getExtendedClass();
+        if(extendedClass == null){
+            return Stream.empty();
+        }
+
+        return Stream.concat(
+            Stream.of(extendedClass),
+            getParentClasses(extendedClass)
+        );
+    }
+
+
+    public List<JvmTypeReference> getParentChainIncluded(JvmTypeReference x) {
         List<JvmTypeReference> result = new ArrayList<>();
         result.add(x);
         if (x.getType() instanceof JvmDeclaredType) {
             if (((JvmDeclaredType) x.getType()).getExtendedClass() != null) {
-                result.addAll(getParentChain(
+                result.addAll(getParentChainIncluded(
                     ((JvmDeclaredType) x.getType()).getExtendedClass()
                 ));
             }

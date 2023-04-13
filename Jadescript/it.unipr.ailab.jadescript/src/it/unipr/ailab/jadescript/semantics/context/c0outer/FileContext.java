@@ -16,7 +16,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 public class FileContext
     extends OuterLevelAbstractContext
@@ -85,7 +84,7 @@ public class FileContext
     public Stream<JvmDeclaredType> getImportedJvmTypeDeclarations() {
         return getImportDeclarations().stream()
             .filter(j -> j.__(id -> !id.isWildcard()
-                && !id.isStatic()).extract(nullAsFalse))
+                && !id.isStatic()).orElse(false))
             .filter(Maybe::isPresent)
             .map(Maybe::toNullable)
             .flatMap(it -> it.getImportedType() != null

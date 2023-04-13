@@ -50,7 +50,8 @@ cyclic behaviour SetAlarmAndWait
     on message inform TimeOut(result) when sender = 'AlarmClock'@ do
         log "I am awake! (seconds= "+result+")"
         
-    on message agree (WakeUp(t, _), True) when sender = 'AlarmClock'@ do
+        
+    on message agree (WakeUp(t, _), _) when sender = 'AlarmClock'@ do
         log "Alarm set at time: '"+t+"'"
         
     on message refuse when sender of message = 'AlarmClock'@ do

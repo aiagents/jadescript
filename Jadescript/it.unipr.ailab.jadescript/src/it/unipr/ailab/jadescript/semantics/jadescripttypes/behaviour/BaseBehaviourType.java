@@ -37,7 +37,7 @@ public class BaseBehaviourType
     public BaseBehaviourType(
         SemanticsModule module,
         Kind kind,
-        AgentType forAgentType
+        TypeArgument forAgentType
     ) {
         super(
 

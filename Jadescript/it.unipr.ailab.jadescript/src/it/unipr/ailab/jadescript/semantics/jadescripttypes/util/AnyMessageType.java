@@ -18,7 +18,7 @@ import static it.unipr.ailab.maybe.Maybe.some;
 public class AnyMessageType extends UtilityType implements MessageType {
 
 
-    private AnyMessageType(SemanticsModule module) {
+    public AnyMessageType(SemanticsModule module) {
         super(
             module,
             TypeHelper.builtinPrefix + "ANYMESSAGE",

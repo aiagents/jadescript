@@ -49,7 +49,10 @@ public class TupleType
     private final List<TypeArgument> elementTypes;
 
 
-    public TupleType(SemanticsModule module, List<TypeArgument> elementTypes) {
+    public TupleType(
+        SemanticsModule module,
+        List<TypeArgument> elementTypes
+    ) {
         super(
             module,
             TypeHelper.builtinPrefix + "Tuple" + elementTypes.size(),
@@ -58,8 +61,6 @@ public class TupleType
         );
         this.elementTypes = elementTypes;
     }
-
-
 
 
     public static String compileNewInstance(
@@ -142,7 +143,6 @@ public class TupleType
     public String compileGet(String tupleExpressionCompiled, int elemNumber) {
         return compileStandardGet(tupleExpressionCompiled, elemNumber);
     }
-
 
 
     @Override

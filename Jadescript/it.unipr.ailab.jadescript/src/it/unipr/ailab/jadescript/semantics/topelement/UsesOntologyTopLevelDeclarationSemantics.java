@@ -86,7 +86,7 @@ public abstract class UsesOntologyTopLevelDeclarationSemantics
                 .orElseGet(() -> builtins.any("No used ontology specified."));
 
             validationHelper.assertExpectedType(
-                jade.content.onto.Ontology.class,
+                builtins.ontology(),
                 ontology,
                 "InvalidOntologyType",
                 input,

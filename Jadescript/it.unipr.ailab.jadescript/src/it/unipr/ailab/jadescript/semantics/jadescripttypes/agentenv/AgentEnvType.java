@@ -93,7 +93,7 @@ public class AgentEnvType extends JadescriptType {
 
     @Override
     public Stream<IJadescriptType> declaredSupertypes() {
-        return Stream.of();
+        return Stream.empty();
     }
 
 

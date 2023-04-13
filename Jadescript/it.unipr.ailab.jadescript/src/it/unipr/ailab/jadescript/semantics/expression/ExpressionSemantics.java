@@ -1376,7 +1376,10 @@ public abstract class ExpressionSemantics<T> extends Semantics {
             "Cannot apply here an input of type "
                 + providedInputType.getFullJadescriptName()
                 + " to a pattern which expects an input of type "
-                + solvedType.getFullJadescriptName(),
+                + solvedType.getFullJadescriptName() + "; here the latter is " +
+                "required to be "+requirement.getHumanReadableString() +
+                " the former, but it was found to be "+
+                actualRelationship.getHumanReadableString() +" the former.",
             SemanticsUtils.extractEObject(pattern),
             acceptor
         );
@@ -1484,7 +1487,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         @Override
         protected Stream<SemanticsBoundToExpression<?>>
         getSubExpressionsInternal(Maybe<T> input) {
-            return Stream.of();
+            return Stream.empty();
         }
 
 

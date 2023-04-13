@@ -20,8 +20,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.some;
 
@@ -802,8 +800,10 @@ public class TypeComparator {
                 builtins.get().number(),
                 subject,
                 target,
-                x -> rawEquals(x, builtins.get().integer())
-                    || rawEquals(x, builtins.get().real())
+                x -> {
+                    return rawEquals(x, builtins.get().integer())
+                        || rawEquals(x, builtins.get().real());
+                }
             );
 
         if (numberBranch.isPresent()) {
@@ -816,7 +816,7 @@ public class TypeComparator {
                 builtins.get().anyOntologyElement(),
                 subject,
                 target,
-                x -> x.category().isMessageContent()
+                x -> x.category().isOntoContent()
             );
 
         if (messageContentBranch.isPresent()) {

@@ -465,8 +465,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         RValueExpressionSemantics rves, String nameSafe
     ) {
         List<String> argNames = namedArgs
-            .__(NamedArgumentList::getParameterNames)
-            .extract(Maybe::nullAsEmptyList);
+            .<List<String>>__(NamedArgumentList::getParameterNames)
+            .orElse(List.of());
         Map<String, Maybe<RValueExpression>> args = Streams.zip(
             argNames.stream(),
             someStream(namedArgs.__(NamedArgumentList::getParameterValues)),
@@ -563,13 +563,13 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
         } else if (namedArgs.isPresent()) {
             List<String> argNames = namedArgs
-                .__(NamedArgumentList::getParameterNames)
-                .extract(Maybe::nullAsEmptyList);
+                .<List<String>>__(NamedArgumentList::getParameterNames)
+                .orElse(List.of());
             Map<String, ? extends RValueExpression> args = Streams.zip(
                 argNames.stream(),
-                ((List<? extends RValueExpression>) namedArgs
-                    .__(NamedArgumentList::getParameterValues)
-                    .extract(Maybe::nullAsEmptyList)).stream(),
+                namedArgs.<List<? extends RValueExpression>>__(
+                    NamedArgumentList::getParameterValues
+                ).orElse(List.of()).stream(),
                 Tuple2::new
             ).collect(Collectors.toMap(
                 Tuple2::get_1,
@@ -654,7 +654,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
         Maybe<String> name = input.__(Call::getName);
         boolean isProcedure =
-            input.__(Call::isProcedure).extract(nullAsTrue);
+            input.__(Call::isProcedure).orElse(true);
 
         boolean noArgs = simpleArgs.isNothing() && namedArgs.isNothing();
         String procOrFunc = isProcedure ? "procedure" : "function";
@@ -814,8 +814,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
         List<String> argNames = namedArgs
-            .__(NamedArgumentList::getParameterNames)
-            .extract(Maybe::nullAsEmptyList);
+            .<List<String>>__(NamedArgumentList::getParameterNames)
+            .orElse(List.of());
 
         Map<String, Maybe<RValueExpression>> argsByName =
             Streams.zip(
@@ -1155,7 +1155,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         } else {
             return resolve(input, runningState.get(), false)
                 .__(CompilableCallable::isWithoutSideEffects)
-                .extract(nullAsTrue);
+                .orElse(true);
         }
     }
 
@@ -1169,7 +1169,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             resolvePattern(input.getPattern(), state);
 
         return resolve.__(GlobalPattern::isWithoutSideEffects)
-            .extract(nullAsTrue)
+            .orElse(true)
             && subPatternEvaluationsAllPure(input, state);
     }
 

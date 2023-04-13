@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.LogicalOr;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TernaryConditional;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -13,15 +14,14 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
  * Created on 27/12/16.
@@ -55,13 +55,13 @@ public class TernaryConditionalExpressionSemantics
             Stream.of(condition)
                 .filter(Maybe::isPresent)
                 .map(i -> new SemanticsBoundToExpression<>(
-                module.get(LogicalOrExpressionSemantics.class),
-                i
-            )),
+                    module.get(LogicalOrExpressionSemantics.class),
+                    i
+                )),
             Stream.of(
-                expression1,
-                expression2
-            ).filter(Maybe::isPresent)
+                    expression1,
+                    expression2
+                ).filter(Maybe::isPresent)
                 .map(i -> new SemanticsBoundToExpression<>(
                     rves,
                     i
@@ -177,8 +177,7 @@ public class TernaryConditionalExpressionSemantics
 
     @Override
     protected boolean mustTraverse(Maybe<TernaryConditional> input) {
-        return !input.__(TernaryConditional::isConditionalOp).extract(
-            nullAsFalse);
+        return !input.__(TernaryConditional::isConditionalOp).orElse(false);
     }
 
 
@@ -241,7 +240,7 @@ public class TernaryConditionalExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null){
+        if (input == null) {
             return VALID;
         }
         final Maybe<LogicalOr> condition =
@@ -266,7 +265,7 @@ public class TernaryConditionalExpressionSemantics
 
         final boolean validConditionType =
             module.get(ValidationHelper.class).assertExpectedType(
-                Boolean.class,
+                module.get(BuiltinTypeProvider.class).boolean_(),
                 type,
                 "InvalidCondition",
                 input,

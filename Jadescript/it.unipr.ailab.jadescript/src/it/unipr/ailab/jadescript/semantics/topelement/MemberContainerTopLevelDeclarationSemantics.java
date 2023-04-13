@@ -443,7 +443,7 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
 
         addExceptionHandlingDispatcher(input, members);
 
-        if (input.__(i -> i instanceof Agent).extract(nullAsFalse)) {
+        if (input.__(i -> i instanceof Agent).orElse(false)) {
             addBehaviourFailureHandlingDispatcher(input, members);
         }
 
@@ -557,7 +557,7 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
 
         final boolean thereIsAtLeastOneBFH = features.stream()
             .anyMatch(m -> m.__(f -> f instanceof OnBehaviourFailureHandler)
-                .extract(nullAsFalse));
+                .orElse(false));
 
         if (thereIsAtLeastOneBFH) {
             // Adds all the behaviour failure handlers invocation using
@@ -706,7 +706,7 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
 
         final boolean thereIsAtLeastOneEH = features.stream()
             .anyMatch(m -> m.__(f -> f instanceof OnExceptionHandler)
-                .extract(nullAsFalse));
+                .orElse(false));
 
         if (thereIsAtLeastOneEH) {
             // Adds all the exception handlers invocation using

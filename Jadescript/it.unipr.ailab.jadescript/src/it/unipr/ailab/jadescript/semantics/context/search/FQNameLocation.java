@@ -36,7 +36,7 @@ public class FQNameLocation extends SearchLocation {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof FQNameLocation) {
-            return fullyQualifiedName.equals(
+            return this.fullyQualifiedName.equals(
                 ((FQNameLocation) obj).fullyQualifiedName
             );
         }else{

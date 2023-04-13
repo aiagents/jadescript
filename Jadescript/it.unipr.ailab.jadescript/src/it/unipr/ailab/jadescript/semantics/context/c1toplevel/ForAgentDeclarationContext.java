@@ -53,7 +53,7 @@ public abstract class ForAgentDeclarationContext
         @Nullable String name
     ) {
         if (name != null && !name.equals("agent")) {
-            return Stream.of();
+            return Stream.empty();
         }
         return SemanticsUtils.buildStream(agentSymbol);
     }
