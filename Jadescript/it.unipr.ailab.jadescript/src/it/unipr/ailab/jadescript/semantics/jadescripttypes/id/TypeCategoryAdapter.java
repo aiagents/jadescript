@@ -97,4 +97,10 @@ public class TypeCategoryAdapter implements TypeCategory{
         return false;
     }
 
+
+    @Override
+    public boolean isSideEffectFlag() {
+        return false;
+    }
+
 }

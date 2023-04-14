@@ -2,7 +2,10 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.jadescript.AtomExpr;
+import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.jadescript.TypeCast;
+import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
@@ -10,11 +13,9 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.related;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.someStream;
 
 
@@ -140,7 +142,7 @@ public class TypeCastExpressionSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        if (input == null){
+        if (input == null) {
             return "";
         }
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
@@ -621,12 +623,27 @@ public class TypeCastExpressionSemantics
 
 
     private boolean isNumber(IJadescriptType type) {
+        return isInteger(type) || isReal(type);
+    }
+
+
+    private boolean isInteger(IJadescriptType type) {
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
         final TypeComparator comparator = module.get(TypeComparator.class);
 
-        return comparator.compare(builtins.number(), type)
-            .is(TypeRelationshipQuery.superTypeOrEqual());
+        return comparator.compare(builtins.integer(), type)
+            .is(superTypeOrEqual());
+    }
+
+
+    private boolean isReal(IJadescriptType type) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(builtins.real(), type)
+            .is(superTypeOrEqual());
     }
 
 

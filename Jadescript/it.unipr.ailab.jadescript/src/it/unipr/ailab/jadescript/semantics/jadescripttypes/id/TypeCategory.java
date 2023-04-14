@@ -41,4 +41,6 @@ public interface TypeCategory {
 
     boolean isSet();
 
+    boolean isSideEffectFlag();
+
 }

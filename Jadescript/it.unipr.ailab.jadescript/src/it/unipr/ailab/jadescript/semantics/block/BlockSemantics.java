@@ -4,6 +4,7 @@ import it.unipr.ailab.jadescript.jadescript.CodeBlock;
 import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.Statement;
 import it.unipr.ailab.jadescript.semantics.*;
+import it.unipr.ailab.jadescript.semantics.GenerationError;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;

@@ -12,8 +12,10 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.SEMode;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDeclaration;
 import it.unipr.ailab.maybe.Maybe;
 import jadescript.core.behaviours.CyclicBehaviour;
@@ -117,7 +119,7 @@ public class BehaviourDeclarationSemantics
             input.__(BehaviourDeclaration::getForAgent)
                 .extract(Maybe::flatten);
 
-        List<IJadescriptType> typeArgs = new ArrayList<>();
+        List<TypeArgument> typeArgs = new ArrayList<>();
 
         final TypeSolver typeSolver = module.get(TypeSolver.class);
         final BuiltinTypeProvider builtins =
@@ -158,7 +160,7 @@ public class BehaviourDeclarationSemantics
             input.__(BehaviourDeclaration::getForAgent)
                 .extract(Maybe::flatten);
 
-        List<IJadescriptType> typeArgs = new ArrayList<>(1);
+        List<TypeArgument> typeArgs = new ArrayList<>(1);
         final TypeSolver typeSolver = module.get(TypeSolver.class);
 
         if (typeArg.isPresent()) {
@@ -214,8 +216,6 @@ public class BehaviourDeclarationSemantics
 
 
         if (onCreateHandler.isPresent()) {
-
-
             final TypeExpressionSemantics tes =
                 module.get(TypeExpressionSemantics.class);
 
@@ -276,9 +276,9 @@ public class BehaviourDeclarationSemantics
                     AGENT_ENV,
                     builtins.agentEnv(
                         typeHelper.covariant(contextAgent),
-                        typeSolver.fromClass(
-                            AgentEnvType.toSEModeClass(
-                                AgentEnvType.SEMode.WITH_SE
+                        typeHelper.covariant(
+                            typeSolver.fromClass(
+                                AgentEnvType.toSEModeClass(SEMode.WITH_SE)
                             )
                         )
                     ).asJvmTypeReference()
@@ -459,7 +459,6 @@ public class BehaviourDeclarationSemantics
             itCtor -> {
                 contextManager.restore(savedContext);
 
-
                 final IJadescriptType contextAgent =
                     getAssociatedAgentType(input, null);
 
@@ -473,9 +472,9 @@ public class BehaviourDeclarationSemantics
                     AGENT_ENV,
                     builtins.agentEnv(
                         typeHelper.covariant(contextAgent),
-                        typeSolver.fromClass(
-                            AgentEnvType.toSEModeClass(
-                                AgentEnvType.SEMode.WITH_SE
+                        typeHelper.covariant(
+                            typeSolver.fromClass(
+                                AgentEnvType.toSEModeClass(SEMode.WITH_SE)
                             )
                         )
                     ).asJvmTypeReference()

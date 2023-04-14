@@ -40,7 +40,7 @@ public abstract class OuterLevelAbstractContext extends Context
         final TypeSolver typeSolver = module.get(TypeSolver.class);
         final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         IJadescriptType jadescriptType = typeSolver
-            .fromJvmTypeReference(jvmClassRef);
+            .fromJvmTypeReference(jvmClassRef).ignoreBound();
         Stream<? extends GlobalName> result;
         if (jvm.isAssignable(
             jade.content.onto.Ontology.class,

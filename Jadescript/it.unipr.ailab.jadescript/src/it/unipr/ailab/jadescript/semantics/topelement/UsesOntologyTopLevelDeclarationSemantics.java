@@ -11,6 +11,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import jade.content.ContentManager;
@@ -46,6 +47,7 @@ public abstract class UsesOntologyTopLevelDeclarationSemantics
     public List<IJadescriptType> getUsedOntologyTypes(Maybe<T> input) {
         return getUsedOntologiesTypeRefs(input).stream()
             .map(module.get(TypeSolver.class)::fromJvmTypeReference)
+            .map(TypeArgument::ignoreBound)
             .collect(Collectors.toList());
     }
 
@@ -83,6 +85,7 @@ public abstract class UsesOntologyTopLevelDeclarationSemantics
 
             IJadescriptType ontology = ontologyTypeRef
                 .__(typeSolver::fromJvmTypeReference)
+                .__(TypeArgument::ignoreBound)
                 .orElseGet(() -> builtins.any("No used ontology specified."));
 
             validationHelper.assertExpectedType(

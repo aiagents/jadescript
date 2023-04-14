@@ -12,7 +12,7 @@ public class CyclicBehaviour<A extends jadescript.core.Agent>
     }
 
     public CyclicBehaviour(
-        AgentEnv<? extends A, SideEffectsFlag.AnySideEffectFlag> _agentEnv
+        AgentEnv<? extends A, ? extends SideEffectsFlag.WithSideEffects> _agentEnv
     ) {
         super(_agentEnv);
     }

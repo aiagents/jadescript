@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.EmptyTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.PermissiveJvmBasedNamespace;
@@ -56,10 +57,6 @@ public class UnknownJVMType
     }
 
 
-
-
-
-
     @Override
     public boolean isSlottable() {
         return false;
@@ -90,7 +87,6 @@ public class UnknownJVMType
     }
 
 
-
     @Override
     public TypeNamespace namespace() {
         if (permissive) {
@@ -99,7 +95,9 @@ public class UnknownJVMType
                 this.jvmNamespace(),
                 () -> module.get(TypeSolver.class)
                     .fromJvmTypeReference(this.asJvmTypeReference())
-                    .namespace().getSuperTypeNamespace(),
+                    .ignoreBound()
+                    .namespace()
+                    .getSuperTypeNamespace(),
                 getLocation()
             );
         } else {
@@ -112,8 +110,6 @@ public class UnknownJVMType
     public boolean isErroneous() {
         return true;
     }
-
-
 
 
     @Override
@@ -132,7 +128,8 @@ public class UnknownJVMType
                 //local search:
                 .getMetadataMethod()
                 .map(JvmOperation::getReturnType)
-                .map(jvmTypeNamespace::resolveType);
+                .map(jvmTypeNamespace::resolveType)
+                .map(TypeArgument::ignoreBound);
 
             if (metadata.isPresent()) {
                 if (metadata.get() instanceof OntologyType) {

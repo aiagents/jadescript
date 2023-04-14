@@ -6,12 +6,12 @@ import it.unipr.ailab.jadescript.semantics.utils.JvmTypeQualifiedNameParser;
 import it.unipr.ailab.jadescript.semantics.utils.JvmTypeReferenceSet;
 import it.unipr.ailab.maybe.utils.LazyInit;
 import jadescript.lang.Tuple;
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypeReferenceBuilder;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class JvmTypeHelper {
@@ -45,22 +45,116 @@ public class JvmTypeHelper {
         return new ArrayList<>();
     }
 
-    public Stream<JvmTypeReference> getParentClasses(JvmTypeReference x){
-        if (!(x.getType() instanceof JvmDeclaredType)) {
+
+    public Stream<JvmTypeReference> getParentClasses(
+        @NotNull JvmTypeReference x
+    ) {
+        final JvmType referenced = x.getType();
+        if (!(referenced instanceof JvmDeclaredType)) {
             return Stream.empty();
         }
 
-        JvmDeclaredType type = (JvmDeclaredType) x.getType();
+        JvmDeclaredType declared = (JvmDeclaredType) referenced;
 
-        final JvmTypeReference extendedClass = type.getExtendedClass();
-        if(extendedClass == null){
+        final JvmTypeReference extendedClass = declared.getExtendedClass();
+        if (extendedClass == null) {
             return Stream.empty();
         }
 
-        return Stream.concat(
-            Stream.of(extendedClass),
-            getParentClasses(extendedClass)
-        );
+        Map<String, JvmTypeReference> typeParametersAssigned = null;
+
+        if (x instanceof JvmParameterizedTypeReference
+            && referenced instanceof JvmGenericType) {
+            JvmParameterizedTypeReference parameterized =
+                (JvmParameterizedTypeReference) x;
+            JvmGenericType generic = (JvmGenericType) referenced;
+
+            final EList<JvmTypeReference> arguments =
+                parameterized.getArguments();
+            final EList<JvmTypeParameter> typeParameters =
+                generic.getTypeParameters();
+
+
+            int size = Math.min(arguments.size(), typeParameters.size());
+
+            typeParametersAssigned = new HashMap<>(size);
+
+            for (int i = 0; i < size; i++) {
+                final JvmTypeReference arg = arguments.get(i);
+                final String parName = typeParameters.get(i).getName();
+                typeParametersAssigned.put(parName, arg);
+            }
+        }
+
+
+        if (typeParametersAssigned == null) {
+            return Stream.concat(
+                Stream.of(extendedClass),
+                getParentClasses(extendedClass)
+            );
+        }
+
+        if (extendedClass.getType() instanceof JvmTypeParameter) {
+            final JvmTypeReference argument =
+                typeParametersAssigned.get(
+                    ((JvmTypeParameter) extendedClass.getType()
+                    ).getName());
+
+            if (argument == null) {
+                return Stream.concat(
+                    Stream.of(extendedClass),
+                    getParentClasses(extendedClass)
+                );
+            }
+
+            return Stream.concat(
+                Stream.of(argument),
+                getParentClasses(argument)
+            );
+
+        } else if (extendedClass instanceof JvmParameterizedTypeReference
+            && extendedClass.getType() instanceof JvmDeclaredType) {
+
+            JvmParameterizedTypeReference extendendParameterized =
+                (JvmParameterizedTypeReference) extendedClass;
+
+            final EList<JvmTypeReference> arguments =
+                extendendParameterized.getArguments();
+
+            final List<JvmTypeReference> newArguments =
+                new ArrayList<>(arguments);
+
+            for (int i = 0; i < newArguments.size(); i++) {
+                final JvmTypeReference arg = newArguments.get(i);
+                if (!(arg.getType() instanceof JvmTypeParameter)) {
+                    continue;
+                }
+
+                JvmTypeParameter param = (JvmTypeParameter) arg.getType();
+                final JvmTypeReference resolvedArg =
+                    typeParametersAssigned.get(param.getName());
+
+                if (resolvedArg == null) {
+                    continue;
+                }
+
+                newArguments.set(i, resolvedArg);
+            }
+
+            final JvmTypeReference ref =
+                typeRef(extendedClass.getType(), newArguments);
+            return Stream.concat(
+                Stream.of(ref),
+                getParentClasses(ref)
+            );
+        } else {
+            return Stream.concat(
+                Stream.of(extendedClass),
+                getParentClasses(extendedClass)
+            );
+        }
+
+
     }
 
 
@@ -162,24 +256,31 @@ public class JvmTypeHelper {
 
 
     public boolean isAssignableRaw(
+        Class<?> toType,
+        JvmTypeReference fromType
+    ) {
+        return isAssignableRaw(
+            typeRef(toType),
+            fromType
+        );
+    }
+
+
+    public boolean isAssignableRaw(
         JvmTypeReference toType,
         JvmTypeReference fromType
     ) {
         JvmTypeReference left = toType;
         JvmTypeReference right = fromType;
-        if (fromType == null
-            || fromType.getIdentifier() == null
-            || fromType.getIdentifier().equals("void")) {
+        if (isNullOrVoid(right)) {
             return false;
         }
 
-        if (toType == null
-            || toType.getIdentifier() == null
-            || toType.getIdentifier().equals("void")) {
+        if (isNullOrVoid(right)) {
             return false;
         }
 
-        if (conversions.get().isPrimitiveWideningViable(fromType, toType)) {
+        if (conversions.get().isJVMPrimitiveWideningViable(fromType, toType)) {
             return true;
         }
 
@@ -259,7 +360,7 @@ public class JvmTypeHelper {
     private boolean isNullOrVoid(JvmTypeReference jvmTypeReference) {
         return jvmTypeReference == null
             || jvmTypeReference.getIdentifier() == null
-            || !jvmTypeReference.getIdentifier().equals("void");
+            || jvmTypeReference.getIdentifier().equals("void");
     }
 
 
@@ -273,7 +374,7 @@ public class JvmTypeHelper {
             return false;
         }
 
-        if (conversions.get().isPrimitiveWideningViable(fromType, toType)) {
+        if (conversions.get().isJVMPrimitiveWideningViable(fromType, toType)) {
             return true;
         }
 

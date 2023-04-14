@@ -2,7 +2,6 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.maybe.Maybe;
@@ -169,6 +168,7 @@ public abstract class JvmBasedType extends JadescriptType {
                 .map(superType ->
                     replaceTypeArguments(superType, appliedArguments)
                 ).map(mt -> mt.__(typeSolver::fromJvmTypeReference))
+                .map(mt -> mt.__(TypeArgument::ignoreBound))
                 .filter(Maybe::isPresent)
                 .map(Maybe::toNullable);
         }
@@ -194,41 +194,13 @@ public abstract class JvmBasedType extends JadescriptType {
             return List.of();
         }
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
         final TypeSolver typeSolver = module.get(TypeSolver.class);
 
         List<TypeArgument> result = new LinkedList<>();
 
 
-        arguments:
         for (JvmTypeReference argument : arguments) {
-            if (!(argument instanceof JvmWildcardTypeReference)) {
-                result.add(typeSolver.fromJvmTypeReference(argument));
-                continue;
-            }
-
-            JvmWildcardTypeReference wildcard =
-                (JvmWildcardTypeReference) argument;
-
-            if (wildcard.getConstraints() == null) {
-                continue;
-            }
-
-            for (JvmTypeConstraint constraint : wildcard.getConstraints()) {
-                if (constraint instanceof JvmLowerBound) {
-                    result.add(typeHelper.contravariant(
-                        typeSolver.fromJvmTypeReference(wildcard)
-                    ));
-                    continue arguments;
-                }
-
-                if (constraint instanceof JvmUpperBound) {
-                    result.add(typeHelper.covariant(
-                        typeSolver.fromJvmTypeReference(wildcard)
-                    ));
-                    continue arguments;
-                }
-            }
+            result.add(typeSolver.fromJvmTypeReference(argument));
         }
 
         return result;
@@ -251,7 +223,8 @@ public abstract class JvmBasedType extends JadescriptType {
             return this;
         }
         return module.get(TypeSolver.class)
-            .fromJvmTypeReference(attemptedResolution);
+            .fromJvmTypeReference(attemptedResolution)
+            .ignoreBound();
     }
 
 }

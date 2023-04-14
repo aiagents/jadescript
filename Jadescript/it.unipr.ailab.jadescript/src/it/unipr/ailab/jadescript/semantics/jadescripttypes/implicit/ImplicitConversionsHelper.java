@@ -227,7 +227,7 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
         () -> module().get(JvmTypeHelper.class)
     );
 
-    public boolean isPrimitiveWideningViable(
+    public boolean isJVMPrimitiveWideningViable(
         JvmTypeReference from,
         JvmTypeReference to
     ) {
@@ -240,7 +240,7 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
                 to,
                 jvm.get().typeRef(Double.class)
             )) {
-                return isPrimitiveWideningViable(
+                return isJVMPrimitiveWideningViable(
                     from,
                     jvm.get().typeRef(Float.class)
                 );
@@ -248,7 +248,7 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
                 to,
                 jvm.get().typeRef(Float.class)
             )) {
-                return isPrimitiveWideningViable(
+                return isJVMPrimitiveWideningViable(
                     from,
                     jvm.get().typeRef(Long.class)
                 );
@@ -256,7 +256,7 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
                 to,
                 jvm.get().typeRef(Long.class)
             )) {
-                return isPrimitiveWideningViable(
+                return isJVMPrimitiveWideningViable(
                     from,
                     jvm.get().typeRef(Integer.class)
                 );
@@ -264,7 +264,7 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
                 to,
                 jvm.get().typeRef(Integer.class)
             )) {
-                return isPrimitiveWideningViable(
+                return isJVMPrimitiveWideningViable(
                     from,
                     jvm.get().typeRef(Short.class)
                 );
@@ -272,7 +272,7 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
                 to,
                 jvm.get().typeRef(Short.class)
             )) {
-                return isPrimitiveWideningViable(
+                return isJVMPrimitiveWideningViable(
                     from,
                     jvm.get().typeRef(Byte.class)
                 );

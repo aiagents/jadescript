@@ -26,9 +26,7 @@ import jadescript.core.behaviours.*;
 import jadescript.lang.Performative;
 import jadescript.lang.Tuple;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.xtext.common.types.JvmDeclaredType;
-import org.eclipse.xtext.common.types.JvmParameterizedTypeReference;
-import org.eclipse.xtext.common.types.JvmTypeReference;
+import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
@@ -65,23 +63,67 @@ public class TypeSolver {
     }
 
 
-    private IJadescriptType solveJvmTypeReferenceWithoutReattempts(
+    private TypeArgument solveWildcardTypeReference(
+        JvmWildcardTypeReference reference,
+        boolean permissive
+    ) {
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        final EList<JvmTypeConstraint> constraints = reference.getConstraints();
+        final String errorMessage = "TOP type produced from " +
+            "JvmWildcardTypeReference without constraints";
+        if (constraints == null) {
+            return typeHelper.covariant(builtinTypes.any(errorMessage));
+        }
+
+        for (JvmTypeConstraint constraint : constraints) {
+            if (constraint instanceof JvmLowerBound) {
+                return typeHelper.contravariant(
+                    solveJvmTypeReferenceWithoutReattempts(
+                        constraint.getTypeReference(),
+                        permissive
+                    ).ignoreBound()
+                );
+            }
+
+            if (constraint instanceof JvmUpperBound) {
+                return typeHelper.covariant(
+                    solveJvmTypeReferenceWithoutReattempts(
+                        constraint.getTypeReference(),
+                        permissive
+                    ).ignoreBound()
+                );
+            }
+        }
+
+        return typeHelper.covariant(builtinTypes.any(errorMessage));
+
+    }
+
+
+    private TypeArgument solveJvmTypeReferenceWithoutReattempts(
         JvmTypeReference reference,
         boolean permissive
     ) {
+        if (reference instanceof JvmWildcardTypeReference) {
+            JvmWildcardTypeReference wildcard =
+                (JvmWildcardTypeReference) reference;
+
+            return solveWildcardTypeReference(wildcard, permissive);
+
+        }
+
         final Maybe<IJadescriptType> fromJVMTypeReference =
-            this.solveJVMTypeReference(
-                reference);
+            this.solveFromIndex(reference);
 
         IJadescriptType result;
         if (fromJVMTypeReference.isPresent()) {
             result = fromJVMTypeReference.toNullable();
-        } else if (jvm.isAssignable(
-            Tuple.class,
-            reference
-        ) && reference instanceof JvmParameterizedTypeReference) {
-            result =
-                solveTupleType(((JvmParameterizedTypeReference) reference));
+        } else if (reference instanceof JvmParameterizedTypeReference
+            && jvm.isAssignable(Tuple.class, reference)) {
+            result = solveTupleType(
+                ((JvmParameterizedTypeReference) reference)
+            );
         } else {
             result = resolveNonBuiltinType(reference, permissive);
             if (storeNonBuiltins && !result.category().isUnknownJVM()) {
@@ -92,7 +134,7 @@ public class TypeSolver {
     }
 
 
-    private Maybe<IJadescriptType> solveJVMTypeReference(
+    private Maybe<IJadescriptType> solveFromIndex(
         @NotNull JvmTypeReference typeReference
     ) {
 
@@ -115,9 +157,12 @@ public class TypeSolver {
         final EList<JvmTypeReference> jvmPTRArgs =
             ((JvmParameterizedTypeReference) typeReference).getArguments();
 
+        if (jvmPTRArgs == null) {
+            return nothing();
+        }
+
         for (JvmTypeReference arg : jvmPTRArgs) {
-            IJadescriptType argType = fromJvmTypeReference(arg);
-            args.add(argType);
+            args.add(fromJvmTypeReference(arg));
         }
 
         final ParametricTypeSchema<? extends IJadescriptType> schema =
@@ -137,23 +182,28 @@ public class TypeSolver {
     }
 
 
-    public IJadescriptType fromJvmTypeReference(
+    public TypeArgument fromJvmTypeReference(
         JvmTypeReference reference
     ) {
         return fromJvmTypeReference(reference, false);
     }
 
 
-    public IJadescriptType fromJvmTypeReference(
+    public TypeArgument fromJvmTypeReference(
         JvmTypeReference reference, boolean permissive
     ) {
-        IJadescriptType result =
-            solveJvmTypeReferenceWithoutReattempts(
-                reference,
-                permissive
-            );
+        TypeArgument result = solveJvmTypeReferenceWithoutReattempts(
+            reference,
+            permissive
+        );
 
-        if (result.category().isJavaVoid()) {
+        if (!(result instanceof IJadescriptType)) {
+            return result;
+        }
+
+        IJadescriptType resultType = (IJadescriptType) result;
+
+        if (resultType.category().isJavaVoid()) {
             ICompositeNode node = NodeModelUtils.getNode(reference);
             if (node == null) {
                 node = NodeModelUtils.findActualNodeFor(reference);
@@ -184,8 +234,7 @@ public class TypeSolver {
     ) {
         List<TypeArgument> args = new ArrayList<>();
         for (JvmTypeReference arg : reference.getArguments()) {
-            IJadescriptType typeDescriptor = fromJvmTypeReference(arg);
-            args.add(typeDescriptor);
+            args.add(fromJvmTypeReference(arg));
         }
 
         return builtinTypes.tuple(args);
@@ -270,7 +319,7 @@ public class TypeSolver {
         Class<?> rootClass;
         Function<TypeArgument, BaseBehaviourType> builtinWithArg;
         Supplier<BaseBehaviourType> builtinWithoutArg;
-        switch (kind){
+        switch (kind) {
             case Cyclic:
                 rootClass = CyclicBehaviour.class;
                 builtinWithArg = builtinTypes::cyclicBehaviour;
@@ -304,17 +353,20 @@ public class TypeSolver {
         }
 
         final Optional<JvmTypeReference> extendedBehaviour =
-            jvm.getParentClasses(reference)
-                .filter(x -> jvm.isAssignable(Behaviour.class, x))
-                .findFirst();
+            jvm.getParentClasses(reference).findFirst();
 
         Maybe<IJadescriptType> superType;
         if (extendedBehaviour.isPresent()) {
-            superType = some(fromJvmTypeReference(
+            final TypeArgument typeArgument = fromJvmTypeReference(
                 extendedBehaviour.get(),
                 true
-            ));
-        }else{
+            );
+            if (typeArgument instanceof IJadescriptType) {
+                superType = some(((IJadescriptType) typeArgument));
+            } else {
+                superType = nothing();
+            }
+        } else {
             superType = nothing();
         }
 
@@ -331,17 +383,20 @@ public class TypeSolver {
     public IJadescriptType fromJvmType(
         JvmDeclaredType itClass, JvmTypeReference... typeArguments
     ) {
-        return fromJvmTypeReference(this.jvm.typeRef(itClass, typeArguments));
+        return fromJvmTypeReference(this.jvm.typeRef(itClass, typeArguments))
+            .ignoreBound();
     }
 
 
     public IJadescriptType fromJvmTypePermissive(
         JvmDeclaredType itClass, JvmTypeReference... typeArguments
     ) {
-        return fromJvmTypeReference(
+        final TypeArgument typeArgument = fromJvmTypeReference(
             this.jvm.typeRef(itClass, typeArguments),
             /*permissive = */true
         );
+
+        return typeArgument.ignoreBound();
     }
 
 
@@ -552,25 +607,26 @@ public class TypeSolver {
 
 
     public IJadescriptType fromClass(
-        Class<?> class_, List<IJadescriptType> arguments
+        Class<?> class_, List<TypeArgument> arguments
     ) {
         return fromJvmTypeReference(this.jvm.typeRef(
             class_,
-            arguments.stream().map(IJadescriptType::asJvmTypeReference).collect(
+            arguments.stream().map(TypeArgument::asJvmTypeReference).collect(
                 Collectors.toList())
-        ));
+        )).ignoreBound();
     }
 
 
     public IJadescriptType fromClass(
-        Class<?> class_, IJadescriptType... arguments
+        Class<?> class_, TypeArgument... arguments
     ) {
         return fromClass(class_, Arrays.asList(arguments));
     }
 
 
     public IJadescriptType fromFullyQualifiedName(String fullyQualifiedName) {
-        return fromJvmTypeReference(jvm.typeRef(fullyQualifiedName));
+        return fromJvmTypeReference(jvm.typeRef(fullyQualifiedName))
+            .ignoreBound();
     }
 
 

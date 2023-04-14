@@ -103,7 +103,8 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
 
             if (paramName.equals(SemanticsConsts.AGENT_ENV)) {
                 final IJadescriptType envType =
-                    namespace.resolveType(paramTypeRef);
+                    namespace.resolveType(paramTypeRef)
+                        .ignoreBound();
 
                 if (envType instanceof AgentEnvType) {
                     withoutSideEffects =
@@ -114,7 +115,8 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
             }
 
             final IJadescriptType solvedType =
-                namespace.resolveType(paramTypeRef);
+                namespace.resolveType(paramTypeRef)
+                    .ignoreBound();
 
             final TypeComparator comparator = module.get(TypeComparator.class);
             if (TypeRelationshipQuery.superTypeOrEqual().matches(
@@ -129,7 +131,7 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
 
 
         return new GlobalFunctionOrProcedure(
-            namespace.resolveType(operation.getReturnType()),
+            namespace.resolveType(operation.getReturnType()).ignoreBound(),
             operation.getSimpleName(),
             paramNamesToTypes,
             paramNames,

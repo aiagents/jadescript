@@ -3,10 +3,11 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes.index;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.UnknownJVMType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.AgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.BaseAgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.SEMode;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.SideEffectFlagInternalType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.basic.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BaseBehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BehaviourType;
@@ -39,7 +40,6 @@ import jadescript.util.JadescriptSet;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts.ONTOLOGY_TRUE_VALUE;
 import static it.unipr.ailab.maybe.utils.LazyInit.lazyInit;
@@ -109,14 +109,35 @@ public class BuiltinTypeProvider {
     /*package-private*/ final LazyInit<BaseAgentType> tAgent =
         fromModule(BaseAgentType.class);
 
-    @BuiltinType
-    /*package-private*/ final LazyInit<IJadescriptType> tAnySEMode =
-        lazyInit(() -> new UnknownJVMType(
+
+    @BuiltinType(SideEffectsFlag.class)
+    /*package-private*/ final LazyInit<IJadescriptType> tSEModeTop =
+        lazyInit(() -> new SideEffectFlagInternalType(
             getModule(),
-            getModule().get(JvmTypeHelper.class)
-                .typeRef(SideEffectsFlag.AnySideEffectFlag.class),
-            /*permissive = */false
+            SEMode.TOP
         ));
+
+    @BuiltinType(SideEffectsFlag.AnySideEffectFlag.class)
+    /*package-private*/ final LazyInit<IJadescriptType> tSEModeBottom =
+        lazyInit(() -> new SideEffectFlagInternalType(
+            getModule(),
+            SEMode.BOTTOM
+        ));
+
+    @BuiltinType(SideEffectsFlag.WithSideEffects.class)
+    /*package-private*/ final LazyInit<IJadescriptType> tSEModeWithSE =
+        lazyInit(() -> new SideEffectFlagInternalType(
+            getModule(),
+            SEMode.WITH_SE
+        ));
+
+    @BuiltinType(SideEffectsFlag.NoSideEffects.class)
+    /*package-private*/ final LazyInit<IJadescriptType> tSEModeNoSE =
+        lazyInit(() -> new SideEffectFlagInternalType(
+            getModule(),
+            SEMode.NO_SE
+        ));
+
 
     @BuiltinType({jadescript.content.onto.Ontology.class,
         jade.content.onto.Ontology.class})
@@ -137,7 +158,7 @@ public class BuiltinTypeProvider {
         OntoContentType.OntoContentKind.Proposition
     ));
 
-    @BuiltinType(jadescript.content.JadescriptProposition.class)
+    @BuiltinType(jadescript.content.JadescriptPredicate.class)
     /*package-private*/ final LazyInit<BaseOntoContentType>
         tPredicate = lazyInit(() -> new BaseOntoContentType(
         getModule(),
@@ -480,7 +501,7 @@ public class BuiltinTypeProvider {
             ftpFactory.get().boundedTypeParameter(agent());
 
         FormalTypeParameter ftpAnySE =
-            ftpFactory.get().boundedTypeParameter(anySE());
+            ftpFactory.get().boundedTypeParameter(seModeTop());
 
         return ptFactory.get().<AgentEnvType>parametricType()
             .add(ftpAgent)
@@ -502,7 +523,7 @@ public class BuiltinTypeProvider {
 
     @BuiltinType
     /*package-private*/ final LazyInit<AgentEnvType> tAnyAgentEnv =
-        lazyInit(() -> agentEnv(covariant(agent()), covariant(anySE())));
+        lazyInit(() -> agentEnv(covariant(agent()), covariant(seModeTop())));
 
     @BuiltinType(
         value = jadescript.core.message.Message.class,
@@ -555,7 +576,7 @@ public class BuiltinTypeProvider {
     });
 
     @BuiltinType(
-    //    jade.core.behaviours.Behaviour.class TODO reinstate
+        //    jade.core.behaviours.Behaviour.class TODO reinstate
     )
     /*package-private*/ final LazyInit<BaseBehaviourType>
         tAnyBehaviour = lazyInit(() -> behaviour(covariant(agent())));
@@ -1719,8 +1740,23 @@ public class BuiltinTypeProvider {
     }
 
 
-    public IJadescriptType anySE() {
-        return tAnySEMode.get();
+    public IJadescriptType seModeBottom() {
+        return tSEModeBottom.get();
+    }
+
+
+    public IJadescriptType seModeTop() {
+        return tSEModeTop.get();
+    }
+
+
+    public IJadescriptType seModeWithSE() {
+        return tSEModeWithSE.get();
+    }
+
+
+    public IJadescriptType seModeNoSE() {
+        return tSEModeNoSE.get();
     }
 
 
@@ -1875,16 +1911,6 @@ public class BuiltinTypeProvider {
         }
     }
 
-
-    public AgentEnvType agentEnv(
-        AgentType agentType,
-        AgentEnvType.SEMode seMode
-    ) {
-        return agentEnv(
-            agentType,
-            solver.get().fromClass(AgentEnvType.toSEModeClass(seMode))
-        );
-    }
 
 
     public JavaVoidType javaVoid() {

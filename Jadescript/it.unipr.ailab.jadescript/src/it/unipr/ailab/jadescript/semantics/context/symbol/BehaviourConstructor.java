@@ -94,7 +94,8 @@ public class BehaviourConstructor implements GlobalCallable {
 
             if (paramName.equals(SemanticsConsts.AGENT_ENV)) {
                 final IJadescriptType envType =
-                    namespace.resolveType(paramTypeRef);
+                    namespace.resolveType(paramTypeRef)
+                        .ignoreBound();
 
                 if (envType instanceof AgentEnvType) {
                     withoutSideEffects =
@@ -105,7 +106,8 @@ public class BehaviourConstructor implements GlobalCallable {
             }
 
             final IJadescriptType solvedType =
-                namespace.resolveType(paramTypeRef);
+                namespace.resolveType(paramTypeRef)
+                    .ignoreBound();
 
             if (comparator.compare(anyAE, solvedType).is(superTypeOrEqual())) {
                 continue;
@@ -119,7 +121,7 @@ public class BehaviourConstructor implements GlobalCallable {
         String fqn = constructor.getQualifiedName('.');
 
         return new BehaviourConstructor(
-            namespace.resolveType(jvm.typeRef(type)),
+            namespace.resolveType(jvm.typeRef(type)).ignoreBound(),
             type.getSimpleName(),
             paramNamesToTypes,
             paramNames,

@@ -46,7 +46,7 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
 
 
     public Behaviour(
-        AgentEnv<? extends A, SideEffectsFlag.AnySideEffectFlag> _agentEnv
+        AgentEnv<? extends A, ? extends SideEffectsFlag.WithSideEffects> _agentEnv
     ) {
         super(_agentEnv.getAgent());
         this.macroState = MacroState.NOT_ACTIVE;

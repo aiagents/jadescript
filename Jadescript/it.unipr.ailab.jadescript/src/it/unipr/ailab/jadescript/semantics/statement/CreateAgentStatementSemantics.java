@@ -13,6 +13,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
@@ -152,6 +153,7 @@ public class CreateAgentStatementSemantics
                     .map(JvmFormalParameter::getParameterType)
                     .filter(Objects::nonNull)
                     .map(agentNamespace::resolveType)
+                    .map(TypeArgument::ignoreBound)
                     .collect(Collectors.toList());
 
             module.get(ValidationHelper.class).asserting(
@@ -189,6 +191,7 @@ public class CreateAgentStatementSemantics
                         .map(JvmFormalParameter::getParameterType)
                         .filter(Objects::nonNull)
                         .map(agentNamespace::resolveType)
+                        .map(TypeArgument::ignoreBound)
                         .collect(Collectors.toList());
 
                 module.get(ValidationHelper.class).asserting(
@@ -243,6 +246,7 @@ public class CreateAgentStatementSemantics
                     .map(JvmFormalParameter::getParameterType)
                     .filter(Objects::nonNull)
                     .map(agentNamespace::resolveType)
+                    .map(TypeArgument::ignoreBound)
                     .collect(Collectors.toList());
 
 
@@ -293,9 +297,11 @@ public class CreateAgentStatementSemantics
                         return false;
                     }
                     final IJadescriptType param0Type =
-                        searcher.resolveType(param0.getParameterType());
+                        searcher.resolveType(param0.getParameterType())
+                            .ignoreBound();
                     final IJadescriptType param1Type =
-                        searcher.resolveType(param1.getParameterType());
+                        searcher.resolveType(param1.getParameterType())
+                            .ignoreBound();
                     return jvm.isAssignable(
                         jvm.typeRef(ContainerController.class),
                         param0Type.asJvmTypeReference(),

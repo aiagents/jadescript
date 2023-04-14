@@ -19,6 +19,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.SEMode;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.maybe.Maybe;
@@ -119,9 +120,11 @@ public class MemberOperationSemantics
                         typeHelper.covariant(
                             contextAgent.orElse(builtins.agent())
                         ),
-                        typeSolver.fromClass(AgentEnvType.toSEModeClass(
-                            AgentEnvType.SEMode.WITH_SE
-                        ))
+                        typeHelper.covariant(
+                            typeSolver.fromClass(
+                                AgentEnvType.toSEModeClass(SEMode.WITH_SE)
+                            )
+                        )
                     ).asJvmTypeReference()
                 ));
 

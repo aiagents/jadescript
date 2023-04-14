@@ -23,7 +23,6 @@ import static it.unipr.ailab.maybe.utils.LazyInit.lazyInit;
 
 public class TypeLatticeComputer {
 
-    private final SemanticsModule module;
     private final LazyInit<TypeComparator> comparator;
     private final LazyInit<BuiltinTypeProvider> builtins;
     private final LazyInit<JvmTypeHelper> jvm;
@@ -31,7 +30,6 @@ public class TypeLatticeComputer {
 
 
     public TypeLatticeComputer(SemanticsModule module) {
-        this.module = module;
         this.comparator = lazyInit(() -> {
             return module.get(TypeComparator.class);
         });
@@ -187,7 +185,7 @@ public class TypeLatticeComputer {
                 )) {
                     return solver.get().fromJvmTypeReference(
                         candidateCommonParent
-                    );
+                    ).ignoreBound();
                 }
             }
         }

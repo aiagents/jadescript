@@ -123,8 +123,9 @@ public class BaseBehaviourType
     private final LazyInit<BehaviourTypeNamespace> namespace
         = lazyInit(() -> {
 
-        final BuiltinTypeProvider builtins = module.get(
-            BuiltinTypeProvider.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
         return new BehaviourTypeNamespace(
             BaseBehaviourType.this.module,
             BaseBehaviourType.this,

@@ -97,7 +97,7 @@ public class OntologyElementConstructor implements GlobalCallable {
             }
 
             final IJadescriptType solvedType =
-                jvmTypeNamespace.resolveType(paramTypeRef);
+                jvmTypeNamespace.resolveType(paramTypeRef).ignoreBound();
 
             final TypeComparator comparator = module.get(TypeComparator.class);
 
@@ -114,7 +114,7 @@ public class OntologyElementConstructor implements GlobalCallable {
             operation.getSimpleName(),
             new LazyInit<>(() -> jvmTypeNamespace.resolveType(
                 operation.getReturnType()
-            )),
+            ).ignoreBound()),
             paramNamesToTypes,
             paramNames,
             location == null

@@ -8,10 +8,8 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.maybe.Functional;
@@ -106,7 +104,8 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
                     final IJadescriptType firstParamType =
                         jvmTypeNamespace.resolveType(
                             parameters.get(0).getParameterType()
-                        );
+                        ).ignoreBound();
+
                     return TypeRelationshipQuery.superTypeOrEqual().matches(
                         comparator.compare(
                             builtins.anyAgentEnv(),
@@ -172,7 +171,7 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
                     final IJadescriptType firstParamType =
                         jvmTypeNamespace.resolveType(
                             parameters.get(0).getParameterType()
-                        );
+                        ).ignoreBound();
 
                     return TypeRelationshipQuery.superTypeOrEqual().matches(
                         comparator.compare(
@@ -199,7 +198,8 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
                     || searchedName.equals(f.getSimpleName()))
                 .flatMap(f -> {
                     final IJadescriptType resolvedType =
-                        jvmTypeNamespace.resolveType(f.getType());
+                        jvmTypeNamespace.resolveType(f.getType())
+                            .ignoreBound();
                     String name = f.getSimpleName();
 
                     boolean hasGetter = jvmTypeNamespace.searchJvmOperation()
@@ -209,7 +209,7 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
                                 comparator.compare(
                                     jvmTypeNamespace.resolveType(
                                         o.getReturnType()
-                                    ),
+                                    ).ignoreBound(),
                                     resolvedType
                                 )
                             )
@@ -248,7 +248,7 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
                                 comparator.compare(
                                     jvmTypeNamespace.resolveType(
                                         param.getParameterType()
-                                    ),
+                                    ).ignoreBound(),
                                     resolvedType
                                 )
                             );

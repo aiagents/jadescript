@@ -49,6 +49,7 @@ public class ParametricTypeSchema<T extends IJadescriptType> {
     private void stateCheckAndUpdate(int newState) {
 
 
+
         if (newState < this.state) {
             throw new IllegalStateException(
                 "Invalid order of specification in building a Jadescript " +

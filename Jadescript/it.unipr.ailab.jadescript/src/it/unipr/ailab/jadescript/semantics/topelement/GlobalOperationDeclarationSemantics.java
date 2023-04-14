@@ -26,13 +26,14 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.SEMode;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
-import jade.content.onto.Ontology;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmMember;
@@ -43,7 +44,7 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
 import java.util.*;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nothing;
 
 /**
  * Created on 2019-05-13.
@@ -173,8 +174,10 @@ public class GlobalOperationDeclarationSemantics
                 Maybe<JvmTypeReference> ontologyTypeRef = ontologies.get(i);
                 IJadescriptType ontology = ontologyTypeRef
                     .__(typeSolver::fromJvmTypeReference)
-                    .orElse(builtins.any("No used ontology " +
-                        "provided."));
+                    .__(TypeArgument::ignoreBound)
+                    .orElse(builtins.any(
+                        "No used ontology provided."
+                    ));
 
 
                 validationHelper.assertExpectedType(
@@ -336,9 +339,11 @@ public class GlobalOperationDeclarationSemantics
                             typeHelper.covariant(
                                 contextAgent.orElse(builtins.agent())
                             ),
-                            typeSolver.fromClass(AgentEnvType.toSEModeClass(
-                                AgentEnvType.SEMode.WITH_SE
-                            ))
+                            typeHelper.covariant(
+                                typeSolver.fromClass(
+                                    AgentEnvType.toSEModeClass(SEMode.WITH_SE)
+                                )
+                            )
                         ).asJvmTypeReference()
                     ));
 

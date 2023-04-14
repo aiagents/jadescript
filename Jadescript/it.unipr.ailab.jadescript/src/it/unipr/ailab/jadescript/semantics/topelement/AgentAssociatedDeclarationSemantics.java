@@ -49,7 +49,7 @@ public interface AgentAssociatedDeclarationSemantics<T> {
                 SemanticsConsts.AGENT_ENV,
                 builtins.agentEnv(
                     agentType,
-                    builtins.anySE()
+                    builtins.seModeBottom()
                 ).asJvmTypeReference(),
                 itField -> {
                     itField.setVisibility(JvmVisibility.PRIVATE);

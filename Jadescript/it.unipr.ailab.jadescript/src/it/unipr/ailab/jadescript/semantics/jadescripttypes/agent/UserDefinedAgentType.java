@@ -65,7 +65,8 @@ public class UserDefinedAgentType
         if (type instanceof JvmDeclaredType) {
             final IJadescriptType result =
                 module.get(TypeSolver.class).fromJvmTypeReference(
-                    ((JvmDeclaredType) type).getExtendedClass());
+                    ((JvmDeclaredType) type).getExtendedClass()
+                ).ignoreBound();
             if (result instanceof AgentType) {
                 return ((AgentType) result);
             }

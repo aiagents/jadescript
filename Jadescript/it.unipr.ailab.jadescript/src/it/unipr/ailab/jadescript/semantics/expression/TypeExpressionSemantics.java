@@ -155,7 +155,8 @@ public final class TypeExpressionSemantics extends Semantics {
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
         final IJadescriptType jdType =
-            typeSolver.fromJvmTypeReference(jvmtype.toNullable());
+            typeSolver.fromJvmTypeReference(jvmtype.toNullable())
+                .ignoreBound();
         boolean result = validationHelper.assertTypeReferable(
             input,
             "Invalid type reference",
@@ -171,7 +172,8 @@ public final class TypeExpressionSemantics extends Semantics {
                     // Search only local on purpose.
                     .getMetadataMethod()
                     .map(JvmOperation::getReturnType)
-                    .map(jvmNamespace::resolveType);
+                    .map(jvmNamespace::resolveType)
+                    .map(TypeArgument::ignoreBound);
 
             if (declaringOntology.isPresent()) {
                 IJadescriptType ontoType = declaringOntology.get();
@@ -240,7 +242,7 @@ public final class TypeExpressionSemantics extends Semantics {
             final ValidationHelper validationHelper = module.get(
                 ValidationHelper.class);
 
-            IJadescriptType agentType =
+            TypeArgument agentType =
                 getAgentArgumentType(builtinHierarchicType);
             final boolean expectedTypeValidation =
                 validationHelper.assertExpectedType(
@@ -308,13 +310,13 @@ public final class TypeExpressionSemantics extends Semantics {
     }
 
 
-    private IJadescriptType getAgentArgumentType(
+    private TypeArgument getAgentArgumentType(
         @NotNull Maybe<BuiltinHierarchicType> bhType
     ) {
         final TypeSolver typeSolver = module.get(TypeSolver.class);
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
-        IJadescriptType agentType = builtins.agent();
+        TypeArgument agentType = builtins.agent();
         if (bhType.__(BuiltinHierarchicType::isFor).orElse(false)) {
             final Maybe<JvmTypeReference> agentArgumentRef =
                 bhType.__(BuiltinHierarchicType::getArgumentAgentRef);
@@ -479,8 +481,9 @@ public final class TypeExpressionSemantics extends Semantics {
         return input
             .__(TypeExpression::getJvmType)
             .__(typeSolver::fromJvmTypeReference)
-            .orElse(builtins.any("Could not resolve type from " +
-                "type expression."));
+            .__(TypeArgument::ignoreBound)
+            .orElse(builtins.any(
+                "Could not resolve type from type expression."));
     }
 
 

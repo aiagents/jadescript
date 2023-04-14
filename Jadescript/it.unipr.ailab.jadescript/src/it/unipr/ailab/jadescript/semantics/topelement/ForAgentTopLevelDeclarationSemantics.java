@@ -11,15 +11,13 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDeclaration;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
-import jadescript.core.behaviours.Base;
-import jadescript.util.Util;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.EReference;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmMember;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -81,6 +79,7 @@ public abstract class ForAgentTopLevelDeclarationSemantics<T extends ForElement>
     private IJadescriptType getDeclaredAssociatedAgentType(Maybe<T> input) {
         return input.__(ForElement::getAgent)
             .__(module.get(TypeSolver.class)::fromJvmTypeReference)
+            .__(TypeArgument::ignoreBound)
             .orElseGet(() -> module.get(BuiltinTypeProvider.class).agent());
     }
 
@@ -94,7 +93,9 @@ public abstract class ForAgentTopLevelDeclarationSemantics<T extends ForElement>
         EList<JvmMember> members,
         JvmDeclaredType itClass
     ) {
-        if (input == null) return;
+        if (input == null) {
+            return;
+        }
         populateAgentAssociatedMembers(input, members, module, null);
 
         super.populateMainMembers(input, members, itClass);

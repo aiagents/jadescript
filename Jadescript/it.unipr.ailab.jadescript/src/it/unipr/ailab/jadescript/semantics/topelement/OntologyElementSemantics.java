@@ -91,7 +91,8 @@ public class OntologyElementSemantics extends Semantics {
             // ... and it has an explicit supertype ...
             && superTypeExpr.isPresent()) {
             final IJadescriptType superType =
-                typeSolver.fromJvmTypeReference(superTypeExpr.toNullable());
+                typeSolver.fromJvmTypeReference(superTypeExpr.toNullable())
+                    .ignoreBound();
 
             // ... and the supertype is a OntoContentType
             //     (added just for cast safety) ...
@@ -113,7 +114,8 @@ public class OntologyElementSemantics extends Semantics {
             // ... and it has an explicit supertype ...
             && superTypeExpr.isPresent()) {
             final IJadescriptType superType =
-                typeSolver.fromJvmTypeReference(superTypeExpr.toNullable());
+                typeSolver.fromJvmTypeReference(superTypeExpr.toNullable())
+                    .ignoreBound();
 
             // ... and the supertype is a OntoContentType
             //     (added just for cast safety) ...
@@ -160,6 +162,7 @@ public class OntologyElementSemantics extends Semantics {
             superTypeExpr
                 .__(st -> (JvmTypeReference) st)
                 .__(typeSolver::fromJvmTypeReference)
+                .__(TypeArgument::ignoreBound)
                 .orElse(builtins.any("")),
             "InvalidOntologyElementSupertype",
             superTypeExpr,

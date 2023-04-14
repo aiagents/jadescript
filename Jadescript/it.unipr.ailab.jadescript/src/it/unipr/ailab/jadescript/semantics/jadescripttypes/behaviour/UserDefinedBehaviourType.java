@@ -90,7 +90,7 @@ public class UserDefinedBehaviourType
             final IJadescriptType result = module.get(TypeSolver.class)
                 .fromJvmTypeReference(
                     ((JvmDeclaredType) type).getExtendedClass()
-                );
+                ).ignoreBound();
             if (result instanceof BehaviourType) {
                 return ((BehaviourType) result);
             }

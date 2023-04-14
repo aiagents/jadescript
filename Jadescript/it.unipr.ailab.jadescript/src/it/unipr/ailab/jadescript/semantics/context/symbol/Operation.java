@@ -137,7 +137,7 @@ public class Operation implements MemberCallable {
 
             if (paramName.equals(SemanticsConsts.AGENT_ENV)) {
                 final IJadescriptType envType =
-                    namespace.resolveType(paramTypeRef);
+                    namespace.resolveType(paramTypeRef).ignoreBound();
 
                 if(envType instanceof AgentEnvType){
                     withoutSideEffects =
@@ -148,7 +148,7 @@ public class Operation implements MemberCallable {
             }
 
             final IJadescriptType solvedType =
-                namespace.resolveType(paramTypeRef);
+                namespace.resolveType(paramTypeRef).ignoreBound();
             final TypeComparator comparator = module.get(TypeComparator.class);
             if (comparator.compare(anyAE, solvedType).is(superTypeOrEqual())) {
                 continue;
@@ -160,7 +160,7 @@ public class Operation implements MemberCallable {
 
 
         return new Operation(
-            namespace.resolveType(operation.getReturnType()),
+            namespace.resolveType(operation.getReturnType()).ignoreBound(),
             operation.getSimpleName(),
             paramNamesToTypes,
             paramNames,

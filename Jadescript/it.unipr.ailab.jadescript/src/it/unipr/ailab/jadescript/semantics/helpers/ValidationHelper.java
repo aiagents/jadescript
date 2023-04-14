@@ -21,7 +21,9 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;
@@ -33,6 +35,7 @@ import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
@@ -399,17 +402,31 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
+
     public boolean assertExpectedType(
-        IJadescriptType expected,
-        IJadescriptType actual,
+        TypeArgument expected,
+        TypeArgument actual,
         String issueCode,
         Maybe<? extends EObject> object,
         ValidationMessageAcceptor acceptor
     ) {
-        expected = expected.postResolve();
+        expected = expected instanceof IJadescriptType
+            ? ((IJadescriptType) expected).postResolve()
+            : expected;
+
         final TypeComparator comparator = module.get(TypeComparator.class);
+        final TypeRelationship result;
+        if(expected instanceof IJadescriptType
+            && actual instanceof IJadescriptType){
+            result = comparator.compare(
+                (IJadescriptType) expected,
+                (IJadescriptType) actual
+            );
+        }else {
+            result = comparator.compareTypeArguments(expected, actual);
+        }
         return asserting(
-            comparator.compare(expected, actual).is(superTypeOrEqual()),
+            result.is(superTypeOrEqual()),
             issueCode,
             "Invalid type; found: '" + actual.getFullJadescriptName() +
                 "'; expected: '" + expected.getFullJadescriptName() +
@@ -445,6 +462,24 @@ public class ValidationHelper implements SemanticsConsts {
         Maybe<? extends EObject> object,
         ValidationMessageAcceptor acceptor
     ) {
+        return assertExpectedTypesAny(
+            alternatives,
+            actual,
+            issueCode,
+            object,
+            null,
+            acceptor
+        );
+    }
+
+    public boolean assertExpectedTypesAny(
+        List<IJadescriptType> alternatives,
+        IJadescriptType actual,
+        String issueCode,
+        Maybe<? extends EObject> object,
+        @Nullable EStructuralFeature feature,
+        ValidationMessageAcceptor acceptor
+    ) {
         if (alternatives == null || alternatives.isEmpty()) {
             return VALID;
         }
@@ -459,6 +494,7 @@ public class ValidationHelper implements SemanticsConsts {
             issueCode,
             multiInvalidTypeMessage(alternatives, actual),
             object,
+            feature,
             acceptor
         );
     }
@@ -671,7 +707,7 @@ public class ValidationHelper implements SemanticsConsts {
         String issueCode,
         String description,
         Maybe<? extends EObject> object,
-        EStructuralFeature feature,
+        @Nullable EStructuralFeature feature,
         int index,
         ValidationMessageAcceptor acceptor
     ) {
@@ -696,7 +732,7 @@ public class ValidationHelper implements SemanticsConsts {
         String issueCode,
         String description,
         Maybe<? extends EObject> object,
-        EStructuralFeature feature,
+        @Nullable EStructuralFeature feature,
         ValidationMessageAcceptor acceptor
     ) {
         return asserting(

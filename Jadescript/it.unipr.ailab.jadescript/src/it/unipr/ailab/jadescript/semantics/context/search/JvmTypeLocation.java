@@ -33,13 +33,13 @@ public class JvmTypeLocation extends FQNameLocation {
             return typeSolver.fromJvmTypeReference(
                 ((Either.Left<JvmTypeReference, JvmType>)
                     jvmTypeRepresentation).getLeft()
-            );
+            ).ignoreBound();
         } else if (jvmTypeRepresentation instanceof Either.Right) {
             return typeSolver.fromJvmTypeReference(
                 jvm.typeRef(((Either.Right<JvmTypeReference, JvmType>)
                     jvmTypeRepresentation).getRight()
                 )
-            );
+            ).ignoreBound();
         } else {
             //Impossible to reach this, by Either's contract.
             //noinspection ReturnOfNull

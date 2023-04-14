@@ -15,12 +15,15 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.UtilityType;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.utils.LazyInit;
 import org.eclipse.xtext.common.types.JvmTypeReference;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship.*;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public class TypeComparator {
@@ -70,7 +73,7 @@ public class TypeComparator {
         IJadescriptType type1,
         IJadescriptType type2
     ) {
-        return TypeRelationshipQuery.superTypeOrEqual()
+        return superTypeOrEqual()
             .matches(compare(type1, type2));
     }
 
@@ -79,7 +82,7 @@ public class TypeComparator {
         IJadescriptType target
     ) {
         if (rawEquals(target, any.get())) {
-            return TypeRelationship.equal();
+            return equal();
         }
 
         return TypeRelationship.superType(); // ANY > everything else
@@ -90,7 +93,7 @@ public class TypeComparator {
         IJadescriptType target
     ) {
         if (rawEquals(target, nothing.get())) {
-            return TypeRelationship.equal();
+            return equal();
         }
 
         return TypeRelationship.subType(); // NOTHING < everything else
@@ -101,7 +104,7 @@ public class TypeComparator {
         IJadescriptType subject
     ) {
         if (rawEquals(subject, any.get())) {
-            return TypeRelationship.equal();
+            return equal();
         }
 
         return TypeRelationship.subType(); // everything else < ANY
@@ -112,7 +115,7 @@ public class TypeComparator {
         IJadescriptType subject
     ) {
         if (rawEquals(subject, nothing.get())) {
-            return TypeRelationship.equal();
+            return equal();
         }
 
         return TypeRelationship.superType(); // everything else > NOTHING
@@ -137,7 +140,7 @@ public class TypeComparator {
         );
 
         if (supOrEq && subOrEq) {
-            return TypeRelationship.equal();
+            return equal();
         } else if (supOrEq) {
             return TypeRelationship.superType();
         } else if (subOrEq) {
@@ -184,7 +187,7 @@ public class TypeComparator {
         final boolean targetIsSuper = rawEquals(target, superType);
 
         if (subjectIsSuper && targetIsSuper) {
-            return some(TypeRelationship.equal());
+            return some(equal());
         }
 
 
@@ -247,7 +250,7 @@ public class TypeComparator {
     }
 
 
-    private TypeRelationship typeArgumentCompare(
+    public TypeRelationship compareTypeArguments(
         TypeArgument subjectArgument,
         TypeArgument targetArgument
     ) {
@@ -273,7 +276,7 @@ public class TypeComparator {
 
         if (TypeRelationshipQuery.equal().matches(compareArgs)) {
             if (subjectVariance == targetVariance) {
-                return TypeRelationship.equal();
+                return equal();
             }
             if (subjectVariance == BoundedTypeArgument.Variance.INVARIANT) {
                 return TypeRelationship.subType();
@@ -341,6 +344,72 @@ public class TypeComparator {
     }
 
 
+    private Maybe<TypeRelationship> diamondTetralattice(
+        IJadescriptType top,
+        IJadescriptType bottom,
+        IJadescriptType subject,
+        IJadescriptType target,
+        @Nullable Predicate<IJadescriptType> membership
+    ) {
+        // A diamond tetralattice is a sublattice of type lattice made of 4
+        // types. The Hasse diagram of this lattice looks like this:
+        /*
+            T
+           / \
+          X   Y
+           \ /
+            B
+         */
+        final boolean subjectIsTop = rawEquals(top, subject);
+        final boolean subjectIsBottom = rawEquals(bottom, subject);
+        final boolean targetIsTop = rawEquals(top, target);
+        final boolean targetIsBottom = rawEquals(bottom, target);
+
+        if (subjectIsTop && targetIsTop) {
+            return some(equal());
+        }
+
+        if (subjectIsBottom && targetIsBottom) {
+            return some(equal());
+        }
+
+        final boolean subjectIsMember;
+        final boolean targetIsMember;
+
+        if (membership == null) {
+            subjectIsMember = subjectIsTop || subjectIsBottom
+                || compareRaw(top, subject).is(superTypeOrEqual());
+            targetIsMember = targetIsTop || targetIsBottom
+                || compareRaw(top, target).is(superTypeOrEqual());
+        } else {
+            subjectIsMember = subjectIsTop || subjectIsBottom
+                || membership.test(subject);
+            targetIsMember = targetIsTop || targetIsBottom
+                || membership.test(target);
+        }
+
+        if (subjectIsMember!=targetIsMember) {
+            return some(notRelated());
+        }
+
+        if(!subjectIsMember/* || !targetIsMember <- assumed*/){
+            return Maybe.nothing();
+        }
+
+        // Assuming both members & distinct
+        if(subjectIsTop || targetIsBottom){
+            return some(superType());
+        }
+
+        if(subjectIsBottom || targetIsTop){
+            return some(subType());
+        }
+
+        // Assuming both members, distinct, and different from top and bottom
+        return some(notRelated());
+    }
+
+
     private Maybe<TypeRelationship> listCheck(
         IJadescriptType subject,
         IJadescriptType target,
@@ -350,10 +419,10 @@ public class TypeComparator {
         final boolean targetIsList = target.category().isList();
         if (subjectIsList && targetIsList) {
             if (rawComparison) {
-                return some(TypeRelationship.equal());
+                return some(equal());
             }
 
-            return some(typeArgumentCompare(
+            return some(compareTypeArguments(
                 ((ListType) subject).getElementType(),
                 ((ListType) target).getElementType()
             ));
@@ -376,7 +445,7 @@ public class TypeComparator {
         final boolean targetIsMap = target.category().isMap();
         if (subjectIsMap && targetIsMap) {
             if (rawComparison) {
-                return some(TypeRelationship.equal());
+                return some(equal());
             }
 
             TypeArgument subjectKeyType = ((MapType) subject).getKeyType();
@@ -384,12 +453,12 @@ public class TypeComparator {
             TypeArgument targetKeyType = ((MapType) target).getKeyType();
             TypeArgument targetValueType = ((MapType) target).getValueType();
 
-            final TypeRelationship keyCompare = typeArgumentCompare(
+            final TypeRelationship keyCompare = compareTypeArguments(
                 subjectKeyType,
                 targetKeyType
             );
 
-            final TypeRelationship valueCompare = typeArgumentCompare(
+            final TypeRelationship valueCompare = compareTypeArguments(
                 subjectValueType,
                 targetValueType
             );
@@ -425,7 +494,7 @@ public class TypeComparator {
             }
 
             if (bothSuperOrEqual && bothSubOrEqual) {
-                return some(TypeRelationship.equal());
+                return some(equal());
             }
 
             if (bothSuperOrEqual) {
@@ -457,10 +526,10 @@ public class TypeComparator {
         final boolean targetIsSet = target.category().isSet();
         if (subjectIsSet && targetIsSet) {
             if (rawComparison) {
-                return some(TypeRelationship.equal());
+                return some(equal());
             }
 
-            return some(typeArgumentCompare(
+            return some(compareTypeArguments(
                 ((SetType) subject).getElementType(),
                 ((SetType) target).getElementType()
             ));
@@ -524,7 +593,7 @@ public class TypeComparator {
                     subSup.get()
                 );
 
-            if (TypeRelationshipQuery.superTypeOrEqual().matches(subSupRaw)) {
+            if (superTypeOrEqual().matches(subSupRaw)) {
                 return TypeRelationship.superType();
             }
         }
@@ -546,14 +615,14 @@ public class TypeComparator {
         int argSize = subjectArguments.size();
 
         if (argSize == 0) {
-            return TypeRelationship.equal();
+            return equal();
         }
 
         boolean allSuperOrEqual = true;
         boolean allSubOrEqual = true;
 
         for (int i = 0; i < argSize; i++) {
-            final TypeRelationship compare = typeArgumentCompare(
+            final TypeRelationship compare = compareTypeArguments(
                 subjectArguments.get(i),
                 targetArguments.get(i)
             );
@@ -570,7 +639,7 @@ public class TypeComparator {
         }
 
         if (allSuperOrEqual && allSubOrEqual) {
-            return TypeRelationship.equal();
+            return equal();
         }
 
         if (allSuperOrEqual) {
@@ -608,7 +677,7 @@ public class TypeComparator {
             // A raw-comparison of tuple types requires at least that the number
             // of arguments is the same.
             if (rawComparison) {
-                return some(TypeRelationship.equal());
+                return some(equal());
             }
 
             int size = subjectElements.size();
@@ -618,7 +687,7 @@ public class TypeComparator {
             boolean allSubOrEqual = true;
 
             for (int i = 0; i < size; i++) {
-                final TypeRelationship compare = typeArgumentCompare(
+                final TypeRelationship compare = compareTypeArguments(
                     subjectElements.get(i),
                     targetElements.get(i)
                 );
@@ -635,7 +704,7 @@ public class TypeComparator {
             }
 
             if (allSuperOrEqual && allSubOrEqual) {
-                return some(TypeRelationship.equal());
+                return some(equal());
             }
 
             if (allSuperOrEqual) {
@@ -667,7 +736,7 @@ public class TypeComparator {
 
         if (subjectIsBT && targetIsBT) {
             if (rawEquals(subject, target)) {
-                return some(TypeRelationship.equal());
+                return some(equal());
             }
             return some(TypeRelationship.notRelated());
         }
@@ -691,6 +760,7 @@ public class TypeComparator {
             true
         );
     }
+
 
 
     /**
@@ -823,6 +893,18 @@ public class TypeComparator {
             return messageContentBranch.toNullable();
         }
 
+        final Maybe<TypeRelationship> seModeFlagSublattice =
+            diamondTetralattice(
+                builtins.get().seModeTop(),
+                builtins.get().seModeBottom(),
+                subject,
+                target,
+                x -> x.category().isSideEffectFlag()
+            );
+
+        if(seModeFlagSublattice.isPresent()){
+            return seModeFlagSublattice.toNullable();
+        }
 
         // Agent-env internal utility type
         final Maybe<TypeRelationship> agentEnvBranch =
@@ -882,7 +964,7 @@ public class TypeComparator {
 
 
         if (rawEquals(subject, target)) {
-            return TypeRelationship.equal();
+            return equal();
         }
 
         IJadescriptType finalSubject = subject;
@@ -905,8 +987,6 @@ public class TypeComparator {
     }
 
 
-
-
     private Maybe<TypeRelationship> checkOntology(
         IJadescriptType subject,
         IJadescriptType target
@@ -916,7 +996,7 @@ public class TypeComparator {
 
         if (subjectIsOnto && targetIsOnto) {
             if (rawEquals(subject, target)) {
-                return some(TypeRelationship.equal());
+                return some(equal());
             }
 
             OntologyType subjectOnto = ((OntologyType) subject);

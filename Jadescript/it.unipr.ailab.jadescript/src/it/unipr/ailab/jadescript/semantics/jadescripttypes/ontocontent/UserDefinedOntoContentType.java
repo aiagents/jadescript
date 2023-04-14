@@ -12,6 +12,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProv
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.UserDefinedOntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.JadescriptTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
@@ -93,6 +94,7 @@ public class UserDefinedOntoContentType
                 .filter(Objects::nonNull)
                 .map(JvmFormalParameter::getParameterType)
                 .map(jvmTypeNamespace::resolveType)
+                .map(TypeArgument::ignoreBound)
                 .allMatch(IJadescriptType::isSendable))
             //when empty, assume true; sometimes the metatadata method is
             // generated/visible later in the process
@@ -114,7 +116,8 @@ public class UserDefinedOntoContentType
 
         if (meta.isPresent()) {
             final IJadescriptType returnType =
-                jvmNamespace.resolveType(meta.get().getReturnType());
+                jvmNamespace.resolveType(meta.get().getReturnType())
+                    .ignoreBound();
 
             if (returnType instanceof OntologyType) {
                 return some(((OntologyType) returnType));
@@ -218,6 +221,7 @@ public class UserDefinedOntoContentType
                 extendedClass ->
                     module.get(TypeSolver.class)
                         .fromJvmTypeReference(extendedClass)
+                        .ignoreBound()
                         .namespace()
             );
         }

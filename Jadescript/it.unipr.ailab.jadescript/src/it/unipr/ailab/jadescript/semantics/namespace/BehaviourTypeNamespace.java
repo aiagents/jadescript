@@ -64,7 +64,8 @@ public class BehaviourTypeNamespace
             return namesFromJvm(jvmNamespace.get())
                 .memberNames(name);
         } else {
-            return Stream.empty();
+            return builtinProperties.stream()
+                .filter(bp -> name == null || name.equals(bp.name()));
         }
     }
 

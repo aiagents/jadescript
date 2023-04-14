@@ -20,6 +20,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.TupleType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsClassState;
 import it.unipr.ailab.maybe.Maybe;
@@ -141,6 +142,7 @@ public class OntologyDeclarationSemantics extends
                     .__partial2(EList::get, 0)
                     .__(st -> module.get(TypeSolver.class)
                         .fromJvmTypeReference(st))
+                    .__(TypeArgument::ignoreBound)
                     .orElse(builtins.any(
                         "Could not resolve ontology supertype."
                     )),

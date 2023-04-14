@@ -215,9 +215,9 @@ public class NativeCallSemantics
         List<IJadescriptType> argTypes
     ) {
         final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
-        int argsSize = argTypes.size();
         return candidates.filter(op -> {
             final EList<JvmFormalParameter> parameters = op.getParameters();
+            int argsSize = Math.min(argTypes.size(), parameters.size());
             for (int i = 0; i < argsSize; i++) {
                 if (!jvm.isAssignable(
                     parameters.get(i).getParameterType(),
@@ -409,6 +409,7 @@ public class NativeCallSemantics
                     .filter(Objects::nonNull)
                     .map(JvmFormalParameter::getParameterType)
                     .map(typeSolver::fromJvmTypeReference)
+                    .map(TypeArgument::ignoreBound)
                     .collect(Collectors.toList());
 
             adaptedArgs = compilationHelper.implicitConversionsOnRValueList(
@@ -543,6 +544,7 @@ public class NativeCallSemantics
         final Stream<JvmOperation> candidates =
             resolveCandidates(jvmNamespace, methodName, argsSize);
 
+        
         final Stream<JvmOperation> applicables =
             resolveApplicables(candidates, argTypes);
 
@@ -561,7 +563,7 @@ public class NativeCallSemantics
 
         return jvmNamespace.resolveType(
             mostSpecific.get(0).getReturnType()
-        );
+        ).ignoreBound();
     }
 
 
@@ -809,12 +811,13 @@ public class NativeCallSemantics
             argTypes
         ).collect(Collectors.toList());
 
+
         boolean thereAreApplicables = VALID;
 
         if (applicables.isEmpty()) {
             thereAreApplicables = validationHelper.emitError(
                 "InvalidNativeCall",
-                "Could not resolve method " + methodName + "(" +
+                "Could not find applicable method " + methodName + "(" +
                     argTypes.stream()
                         .map(TypeArgument::compileToJavaTypeReference)
                         .collect(Collectors.joining(", ")) +
@@ -881,6 +884,7 @@ public class NativeCallSemantics
                     .filter(Objects::nonNull)
                     .map(JvmFormalParameter::getParameterType)
                     .map(typeSolver::fromJvmTypeReference)
+                    .map(TypeArgument::ignoreBound)
                     .collect(Collectors.toList());
 
             int assumedSize = Math.min(paramTypes.size(), argsSize);

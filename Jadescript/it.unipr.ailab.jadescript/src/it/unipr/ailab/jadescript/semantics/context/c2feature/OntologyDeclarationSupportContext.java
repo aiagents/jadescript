@@ -165,7 +165,7 @@ public class OntologyDeclarationSupportContext
 
             final IJadescriptType superType = typeSolver.fromJvmTypeReference(
                 superOntology.toNullable()
-            );
+            ).ignoreBound();
 
             if (superType instanceof UserDefinedOntologyType
                 && isExtensionOfOntology(

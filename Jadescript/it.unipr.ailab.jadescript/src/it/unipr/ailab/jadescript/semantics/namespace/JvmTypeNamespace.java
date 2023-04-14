@@ -8,6 +8,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
@@ -25,11 +26,10 @@ import java.util.stream.Stream;
 public class JvmTypeNamespace implements Searcheable {
 
 
-
     private final SemanticsModule module;
     private final JvmDeclaredType jvmDeclaredType;
     private final boolean isGeneric;
-    private final LazyInit<Map<String, IJadescriptType>>
+    private final LazyInit<Map<String, TypeArgument>>
         typeParameterAssignments;
     private final Supplier<JvmTypeLocation> locationSupplier;
 
@@ -44,7 +44,7 @@ public class JvmTypeNamespace implements Searcheable {
         this.isGeneric = jvmDeclaredType instanceof JvmGenericType;
         this.typeParameterAssignments = new LazyInit<>(() -> {
             final TypeSolver typeSolver = module.get(TypeSolver.class);
-            final HashMap<String, IJadescriptType> result = new HashMap<>();
+            final HashMap<String, TypeArgument> result = new HashMap<>();
             if (isGeneric) {
                 JvmGenericType genericType = (JvmGenericType) jvmDeclaredType;
                 for (int i = 0; i < typeParameters.length; i++) {
@@ -116,6 +116,7 @@ public class JvmTypeNamespace implements Searcheable {
                 (JvmDeclaredType) reference.getType()
             );
         }
+
         return JvmTypeNamespace.unresolved(module, reference);
     }
 
@@ -146,7 +147,7 @@ public class JvmTypeNamespace implements Searcheable {
             final TypeSolver typeSolver = module.get(TypeSolver.class);
             final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
-            List<IJadescriptType> parentArguments = new ArrayList<>();
+            List<TypeArgument> parentArguments = new ArrayList<>();
             final JvmParameterizedTypeReference jvmPTR =
                 (JvmParameterizedTypeReference) jvmDeclaredType
                     .getExtendedClass();
@@ -156,10 +157,11 @@ public class JvmTypeNamespace implements Searcheable {
                 //if the current type reference is a parameter
                 // (for example, T) use the mapped reference, otherwise just
                 // use the current type reference.
-                parentArguments.add(typeParameterAssignments.get().getOrDefault(
-                    argument.getIdentifier(),
-                    typeSolver.fromJvmTypeReference(argument)
-                ));
+                parentArguments.add(typeParameterAssignments.get()
+                    .getOrDefault(
+                        argument.getIdentifier(),
+                        typeSolver.fromJvmTypeReference(argument)
+                    ));
             }
 
             return Maybe.some(resolve(
@@ -167,7 +169,7 @@ public class JvmTypeNamespace implements Searcheable {
                 jvm.typeRef(
                     jvmDeclaredType.getExtendedClass().getType(),
                     parentArguments.stream()
-                        .map(IJadescriptType::asJvmTypeReference)
+                        .map(TypeArgument::asJvmTypeReference)
                         .collect(Collectors.toList())
                 )
             ));
@@ -207,7 +209,7 @@ public class JvmTypeNamespace implements Searcheable {
     }
 
 
-    public IJadescriptType resolveType(JvmTypeReference ref) {
+    public TypeArgument resolveType(JvmTypeReference ref) {
 
         final TypeSolver typeSolver = module.get(TypeSolver.class);
         final BuiltinTypeProvider builtins =
@@ -216,7 +218,7 @@ public class JvmTypeNamespace implements Searcheable {
             return builtins.any("Tried to resolve a Jadescript " +
                 "type from a null JvmTypeReference.");
         } else {
-            final Map<String, IJadescriptType> assignments =
+            final Map<String, TypeArgument> assignments =
                 typeParameterAssignments.get();
             if (isGeneric && assignments.containsKey(ref.getIdentifier())) {
                 return assignments.get(ref.getIdentifier());
@@ -267,7 +269,7 @@ public class JvmTypeNamespace implements Searcheable {
             for (JvmFormalParameter parameter : parameters) {
                 result.put(
                     parameter.getName(),
-                    resolveType(parameter.getParameterType())
+                    resolveType(parameter.getParameterType()).ignoreBound()
                 );
             }
         });

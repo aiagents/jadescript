@@ -6,7 +6,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategory;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapter;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.EmptyTypeNamespace;
@@ -31,6 +30,7 @@ public class AgentEnvType extends JadescriptType {
     };
 
     private final TypeArgument forAgent;
+    private final TypeArgument seModeArgument;
     private final SEMode seMode;
 
 
@@ -46,22 +46,28 @@ public class AgentEnvType extends JadescriptType {
             "OTHER"
         );
         this.forAgent = forAgent;
+        this.seModeArgument = seMode;
         this.seMode = getFromTypeArgument(seMode);
     }
 
 
     public static SEMode getFromTypeArgument(TypeArgument seMode) {
+
+        if(seMode instanceof SideEffectFlagInternalType){
+            return ((SideEffectFlagInternalType) seMode).getMode();
+        }
+
         if (SideEffectsFlag.AnySideEffectFlag.class.getName()
-            .equals(seMode.compileToJavaTypeReference())) {
-            return SEMode.ANY;
+            .equals(seMode.ignoreBound().compileToJavaTypeReference())) {
+            return SEMode.BOTTOM;
         } else if (SideEffectsFlag.WithSideEffects.class.getName()
-            .equals(seMode.compileToJavaTypeReference())) {
+            .equals(seMode.ignoreBound().compileToJavaTypeReference())) {
             return SEMode.WITH_SE;
         } else if (SideEffectsFlag.NoSideEffects.class.getName()
-            .equals(seMode.compileToJavaTypeReference())) {
+            .equals(seMode.ignoreBound().compileToJavaTypeReference())) {
             return SEMode.NO_SE;
         } else {
-            return SEMode.ANY;
+            return SEMode.TOP;
         }
     }
 
@@ -72,9 +78,10 @@ public class AgentEnvType extends JadescriptType {
                 return SideEffectsFlag.WithSideEffects.class;
             case NO_SE:
                 return SideEffectsFlag.NoSideEffects.class;
-            default:
-            case ANY:
+            case BOTTOM:
                 return SideEffectsFlag.AnySideEffectFlag.class;
+            default:
+                return SideEffectsFlag.class;
         }
     }
 
@@ -101,8 +108,7 @@ public class AgentEnvType extends JadescriptType {
     public List<TypeArgument> typeArguments() {
         return List.of(
             this.forAgent,
-            module.get(TypeSolver.class)
-                .fromClass(toSEModeClass(this.seMode))
+            this.seModeArgument
         );
     }
 
@@ -111,23 +117,10 @@ public class AgentEnvType extends JadescriptType {
     public JvmTypeReference asJvmTypeReference() {
         final JvmTypeReferenceBuilder jtrb =
             module.get(JvmTypeReferenceBuilder.class);
-        Class<?> seModeClass;
-        switch (this.seMode) {
-            case ANY:
-                seModeClass = SideEffectsFlag.AnySideEffectFlag.class;
-                break;
-            case WITH_SE:
-                seModeClass = SideEffectsFlag.WithSideEffects.class;
-                break;
-            default:
-            case NO_SE:
-                seModeClass = SideEffectsFlag.NoSideEffects.class;
-                break;
-        }
         return jtrb.typeRef(
             AgentEnv.class,
             forAgent.asJvmTypeReference(),
-            jtrb.typeRef(seModeClass)
+            seModeArgument.asJvmTypeReference()
         );
     }
 
@@ -189,9 +182,5 @@ public class AgentEnvType extends JadescriptType {
         return module.get(EmptyTypeNamespace.class);
     }
 
-
-    public enum SEMode {
-        ANY, NO_SE, WITH_SE
-    }
 
 }

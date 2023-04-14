@@ -26,6 +26,7 @@ import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -443,6 +444,8 @@ public class UnaryPrefixExpressionSemantics
         if (unaryPrefixOp.isPresent()) {
             String op = unaryPrefixOp.orElse("");
 
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
             if (op.equals("+") || op.equals("-")) {
                 boolean subValidation = ones.validate(
                     ofNotation,
@@ -451,8 +454,11 @@ public class UnaryPrefixExpressionSemantics
                 );
 
                 if (subValidation == VALID) {
-                    return validationHelper.assertExpectedType(
-                        module.get(BuiltinTypeProvider.class).number(),
+                    return validationHelper.assertExpectedTypesAny(
+                        List.of(
+                            builtins.integer(),
+                            builtins.real()
+                        ),
                         inferredType,
                         "InvalidUnaryPrefix",
                         input,
@@ -469,7 +475,7 @@ public class UnaryPrefixExpressionSemantics
                 );
                 if (subValidation == VALID) {
                     return validationHelper.assertExpectedType(
-                        module.get(BuiltinTypeProvider.class).boolean_(),
+                        builtins.boolean_(),
                         inferredType,
                         "InvalidUnaryPrefix",
                         input,
