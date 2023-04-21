@@ -105,8 +105,8 @@ public class OnActivateHandlerSemantics
 
         itMethod.setVisibility(JvmVisibility.PUBLIC);
 
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
-        if (body.isPresent()) {
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
+        if (body.isPresent() && !body.toNullable().isNothing()) {
             module.get(CompilationHelper.class).createAndSetBody(
                 itMethod,
                 scb -> {
@@ -176,8 +176,8 @@ public class OnActivateHandlerSemantics
         );
         itMethod.setVisibility(JvmVisibility.PUBLIC);
 
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
-        if (body.isPresent()) {
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
+        if (body.isPresent() && !body.toNullable().isNothing()) {
             module.get(CompilationHelper.class).createAndSetBody(
                 itMethod,
                 scb -> {
@@ -209,16 +209,18 @@ public class OnActivateHandlerSemantics
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
     ) {
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
 
-        module.get(ContextManager.class).enterProceduralFeature(
+        final ContextManager contextManager = module.get(ContextManager.class);
+        contextManager.enterProceduralFeature(
             OnActivateHandlerContext::new);
 
         StaticState state = StaticState.beginningOfOperation(module);
 
-        module.get(BlockSemantics.class).validate(body, state, acceptor);
+        module.get(BlockSemantics.class)
+            .validateOptionalBlock(body, state, acceptor);
 
-        module.get(ContextManager.class).exit();
+        contextManager.exit();
     }
 
 

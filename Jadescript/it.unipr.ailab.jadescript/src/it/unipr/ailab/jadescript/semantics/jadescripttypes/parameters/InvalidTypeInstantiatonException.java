@@ -6,12 +6,4 @@ public class InvalidTypeInstantiatonException extends Exception {
         super(message);
     }
 
-
-    public InvalidTypeInstantiatonException(
-        String message,
-        Throwable cause
-    ) {
-        super(message, cause);
-    }
-
 }

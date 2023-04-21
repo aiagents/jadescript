@@ -89,10 +89,10 @@ public class OnCreateHandlerSemantics
             "__onCreate",
             jvm.typeRef(void.class),
             itMethod -> {
-                Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+                Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
                 itMethod.setVisibility(JvmVisibility.PRIVATE);
 
-                if (body.isNothing()) {
+                if (body.isNothing() || body.toNullable().isNothing()) {
                     compilationHelper.createAndSetBody(
                         itMethod,
                         scb -> scb.line("//do nothing;")
@@ -413,7 +413,7 @@ public class OnCreateHandlerSemantics
         }
 
 
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
         List<ActualParameter> extractedParameters = new ArrayList<>();
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
@@ -440,16 +440,19 @@ public class OnCreateHandlerSemantics
             }
         }
 
-        module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
+        final ContextManager contextManager = module.get(ContextManager.class);
+
+        contextManager.enterProceduralFeature((mod, out) ->
             new OnCreateHandlerContext(mod, out, extractedParameters));
 
         StaticState inBody = StaticState.beginningOfOperation(module);
 
         inBody = inBody.enterScope();
 
-        module.get(BlockSemantics.class).validate(body, inBody, acceptor);
+        module.get(BlockSemantics.class)
+            .validateOptionalBlock(body, inBody, acceptor);
 
-        module.get(ContextManager.class).exit();
+        contextManager.exit();
     }
 
 

@@ -191,7 +191,7 @@ public class OnNativeEventHandlerSemantics
         final Maybe<WhenExpression> whenBody =
             input.__(OnNativeEventHandler::getWhenBody);
 
-        final Maybe<CodeBlock> body =
+        final Maybe<OptionalBlock> body =
             input.__(FeatureWithBody::getBody);
         final Maybe<RValueExpression> whenExpr =
             whenBody.__(WhenExpression::getExpr);
@@ -466,10 +466,8 @@ public class OnNativeEventHandlerSemantics
         inBody = inBody.enterScope();
 
         final PSR<SourceCodeBuilder> bodyPSR =
-            module.get(CompilationHelper.class).compileBlockToNewSCB(
-                inBody,
-                body
-            );
+            module.get(CompilationHelper.class)
+                .compileBlockToNewSCB(inBody, body);
 
         final StatementWriter tryCatchWrappedBody =
             encloseInGeneralHandlerTryCatch(bodyPSR.result());
@@ -559,7 +557,7 @@ public class OnNativeEventHandlerSemantics
         Maybe<WhenExpression> whenBody =
             input.__(OnNativeEventHandler::getWhenBody);
 
-        final Maybe<CodeBlock> body =
+        final Maybe<OptionalBlock> body =
             input.__(FeatureWithBody::getBody);
         final Maybe<RValueExpression> whenExpr =
             whenBody.__(WhenExpression::getExpr);
@@ -704,11 +702,8 @@ public class OnNativeEventHandlerSemantics
             .copyInnermostContentFrom(preparedState);
 
         inBody = inBody.enterScope();
-        module.get(BlockSemantics.class).validate(
-            body,
-            inBody,
-            acceptor
-        );
+        module.get(BlockSemantics.class)
+            .validateOptionalBlock(body, inBody, acceptor);
 
 
         module.get(ContextManager.class).exit();

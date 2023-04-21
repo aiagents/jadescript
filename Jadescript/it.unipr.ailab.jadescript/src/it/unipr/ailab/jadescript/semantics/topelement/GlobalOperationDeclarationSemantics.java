@@ -56,7 +56,6 @@ public class GlobalOperationDeclarationSemantics
 
 
     //TODO implement nativeness
-
     private final Map<String, List<Maybe<GlobalFunctionOrProcedure>>>
         methodsMap = new HashMap<>();
     private final Map<String, Maybe<GlobalFunctionOrProcedure>>
@@ -257,7 +256,6 @@ public class GlobalOperationDeclarationSemantics
         JvmDeclaredType itClass
     ) {
         super.populateMainMembers(input, members, itClass);
-
     }
 
 
@@ -456,7 +454,7 @@ public class GlobalOperationDeclarationSemantics
         }
 
 
-        final Maybe<CodeBlock> body =
+        final Maybe<OptionalBlock> body =
             method.__(GlobalFunctionOrProcedure::getBody);
 
         if (body.isPresent()) {
@@ -485,7 +483,7 @@ public class GlobalOperationDeclarationSemantics
 
 
             final PSR<BlockWriter> bodyPSR =
-                blockSemantics.compile(body, inBody);
+                blockSemantics.compileOptionalBlock(body, inBody);
 
             bodyPSR.result().writeSonnet(scb);
         }

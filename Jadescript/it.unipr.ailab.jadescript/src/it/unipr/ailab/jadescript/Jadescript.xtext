@@ -32,18 +32,21 @@ TopElement:
  */
 NamedElement:
 	{NamedElement}
-	name=Identifier;
+	name=Identifier
+;
 
 FeatureContainer returns NamedElement:
 	{FeatureContainer}
-	features+=Feature;
+	features+=Feature
+;
 
 Feature:
 	{Feature};
 
 FeatureWithBody returns Feature:
 	{FeatureWithBody}
-	body=CodeBlock;
+	body=OptionalBlock
+;
 
 
 
@@ -159,7 +162,7 @@ GlobalFunctionOrProcedure returns UsesOntologyElement: {GlobalFunctionOrProcedur
 				| ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*))
 			)
 		)?
-		'do' body=CodeBlock
+		'do' body=OptionalBlock
 	) | (	
 		// Native Global Procedure	
 		native?='native' procedure?='procedure' name=Identifier
@@ -182,7 +185,7 @@ GlobalFunctionOrProcedure returns UsesOntologyElement: {GlobalFunctionOrProcedur
 				| ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*))
 			)
 		)?	
-		'do' body=CodeBlock
+		'do' body=OptionalBlock
 	)
 );
 
@@ -249,21 +252,21 @@ FunctionOrProcedure returns ParameterizedFeature:
 	')')?
 	'as' type=TypeExpression
 	'do'
-	body=CodeBlock)
+	body=OptionalBlock)
 	|
 	(procedure?='procedure' name=Identifier
 	('with'
 	(parameters+=FormalParameter
 	(',' parameters+=FormalParameter)*)?)?
 	'do'
-	body=CodeBlock));
+	body=OptionalBlock));
 
 
 OnMessageHandler returns FeatureWithBody:
 	{OnMessageHandler}(
 	'on' stale?='stale'? name='message' performative=Performative? pattern=Pattern?
 	('when' whenBody=WhenExpression)?
-	'do' (body=CodeBlock | nothing?='nothing')
+	'do' block=OptionalBlock
 	);
 	
 	
@@ -271,7 +274,7 @@ OnNativeEventHandler returns FeatureWithBody:
 	{OnNativeEventHandler}(
 	'on' stale?='stale'? name='native' pattern=Pattern?
 	('when' whenBody=WhenExpression)?
-	'do' (body=CodeBlock | nothing?='nothing')
+	'do' block=OptionalBlock
 	)
 ;
 	
@@ -279,32 +282,32 @@ OnCreateHandler returns FeatureWithBody:
 	{OnCreateHandler}(
 		'on' name='create'
 		('with' parameters+=FormalParameter (',' parameters+=FormalParameter)*)?
-		'do' (body=CodeBlock | nothing?='nothing')
+		'do' block=OptionalBlock
 		
 	)
 ;
 
 OnDestroyHandler returns FeatureWithBody:
 	{OnDestroyHandler} (
-		'on' name='destroy' 'do' (body=CodeBlock | nothing?='nothing')
+		'on' name='destroy' 'do' body=OptionalBlock
 	)
 ;
 
 OnActivateHandler returns FeatureWithBody:
 	{OnActivateHandler} (
-		'on' name='activate' 'do' (body=CodeBlock | nothing?='nothing')
+		'on' name='activate' 'do' body=OptionalBlock
 	)
 ;
 
 OnDeactivateHandler returns FeatureWithBody:
 	{OnDeactivateHandler} (
-		'on' name='deactivate' 'do' (body=CodeBlock | nothing?='nothing')
+		'on' name='deactivate' 'do' body=OptionalBlock
 	)
 ;
 
 OnExecuteHandler returns FeatureWithBody:
 	{OnExecuteHandler} (
-		'on' name='execute' 'do' (body=CodeBlock | nothing?='nothing')
+		'on' name='execute' 'do' body=OptionalBlock
 	)
 ;
 
@@ -312,14 +315,14 @@ OnExceptionHandler returns FeatureWithBody:
 	{OnExceptionHandler}(
 	'on' name='exception' pattern=Pattern?
 	('when' whenBody=WhenExpression)?
-	'do' (body=CodeBlock | nothing?='nothing')	
+	'do' block=OptionalBlock	
 	);
 
 OnBehaviourFailureHandler returns FeatureWithBody:
 	{OnBehaviourFailureHandler}(
 		'on' name='behaviour' 'failure' pattern=Pattern?
 		('when' whenBody=WhenExpression)?
-		'do' (body=CodeBlock | nothing?='nothing')
+		'do' block=OptionalBlock
 	);
 
 Concept returns FeatureWithSlots:

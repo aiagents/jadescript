@@ -865,22 +865,6 @@ public class TypeComparator {
         }
 
 
-        final Maybe<TypeRelationship> numberBranch =
-            checkIntensionalSupertypeRelationship(
-                builtins.get().number(),
-                subject,
-                target,
-                x -> {
-                    return rawEquals(x, builtins.get().integer())
-                        || rawEquals(x, builtins.get().real());
-                }
-            );
-
-        if (numberBranch.isPresent()) {
-            return numberBranch.toNullable();
-        }
-
-
         final Maybe<TypeRelationship> messageContentBranch =
             checkIntensionalSupertypeRelationship(
                 builtins.get().anyOntologyElement(),

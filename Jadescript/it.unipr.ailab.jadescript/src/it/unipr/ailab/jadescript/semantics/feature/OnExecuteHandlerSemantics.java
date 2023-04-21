@@ -1,9 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
-import it.unipr.ailab.jadescript.jadescript.CodeBlock;
-import it.unipr.ailab.jadescript.jadescript.FeatureContainer;
-import it.unipr.ailab.jadescript.jadescript.FeatureWithBody;
-import it.unipr.ailab.jadescript.jadescript.OnExecuteHandler;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -110,7 +107,7 @@ public class OnExecuteHandlerSemantics
         CompilationHelper compilationHelper,
         JvmOperation itMethod
     ) {
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
         compilationHelper.createAndSetBody(itMethod, scb -> {
             final ContextManager contextManager =
                 module.get(ContextManager.class);
@@ -124,9 +121,8 @@ public class OnExecuteHandlerSemantics
 
             final PSR<SourceCodeBuilder> blockPSR =
                 compilationHelper.compileBlockToNewSCB(state, body);
-            scb.add(encloseInGeneralHandlerTryCatch(
-                blockPSR.result()
-            ));
+
+            scb.add(encloseInGeneralHandlerTryCatch(blockPSR.result()));
 
             contextManager.exit();
 
@@ -140,7 +136,7 @@ public class OnExecuteHandlerSemantics
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
     ) {
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
         final ContextManager contextManager = module.get(ContextManager.class);
 
         contextManager
@@ -148,7 +144,8 @@ public class OnExecuteHandlerSemantics
 
         StaticState state = StaticState.beginningOfOperation(module);
 
-        module.get(BlockSemantics.class).validate(body, state, acceptor);
+        module.get(BlockSemantics.class)
+            .validateOptionalBlock(body, state, acceptor);
 
         contextManager.exit();
     }

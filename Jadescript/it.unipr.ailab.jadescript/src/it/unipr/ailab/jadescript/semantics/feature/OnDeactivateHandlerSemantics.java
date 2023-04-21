@@ -82,8 +82,8 @@ public class OnDeactivateHandlerSemantics
         );
         itMethod.setVisibility(JvmVisibility.PUBLIC);
 
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
-        if (body.isPresent()) {
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
+        if (body.isPresent() && !body.toNullable().isNothing()) {
             module.get(CompilationHelper.class).createAndSetBody(
                 itMethod,
                 scb -> {
@@ -118,14 +118,16 @@ public class OnDeactivateHandlerSemantics
         ValidationMessageAcceptor acceptor
     ) {
 
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
+
         module.get(ContextManager.class).enterProceduralFeature(
             OnDeactivateHandlerContext::new);
 
 
         StaticState state = StaticState.beginningOfOperation(module);
 
-        module.get(BlockSemantics.class).validate(body, state, acceptor);
+        module.get(BlockSemantics.class)
+            .validateOptionalBlock(body, state, acceptor);
 
         module.get(ContextManager.class).exit();
     }

@@ -194,7 +194,7 @@ public class OnExceptionHandlerSemantics
             input.__(OnExceptionHandler::getPattern);
         final Maybe<LValueExpression> pattern = contentPattern
             .__(x -> (LValueExpression) x);
-        final Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        final Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
 
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
@@ -417,7 +417,7 @@ public class OnExceptionHandlerSemantics
         Maybe<WhenExpression> whenBody =
             input.__(OnExceptionHandler::getWhenBody);
 
-        final Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        final Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
         final Maybe<RValueExpression> whenExpr =
             whenBody.__(WhenExpression::getExpr);
         final Maybe<LValueExpression> pattern = input
@@ -563,11 +563,8 @@ public class OnExceptionHandlerSemantics
 
         inBody = inBody.enterScope();
 
-        module.get(BlockSemantics.class).validate(
-            body,
-            inBody,
-            acceptor
-        );
+        module.get(BlockSemantics.class)
+            .validateOptionalBlock(body, inBody, acceptor);
 
         module.get(ContextManager.class).exit();
 

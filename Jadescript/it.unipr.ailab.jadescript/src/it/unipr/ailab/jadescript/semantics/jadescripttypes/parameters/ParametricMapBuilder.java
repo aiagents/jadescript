@@ -118,6 +118,8 @@ public abstract class ParametricMapBuilder<T extends IJadescriptType>
     }
 
 
+
+
     protected TypeArgument getArgument(FormalTypeParameter parameter)
         throws InvalidTypeInstantiatonException {
         if (!parameterArgumentMap.containsKey(parameter)) {
@@ -165,5 +167,12 @@ public abstract class ParametricMapBuilder<T extends IJadescriptType>
 
 
     public abstract T build() throws InvalidTypeInstantiatonException;
+
+
+    @Override
+    public abstract T instantiateErroneous(
+        List<? extends TypeArgument> arguments,
+        InvalidTypeInstantiatonException error
+    );
 
 }

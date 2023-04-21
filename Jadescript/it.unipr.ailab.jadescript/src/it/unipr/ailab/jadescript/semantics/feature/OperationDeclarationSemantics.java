@@ -1,7 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
-import it.unipr.ailab.jadescript.jadescript.CodeBlock;
 import it.unipr.ailab.jadescript.jadescript.FormalParameter;
+import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
@@ -34,8 +34,7 @@ import static it.unipr.ailab.maybe.Maybe.iterate;
 /**
  * Created on 2019-05-17.
  */
-public interface OperationDeclarationSemantics
-    extends SemanticsConsts {
+public interface OperationDeclarationSemantics extends SemanticsConsts {
 
 
     default void validateGenericFunctionOrProcedureOnSave(
@@ -43,7 +42,7 @@ public interface OperationDeclarationSemantics
         Maybe<String> name,
         Maybe<EList<FormalParameter>> parameters,
         Maybe<TypeExpression> type,
-        @SuppressWarnings("unused") Maybe<CodeBlock> body,
+        @SuppressWarnings("unused") Maybe<OptionalBlock> body,
         SemanticsModule module,
         @SuppressWarnings("unused") boolean isFunction,
         SearchLocation locationOfThis,
@@ -132,7 +131,7 @@ public interface OperationDeclarationSemantics
         Maybe<String> name,
         Maybe<EList<FormalParameter>> parameters,
         Maybe<TypeExpression> type,
-        Maybe<CodeBlock> body,
+        Maybe<OptionalBlock> body,
         SemanticsModule module,
         boolean isFunction,
         @SuppressWarnings("unused") SearchLocation locationOfThis,
@@ -251,32 +250,25 @@ public interface OperationDeclarationSemantics
 
         inBody = inBody.enterScope();
 
-        if (body.isPresent()) {
-            final StaticState endOfBody = blockSemantics.validate(
-                body,
-                inBody,
-                acceptor
-            );
 
-            validationHelper.asserting(
-                SemanticsUtils.implication(
-                    type.isPresent(),
-                    !endOfBody.isValid()
-                ),
-                "MissingReturnStatement",
-                "Functions must explicitly exit in their last statement (use " +
-                    "return or throw).",
-                type,
-                acceptor
-            );
-        } else {
-            validationHelper.emitError(
-                SemanticsConsts.ISSUE_CODE_PREFIX + "InvalidBody",
-                "The body of this function/procedure is not valid",
-                input,
-                acceptor
-            );
-        }
+        final StaticState endOfBody = blockSemantics.validateOptionalBlock(
+            body,
+            inBody,
+            acceptor
+        );
+
+        validationHelper.asserting(
+            SemanticsUtils.implication(
+                type.isPresent(),
+                !endOfBody.isValid()
+            ),
+            "MissingReturnStatement",
+            "Functions must explicitly exit in their last statement (use " +
+                "return or throw).",
+            type,
+            acceptor
+        );
+
 
         module.get(ContextManager.class).exit();
 

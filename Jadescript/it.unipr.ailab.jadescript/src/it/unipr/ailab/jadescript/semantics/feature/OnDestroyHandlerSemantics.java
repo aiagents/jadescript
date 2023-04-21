@@ -95,7 +95,7 @@ public class OnDestroyHandlerSemantics
         );
         itMethod.setVisibility(JvmVisibility.PROTECTED);
 
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
         module.get(CompilationHelper.class).createAndSetBody(
             itMethod,
             scb -> {
@@ -104,7 +104,7 @@ public class OnDestroyHandlerSemantics
                 scb.line("getContentManager()" +
                         ".registerLanguage(" + CODEC_VAR_NAME + ");")
                     .line();
-                if (!body.isPresent()) {
+                if (!body.isPresent() || body.toNullable().isNothing()) {
                     scb.line("//do nothing;");
                     return;
                 }
@@ -170,12 +170,12 @@ public class OnDestroyHandlerSemantics
         );
         itMethod.setVisibility(JvmVisibility.PROTECTED);
 
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
 
         module.get(CompilationHelper.class).createAndSetBody(
             itMethod,
             scb -> {
-                if (body.isPresent()) {
+                if (body.isPresent() && !body.toNullable().isNothing()) {
                     w.callStmnt("super.doOnDestroy").writeSonnet(scb);
                     scb.line("//do nothing;");
                     return;
@@ -208,14 +208,15 @@ public class OnDestroyHandlerSemantics
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
     ) {
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
 
         module.get(ContextManager.class)
             .enterProceduralFeature(OnDestroyHandlerContext::new);
 
         StaticState state = StaticState.beginningOfOperation(module);
 
-        module.get(BlockSemantics.class).validate(body, state, acceptor);
+        module.get(BlockSemantics.class)
+            .validateOptionalBlock(body, state, acceptor);
 
         module.get(ContextManager.class).exit();
     }

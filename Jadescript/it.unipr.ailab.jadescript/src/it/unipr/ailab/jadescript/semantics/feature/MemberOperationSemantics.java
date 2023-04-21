@@ -164,7 +164,7 @@ public class MemberOperationSemantics
                 }
 
 
-                Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+                Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
 
                 final CompilationHelper compilationHelper =
                     module.get(CompilationHelper.class);
@@ -208,6 +208,7 @@ public class MemberOperationSemantics
                     inBody = inBody.enterScope();
 
                     final PSR<SourceCodeBuilder> bodyPSR =
+
                         compilationHelper.compileBlockToNewSCB(inBody, body);
 
                     scb.add(bodyPSR.result());

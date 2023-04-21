@@ -8,7 +8,6 @@ import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.InvalidTypeInstantiatonException;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.ImportedMembersNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithMembers;
@@ -94,13 +93,10 @@ public class OnMessageHandlerWhenExpressionContext
                 typeHelper.unpackTuple(getMessageContentType())
             );
             final TypeSolver typeSolver = module.get(TypeSolver.class);
-            try {
-                return typeSolver.getMessageTypeSchemaForPerformative(
-                    performative.toNullable()
-                ).create(a);
-            } catch (InvalidTypeInstantiatonException e) {
-                e.printStackTrace();
-            }
+
+            return typeSolver.getMessageTypeSchemaForPerformative(
+                performative.toNullable()
+            ).create(a);
         }
 
         final BuiltinTypeProvider builtins =

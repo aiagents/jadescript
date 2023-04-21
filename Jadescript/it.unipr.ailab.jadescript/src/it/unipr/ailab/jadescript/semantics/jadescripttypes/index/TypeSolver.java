@@ -14,7 +14,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.UserDefined
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.MessageType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontocontent.UserDefinedOntoContentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.UserDefinedOntologyType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.InvalidTypeInstantiatonException;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.MessageTypeSchema;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.ParametricTypeSchema;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
@@ -152,7 +151,7 @@ public class TypeSolver {
             return nothing();
         }
 
-        List<TypeArgument> args = new ArrayList<>();
+        List<TypeArgument > args = new ArrayList<>();
 
         final EList<JvmTypeReference> jvmPTRArgs =
             ((JvmParameterizedTypeReference) typeReference).getArguments();
@@ -170,12 +169,7 @@ public class TypeSolver {
                 noGenericsTypeName).get();
 
         if (schema.isApplicable(args)) {
-            try {
-                return some(schema.create(args));
-            } catch (InvalidTypeInstantiatonException e) {
-                e.printStackTrace();
-                return nothing();
-            }
+            return some(schema.create(args));
         }
 
         return nothing();
@@ -496,15 +490,11 @@ public class TypeSolver {
         final List<? extends TypeArgument> typeArguments =
             typeHelper.unpackTuple(inputContentType);
 
-        final MessageType messageType;
-        try {
-            messageType = schema.create(typeArguments);
-        } catch (InvalidTypeInstantiatonException e) {
-            e.printStackTrace();
+        if(!schema.isApplicable(typeArguments)) {
             return inputContentType;
         }
 
-        return messageType.getContentType();
+        return schema.create(typeArguments).getContentType();
     }
 
 
@@ -556,7 +546,7 @@ public class TypeSolver {
         Maybe<String> performative,
         IJadescriptType computedContentType,
         boolean normalizeToUpperBounds
-    ) throws InvalidTypeInstantiatonException {
+    ) {
         Maybe<ParametricTypeSchema<? extends MessageType>> schemaMaybe =
             performative
                 .__(performativeByName::get)

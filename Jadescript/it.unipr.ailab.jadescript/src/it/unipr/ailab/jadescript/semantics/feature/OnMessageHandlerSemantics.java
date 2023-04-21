@@ -23,7 +23,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProv
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.BaseMessageType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.MessageType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.InvalidTypeInstantiatonException;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
@@ -45,7 +44,8 @@ import java.util.List;
 import java.util.function.Function;
 
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.eitherGet;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 /**
  * Created on 26/10/2018.
@@ -164,7 +164,7 @@ public class OnMessageHandlerSemantics
         final Maybe<Pattern> contentPattern =
             input.__(OnMessageHandler::getPattern);
 
-        final Maybe<CodeBlock> body =
+        final Maybe<OptionalBlock> body =
             input.__(FeatureWithBody::getBody);
         final Maybe<RValueExpression> whenExpr =
             whenBody.__(WhenExpression::getExpr);
@@ -191,17 +191,11 @@ public class OnMessageHandlerSemantics
                 "Could not solve message type for performative '" +
                     performative + "'."));
 
-        MessageType initialMsgType;
-        try {
-            initialMsgType = typeSolver.instantiateMessageType(
-                input.__(OnMessageHandler::getPerformative),
-                contentUpperBound,
-                /*normalizeToUpperBounds=*/ true
-            );
-        } catch (InvalidTypeInstantiatonException e) {
-            e.printStackTrace();
-            initialMsgType = builtins.anyMessage();
-        }
+        MessageType initialMsgType = typeSolver.instantiateMessageType(
+            input.__(OnMessageHandler::getPerformative),
+            contentUpperBound,
+            /*normalizeToUpperBounds=*/ true
+        );
 
         IJadescriptType pattNarrowedContentType = contentUpperBound;
         IJadescriptType wexpNarrowedContentType = contentUpperBound;
@@ -459,17 +453,11 @@ public class OnMessageHandlerSemantics
 
         ).writeSonnet(scb);
 
-        MessageType finalMessageType;
-        try {
-            finalMessageType = typeSolver.instantiateMessageType(
-                input.__(OnMessageHandler::getPerformative),
-                finalContentType,
-                /*normalizeToUpperBounds=*/ true
-            );
-        } catch (InvalidTypeInstantiatonException e) {
-            e.printStackTrace();
-            finalMessageType = builtins.anyMessage();
-        }
+        MessageType finalMessageType = typeSolver.instantiateMessageType(
+            input.__(OnMessageHandler::getPerformative),
+            finalContentType,
+            /*normalizeToUpperBounds=*/ true
+        );
 
         final StaticState preparedState = prepareBodyState.apply(
             afterWhenExprRetunedTrue);
@@ -638,7 +626,7 @@ public class OnMessageHandlerSemantics
         Maybe<WhenExpression> whenBody =
             input.__(OnMessageHandler::getWhenBody);
 
-        final Maybe<CodeBlock> body =
+        final Maybe<OptionalBlock> body =
             input.__(FeatureWithBody::getBody);
         final Maybe<RValueExpression> whenExpr =
             whenBody.__(WhenExpression::getExpr);
@@ -667,23 +655,17 @@ public class OnMessageHandlerSemantics
             .orElseGet(() -> builtins.any("Could not resolve " +
                 "message type from performative '" + performative + "'."));
 
-        MessageType initialMsgType;
-        try {
-            initialMsgType = typeSolver.instantiateMessageType(
-                    input.__(OnMessageHandler::getPerformative),
-                    contentUpperBound,
-                    /*
-                     Not normalizing to upper bounds when validating, in
-                     order to not interfere with the
-                     type-inferring-from-pattern-match-and-when-expression
-                     system
-                    */
-                    /*normalizeToUpperBounds=*/ false
-                );
-        } catch (InvalidTypeInstantiatonException e) {
-            e.printStackTrace();
-            initialMsgType = builtins.anyMessage();
-        }
+        MessageType initialMsgType = typeSolver.instantiateMessageType(
+            input.__(OnMessageHandler::getPerformative),
+            contentUpperBound,
+            /*
+             Not normalizing to upper bounds when validating, in
+             order to not interfere with the
+             type-inferring-from-pattern-match-and-when-expression
+             system
+            */
+            /*normalizeToUpperBounds=*/ false
+        );
 
         module.get(ContextManager.class).enterProceduralFeature(
             (m, o) -> new OnMessageHandlerWhenExpressionContext(
@@ -837,7 +819,7 @@ public class OnMessageHandlerSemantics
         if (pattern.isPresent() || whenExpr.isPresent()) {
             module.get(ValidationHelper.class).advice(
                 comparator.compare(contentUpperBound, finalContentType)
-                        .is(superTypeOrEqual()),
+                    .is(superTypeOrEqual()),
                 "UnexpectedContent",
                 "Suspicious content type; Messages with performative '"
                     + performativeString + "' expect contents of type "
@@ -849,28 +831,21 @@ public class OnMessageHandlerSemantics
             );
         }
 
-        MessageType finalMessageType;
-        try {
-            finalMessageType = typeSolver.instantiateMessageType(
+        MessageType finalMessageType = typeSolver.instantiateMessageType(
                 input.__(OnMessageHandler::getPerformative),
                 finalContentType,
                 /*normalizeToUpperBounds=*/ true
             );
-        } catch (InvalidTypeInstantiatonException e) {
-            e.printStackTrace();
-            finalMessageType = builtins.anyMessage();
-        }
 
         final StaticState preparedState = prepareBodyState.apply(
             afterWhenExprReturnedTrue);
 
-        MessageType effectivelyFinalMsg = finalMessageType;
         module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
             new OnMessageHandlerContext(
                 mod,
                 out,
                 input.__(OnMessageHandler::getPerformative),
-                effectivelyFinalMsg,
+                finalMessageType,
                 finalContentType
             ));
 
@@ -879,11 +854,8 @@ public class OnMessageHandlerSemantics
 
         inBody = inBody.enterScope();
 
-        module.get(BlockSemantics.class).validate(
-            body,
-            inBody,
-            acceptor
-        );
+        module.get(BlockSemantics.class)
+            .validateOptionalBlock(body, inBody, acceptor);
 
         module.get(ContextManager.class).exit();
 

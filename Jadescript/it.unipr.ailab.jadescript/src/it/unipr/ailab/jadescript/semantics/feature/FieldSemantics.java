@@ -1,7 +1,12 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.*;
+
+import it.unipr.ailab.jadescript.jadescript.FeatureContainer;
+import it.unipr.ailab.jadescript.jadescript.Field;
+import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
+import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.GenerationParameters;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;

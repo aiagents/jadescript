@@ -161,7 +161,7 @@ public class ParametricTypeSchema<T extends IJadescriptType> {
     }
 
 
-    public boolean isApplicable(List<TypeArgument> arguments) {
+    public boolean isApplicable(List<? extends TypeArgument> arguments) {
         final int paramSize = formalTypeParameters.size();
         final int argSize = arguments.size();
         final TypeComparator typeComparator = module.get(TypeComparator.class);
@@ -300,22 +300,24 @@ public class ParametricTypeSchema<T extends IJadescriptType> {
     }
 
 
-    public T create(List<? extends TypeArgument> arguments)
-        throws InvalidTypeInstantiatonException {
+    public T create(List<? extends TypeArgument> arguments) {
         stateCheckAndUpdate(SEALED);
 
         if (this.builder == null) {
-            throw new InvalidTypeInstantiatonException(
+            throw new IllegalStateException(
                 "Missing parametric type builder in the skeleton."
             );
         }
 
-        return this.builder.instantiateType(arguments);
+        try {
+            return this.builder.instantiateType(arguments);
+        } catch (InvalidTypeInstantiatonException e) {
+            return this.builder.instantiateErroneous(arguments, e);
+        }
     }
 
 
-    public T create(TypeArgument... arguments)
-        throws InvalidTypeInstantiatonException {
+    public T create(TypeArgument... arguments) {
         return create(Arrays.asList(arguments));
     }
 

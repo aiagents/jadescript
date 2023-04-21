@@ -3,7 +3,6 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes.index;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.AgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.BaseAgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.SEMode;
@@ -23,7 +22,10 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontocontent.OntoConte
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontocontent.UserDefinedOntoContentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.BaseOntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.*;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.*;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.AnyOntologyElementType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.AnyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.JavaVoidType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.NothingType;
 import it.unipr.ailab.maybe.utils.LazyInit;
 import jade.core.AID;
 import jade.lang.acl.ACLMessage;
@@ -69,10 +71,6 @@ public class BuiltinTypeProvider {
     @BuiltinType
     /*package-private*/ final LazyInit<BaseMessageType> tAnyMessage =
         lazyInit(() -> message(covariant(anyOntologyElement())));
-
-    @BuiltinType(Number.class)
-    /*package-private*/ final LazyInit<NumberType> tNumber =
-        fromModule(NumberType.class);
 
     @BuiltinType({Integer.class, int.class, Long.class, long.class})
     /*package-private*/ final LazyInit<IntegerType> tInteger =
@@ -244,6 +242,18 @@ public class BuiltinTypeProvider {
                             getArgument(ftpAny)
                         );
                     }
+
+
+                    @Override
+                    public ListType instantiateErroneous(
+                        List<? extends TypeArgument> arguments,
+                        InvalidTypeInstantiatonException error
+                    ){
+                        return new ListType(
+                            getModule(),
+                            any(error.getMessage())
+                        );
+                    }
                 });
         });
 
@@ -271,6 +281,19 @@ public class BuiltinTypeProvider {
                         getModule(),
                         InformRefMessage.class,
                         getArgument(concepts)
+                    );
+                }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        InformRefMessage.class,
+                        any(error.getMessage())
                     );
                 }
             });
@@ -301,6 +324,19 @@ public class BuiltinTypeProvider {
                         getArgument(concepts)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        QueryRefMessage.class,
+                        any(error.getMessage())
+                    );
+                }
             });
     });
 
@@ -326,6 +362,19 @@ public class BuiltinTypeProvider {
                         getModule(),
                         SubscribeMessage.class,
                         getArgument(concepts)
+                    );
+                }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        SubscribeMessage.class,
+                        any(error.getMessage())
                     );
                 }
             });
@@ -371,6 +420,19 @@ public class BuiltinTypeProvider {
                         getArgument(propositionOrTrue)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        ProxyMessage.class,
+                        any(error)
+                    );
+                }
             });
     });
 
@@ -414,6 +476,19 @@ public class BuiltinTypeProvider {
                         getArgument(propositionOrTrue)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        PropagateMessage.class,
+                        any(error)
+                    );
+                }
             });
     });
 
@@ -436,6 +511,18 @@ public class BuiltinTypeProvider {
                         return new SetType(
                             getModule(),
                             getArgument(ftpAny)
+                        );
+                    }
+
+
+                    @Override
+                    public SetType instantiateErroneous(
+                        List<? extends TypeArgument> arguments,
+                        InvalidTypeInstantiatonException error
+                    ) {
+                        return new SetType(
+                            getModule(),
+                            any(error)
                         );
                     }
                 });
@@ -466,6 +553,28 @@ public class BuiltinTypeProvider {
                             getArgument(ftpAnyValue)
                         );
                     }
+
+
+                    @Override
+                    public MapType instantiateErroneous(
+                        List<? extends TypeArgument> arguments,
+                        InvalidTypeInstantiatonException error
+                    ) {
+                        if(arguments.size() == 1){
+                            return new MapType(
+                                getModule(),
+                                arguments.get(0),
+                                any(error)
+                            );
+                        }
+                        return new MapType(
+                            getModule(),
+                            any(error),
+                            any("")
+                        );
+                    }
+
+
                 });
         });
 
@@ -486,6 +595,18 @@ public class BuiltinTypeProvider {
                     return new TupleType(
                         getModule(),
                         getVariadic(vtpAny)
+                    );
+                }
+
+
+                @Override
+                public TupleType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new TupleType(
+                        getModule(),
+                        List.of(any(error))
                     );
                 }
             });
@@ -519,6 +640,19 @@ public class BuiltinTypeProvider {
                         sideEffect
                     );
                 }
+
+
+                @Override
+                public AgentEnvType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new AgentEnvType(
+                        getModule(),
+                        any(error),
+                        seModeTop()
+                    );
+                }
             });
     });
 
@@ -547,6 +681,18 @@ public class BuiltinTypeProvider {
                         getArgument(ftpAny)
                     );
                 }
+
+
+                @Override
+                public BaseMessageType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new BaseMessageType(
+                        getModule(),
+                        any(error)
+                    );
+                }
             });
 
     });
@@ -573,12 +719,23 @@ public class BuiltinTypeProvider {
                         getArgument(ftpAnyAgent)
                     );
                 }
+
+
+                @Override
+                public BaseBehaviourType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new BaseBehaviourType(
+                        getModule(),
+                        BehaviourType.Kind.Base,
+                        any(error)
+                    );
+                }
             });
     });
 
-    @BuiltinType(
-        //    jade.core.behaviours.Behaviour.class TODO reinstate
-    )
+    @BuiltinType
     /*package-private*/ final LazyInit<BaseBehaviourType>
         tAnyBehaviour = lazyInit(() -> behaviour(covariant(agent())));
 
@@ -604,6 +761,19 @@ public class BuiltinTypeProvider {
                         getArgument(ftpAnyAgent)
                     );
                 }
+
+
+                @Override
+                public BaseBehaviourType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new BaseBehaviourType(
+                        getModule(),
+                        BehaviourType.Kind.Cyclic,
+                        any(error)
+                    );
+                }
             });
     });
 
@@ -627,6 +797,19 @@ public class BuiltinTypeProvider {
                         getModule(),
                         BehaviourType.Kind.OneShot,
                         getArgument(ftpAnyAgent)
+                    );
+                }
+
+
+                @Override
+                public BaseBehaviourType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new BaseBehaviourType(
+                        getModule(),
+                        BehaviourType.Kind.OneShot,
+                        any(error)
                     );
                 }
             });
@@ -667,6 +850,19 @@ public class BuiltinTypeProvider {
                         getArgument(defaultProp)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        AcceptProposalMessage.class,
+                        any(error)
+                    );
+                }
             });
     });
 
@@ -705,6 +901,19 @@ public class BuiltinTypeProvider {
                         getArgument(defaultProp)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        AgreeMessage.class,
+                        any(error)
+                    );
+                }
             });
     });
 
@@ -729,6 +938,19 @@ public class BuiltinTypeProvider {
                         getModule(),
                         CancelMessage.class,
                         getArgument(action)
+                    );
+                }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        CancelMessage.class,
+                        any(error)
                     );
                 }
             });
@@ -769,6 +991,19 @@ public class BuiltinTypeProvider {
                         getArgument(defaultProp)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        CFPMessage.class,
+                        any(error)
+                    );
+                }
             });
     });
 
@@ -796,6 +1031,19 @@ public class BuiltinTypeProvider {
                         getArgument(proposition)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        ConfirmMessage.class,
+                        any(error)
+                    );
+                }
             });
     });
 
@@ -821,6 +1069,19 @@ public class BuiltinTypeProvider {
                         getModule(),
                         DisconfirmMessage.class,
                         getArgument(proposition)
+                    );
+                }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        DisconfirmMessage.class,
+                        any(error)
                     );
                 }
             });
@@ -862,6 +1123,19 @@ public class BuiltinTypeProvider {
                         getArgument(defaultProp)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        FailureMessage.class,
+                        any(error)
+                    );
+                }
             });
     });
 
@@ -888,6 +1162,19 @@ public class BuiltinTypeProvider {
                         getArgument(proposition)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        InformMessage.class,
+                        any(error)
+                    );
+                }
             });
     });
 
@@ -912,6 +1199,19 @@ public class BuiltinTypeProvider {
                         getModule(),
                         InformIfMessage.class,
                         getArgument(proposition)
+                    );
+                }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        InformIfMessage.class,
+                        any(error)
                     );
                 }
             });
@@ -952,6 +1252,19 @@ public class BuiltinTypeProvider {
                         getArgument(propositionOrTrue)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        NotUnderstoodMessage.class,
+                        any(error)
+                    );
+                }
             });
     });
 
@@ -990,6 +1303,19 @@ public class BuiltinTypeProvider {
                         getArgument(propositionOrTrue)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        ProposeMessage.class,
+                        any(error)
+                    );
+                }
             });
     });
 
@@ -1014,6 +1340,19 @@ public class BuiltinTypeProvider {
                         getModule(),
                         QueryIfMessage.class,
                         getArgument(proposition)
+                    );
+                }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        QueryIfMessage.class,
+                        any(error)
                     );
                 }
             });
@@ -1052,6 +1391,19 @@ public class BuiltinTypeProvider {
                         RefuseMessage.class,
                         getArgument(action),
                         getArgument(propositionOrTrue)
+                    );
+                }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        RefuseMessage.class,
+                        any(error)
                     );
                 }
             });
@@ -1104,6 +1456,21 @@ public class BuiltinTypeProvider {
                         getArgument(propositionOrTrue2)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        RejectProposalMessage.class,
+                        any(error)
+                    );
+                }
+
+
             });
     });
 
@@ -1129,6 +1496,19 @@ public class BuiltinTypeProvider {
                         getModule(),
                         RequestMessage.class,
                         getArgument(action)
+                    );
+                }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        RequestMessage.class,
+                        any(error)
                     );
                 }
             });
@@ -1162,6 +1542,20 @@ public class BuiltinTypeProvider {
                         getArgument(proposition)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        RequestWheneverMessage.class,
+                        any(error)
+                    );
+                }
+
             });
     });
 
@@ -1193,6 +1587,19 @@ public class BuiltinTypeProvider {
                         getArgument(proposition)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        RequestWheneverMessage.class,
+                        any(error)
+                    );
+                }
             });
     });
 
@@ -1219,6 +1626,19 @@ public class BuiltinTypeProvider {
                         getArgument(anyElement)
                     );
                 }
+
+
+                @Override
+                public MessageSubType instantiateErroneous(
+                    List<? extends TypeArgument> arguments,
+                    InvalidTypeInstantiatonException error
+                ) {
+                    return new MessageSubType(
+                        getModule(),
+                        UnknownMessage.class,
+                        any(error)
+                    );
+                }
             });
     });
 
@@ -1229,11 +1649,7 @@ public class BuiltinTypeProvider {
 
 
     public MessageSubType unknownMessage(OntoContentType anyOntoContentType) {
-        try {
-            return ptUnknownMessage.get().create(anyOntoContentType);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptUnknownMessage.get().create(anyOntoContentType);
     }
 
 
@@ -1242,11 +1658,7 @@ public class BuiltinTypeProvider {
         MessageType message,
         OntoContentType proposition
     ) {
-        try {
-            return ptPropagateMesssage.get().create(aids, message, proposition);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptPropagateMesssage.get().create(aids, message, proposition);
     }
 
 
@@ -1279,11 +1691,7 @@ public class BuiltinTypeProvider {
         ListType aids,
         MessageType message
     ) {
-        try {
-            return ptPropagateMesssage.get().create(aids, message);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptPropagateMesssage.get().create(aids, message);
     }
 
 
@@ -1292,11 +1700,7 @@ public class BuiltinTypeProvider {
         MessageType message,
         OntoContentType proposition
     ) {
-        try {
-            return ptProxyMesssage.get().create(aids, message, proposition);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptProxyMesssage.get().create(aids, message, proposition);
     }
 
 
@@ -1304,20 +1708,12 @@ public class BuiltinTypeProvider {
         ListType aids,
         MessageType message
     ) {
-        try {
-            return ptProxyMesssage.get().create(aids, message);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptProxyMesssage.get().create(aids, message);
     }
 
 
     public MessageSubType subscribeMessage(ListType concepts) {
-        try {
-            return ptSubscribeMessage.get().create(concepts);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptSubscribeMessage.get().create(concepts);
     }
 
 
@@ -1325,11 +1721,7 @@ public class BuiltinTypeProvider {
         OntoContentType action,
         OntoContentType proposition
     ) {
-        try {
-            return ptRequestWhenMessage.get().create(action, proposition);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptRequestWhenMessage.get().create(action, proposition);
     }
 
 
@@ -1337,20 +1729,12 @@ public class BuiltinTypeProvider {
         OntoContentType action,
         OntoContentType proposition
     ) {
-        try {
-            return ptRequestWheneverMessage.get().create(action, proposition);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptRequestWheneverMessage.get().create(action, proposition);
     }
 
 
     public MessageSubType requestMessage(OntoContentType action) {
-        try {
-            return ptRequestMessage.get().create(action);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptRequestMessage.get().create(action);
     }
 
 
@@ -1359,15 +1743,11 @@ public class BuiltinTypeProvider {
         OntoContentType proposition1,
         OntoContentType proposition2
     ) {
-        try {
-            return ptRejectProposalMessage.get().create(
-                action,
-                proposition1,
-                proposition2
-            );
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptRejectProposalMessage.get().create(
+            action,
+            proposition1,
+            proposition2
+        );
     }
 
 
@@ -1375,23 +1755,15 @@ public class BuiltinTypeProvider {
         OntoContentType action,
         OntoContentType proposition
     ) {
-        try {
-            return ptRejectProposalMessage.get().create(
-                action,
-                proposition
-            );
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptRejectProposalMessage.get().create(
+            action,
+            proposition
+        );
     }
 
 
     public MessageSubType rejectProposalMessage(OntoContentType action) {
-        try {
-            return ptRejectProposalMessage.get().create(action);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptRejectProposalMessage.get().create(action);
     }
 
 
@@ -1399,22 +1771,14 @@ public class BuiltinTypeProvider {
         OntoContentType action,
         OntoContentType proposition
     ) {
-        try {
-            return ptRefuseMessage.get().create(action, proposition);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptRefuseMessage.get().create(action, proposition);
     }
 
 
     public MessageSubType refuseMessage(
         OntoContentType action
     ) {
-        try {
-            return ptRefuseMessage.get().create(action);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptRefuseMessage.get().create(action);
     }
 
 
@@ -1422,22 +1786,14 @@ public class BuiltinTypeProvider {
         MessageType message,
         OntoContentType proposition
     ) {
-        try {
-            return ptNotUnderstoodMessage.get().create(message, proposition);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptNotUnderstoodMessage.get().create(message, proposition);
     }
 
 
     public MessageSubType notUnderstoodMessage(
         MessageType message
     ) {
-        try {
-            return ptNotUnderstoodMessage.get().create(message);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptNotUnderstoodMessage.get().create(message);
     }
 
 
@@ -1445,102 +1801,62 @@ public class BuiltinTypeProvider {
         OntoContentType action,
         OntoContentType proposition
     ) {
-        try {
-            return ptProposeMessage.get().create(action, proposition);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptProposeMessage.get().create(action, proposition);
     }
 
 
     public MessageSubType proposeMessage(
         OntoContentType action
     ) {
-        try {
-            return ptProposeMessage.get().create(action);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptProposeMessage.get().create(action);
     }
 
 
     public MessageSubType queryIfMessage(
         OntoContentType proposition
     ) {
-        try {
-            return ptQueryIfMessage.get().create(proposition);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptQueryIfMessage.get().create(proposition);
     }
 
 
     public MessageSubType informRefMessage(ListType concepts) {
-        try {
-            return ptInformRefMessage.get().create(concepts);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptInformRefMessage.get().create(concepts);
     }
 
 
     public MessageSubType queryRefMessage(ListType concepts) {
-        try {
-            return ptQueryRefMessage.get().create(concepts);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptQueryRefMessage.get().create(concepts);
     }
 
 
     public MessageSubType informIfMessage(OntoContentType proposition) {
-        try {
-            return ptInformIfMessage.get().create(proposition);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptInformIfMessage.get().create(proposition);
     }
 
 
     public MessageSubType disconfirmMessage(
         OntoContentType proposition
     ) {
-        try {
-            return ptDisconfirmMessage.get().create(proposition);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptDisconfirmMessage.get().create(proposition);
     }
 
 
     public MessageSubType informMessage(OntoContentType proposition) {
-        try {
-            return ptInformMessage.get().create(proposition);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptInformMessage.get().create(proposition);
     }
 
 
     public MessageSubType confirmMessage(
         OntoContentType proposition
     ) {
-        try {
-            return ptConfirmMessage.get().create(proposition);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptConfirmMessage.get().create(proposition);
     }
 
 
     public MessageSubType cancelMessage(
         OntoContentType action
     ) {
-        try {
-            return ptCancelMessage.get().create(action);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptCancelMessage.get().create(action);
     }
 
 
@@ -1548,22 +1864,14 @@ public class BuiltinTypeProvider {
         OntoContentType action,
         OntoContentType predicate
     ) {
-        try {
-            return ptCFPMessage.get().create(action, predicate);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptCFPMessage.get().create(action, predicate);
     }
 
 
     public MessageSubType cfpMessage(
         OntoContentType action
     ) {
-        try {
-            return ptCFPMessage.get().create(action);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptCFPMessage.get().create(action);
     }
 
 
@@ -1571,22 +1879,14 @@ public class BuiltinTypeProvider {
         OntoContentType action,
         OntoContentType predicate
     ) {
-        try {
-            return ptAgreeMessage.get().create(action, predicate);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptAgreeMessage.get().create(action, predicate);
     }
 
 
     public MessageSubType agreeMessage(
         OntoContentType action
     ) {
-        try {
-            return ptAgreeMessage.get().create(action);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptAgreeMessage.get().create(action);
     }
 
 
@@ -1594,22 +1894,14 @@ public class BuiltinTypeProvider {
         OntoContentType action,
         OntoContentType predicate
     ) {
-        try {
-            return ptFailureMessage.get().create(action, predicate);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptFailureMessage.get().create(action, predicate);
     }
 
 
     public MessageSubType failureMessage(
         OntoContentType action
     ) {
-        try {
-            return ptFailureMessage.get().create(action);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptFailureMessage.get().create(action);
     }
 
 
@@ -1617,24 +1909,16 @@ public class BuiltinTypeProvider {
         OntoContentType action,
         OntoContentType proposition
     ) {
-        try {
-            return ptAcceptProposalMessage.get().create(
-                action, proposition
-            );
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptAcceptProposalMessage.get().create(
+            action, proposition
+        );
     }
 
 
     public MessageSubType acceptProposalMessage(
         OntoContentType action
     ) {
-        try {
-            return ptAcceptProposalMessage.get().create(action);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptAcceptProposalMessage.get().create(action);
     }
 
 
@@ -1647,6 +1931,10 @@ public class BuiltinTypeProvider {
 
     public AnyType any(String errorMessage) {
         return new AnyType(getModule(), errorMessage);
+    }
+
+    public AnyType any(Throwable t){
+        return new AnyType(getModule(), t.getMessage());
     }
 
 
@@ -1696,38 +1984,22 @@ public class BuiltinTypeProvider {
 
 
     public ListType list(TypeArgument elementType) {
-        try {
-            return ptList.get().create(elementType);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptList.get().create(elementType);
     }
 
 
     public SetType set(TypeArgument elementType) {
-        try {
-            return ptSet.get().create(elementType);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptSet.get().create(elementType);
     }
 
 
     public MapType map(TypeArgument keyType, TypeArgument valueType) {
-        try {
-            return ptMap.get().create(keyType, valueType);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptMap.get().create(keyType, valueType);
     }
 
 
     public TupleType tuple(List<TypeArgument> typeArguments) {
-        try {
-            return ptTuple.get().create(typeArguments);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptTuple.get().create(typeArguments);
     }
 
 
@@ -1772,20 +2044,12 @@ public class BuiltinTypeProvider {
 
 
     public BaseBehaviourType behaviour(TypeArgument agentType) {
-        try {
-            return ptBehaviour.get().create(agentType);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptBehaviour.get().create(agentType);
     }
 
 
     public BaseBehaviourType behaviour() {
-        try {
-            return ptBehaviour.get().create();
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptBehaviour.get().create();
     }
 
 
@@ -1795,38 +2059,22 @@ public class BuiltinTypeProvider {
 
 
     public BaseBehaviourType cyclicBehaviour(TypeArgument agent) {
-        try {
-            return ptCyclicBehaviour.get().create(agent);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptCyclicBehaviour.get().create(agent);
     }
 
 
     public BaseBehaviourType cyclicBehaviour() {
-        try {
-            return ptCyclicBehaviour.get().create();
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptCyclicBehaviour.get().create();
     }
 
 
     public BaseBehaviourType oneshotBehaviour(TypeArgument agent) {
-        try {
-            return ptOneshotBehaviour.get().create(agent);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptOneshotBehaviour.get().create(agent);
     }
 
 
     public BaseBehaviourType oneshotBehaviour() {
-        try {
-            return ptOneshotBehaviour.get().create();
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptOneshotBehaviour.get().create();
     }
 
 
@@ -1871,11 +2119,7 @@ public class BuiltinTypeProvider {
 
 
     public BaseMessageType message(TypeArgument contentType) {
-        try {
-            return ptMessage.get().create(contentType);
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptMessage.get().create(contentType);
     }
 
 
@@ -1905,13 +2149,8 @@ public class BuiltinTypeProvider {
         TypeArgument agentType,
         TypeArgument seMode
     ) {
-        try {
-            return ptAgentEnv.get().create(List.of(agentType, seMode));
-        } catch (InvalidTypeInstantiatonException e) {
-            throw new RuntimeException(e);
-        }
+        return ptAgentEnv.get().create(List.of(agentType, seMode));
     }
-
 
 
     public JavaVoidType javaVoid() {
@@ -1926,11 +2165,6 @@ public class BuiltinTypeProvider {
 
     public BaseMessageType anyMessage() {
         return tAnyMessage.get();
-    }
-
-
-    public NumberType number() {
-        return tNumber.get();
     }
 
 

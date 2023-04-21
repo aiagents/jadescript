@@ -15,7 +15,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BaseBehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.InvalidTypeInstantiatonException;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
@@ -35,7 +34,8 @@ import java.util.stream.Collectors;
 
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.equal;
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.iterate;
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 /**
  * Created on 28/12/16.
@@ -292,7 +292,7 @@ public final class TypeExpressionSemantics extends Semantics {
 
         if (!isExplicitContentType) {
 
-            if(baseTypeName.wrappedEquals("Message")){ //TODO
+            if (baseTypeName.wrappedEquals("Message")) { //TODO
                 return builtins.anyMessage();
             }
 
@@ -305,14 +305,7 @@ public final class TypeExpressionSemantics extends Semantics {
 
         return baseTypeName
             .__(typeSolver::getMessageTypeSchemaForTypeName)
-            .__(f -> {
-                try {
-                    return f.create(contentTypes);
-                } catch (InvalidTypeInstantiatonException e) {
-                    e.printStackTrace();
-                    return builtins.any(e.getMessage());
-                }
-            })
+            .<IJadescriptType>__(f -> f.create(contentTypes))
             .orElse(builtins.any("Could not resolve message type " +
                 "for performative " + baseTypeName));
     }
@@ -375,116 +368,159 @@ public final class TypeExpressionSemantics extends Semantics {
                 "Input type expression was empty."
             );
         }
-        final Maybe<BuiltinHierarchicType> hierarchicType = input.__(
-            TypeExpression::getBuiltinHiearchic);
-        final Maybe<CollectionTypeExpression> collectionType = input.__(
-            TypeExpression::getCollectionTypeExpression);
+        if (input.__(TypeExpression::isAid).orElse(false)) {
+            return builtins.aid();
+        }
+        if (input.__(TypeExpression::isBoolean).orElse(false)) {
+            return builtins.boolean_();
+        }
+        if (input.__(TypeExpression::isReal).orElse(false)) {
+            return builtins.real();
+        }
+        if (input.__(TypeExpression::isInteger).orElse(false)) {
+            return builtins.integer();
+        }
+        if (input.__(TypeExpression::isDuration).orElse(false)) {
+            return builtins.duration();
+        }
+        if (input.__(TypeExpression::isTimestamp).orElse(false)) {
+            return builtins.timestamp();
+        }
+        if (input.__(TypeExpression::isText).orElse(false)) {
+            return builtins.text();
+        }
+        if (input.__(TypeExpression::isPerformative)
+            .orElse(false)) {
+            return builtins.performative();
+        }
+
         final MaybeList<TypeExpression> subExprs =
             input.__toListNullsRemoved(TypeExpression::getSubExprs);
 
-        final Function<TypeArgument, BaseBehaviourType>
-            baseBehaviourTypeFunction =
-            getBaseBehaviourTypeFunction(hierarchicType);
-
-        if (input.__(TypeExpression::isAid).orElse(false)) {
-            return builtins.aid();
-        } else if (input.__(TypeExpression::isBoolean).orElse(false)) {
-            return builtins.boolean_();
-        } else if (input.__(TypeExpression::isReal).orElse(false)) {
-            return builtins.real();
-        } else if (input.__(TypeExpression::isInteger).orElse(false)) {
-            return builtins.integer();
-        } else if (input.__(TypeExpression::isDuration).orElse(false)) {
-            return builtins.duration();
-        } else if (input.__(TypeExpression::isTimestamp).orElse(false)) {
-            return builtins.timestamp();
-        } else if (input.__(TypeExpression::isText).orElse(false)) {
-            return builtins.text();
-        } else if (input.__(TypeExpression::isPerformative)
-            .orElse(false)) {
-            return builtins.performative();
-        } else if (subExprs.size() == 1) {
+        if (subExprs.size() == 1) {
             return toJadescriptType(subExprs.get(0));
-        } else if (subExprs.size() > 1) {
+        }
+        if (subExprs.size() > 1) {
             List<TypeArgument> elementTypes = subExprs.stream()
                 .map(this::toJadescriptType)
                 .collect(Collectors.toList());
             return builtins.tuple(elementTypes);
         }
+        final Maybe<BuiltinHierarchicType> hierarchicType =
+            input.__(TypeExpression::getBuiltinHiearchic);
+
         if (hierarchicType.__(BuiltinHierarchicType::isAgent)
             .orElse(false)) {
             return builtins.agent();
-        } else if (hierarchicType.__(BuiltinHierarchicType::isOntology)
+        }
+        if (hierarchicType.__(BuiltinHierarchicType::isOntology)
             .orElse(false)) {
             return builtins.ontology();
-        } else if (baseBehaviourTypeFunction != null) {
+        }
+
+
+        final Function<TypeArgument, BaseBehaviourType>
+            baseBehaviourTypeFunction =
+            getBaseBehaviourTypeFunction(hierarchicType);
+        if (baseBehaviourTypeFunction != null) {
             return baseBehaviourTypeFunction.apply(
                 getAgentArgumentType(hierarchicType)
             );
-        } else if (hierarchicType.__(BuiltinHierarchicType::isConcept)
+        }
+        if (hierarchicType.__(BuiltinHierarchicType::isConcept)
             .orElse(false)) {
             return builtins.concept();
-        } else if (hierarchicType.__(BuiltinHierarchicType::isProposition)
+        }
+        if (hierarchicType.__(BuiltinHierarchicType::isProposition)
             .orElse(false)) {
             return builtins.proposition();
-        } else if (hierarchicType.__(BuiltinHierarchicType::isPredicate)
+        }
+        if (hierarchicType.__(BuiltinHierarchicType::isPredicate)
             .orElse(false)) {
             return builtins.predicate();
-        } else if (hierarchicType.__(BuiltinHierarchicType::isAtomicProposition)
+        }
+        if (hierarchicType.__(BuiltinHierarchicType::isAtomicProposition)
             .orElse(false)) {
             return builtins.atomicProposition();
-        } else if (hierarchicType.__(BuiltinHierarchicType::isAction)
+        }
+        if (hierarchicType.__(BuiltinHierarchicType::isAction)
             .orElse(false)) {
             return builtins.action();
-        } else if (hierarchicType.__(BuiltinHierarchicType::getMessageType)
+        }
+        if (hierarchicType.__(BuiltinHierarchicType::getMessageType)
             .isPresent()) {
             return getMessageType(hierarchicType
                 .__(BuiltinHierarchicType::getMessageType));
-        } else if (collectionType.isPresent()) {
-            List<TypeArgument> typeParameters = someStream(
-                collectionType.__(CollectionTypeExpression::getTypeParameters)
-            ).map(this::toJadescriptType)
-                .collect(Collectors.toList());
-
-            String extract = collectionType
-                .__(CollectionTypeExpression::getCollectionType)
-                .orElse("");
-            if (extract.equals("list")) {
-                if (typeParameters.isEmpty()) {
-                    return builtins.list(builtins.any(
-                        "Missing element type specification."
-                    ));
-                }
-                return builtins.list(typeParameters.get(0));
-            }
-            if (extract.equals("map")) {
-                if (typeParameters.isEmpty()) {
-                    return builtins.map(
-                        builtins.any("Missing key type specification."),
-                        builtins.any("Missing value type specification.")
-                    );
-                }
-                if (typeParameters.size() < 2) {
-                    return builtins.map(
-                        typeParameters.get(0),
-                        builtins.any("Missing value type specification.")
-                    );
-                }
-                return builtins.map(
-                    typeParameters.get(0),
-                    typeParameters.get(1)
-                );
-            }
-            if (extract.equals("set")) {
-                if (typeParameters.isEmpty()) {
-                    return builtins.set(
-                        builtins.any("Missing element type specification.")
-                    );
-                }
-                return builtins.set(typeParameters.get(0));
-            }
         }
 
+        final Maybe<CollectionTypeExpression> collectionType =
+            input.__(TypeExpression::getCollectionTypeExpression);
+        if (collectionType.isPresent()) {
+            return getCollectionType(
+                input,
+                collectionType
+            );
+
+        }
+
+        return input
+            .__(TypeExpression::getJvmType)
+            .__(typeSolver::fromJvmTypeReference)
+            .__(TypeArgument::ignoreBound)
+            .orElse(builtins.any(
+                "Could not resolve type from type expression."));
+    }
+
+
+    private IJadescriptType getCollectionType(
+        Maybe<TypeExpression> input,
+        Maybe<CollectionTypeExpression> collectionType
+    ) {
+        BuiltinTypeProvider builtins = module.get(BuiltinTypeProvider.class);
+        List<TypeArgument> typeParameters = someStream(
+            collectionType.__(CollectionTypeExpression::getTypeParameters)
+        ).map(this::toJadescriptType)
+            .collect(Collectors.toList());
+
+        String extract = collectionType
+            .__(CollectionTypeExpression::getCollectionType)
+            .orElse("");
+        if (extract.equals("list")) {
+            if (typeParameters.isEmpty()) {
+                return builtins.list(builtins.any(
+                    "Missing element type specification."
+                ));
+            }
+            return builtins.list(typeParameters.get(0));
+        }
+        if (extract.equals("map")) {
+            if (typeParameters.isEmpty()) {
+                return builtins.map(
+                    builtins.any("Missing key type specification."),
+                    builtins.any("Missing value type specification.")
+                );
+            }
+            if (typeParameters.size() < 2) {
+                return builtins.map(
+                    typeParameters.get(0),
+                    builtins.any("Missing value type specification.")
+                );
+            }
+            return builtins.map(
+                typeParameters.get(0),
+                typeParameters.get(1)
+            );
+        }
+        if (extract.equals("set")) {
+            if (typeParameters.isEmpty()) {
+                return builtins.set(
+                    builtins.any("Missing element type specification.")
+                );
+            }
+            return builtins.set(typeParameters.get(0));
+        }
+
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
 
         return input
             .__(TypeExpression::getJvmType)
