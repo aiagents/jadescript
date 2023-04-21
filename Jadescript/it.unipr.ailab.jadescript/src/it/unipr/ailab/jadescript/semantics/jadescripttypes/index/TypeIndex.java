@@ -78,7 +78,7 @@ class TypeIndex {
                 continue;
             }
 
-            if(!Supplier.class.isAssignableFrom(declaredField.getType())){
+            if (!Supplier.class.isAssignableFrom(declaredField.getType())) {
                 throw new RuntimeException("Wrong type of the builtin-type " +
                     "field '" + declaredField.getName() + "'.");
             }
@@ -141,10 +141,16 @@ class TypeIndex {
         @Nullable MessageBuiltinType messageAnnotation
     ) {
         for (Class<?> jvmClass : builtinTypeAnnotation.value()) {
+            final JvmTypeReference typeRef =
+                jvmTypeHelper.get().typeRef(jvmClass);
             final String fqn = JvmTypeHelper.noGenericsTypeName(
-                jvmTypeHelper.get().typeRef(jvmClass)
-                    .getQualifiedName('.')
+                typeRef.getQualifiedName('.')
             );
+
+            final String simpleName = JvmTypeHelper.noGenericsTypeName(
+                typeRef.getSimpleName()
+            );
+
 
             try {
                 final Supplier<ParametricTypeSchema<? extends IJadescriptType>>
@@ -164,7 +170,7 @@ class TypeIndex {
                     final Performative performative =
                         Performative.fromCode(messageAnnotation.value());
 
-                    messageClassToPerformativeMap.put(fqn, performative);
+                    messageClassToPerformativeMap.put(simpleName, performative);
                     performativeToMessageSubtypeMap.put(
                         performative,
                         Utils.castSupplier(parametricTypeSchemaSupplier)
@@ -186,7 +192,7 @@ class TypeIndex {
     }
 
 
-    private void initializeIfNecessary() {
+    private void initializeIfRequired() {
         if (!this.initialized) {
             doInitialize();
         }
@@ -195,7 +201,7 @@ class TypeIndex {
 
     /*package-private*/ Map<String, Supplier<? extends IJadescriptType>>
     getTypeTable() {
-        initializeIfNecessary();
+        initializeIfRequired();
         return this.typeTable;
     }
 
@@ -204,14 +210,14 @@ class TypeIndex {
         String,
         Supplier<ParametricTypeSchema<? extends IJadescriptType>>
         > getParametricTypeTable() {
-        initializeIfNecessary();
+        initializeIfRequired();
         return this.parametricTypeTable;
     }
 
 
     /*package-private*/ Map<String, Performative>
     getMessageClassToPerformativeMap() {
-        initializeIfNecessary();
+        initializeIfRequired();
         return messageClassToPerformativeMap;
     }
 
@@ -219,13 +225,13 @@ class TypeIndex {
     /*package-private*/ Map<
         Performative, Supplier<ParametricTypeSchema<? extends MessageType>>
         > getPerformativeToMessageSubtypeMap() {
-        initializeIfNecessary();
+        initializeIfRequired();
         return performativeToMessageSubtypeMap;
     }
 
 
     /*package-private*/ Map<String, Integer> getExpectedTypeParameters() {
-        initializeIfNecessary();
+        initializeIfRequired();
         return expectedTypeParameters;
     }
 
@@ -234,7 +240,7 @@ class TypeIndex {
         JvmTypeReference input,
         IJadescriptType output
     ) {
-        initializeIfNecessary();
+        initializeIfRequired();
         typeTable.put(
             input.getQualifiedName('.'),
             () -> output

@@ -27,6 +27,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.*;
 import it.unipr.ailab.maybe.utils.LazyInit;
 import jade.core.AID;
 import jade.lang.acl.ACLMessage;
+import jadescript.content.JadescriptOntoElement;
 import jadescript.core.message.*;
 import jadescript.java.AgentEnv;
 import jadescript.java.SideEffectsFlag;
@@ -61,13 +62,13 @@ public class BuiltinTypeProvider {
     /*package-private*/ final LazyInit<JavaVoidType> tVoid =
         fromModule(JavaVoidType.class);
 
-    @BuiltinType
+    @BuiltinType(JadescriptOntoElement.class)
     /*package-private*/ final LazyInit<AnyOntologyElementType>
         tAnyOntologyElement = fromModule(AnyOntologyElementType.class);
 
     @BuiltinType
-    /*package-private*/ final LazyInit<AnyMessageType> tAnyMessage =
-        fromModule(AnyMessageType.class);
+    /*package-private*/ final LazyInit<BaseMessageType> tAnyMessage =
+        lazyInit(() -> message(covariant(anyOntologyElement())));
 
     @BuiltinType(Number.class)
     /*package-private*/ final LazyInit<NumberType> tNumber =
@@ -1923,7 +1924,7 @@ public class BuiltinTypeProvider {
     }
 
 
-    public AnyMessageType anyMessage() {
+    public BaseMessageType anyMessage() {
         return tAnyMessage.get();
     }
 

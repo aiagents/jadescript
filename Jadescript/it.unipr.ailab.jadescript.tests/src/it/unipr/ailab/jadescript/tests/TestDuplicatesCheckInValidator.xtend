@@ -9,6 +9,8 @@ import org.eclipse.xtext.xbase.testing.CompilationTestHelper
 import com.google.inject.Inject
 import org.junit.Test
 import org.junit.Assert
+import org.junit.Before
+import org.eclipse.xtext.util.JavaVersion
 
 /*
  * Tests to check if the validator correctly flags duplicate elements (variables, features, top-elements) as errors.
@@ -20,6 +22,10 @@ class TestDuplicatesCheckInValidator {
 	@Inject
 	ParseHelper<Model> parseHelper
 	@Inject extension CompilationTestHelper
+	@Before
+	public def setJavaVersion() {
+		javaVersion = JavaVersion.JAVA11
+	}	
 
 	// Agent: test duplicate fields (check only parsing)
 	@Test

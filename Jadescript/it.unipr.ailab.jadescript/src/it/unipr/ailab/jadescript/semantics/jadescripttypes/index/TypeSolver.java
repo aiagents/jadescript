@@ -413,32 +413,18 @@ public class TypeSolver {
 
 
     public ParametricTypeSchema<? extends MessageType>
-    getMessageTypeSchemaForPerformative(
-        String performative
-    ) {
+    getMessageTypeSchemaForTypeName(String messageTypeName) {
         return getMessageTypeSchemaForPerformative(
-            index.getMessageClassToPerformativeMap().get(performative)
+            index.getMessageClassToPerformativeMap().get(messageTypeName)
         );
     }
 
 
     @SuppressWarnings("unchecked")
-    public List<TypeArgument> getDefaultTypeArguments(
-        String name
-    ) {
-        if (name.equals("Message")) {
-            return List.of(builtinTypes.any(
-                "There are no type upper bounds for the content " +
-                    "of a message of root type Message."
-            ));
+    public List<TypeArgument> getDefaultTypeArguments(String messageTypeName) {
 
-        }
-        final Performative performative =
-            index.getMessageClassToPerformativeMap().get(name);
-
-        if (performative == null) {
-            return List.of();
-        }
+        final @Nullable Performative performative =
+            index.getMessageClassToPerformativeMap().get(messageTypeName);
 
         final IJadescriptType contentBound =
             getContentBoundForPerformative(performative);
@@ -453,8 +439,12 @@ public class TypeSolver {
 
 
     public IJadescriptType getContentBoundForPerformative(
-        Performative performative
+        @Nullable Performative performative
     ) {
+        if(performative == null){
+            return builtinTypes.any("");
+        }
+
         final List<IJadescriptType> upperBounds =
             index.getPerformativeToMessageSubtypeMap().get(performative)
                 .get().getUpperBounds();

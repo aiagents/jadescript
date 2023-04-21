@@ -279,6 +279,7 @@ public final class TypeExpressionSemantics extends Semantics {
         final TypeSolver typeSolver = module.get(TypeSolver.class);
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
+
         final Maybe<String> baseTypeName =
             messageTypeMaybe.__(MessageType::getBaseType);
         final IJadescriptType contentType =
@@ -290,13 +291,20 @@ public final class TypeExpressionSemantics extends Semantics {
         final List<? extends TypeArgument> contentTypes;
 
         if (!isExplicitContentType) {
-            contentTypes =
-                typeSolver.getDefaultTypeArguments(baseTypeName.toNullable());
+
+            if(baseTypeName.wrappedEquals("Message")){ //TODO
+                return builtins.anyMessage();
+            }
+
+            contentTypes = typeSolver.getDefaultTypeArguments(
+                baseTypeName.toNullable()
+            );
         } else {
             contentTypes = typeHelper.unpackTuple(contentType);
         }
+
         return baseTypeName
-            .__(typeSolver::getMessageTypeSchemaForPerformative)
+            .__(typeSolver::getMessageTypeSchemaForTypeName)
             .__(f -> {
                 try {
                     return f.create(contentTypes);

@@ -36,5 +36,7 @@ public class JadescriptRuntimeModule extends AbstractJadescriptRuntimeModule {
 		    .annotatedWith(Names.named(AbstractDeclarativeScopeProvider.NAMED_DELEGATE))
 		.to(XImportSectionNamespaceScopeProvider.class);
 	}
+	
+	
 
 }

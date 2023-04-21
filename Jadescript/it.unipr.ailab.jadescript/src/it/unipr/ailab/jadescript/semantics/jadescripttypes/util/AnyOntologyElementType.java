@@ -35,8 +35,8 @@ public class AnyOntologyElementType extends UtilityType {
     ) {
         super(
             module,
-            TypeHelper.builtinPrefix + "serializable",
-            typeRef.getQualifiedName('.'),
+            TypeHelper.builtinPrefix + "ANY_ONTO_ELEMENT",
+            "«any ontology element»",
             typeRef
         );
     }
