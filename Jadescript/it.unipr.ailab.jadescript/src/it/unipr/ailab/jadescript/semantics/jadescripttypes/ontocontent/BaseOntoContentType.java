@@ -42,7 +42,7 @@ public class BaseOntoContentType
 
 
     @Override
-    public boolean isNativeOntoContentType() {
+    public boolean isNative() {
         return false;
     }
 

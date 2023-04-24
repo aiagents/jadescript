@@ -25,7 +25,6 @@ import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
-import jadescript.java.NativeValueFactory;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.naming.QualifiedName;
@@ -58,11 +57,9 @@ public class OntologyElementSemantics extends Semantics {
         Maybe<ExtendingFeature> input,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return;
-        if (input.isNothing()) {
+        if (input == null || input.isNothing()){
             return;
         }
-
 
         module.get(ContextManager.class).enterOntologyElementDeclaration();
 
@@ -100,7 +97,7 @@ public class OntologyElementSemantics extends Semantics {
 
                 // ... then the super type has to be native
                 validationHelper.asserting(
-                    ((OntoContentType) superType).isNativeOntoContentType(),
+                    ((OntoContentType) superType).isNative(),
                     "InvalidExtendedType",
                     "A native type can only extend native types.",
                     superTypeExpr,
@@ -123,7 +120,7 @@ public class OntologyElementSemantics extends Semantics {
 
                 // ... then the super type must not be native
                 validationHelper.asserting(
-                    !((OntoContentType) superType).isNativeOntoContentType(),
+                    !((OntoContentType) superType).isNative(),
                     "InvalidExtendedType",
                     "A non-native type can not extend native types.",
                     superTypeExpr,
@@ -712,7 +709,7 @@ public class OntologyElementSemantics extends Semantics {
 
         return Stream.of(jvmTB.toClass(
             inputSafe,
-            fqName,
+            fqName.toString("."),
             (JvmGenericType itClass) -> {
                 itClass.setAbstract(true);
                 module.get(ContextManager.class)
@@ -730,16 +727,6 @@ public class OntologyElementSemantics extends Semantics {
 
                 module.get(ContextManager.class).exit();
             }
-        ), jvmTB.toInterface(
-            inputSafe,
-            fqName + "Factory",
-            itClass -> fillNativeInterface(
-                input,
-                inputSafe,
-                fqName,
-                jvmTB,
-                itClass
-            )
         ));
     }
 
@@ -833,102 +820,6 @@ public class OntologyElementSemantics extends Semantics {
             true
         );
 
-    }
-
-
-    private void fillNativeInterface(
-        Maybe<ExtendingFeature> input,
-        ExtendingFeature inputSafe,
-        QualifiedName fqName,
-        JvmTypesBuilder jvmTB,
-        JvmGenericType itClass
-    ) {
-        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
-
-        final JvmTypeReference conceptTypeRef =
-            jvm.typeRef(fqName != null ? fqName.toString() : null);
-
-        itClass.getSuperTypes().add(jvm.typeRef(
-            NativeValueFactory.class
-        ));
-
-        itClass.getMembers().add(jvmTB.toMethod(
-            inputSafe,
-            "getImplementationClass",
-            jvm.typeRef(
-                "Class<? extends " + conceptTypeRef.getQualifiedName('.') + ">"
-            ),
-            itMethod -> {
-                itMethod.setDefault(false);
-                itMethod.setAbstract(true);
-
-            }
-        ));
-
-        itClass.getMembers().add(jvmTB.toMethod(
-            inputSafe,
-            "empty",
-            conceptTypeRef,
-            itMethod -> {
-                itMethod.setDefault(false);
-                itMethod.setAbstract(true);
-            }
-        ));
-
-
-        final Boolean hasSlots = input
-            .__(i -> i instanceof FeatureWithSlots)
-            .orElse(false);
-
-        if (hasSlots) {
-            Maybe<FeatureWithSlots> inputWithSlots =
-                input.__(i -> (FeatureWithSlots) i);
-
-            Maybe<EList<SlotDeclaration>> slots = inputWithSlots
-                .__(FeatureWithSlots::getSlots);
-
-            final TypeExpressionSemantics tes =
-                module.get(TypeExpressionSemantics.class);
-
-            itClass.getMembers().add(jvmTB.toMethod(
-                inputSafe,
-                "create",
-                conceptTypeRef,
-                itMethod -> {
-                    itMethod.setDefault(false);
-                    itMethod.setAbstract(true);
-                    for (Maybe<SlotDeclaration> slot : iterate(slots)) {
-
-                        final Maybe<TypeExpression> slotTypeExpr =
-                            slot.__(SlotDeclaration::getType);
-
-                        IJadescriptType slotType =
-                            tes.toJadescriptType(slotTypeExpr);
-
-                        Maybe<String> slotName =
-                            slot.__(SlotDeclaration::getName);
-
-
-                        if (slot.isNothing() || slotName.isNothing()) {
-                            continue;
-                        }
-
-                        final SlotDeclaration slotSafe =
-                            slot.toNullable();
-
-                        final String slotNameSafe = slotName.toNullable();
-
-                        itMethod.getParameters().add(
-                            jvmTB
-                                .toParameter(
-                                    slotSafe,
-                                    slotNameSafe,
-                                    slotType.asJvmTypeReference()
-                                ));
-                    }
-                }
-            ));
-        }
     }
 
 
@@ -1134,7 +1025,6 @@ public class OntologyElementSemantics extends Semantics {
             "__metadata_" + typeFullyQualifiedName,
             jvm.typeRef(ontoFullQualifiedNameSafe.toString(".")),
             itMethod -> {
-
                 itMethod.setDefault(inInterface);
                 if (!inInterface) {
                     itMethod.setVisibility(JvmVisibility.PRIVATE);

@@ -20,7 +20,7 @@ public interface OntoContentType
         }
     };
 
-    boolean isNativeOntoContentType();
+    boolean isNative();
 
     @Override
     default TypeCategory category(){

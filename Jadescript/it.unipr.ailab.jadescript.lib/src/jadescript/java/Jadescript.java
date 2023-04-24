@@ -30,20 +30,29 @@ public class Jadescript {
     private static final RuntimeBindingsManager bindingsManager =
         new RuntimeBindingsManager();
 
+
     private Jadescript() {
     } // Do not instantiate.
 
-    public static <T>
-    void bindNativeType(Class<? extends T> interface_, NativeValueFactory specification){
-        bindingsManager.bindNativeType(interface_, specification);
+    public static void bindNative(
+        Class<?> interface_,
+        Class<?> implementation
+    ){
+        bindingsManager.bindNativeType(interface_, implementation);
     }
 
-    public static <T>
-    NativeValueFactory getNativeFactory(Class<? extends T> interface_){
-        return bindingsManager.getFactory(interface_);
+    public static void bindNative(
+        String interfaceName,
+        Class<?> implementation
+    ) {
+        bindingsManager.bindNativeType(interfaceName, implementation);
     }
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static Class<?> getImplementationClass(Class<?> interface_){
+        return bindingsManager.getImplementationClass(interface_);
+    }
+
+    @SuppressWarnings({"unchecked"})
     public static <T>
     T createEmptyValue(Class<?> type){
         if(type.equals(jadescript.core.behaviours.Behaviour.class)
@@ -70,14 +79,7 @@ public class Jadescript {
                 return null;
             }
         }else{
-            final NativeValueFactory nativeFactory = getNativeFactory(type);
-            try {
-                final Object empty = nativeFactory.getClass().getDeclaredMethod("empty").invoke(nativeFactory);
-                return (T) empty;
-            } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                e.printStackTrace();
-                return null;
-            }
+            return (T) bindingsManager.create(type);
         }
     }
 

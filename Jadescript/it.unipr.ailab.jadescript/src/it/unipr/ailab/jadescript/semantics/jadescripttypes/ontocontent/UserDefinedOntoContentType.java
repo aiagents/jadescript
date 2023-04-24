@@ -161,7 +161,7 @@ public class UserDefinedOntoContentType
 
 
     @Override
-    public boolean isNativeOntoContentType() {
+    public boolean isNative() {
         final JvmTypeNamespace jvmNamespace = jvmNamespace();
         if (jvmNamespace == null) {
             return false;

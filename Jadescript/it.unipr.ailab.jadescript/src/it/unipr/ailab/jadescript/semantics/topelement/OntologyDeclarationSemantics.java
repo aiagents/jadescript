@@ -24,10 +24,12 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgume
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsClassState;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.naming.QualifiedName;
+import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.IJvmDeclaredTypeAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
@@ -660,10 +662,10 @@ public class OntologyDeclarationSemantics extends
         final String obtainClass;
 
         if (feature.__(ExtendingFeature::isNative).orElse(false)) {
-            obtainClass = retrieveNativeTypeFactory(
+            obtainClass = retrieveNativeTypeImplementationClass(
                 //feature in this branch is safe to extract:
                 feature.toNullable()
-            ) + ".getImplementationClass()";
+            );
         } else {
             obtainClass = featureName + ".class";
         }
@@ -797,42 +799,62 @@ public class OntologyDeclarationSemantics extends
                     );
                 }
 
-                final String methodName;
-
-                if (ontoElement
-                    .__(ExtendingFeature::isNative)
-                    .orElse(false)) {
-
-                    final String methodNamePrefix =
-                        retrieveNativeTypeFactory(ontoElementSafe);
-
-                    if (isWithSlots) {
-                        methodName = methodNamePrefix + ".create";
-                    } else {
-                        methodName = methodNamePrefix + ".empty";
-                    }
-
-                } else {
-                    methodName = "new " + ontoElementNameSafe;
-                }
 
                 final CompilationHelper compilationHelper =
                     module.get(CompilationHelper.class);
 
                 compilationHelper.createAndSetBody(it, scb -> {
+                    if (ontoElement
+                        .__(ExtendingFeature::isNative)
+                        .orElse(false)) {
 
-                    StringBuilder line =
-                        new StringBuilder("return " + methodName + "(");
+                        final String ontoElementFqName =
+                            getOntoElementFqName(ontoElementSafe);
 
-                    if (isWithSlots) {
-                        populateArgumentsFromSlots(
-                            (FeatureWithSlots) ontoElementSafe,
-                            tes,
-                            line
-                        );
+                        final String createInstanceExpression =
+                            createNativeTypeInstance(
+                                ontoElementFqName
+                            );
+
+
+                        if (isWithSlots) {
+                            w.variable(
+                                ontoElementFqName,
+                                "_x",
+                                w.expr(createInstanceExpression)
+                            ).writeSonnet(scb);
+
+                            initializeNativePropertiesFromSlots(
+                                (FeatureWithSlots) ontoElementSafe,
+                                tes,
+                                scb
+                            );
+
+                            w.returnStmnt(w.expr("_x")).writeSonnet(scb);
+                        } else {
+                            w.returnStmnt(w.expr(createInstanceExpression))
+                                .writeSonnet(scb);
+                        }
+
+                    } else {
+                        final String methodName = "new " + ontoElementNameSafe;
+
+                        scb.add("return ")
+                            .add(methodName)
+                            .add("(");
+
+                        if (isWithSlots) {
+                            populateArgumentsFromSlots(
+                                (FeatureWithSlots) ontoElementSafe,
+                                tes,
+                                scb
+                            );
+                        }
+                        scb.line(");");
+
                     }
-                    line.append(");");
-                    scb.line(line.toString());
+
+
                 });
             }
         ));
@@ -840,21 +862,28 @@ public class OntologyDeclarationSemantics extends
     }
 
 
-    private void populateArgumentsFromSlots(
+    private void initializeNativePropertiesFromSlots(
         FeatureWithSlots ontoElementSafe,
         TypeExpressionSemantics tes,
-        StringBuilder line
+        SourceCodeBuilder scb
     ) {
-
-        for (int i = 0; i < ontoElementSafe.getSlots().size(); i++) {
-            SlotDeclaration slot = ontoElementSafe.getSlots().get(i);
-
+        final EList<SlotDeclaration> slots = ontoElementSafe.getSlots();
+        for (SlotDeclaration slot : slots) {
             final IJadescriptType slotType =
                 tes.toJadescriptType(
-                    some(slot).__(SlotDeclaration::getType));
+                    some(slot).__(SlotDeclaration::getType)
+                );
 
-            if (slotType
-                instanceof DeclaresOntologyAdHocClass) {
+            final String slotName = slot.getName();
+
+            if (slotName == null || slotName.isBlank()) {
+                continue;
+            }
+
+            final String setterName = "_x.set" +
+                Strings.toFirstUpper(slotName);
+
+            if (slotType instanceof DeclaresOntologyAdHocClass) {
                 DeclaresOntologyAdHocClass adHocType =
                     (DeclaresOntologyAdHocClass) slotType;
 
@@ -864,18 +893,56 @@ public class OntologyDeclarationSemantics extends
                 final String converterName = adHocType
                     .getConverterToAdHocClassMethodName();
 
-                line.append(adHocClassName)
-                    .append(".")
-                    .append(converterName)
-                    .append("(")
-                    .append(slot.getName())
-                    .append(")");
+                w.callStmnt(setterName, w.callExpr(
+                    adHocClassName + "." + converterName,
+                    w.expr(slotName)
+                )).writeSonnet(scb);
+
             } else {
-                line.append(slot.getName());
+                w.callStmnt(setterName, w.expr(slotName)).writeSonnet(scb);
+            }
+        }
+    }
+
+
+    private void populateArgumentsFromSlots(
+        FeatureWithSlots ontoElementSafe,
+        TypeExpressionSemantics tes,
+        SourceCodeBuilder scb
+    ) {
+
+        final EList<SlotDeclaration> slots = ontoElementSafe.getSlots();
+        final int size = slots.size();
+        for (int i = 0; i < size; i++) {
+            SlotDeclaration slot = slots.get(i);
+
+            final IJadescriptType slotType =
+                tes.toJadescriptType(
+                    some(slot).__(SlotDeclaration::getType));
+
+            if (slotType instanceof DeclaresOntologyAdHocClass) {
+
+                DeclaresOntologyAdHocClass adHocType =
+                    (DeclaresOntologyAdHocClass) slotType;
+
+                final String adHocClassName =
+                    adHocType.getAdHocClassName();
+
+                final String converterName = adHocType
+                    .getConverterToAdHocClassMethodName();
+
+                scb.add(adHocClassName)
+                    .add(".")
+                    .add(converterName)
+                    .add("(")
+                    .add(slot.getName())
+                    .add(")");
+            } else {
+                scb.add(slot.getName());
             }
 
-            if (i < ontoElementSafe.getSlots().size() - 1) {
-                line.append(", ");
+            if (i < size - 1) {
+                scb.add(", ");
             }
 
         }
@@ -913,19 +980,33 @@ public class OntologyDeclarationSemantics extends
 
 
     @NotNull
-    private String retrieveNativeTypeFactory(
+    private String createNativeTypeInstance(
+        String ontoElementFqName
+    ) {
+        return "((" + ontoElementFqName + ") " +
+            "jadescript.java.Jadescript.createEmptyValue(" +
+            ontoElementFqName + ".class))";
+    }
+
+
+    private String getOntoElementFqName(ExtendingFeature ontologyElementSafe) {
+        return some(module.get(CompilationHelper.class)
+            .getFullyQualifiedName(ontologyElementSafe))
+            .__(fqn -> fqn.toString("."))
+            .orElse("");
+    }
+
+
+    @NotNull
+    private String retrieveNativeTypeImplementationClass(
         ExtendingFeature ontologyElementSafe
     ) {
         final String ontoElementFqName =
-            some(module.get(CompilationHelper.class)
-                .getFullyQualifiedName(ontologyElementSafe))
-                .__(fqn -> fqn.toString("."))
-                .orElse("");
+            getOntoElementFqName(ontologyElementSafe);
 
 
-        return "((" + ontoElementFqName + "Factory) " +
-            "(jadescript.java.Jadescript." +
-            "getNativeFactory(" + ontoElementFqName + ".class)))";
+        return "jadescript.java.Jadescript.getImplementationClass(" +
+            ontoElementFqName + ".class)";
     }
 
 

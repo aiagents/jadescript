@@ -55,7 +55,7 @@ public class GlobalOperationDeclarationSemantics
     implements OperationDeclarationSemantics {
 
 
-    //TODO implement nativeness
+
     private final Map<String, List<Maybe<GlobalFunctionOrProcedure>>>
         methodsMap = new HashMap<>();
     private final Map<String, Maybe<GlobalFunctionOrProcedure>>
@@ -117,8 +117,14 @@ public class GlobalOperationDeclarationSemantics
 
 
     public Maybe<GlobalFunctionOrProcedure> getOriginalMethod(String name) {
-        return Optional.ofNullable(originalMethodMap.get(name))
-            .orElse(nothing());
+        final Maybe<GlobalFunctionOrProcedure> result =
+            originalMethodMap.get(name);
+
+        if(result == null){
+            return nothing();
+        }
+
+        return result;
     }
 
 
@@ -128,8 +134,8 @@ public class GlobalOperationDeclarationSemantics
         ValidationMessageAcceptor acceptor
     ) {
         super.validateAdditionalContextualizedAspectsOnSave(input, acceptor);
-        final String name = input.__(NamedElement::getName)
-            .orElse("");
+
+        final String name = input.__(NamedElement::getName).orElse("");
 
         boolean mustBeFunction = input.__(GlobalFunctionOrProcedure::isFunction)
             .orElse(false);
