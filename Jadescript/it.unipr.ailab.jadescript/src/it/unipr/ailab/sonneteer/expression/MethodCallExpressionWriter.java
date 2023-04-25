@@ -13,10 +13,21 @@ public class MethodCallExpressionWriter extends ExpressionWriter {
     private final String methodName;
     private final List<ExpressionWriter> parameters;
 
-    public MethodCallExpressionWriter(String methodName, ExpressionWriter... parameters){
+    public MethodCallExpressionWriter(
+        String methodName,
+        ExpressionWriter... parameters
+    ){
         this.methodName = methodName;
         this.parameters = new ArrayList<>();
         this.parameters.addAll(Arrays.asList(parameters));
+    }
+
+    public MethodCallExpressionWriter(
+        String methodName,
+        List<ExpressionWriter> parameters
+    ){
+        this.methodName = methodName;
+        this.parameters = new ArrayList<>(parameters);
     }
 
     @Override

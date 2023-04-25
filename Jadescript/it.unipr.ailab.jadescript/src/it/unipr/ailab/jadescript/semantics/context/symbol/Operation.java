@@ -98,8 +98,8 @@ public class Operation implements MemberCallable {
             parameterNames,
             location,
             withoutSideEffects,
-            Operation.defaultInvokeByArity(name),
-            Operation.defaultInvokeByName(name, parameterNames)
+            Operation.defaultInvokeMemberByArity(name),
+            Operation.defaultInvokeMemberByName(name, parameterNames)
         );
     }
 
@@ -166,10 +166,10 @@ public class Operation implements MemberCallable {
             paramNames,
             namespace.currentLocation(),
             withoutSideEffects,
-            CompilationHelper.addEnvParameterByArity(defaultInvokeByArity(
+            CompilationHelper.addEnvParameterByArity(defaultInvokeMemberByArity(
                 operation.getSimpleName()
             )),
-            CompilationHelper.addEnvParameterByName(defaultInvokeByName(
+            CompilationHelper.addEnvParameterByName(defaultInvokeMemberByName(
                 operation.getSimpleName(),
                 paramNames
             ))
@@ -178,7 +178,7 @@ public class Operation implements MemberCallable {
 
 
     public static BiFunction<String, Map<String, String>, String>
-    defaultInvokeByName(
+    defaultInvokeMemberByName(
         String name,
         List<String> parameterNames
     ) {
@@ -196,7 +196,7 @@ public class Operation implements MemberCallable {
 
 
     public static BiFunction<String, List<String>, String>
-    defaultInvokeByArity(
+    defaultInvokeMemberByArity(
         String name
     ) {
         return (

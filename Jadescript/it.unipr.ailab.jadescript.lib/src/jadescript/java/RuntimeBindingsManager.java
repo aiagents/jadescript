@@ -5,8 +5,8 @@ import jadescript.content.onto.basic.InvalidNativeOperationInvocation;
 import jadescript.core.exception.JadescriptException;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RuntimeBindingsManager {
 
@@ -15,7 +15,8 @@ public class RuntimeBindingsManager {
     }
 
 
-    private final Map<String, Class<?>> implementations = new HashMap<>();
+    private final Map<String, Class<?>> implementations
+        = new ConcurrentHashMap<>();
 
     void bindNativeType(
         Class<?> interface_,

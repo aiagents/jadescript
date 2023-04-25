@@ -129,6 +129,7 @@ public abstract class UsesOntologyTopLevelDeclarationSemantics
 
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
+
         final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
         input.safeDo(inputsafe -> {

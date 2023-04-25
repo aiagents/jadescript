@@ -30,6 +30,9 @@ public class Jadescript {
     private static final RuntimeBindingsManager bindingsManager =
         new RuntimeBindingsManager();
 
+    private static final SingletonsManager singletons =
+        new SingletonsManager(bindingsManager);
+
 
     private Jadescript() {
     } // Do not instantiate.
@@ -50,6 +53,13 @@ public class Jadescript {
 
     public static Class<?> getImplementationClass(Class<?> interface_){
         return bindingsManager.getImplementationClass(interface_);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T getInstance(
+        Class<?> type
+    ){
+        return (T) singletons.get(type);
     }
 
     @SuppressWarnings({"unchecked"})

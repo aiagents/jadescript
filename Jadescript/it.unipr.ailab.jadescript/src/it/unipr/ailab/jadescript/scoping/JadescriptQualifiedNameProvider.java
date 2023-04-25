@@ -31,7 +31,9 @@ public class JadescriptQualifiedNameProvider extends XbaseQualifiedNameProvider 
 	 */
 	@Override
 	public @Nullable QualifiedName getFullyQualifiedName(EObject obj) {
-		if(obj == null) return null;
+		if(obj == null) {
+			return null;
+		}
 		
 		if(obj instanceof NamedFeature) {
 			return getFullyQualifiedNameForNamedFeature((NamedFeature) obj);
@@ -54,7 +56,9 @@ public class JadescriptQualifiedNameProvider extends XbaseQualifiedNameProvider 
 	
 	
 	
-	public QualifiedName getFullyQualifiedNameForNamedFeature(NamedFeature e) {
+	public @Nullable QualifiedName getFullyQualifiedNameForNamedFeature(
+		NamedFeature e
+	) {
 		if(e == null || e.getName() == null) {
 			return null;
 		}
@@ -67,7 +71,6 @@ public class JadescriptQualifiedNameProvider extends XbaseQualifiedNameProvider 
 			var modelFQN = getFullyQualifiedName(model);
 			
 			if(modelFQN != null) {
-					
 				return modelFQN.append(e.getName());
 			}
 		} 

@@ -1,12 +1,12 @@
 package jadescript.java;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 class SingletonsManager {
 
     private final RuntimeBindingsManager bindingsManager;
-    private final Map<String, Object> singletons = new HashMap<>();
+    private final Map<String, Object> singletons = new ConcurrentHashMap<>();
 
 
     SingletonsManager(RuntimeBindingsManager bindingsManager) {

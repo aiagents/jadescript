@@ -1004,9 +1004,9 @@ public class OntologyDeclarationSemantics extends
         final String ontoElementFqName =
             getOntoElementFqName(ontologyElementSafe);
 
-
         return "jadescript.java.Jadescript.getImplementationClass(" +
-            ontoElementFqName + ".class)";
+            ontoElementFqName +
+            ".class)";
     }
 
 

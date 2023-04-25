@@ -5,6 +5,7 @@ import it.unipr.ailab.jadescript.jadescript.FeatureWithSlots;
 import it.unipr.ailab.jadescript.jadescript.SlotDeclaration;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
@@ -27,10 +28,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static it.unipr.ailab.jadescript.semantics.context.symbol.GlobalFunctionOrProcedure.defaultInvokeByArity;
-import static it.unipr.ailab.jadescript.semantics.context.symbol.GlobalFunctionOrProcedure.defaultInvokeByName;
+
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.some;
 
@@ -235,7 +236,10 @@ public class OntologyElementConstructor implements GlobalCallable {
         List<String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
-        return defaultInvokeByArity(javaMethodName()).apply(compiledRexprs);
+        String fullyQualifiedName = javaMethodName();
+        return ((Function<List<String>, String>) (args) -> fullyQualifiedName + "(" +
+            String.join(" ,", args) +
+            ")").apply(compiledRexprs);
     }
 
 
@@ -244,10 +248,15 @@ public class OntologyElementConstructor implements GlobalCallable {
         Map<String, String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
-        return defaultInvokeByName(
-            javaMethodName(),
-            parameterNames()
-        ).apply(compiledRexprs);
+        String fullyQualifiedName = javaMethodName();
+        List<String> paramNames = parameterNames();
+        return ((Function<Map<String, String>, String>) (args) -> fullyQualifiedName + "(" + String.join(
+            " ,",
+            CallSemantics.sortToMatchParamNames(
+                args,
+                paramNames
+            )
+        ) + ")").apply(compiledRexprs);
     }
 
 

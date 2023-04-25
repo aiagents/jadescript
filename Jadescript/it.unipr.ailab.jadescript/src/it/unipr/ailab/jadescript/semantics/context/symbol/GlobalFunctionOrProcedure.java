@@ -16,6 +16,7 @@ import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
 import org.eclipse.xtext.common.types.JvmTypeReference;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -40,7 +41,7 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
     private final boolean withoutSideEffects;
 
 
-    public GlobalFunctionOrProcedure(
+    private GlobalFunctionOrProcedure(
         IJadescriptType returnType,
         String name,
         Map<String, IJadescriptType> parameterNamesToTypes,
@@ -130,6 +131,7 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
         }
 
 
+        String fullyQualifiedName = operation.getQualifiedName('.');
         return new GlobalFunctionOrProcedure(
             namespace.resolveType(operation.getReturnType()).ignoreBound(),
             operation.getSimpleName(),
@@ -139,37 +141,34 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
                 ? namespace.currentLocation()
                 : location,
             withoutSideEffects,
-            CompilationHelper.addEnvParameterByArity(defaultInvokeByArity(
-                operation.getQualifiedName('.')
-            )),
-            CompilationHelper.addEnvParameterByName(defaultInvokeByName(
-                operation.getQualifiedName('.'),
-                paramNames
-            ))
+            CompilationHelper.addEnvParameterByArity(
+                invokeGlobalByArity(fullyQualifiedName)),
+            CompilationHelper.addEnvParameterByName(
+                invokeGlobalByName(fullyQualifiedName, paramNames))
         );
     }
 
 
-    public static Function<List<String>, String> defaultInvokeByArity(
-        String fullyQualifiedName
-    ) {
-        return (args) -> fullyQualifiedName + "(" +
-            String.join(" ,", args) +
-            ")";
-    }
-
-
-    public static Function<Map<String, String>, String> defaultInvokeByName(
+    @NotNull
+    private static Function<Map<String, String>, String> invokeGlobalByName(
         String fullyQualifiedName,
         List<String> paramNames
     ) {
-        return (args) -> fullyQualifiedName + "(" + String.join(
+        return (args1) -> fullyQualifiedName + "(" + String.join(
             " ,",
             CallSemantics.sortToMatchParamNames(
-                args,
+                args1,
                 paramNames
             )
         ) + ")";
+    }
+
+
+    @NotNull
+    private static Function<List<String>, String> invokeGlobalByArity(String fullyQualifiedName) {
+        return (args) -> fullyQualifiedName + "(" +
+            String.join(" ,", args) +
+            ")";
     }
 
 

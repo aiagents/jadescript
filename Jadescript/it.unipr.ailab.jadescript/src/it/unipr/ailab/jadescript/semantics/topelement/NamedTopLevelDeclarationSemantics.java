@@ -134,6 +134,10 @@ public abstract class NamedTopLevelDeclarationSemantics<T extends NamedElement>
                 populateMainSuperTypes(input, itClass.getSuperTypes());
             }),
             itClass -> {
+                if(mainGeneratedClassIsAbstract(input)){
+                    itClass.setAbstract(true);
+                }
+
                 populateMainMembers(
                     input,
                     itClass.getMembers(),
@@ -141,6 +145,10 @@ public abstract class NamedTopLevelDeclarationSemantics<T extends NamedElement>
                 );
             }
         );
+    }
+
+    public boolean mainGeneratedClassIsAbstract(Maybe<T> input){
+        return false;
     }
 
 
