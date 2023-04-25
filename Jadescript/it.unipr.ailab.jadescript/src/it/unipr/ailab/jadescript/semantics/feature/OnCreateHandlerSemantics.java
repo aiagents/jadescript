@@ -413,7 +413,7 @@ public class OnCreateHandlerSemantics
         }
 
 
-        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(OnCreateHandler::getBody);
         List<ActualParameter> extractedParameters = new ArrayList<>();
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);

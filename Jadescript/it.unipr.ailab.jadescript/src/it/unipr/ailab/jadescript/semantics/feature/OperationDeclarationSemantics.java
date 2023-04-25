@@ -45,6 +45,7 @@ public interface OperationDeclarationSemantics extends SemanticsConsts {
         @SuppressWarnings("unused") Maybe<OptionalBlock> body,
         SemanticsModule module,
         @SuppressWarnings("unused") boolean isFunction,
+        @SuppressWarnings("unused") boolean isNative,
         SearchLocation locationOfThis,
         ValidationMessageAcceptor acceptor
     ) {
@@ -134,6 +135,7 @@ public interface OperationDeclarationSemantics extends SemanticsConsts {
         Maybe<OptionalBlock> body,
         SemanticsModule module,
         boolean isFunction,
+        boolean isNative,
         @SuppressWarnings("unused") SearchLocation locationOfThis,
         ValidationMessageAcceptor acceptor
     ) {
@@ -257,17 +259,19 @@ public interface OperationDeclarationSemantics extends SemanticsConsts {
             acceptor
         );
 
-        validationHelper.asserting(
-            SemanticsUtils.implication(
-                type.isPresent(),
-                !endOfBody.isValid()
-            ),
-            "MissingReturnStatement",
-            "Functions must explicitly exit in their last statement (use " +
-                "return or throw).",
-            type,
-            acceptor
-        );
+        if(!isNative) {
+            validationHelper.asserting(
+                SemanticsUtils.implication(
+                    type.isPresent(),
+                    !endOfBody.isValid()
+                ),
+                "MissingReturnStatement",
+                "Functions must explicitly exit in their last statement (use " +
+                    "return or throw).",
+                type,
+                acceptor
+            );
+        }
 
 
         module.get(ContextManager.class).exit();

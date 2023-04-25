@@ -225,12 +225,15 @@ public class GlobalOperationDeclarationSemantics
                 module,
                 method.__(GlobalFunctionOrProcedure::isFunction)
                     .orElse(false),
+                method.__(GlobalFunctionOrProcedure::isNative)
+                    .orElse(false),
                 module.get(ContextManager.class).currentContext()
                     .actAs(ModuleContext.class)
                     .findFirst()
                     .map(ModuleContext::getModuleName)
                     .<SearchLocation>map(ModuleGlobalLocation::new)
                     .orElse(UnknownLocation.getInstance()),
+
                 acceptor
             );
         }
@@ -263,6 +266,8 @@ public class GlobalOperationDeclarationSemantics
                 module,
                 gfop.__(GlobalFunctionOrProcedure::isFunction)
                     .orElse(false),
+                gfop.__(GlobalFunctionOrProcedure::isNative)
+                    .orElse(false),
                 module.get(ContextManager.class).currentContext()
                     .actAs(ModuleContext.class)
                     .findFirst()
@@ -289,20 +294,20 @@ public class GlobalOperationDeclarationSemantics
     public boolean mainGeneratedClassIsAbstract(
         Maybe<GlobalFunctionOrProcedure> input
     ) {
-        if(input.isNothing()){
+        if (input.isNothing()) {
             return super.mainGeneratedClassIsAbstract(input);
         }
 
         final @Nullable String operationName = getOperationName(input);
 
-        if(operationName == null){
+        if (operationName == null) {
             return super.mainGeneratedClassIsAbstract(input);
         }
 
         final @Nullable List<Maybe<GlobalFunctionOrProcedure>> methods =
             methodsMap.get(operationName);
 
-        if(methods == null){
+        if (methods == null) {
             return super.mainGeneratedClassIsAbstract(input);
         }
 
@@ -331,7 +336,7 @@ public class GlobalOperationDeclarationSemantics
         }
 
         for (Maybe<GlobalFunctionOrProcedure> method : methods) {
-            addOperation(input, members, method);
+            addOperation(input, itClass, method);
         }
 
     }
@@ -339,7 +344,7 @@ public class GlobalOperationDeclarationSemantics
 
     private void addOperation(
         Maybe<GlobalFunctionOrProcedure> input,
-        EList<JvmMember> members,
+        JvmDeclaredType itClass,
         Maybe<GlobalFunctionOrProcedure> method
     ) {
         final Maybe<String> methodName =
@@ -349,6 +354,7 @@ public class GlobalOperationDeclarationSemantics
         if (method.isNothing() || methodName.isNothing()) {
             return;
         }
+        EList<JvmMember> members = itClass.getMembers();
 
         final GlobalFunctionOrProcedure methodSafe =
             method.toNullable();
@@ -444,6 +450,7 @@ public class GlobalOperationDeclarationSemantics
                         paramNames,
                         paramTypes,
                         save2,
+                        itClass,
                         scb
                     )
                 );
@@ -580,6 +587,7 @@ public class GlobalOperationDeclarationSemantics
         List<String> paramNames,
         List<IJadescriptType> paramTypes,
         SavedContext save2,
+        JvmDeclaredType itClass,
         SourceCodeBuilder scb
     ) {
         contextManager.restore(save2);
@@ -629,10 +637,12 @@ public class GlobalOperationDeclarationSemantics
             List<ExpressionWriter> argumentsCompiled =
                 new ArrayList<>(1 + argSize);
 
+            final String qualifiedName = itClass.getQualifiedName('.');
+
             argumentsCompiled.add(
                 w.callExpr(
                     SemanticsConsts.AGENT_ENV + ".createInvoker",
-                    w.stringLiteral(methodNameSafe)
+                    w.stringLiteral(qualifiedName)
                 )
             );
 
@@ -640,11 +650,17 @@ public class GlobalOperationDeclarationSemantics
                 argumentsCompiled.add(w.expr(paramName));
             }
 
-            w.returnStmnt(w.callExpr(
-                "jadescript.java.Jadescript.getInstance(\"" +
-                    getOperationName(input) + "\")." + methodNameSafe,
-                argumentsCompiled
-            )).writeSonnet(scb);
+            final String call = "jadescript.java.Jadescript.<"
+                + qualifiedName + ">getInstance(" +
+                qualifiedName + ".class)." + methodNameSafe;
+            
+            if(isFunction){
+                w.returnStmnt(w.callExpr(call, argumentsCompiled))
+                    .writeSonnet(scb);
+            }else{
+                w.callStmnt(call, argumentsCompiled).writeSonnet(scb);
+            }
+
         } else if (body.isPresent()) {
             final List<IJadescriptType> ontoTypes = getUsedOntologyTypes(input);
 

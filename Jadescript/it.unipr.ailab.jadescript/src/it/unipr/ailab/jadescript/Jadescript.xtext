@@ -251,22 +251,20 @@ FunctionOrProcedure returns ParameterizedFeature:
 	(',' parameters+=FormalParameter)*)?
 	')')?
 	'as' type=TypeExpression
-	'do'
-	body=OptionalBlock)
+	'do' body=OptionalBlock)
 	|
 	(procedure?='procedure' name=Identifier
 	('with'
 	(parameters+=FormalParameter
 	(',' parameters+=FormalParameter)*)?)?
-	'do'
-	body=OptionalBlock));
+	'do' body=OptionalBlock));
 
 
 OnMessageHandler returns FeatureWithBody:
 	{OnMessageHandler}(
 	'on' stale?='stale'? name='message' performative=Performative? pattern=Pattern?
 	('when' whenBody=WhenExpression)?
-	'do' block=OptionalBlock
+	'do' body=OptionalBlock
 	);
 	
 	
@@ -274,7 +272,7 @@ OnNativeEventHandler returns FeatureWithBody:
 	{OnNativeEventHandler}(
 	'on' stale?='stale'? name='native' pattern=Pattern?
 	('when' whenBody=WhenExpression)?
-	'do' block=OptionalBlock
+	'do' body=OptionalBlock
 	)
 ;
 	
@@ -282,7 +280,7 @@ OnCreateHandler returns FeatureWithBody:
 	{OnCreateHandler}(
 		'on' name='create'
 		('with' parameters+=FormalParameter (',' parameters+=FormalParameter)*)?
-		'do' block=OptionalBlock
+		'do' body=OptionalBlock
 		
 	)
 ;
@@ -315,14 +313,14 @@ OnExceptionHandler returns FeatureWithBody:
 	{OnExceptionHandler}(
 	'on' name='exception' pattern=Pattern?
 	('when' whenBody=WhenExpression)?
-	'do' block=OptionalBlock	
+	'do' body=OptionalBlock	
 	);
 
 OnBehaviourFailureHandler returns FeatureWithBody:
 	{OnBehaviourFailureHandler}(
 		'on' name='behaviour' 'failure' pattern=Pattern?
 		('when' whenBody=WhenExpression)?
-		'do' block=OptionalBlock
+		'do' body=OptionalBlock
 	);
 
 Concept returns FeatureWithSlots:
@@ -354,7 +352,9 @@ OntologyAction returns FeatureWithSlots:
 	('('
 	slots+=SlotDeclaration (',' slots+=SlotDeclaration)*
 	')')?
-	('extends' superType=JvmParameterizedTypeReference (withSuperSlots?='with' namedSuperSlots=NamedArgumentList)?)?;
+	('extends' superType=JvmParameterizedTypeReference 
+		(withSuperSlots?='with' namedSuperSlots=NamedArgumentList)?
+	)?;
 
 SlotDeclaration:
 	name=Identifier 'as' type=TypeExpression;

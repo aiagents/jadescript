@@ -234,6 +234,7 @@ public class MemberOperationSemantics
             input.__(FeatureWithBody::getBody),
             module,
             input.__(FunctionOrProcedure::isFunction).orElse(false),
+            false,
             getLocationOfThis(),
             acceptor
         );
@@ -254,6 +255,7 @@ public class MemberOperationSemantics
             input.__(FeatureWithBody::getBody),
             module,
             input.__(FunctionOrProcedure::isFunction).orElse(false),
+            false,
             getLocationOfThis(),
             acceptor
         );
