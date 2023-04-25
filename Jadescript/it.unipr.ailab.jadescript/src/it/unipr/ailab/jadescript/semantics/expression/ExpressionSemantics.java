@@ -12,15 +12,18 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchM
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Functional.QuadFunction;
 import it.unipr.ailab.maybe.Functional.TriFunction;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -36,9 +39,13 @@ import java.util.stream.Stream;
  */
 @Singleton
 public abstract class ExpressionSemantics<T> extends Semantics {
+    //TODO improvements: add upperbound expression type in evaluation semantics
+    //TODO improvements: infertype returns additional
+    // explanations on the resolved type
 
-    private final LazyValue<ExpressionSemantics<?>> EMPTY_EXPRESSION_SEMANTICS =
-        new LazyValue<>(() -> new Adapter<>(this.module));
+
+    private final LazyInit<ExpressionSemantics<?>> EMPTY_EXPRESSION_SEMANTICS =
+        new LazyInit<>(() -> new Adapter<>(this.module));
 
 
     public ExpressionSemantics(SemanticsModule semanticsModule) {
@@ -52,7 +59,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         StaticState startingState,
         BiFunction<Maybe<S>, StaticState, R> map
     ) {
-        return Util.accumulateAndMap(
+        return SemanticsUtils.accumulateAndMap(
             inputs,
             startingState,
             map,
@@ -68,7 +75,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         StaticState state,
         TriFunction<ExpressionSemantics<S>, Maybe<S>, StaticState, R> getR
     ) {
-        return Util.accumulateAndMap(
+        return SemanticsUtils.accumulateAndMap(
             expressions.map(
                 sbte -> (SemanticsBoundToExpression<S>) sbte
             ),
@@ -340,7 +347,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
             StaticState,
             StaticState> enrichState
     ) {
-        return Util.accumulateAndMap(
+        return SemanticsUtils.accumulateAndMap(
             getSubExpressions(input.getPattern()).map(
                 sbte -> (SemanticsBoundToExpression<S>) sbte
             ),
@@ -522,7 +529,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
                 ).findFirst();
 
             if (flowSensitiveInferredType.isPresent()) {
-                return module.get(TypeHelper.class)
+                return module.get(TypeLatticeComputer.class)
                     .getGLB(inferredType, flowSensitiveInferredType.get());
             }
         }
@@ -1161,7 +1168,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         }
 
         final Maybe<? extends EObject> eObject =
-            Util.extractEObject(input.getPattern());
+            SemanticsUtils.extractEObject(input.getPattern());
         boolean holesCheck;
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
@@ -1260,7 +1267,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
         if (patternGroundForEquality) {
 
-
             // This is a non-holed sub pattern: validate it as expression.
             boolean asRExpressionCheck = validate(
                 input.getPattern(),
@@ -1314,14 +1320,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
                 final IJadescriptType solvedPattType = patternType
                     .solve(input.getProvidedInputType());
 
-                final String src =
-                    CompilationHelper.sourceToTextAny(
-                        input.getPattern()).orElse("");
-                final String sem = deepTraverse(input.getPattern())
-                    .getSemantics().getClass().getSimpleName();
-
-                final String ptName = patternType.toString();
-
 
                 //TODO change order of validation for better explanation: an
                 // unresolved pattern might be inferred to an invalid type
@@ -1362,24 +1360,27 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         ValidationMessageAcceptor acceptor
     ) {
         Maybe<T> pattern = input.getPattern();
-        Class<? extends TypeRelationship> requirement =
+        TypeRelationshipQuery requirement =
             input.getMode().getTypeRelationshipRequirement();
 
         TypeRelationship actualRelationship =
-            module.get(TypeHelper.class).getTypeRelationship(
+            module.get(TypeComparator.class).compare(
                 solvedType,
                 input.getProvidedInputType()
             );
 
         IJadescriptType providedInputType = input.getProvidedInputType();
         return module.get(ValidationHelper.class).asserting(
-            requirement.isInstance(actualRelationship),
+            requirement.matches(actualRelationship),
             "InvalidProvidedInput",
             "Cannot apply here an input of type "
-                + providedInputType.getJadescriptName()
+                + providedInputType.getFullJadescriptName()
                 + " to a pattern which expects an input of type "
-                + solvedType.getJadescriptName(),
-            Util.extractEObject(pattern),
+                + solvedType.getFullJadescriptName() + "; here the latter is " +
+                "required to be "+requirement.getHumanReadableString() +
+                " the former, but it was found to be "+
+                actualRelationship.getHumanReadableString() +" the former.",
+            SemanticsUtils.extractEObject(pattern),
             acceptor
         );
     }
@@ -1486,7 +1487,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         @Override
         protected Stream<SemanticsBoundToExpression<?>>
         getSubExpressionsInternal(Maybe<T> input) {
-            return Stream.of();
+            return Stream.empty();
         }
 
 
@@ -1505,7 +1506,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
             Maybe<T> input,
             StaticState state
         ) {
-            return module.get(TypeHelper.class).BOTTOM.apply(
+            return module.get(BuiltinTypeProvider.class).nothing(
                 "Internal error: the expression '" +
                     CompilationHelper.sourceToTextAny(input) +
                     "' was associated to the semantics of the empty expression."

@@ -20,27 +20,29 @@ import it.unipr.ailab.jadescript.semantics.context.search.UnknownLocation;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.feature.OperationDeclarationSemantics;
-import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.helpers.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.SEMode;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
+import it.unipr.ailab.sonneteer.WriterFactory;
+import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
-import jade.content.onto.Ontology;
+import jadescript.java.InvokerAgent;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.xtext.common.types.JvmDeclaredType;
-import org.eclipse.xtext.common.types.JvmMember;
-import org.eclipse.xtext.common.types.JvmTypeReference;
-import org.eclipse.xtext.common.types.JvmVisibility;
+import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nothing;
 
 /**
  * Created on 2019-05-13.
@@ -49,6 +51,7 @@ import static it.unipr.ailab.maybe.Maybe.*;
 public class GlobalOperationDeclarationSemantics
     extends UsesOntologyTopLevelDeclarationSemantics<GlobalFunctionOrProcedure>
     implements OperationDeclarationSemantics {
+
 
     private final Map<String, List<Maybe<GlobalFunctionOrProcedure>>>
         methodsMap = new HashMap<>();
@@ -100,8 +103,11 @@ public class GlobalOperationDeclarationSemantics
 
 
     public void addMethod(Maybe<GlobalFunctionOrProcedure> gfop) {
-        String name = gfop.__(NamedElement::getName)
-            .extract(nullAsEmptyString);
+        @Nullable String name = getOperationName(gfop);
+
+        if (name == null) {
+            return;
+        }
 
         methodsMap.computeIfAbsent(name, (n) -> {
             originalMethodMap.put(n, gfop);
@@ -111,8 +117,14 @@ public class GlobalOperationDeclarationSemantics
 
 
     public Maybe<GlobalFunctionOrProcedure> getOriginalMethod(String name) {
-        return Optional.ofNullable(originalMethodMap.get(name))
-            .orElse(nothing());
+        final Maybe<GlobalFunctionOrProcedure> result =
+            originalMethodMap.get(name);
+
+        if (result == null) {
+            return nothing();
+        }
+
+        return result;
     }
 
 
@@ -122,23 +134,32 @@ public class GlobalOperationDeclarationSemantics
         ValidationMessageAcceptor acceptor
     ) {
         super.validateAdditionalContextualizedAspectsOnSave(input, acceptor);
-        final String name = input.__(NamedElement::getName)
-            .extract(nullAsEmptyString);
+
+        final @Nullable String name = getOperationName(input);
 
         boolean mustBeFunction = input.__(GlobalFunctionOrProcedure::isFunction)
-            .extract(nullAsFalse);
+            .orElse(false);
 
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
 
-        final boolean allSameNature = methodsMap.get(name).stream()
-            .allMatch(funcOrProc ->
-                funcOrProc.__(GlobalFunctionOrProcedure::isFunction)
-                    .__(Boolean::equals, mustBeFunction)
-                    .extract(nullAsTrue));
+        final @Nullable List<Maybe<GlobalFunctionOrProcedure>> methods =
+            methodsMap.get(name);
+
+
+        final boolean allSameNature;
+        if (methods == null) {
+            allSameNature = true;
+        } else {
+            allSameNature = methods.stream()
+                .allMatch(funcOrProc ->
+                    funcOrProc.__(GlobalFunctionOrProcedure::isFunction)
+                        .__partial2(Boolean::equals, mustBeFunction)
+                        .orElse(true));
+        }
 
         if (!allSameNature) {
-            methodsMap.get(name).forEach(o -> {
+            methods.forEach(o -> {
                 validationHelper.emitError(
                     "FunctionsSharingNamesWithProcedures",
                     "Functions cannot share names with procedures.",
@@ -150,27 +171,39 @@ public class GlobalOperationDeclarationSemantics
             });
         }
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
-        for (int mI = 0; mI < methodsMap.get(name).size(); mI++) {
+
+        final int size;
+        if (methods == null) {
+            size = 0;
+        } else {
+            size = methods.size();
+        }
+
+
+        for (int mI = 0; mI < size; mI++) {
             Maybe<GlobalFunctionOrProcedure> method =
-                methodsMap.get(name).get(mI);
+                methods.get(mI);
 
-            final List<Maybe<JvmTypeReference>> ontologies =
-                Maybe.toListOfMaybes(
-                    input.__(UsesOntologyElement::getOntologies)
-                );
+            final MaybeList<JvmTypeReference> ontologies =
+                input.__toList(UsesOntologyElement::getOntologies);
 
 
             for (int i = 0; i < ontologies.size(); i++) {
                 Maybe<JvmTypeReference> ontologyTypeRef = ontologies.get(i);
                 IJadescriptType ontology = ontologyTypeRef
-                    .__(typeHelper::jtFromJvmTypeRef)
-                    .orElse(typeHelper.ANY);
+                    .__(typeSolver::fromJvmTypeReference)
+                    .__(TypeArgument::ignoreBound)
+                    .orElse(builtins.any(
+                        "No used ontology provided."
+                    ));
 
 
                 validationHelper.assertExpectedType(
-                    Ontology.class,
+                    builtins.ontology(),
                     ontology,
                     "InvalidOntologyType",
                     input,
@@ -191,13 +224,16 @@ public class GlobalOperationDeclarationSemantics
                 method.__(GlobalFunctionOrProcedure::getBody),
                 module,
                 method.__(GlobalFunctionOrProcedure::isFunction)
-                    .extract(nullAsFalse),
+                    .orElse(false),
+                method.__(GlobalFunctionOrProcedure::isNative)
+                    .orElse(false),
                 module.get(ContextManager.class).currentContext()
                     .actAs(ModuleContext.class)
                     .findFirst()
                     .map(ModuleContext::getModuleName)
                     .<SearchLocation>map(ModuleGlobalLocation::new)
                     .orElse(UnknownLocation.getInstance()),
+
                 acceptor
             );
         }
@@ -211,13 +247,16 @@ public class GlobalOperationDeclarationSemantics
     ) {
         super.validateAdditionalContextualizedAspectsOnEdit(input, acceptor);
 
-        final String name = input.__(NamedElement::getName)
-            .extract(nullAsEmptyString);
+        final @Nullable String name = getOperationName(input);
 
-        for (int mI = 0; mI < methodsMap.get(name).size(); mI++) {
-            Maybe<GlobalFunctionOrProcedure> gfop =
-                methodsMap.get(name).get(mI);
+        final @Nullable List<Maybe<GlobalFunctionOrProcedure>> methods =
+            methodsMap.get(name);
 
+        if (methods == null) {
+            return;
+        }
+
+        for (Maybe<GlobalFunctionOrProcedure> gfop : methods) {
             validateGenericFunctionOrProcedureOnEdit(
                 gfop,
                 gfop.__(NamedElement::getName),
@@ -226,7 +265,9 @@ public class GlobalOperationDeclarationSemantics
                 gfop.__(GlobalFunctionOrProcedure::getBody),
                 module,
                 gfop.__(GlobalFunctionOrProcedure::isFunction)
-                    .extract(nullAsFalse),
+                    .orElse(false),
+                gfop.__(GlobalFunctionOrProcedure::isNative)
+                    .orElse(false),
                 module.get(ContextManager.class).currentContext()
                     .actAs(ModuleContext.class)
                     .findFirst()
@@ -246,7 +287,34 @@ public class GlobalOperationDeclarationSemantics
         JvmDeclaredType itClass
     ) {
         super.populateMainMembers(input, members, itClass);
+    }
 
+
+    @Override
+    public boolean mainGeneratedClassIsAbstract(
+        Maybe<GlobalFunctionOrProcedure> input
+    ) {
+        if (input.isNothing()) {
+            return super.mainGeneratedClassIsAbstract(input);
+        }
+
+        final @Nullable String operationName = getOperationName(input);
+
+        if (operationName == null) {
+            return super.mainGeneratedClassIsAbstract(input);
+        }
+
+        final @Nullable List<Maybe<GlobalFunctionOrProcedure>> methods =
+            methodsMap.get(operationName);
+
+        if (methods == null) {
+            return super.mainGeneratedClassIsAbstract(input);
+        }
+
+        return methods.stream()
+            .filter(Maybe::isPresent)
+            .map(Maybe::toNullable)
+            .anyMatch(GlobalFunctionOrProcedure::isNative);
     }
 
 
@@ -257,14 +325,51 @@ public class GlobalOperationDeclarationSemantics
         JvmDeclaredType itClass
     ) {
         super.populateAdditionalContextualizedMembers(input, members, itClass);
-        final String name = input.__(NamedElement::getName)
-            .extract(nullAsEmptyString);
+        final @Nullable String name = getOperationName(input);
+
+
+        final @Nullable List<Maybe<GlobalFunctionOrProcedure>> methods =
+            methodsMap.get(name);
+
+        if (methods == null) {
+            return;
+        }
+
+        for (Maybe<GlobalFunctionOrProcedure> method : methods) {
+            addOperation(input, itClass, method);
+        }
+
+    }
+
+
+    private void addOperation(
+        Maybe<GlobalFunctionOrProcedure> input,
+        JvmDeclaredType itClass,
+        Maybe<GlobalFunctionOrProcedure> method
+    ) {
+        final Maybe<String> methodName =
+            method.__(GlobalFunctionOrProcedure::getName)
+                .nullIf(String::isBlank);
+
+        if (method.isNothing() || methodName.isNothing()) {
+            return;
+        }
+        EList<JvmMember> members = itClass.getMembers();
+
+        final GlobalFunctionOrProcedure methodSafe =
+            method.toNullable();
+
+        final String methodNameSafe =
+            methodName.toNullable();
+
 
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
 
-        final TypeHelper typeHelper =
-            module.get(TypeHelper.class);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
         final ContextManager contextManager =
             module.get(ContextManager.class);
@@ -275,124 +380,200 @@ public class GlobalOperationDeclarationSemantics
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
-        final BlockSemantics blockSemantics = module.get(BlockSemantics.class);
+        final BlockSemantics blockSemantics =
+            module.get(BlockSemantics.class);
 
-        for (Maybe<GlobalFunctionOrProcedure> method : methodsMap.get(name)) {
-            IJadescriptType returnType = method
-                .__(GlobalFunctionOrProcedure::getType)
-                .extractOrElse(tes::toJadescriptType, typeHelper.VOID);
+        IJadescriptType returnType = method
+            .__(GlobalFunctionOrProcedure::getType)
+            .extractOrElse(tes::toJadescriptType, builtins.javaVoid());
+
+        boolean isNative = method.__(GlobalFunctionOrProcedure::isNative)
+            .orElse(false);
+
+        final SavedContext saved = contextManager.save();
+
+        members.add(jvmTB.toMethod(
+            methodSafe,
+            methodNameSafe,
+            returnType.asJvmTypeReference(),
+            itMethod -> {
+                contextManager.restore(saved);
+                itMethod.setVisibility(JvmVisibility.PUBLIC);
+                itMethod.setStatic(true);
+
+                final MaybeList<FormalParameter> parameters = method
+                    .__toList(GlobalFunctionOrProcedure::getParameters);
+
+                final Optional<IJadescriptType> contextAgent =
+                    contextManager.currentContext().searchAs(
+                        AgentAssociationComputer.class,
+                        aac -> aac.computeAllAgentAssociations()
+                            .map(AgentAssociation::getAgent)
+                    ).findFirst();
+
+                itMethod.getParameters().add(jvmTB.toParameter(
+                    methodSafe,
+                    SemanticsConsts.AGENT_ENV,
+                    builtins.agentEnv(
+                        typeHelper.covariant(
+                            contextAgent.orElse(builtins.agent())
+                        ),
+                        typeHelper.covariant(
+                            typeSolver.fromClass(
+                                AgentEnvType.toSEModeClass(SEMode.WITH_SE)
+                            )
+                        )
+                    ).asJvmTypeReference()
+                ));
 
 
-            final Maybe<String> methodName =
-                method.__(GlobalFunctionOrProcedure::getName);
+                List<String> paramNames = new ArrayList<>();
+                List<IJadescriptType> paramTypes = new ArrayList<>();
 
-            if (method.isNothing() || methodName.isNothing()) {
+                addUserDefinedParameters(
+                    itMethod,
+                    parameters,
+                    paramNames,
+                    paramTypes
+                );
+
+
+                final SavedContext save2 = contextManager.save();
+                compilationHelper.createAndSetBody(itMethod, scb ->
+                    fillBody(
+                        input,
+                        contextManager,
+                        blockSemantics,
+                        method,
+                        returnType,
+                        methodNameSafe,
+                        paramNames,
+                        paramTypes,
+                        save2,
+                        itClass,
+                        scb
+                    )
+                );
+            }
+        ));
+
+        if (isNative) {
+            addAbstractPrototype(
+                members,
+                method,
+                returnType
+            );
+        }
+    }
+
+
+    private void addUserDefinedParameters(
+        JvmOperation itMethod,
+        MaybeList<FormalParameter> parameters,
+        List<String> paramNames,
+        List<IJadescriptType> paramTypes
+    ) {
+        TypeExpressionSemantics tes = module.get(TypeExpressionSemantics.class);
+        JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
+
+        for (Maybe<FormalParameter> parameter : parameters) {
+            final Maybe<String> parameterName =
+                parameter.__(FormalParameter::getName);
+
+            if (parameter.isNothing()) {
                 continue;
             }
 
-            final GlobalFunctionOrProcedure methodSafe =
-                method.toNullable();
+            paramNames.add(parameterName.orElse(""));
 
-            final String methodNameSafe =
-                methodName.toNullable();
+            final IJadescriptType paramType = tes.toJadescriptType(
+                parameter.__(FormalParameter::getType)
+            );
 
+            paramTypes.add(paramType);
 
-            final SavedContext saved = contextManager.save();
+            if (parameterName.isNothing()) {
+                continue;
+            }
 
+            final FormalParameter parameterSafe =
+                parameter.toNullable();
 
-            members.add(jvmTB.toMethod(
-                methodSafe,
-                methodNameSafe,
-                returnType.asJvmTypeReference(),
-                itMethod -> {
-                    contextManager.restore(saved);
-                    itMethod.setVisibility(JvmVisibility.PUBLIC);
-                    itMethod.setStatic(true);
-
-                    final List<Maybe<FormalParameter>> parameters =
-                        toListOfMaybes(
-                            method.__(GlobalFunctionOrProcedure::getParameters)
-                        );
-
-                    final Optional<IJadescriptType> contextAgent =
-                        contextManager.currentContext().searchAs(
-                            AgentAssociationComputer.class,
-                            aac -> aac.computeAllAgentAssociations()
-                                .map(AgentAssociation::getAgent)
-                        ).findFirst();
-
-                    itMethod.getParameters().add(jvmTB.toParameter(
-                        methodSafe,
-                        SemanticsConsts.AGENT_ENV,
-                        typeHelper.AGENTENV.apply(List.of(
-                            typeHelper.covariant(
-                                contextAgent.orElse(typeHelper.AGENT)
-                            ),
-                            typeHelper.jtFromClass(AgentEnvType.toSEModeClass(
-                                AgentEnvType.SEMode.WITH_SE
-                            ))
-                        )).asJvmTypeReference()
-                    ));
+            final String parameterNameSafe =
+                parameterName.toNullable();
 
 
-                    for (Maybe<FormalParameter> parameter : parameters) {
-                        final Maybe<String> parameterName =
-                            parameter.__(FormalParameter::getName);
+            itMethod.getParameters().add(
+                jvmTB.toParameter(
+                    parameterSafe,
+                    parameterNameSafe,
+                    paramType.asJvmTypeReference()
+                )
+            );
+        }
+    }
 
-                        if (parameter.isNothing()
-                            || parameterName.isNothing()) {
-                            continue;
-                        }
 
-                        final FormalParameter parameterSafe =
-                            parameter.toNullable();
+    private void addAbstractPrototype(
+        EList<JvmMember> members,
+        Maybe<GlobalFunctionOrProcedure> method,
+        IJadescriptType returnType
+    ) {
 
-                        final String parameterNameSafe =
-                            parameterName.toNullable();
+        final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
 
-                        itMethod.getParameters().add(
-                            jvmTB.toParameter(
-                                parameterSafe,
-                                parameterNameSafe,
-                                parameter.__(FormalParameter::getType)
-                                    .extract(tes::toJadescriptType)
-                                    .asJvmTypeReference()
-                            )
-                        );
-                    }
+        final Maybe<String> methodName = method.__(NamedElement::getName)
+            .nullIf(String::isBlank);
 
-                    List<String> paramNames = new ArrayList<>();
-                    List<IJadescriptType> paramTypes = new ArrayList<>();
-
-                    for (Maybe<FormalParameter> parameter : parameters) {
-                        paramNames.add(
-                            parameter.__(FormalParameter::getName).orElse("")
-                        );
-                        final Maybe<TypeExpression> paramTypeExpr =
-                            parameter.__(FormalParameter::getType);
-
-                        paramTypes.add(tes.toJadescriptType(paramTypeExpr));
-                    }
-
-                    final SavedContext save2 = contextManager.save();
-                    compilationHelper.createAndSetBody(itMethod, scb ->
-                        fillBody(
-                            input,
-                            contextManager,
-                            blockSemantics,
-                            method,
-                            returnType,
-                            methodNameSafe,
-                            paramNames,
-                            paramTypes,
-                            save2,
-                            scb
-                        )
-                    );
-                }
-            ));
+        if (method.isNothing() || methodName.isNothing()) {
+            return;
         }
 
+        final GlobalFunctionOrProcedure methodSafe = method.toNullable();
+
+        final String methodNameSafe = methodName.toNullable();
+
+
+        members.add(jvmTB.toMethod(
+            methodSafe,
+            methodNameSafe,
+            returnType.asJvmTypeReference(),
+            itMethod -> {
+                itMethod.setAbstract(true);
+                itMethod.setVisibility(JvmVisibility.PUBLIC);
+
+                itMethod.getParameters().add(
+                    jvmTB.toParameter(
+                        methodSafe,
+                        "invokerAgent",
+                        module.get(JvmTypeHelper.class)
+                            .typeRef(InvokerAgent.class)
+                    )
+                );
+
+                final MaybeList<FormalParameter> parameters =
+                    method.__toList(GlobalFunctionOrProcedure::getParameters);
+
+                List<String> paramNames = new ArrayList<>();
+                List<IJadescriptType> paramTypes = new ArrayList<>();
+
+                addUserDefinedParameters(
+                    itMethod,
+                    parameters,
+                    paramNames,
+                    paramTypes
+                );
+            }
+        ));
+
+
+    }
+
+
+    private @Nullable String getOperationName(
+        Maybe<GlobalFunctionOrProcedure> input
+    ) {
+        return input.__(NamedElement::getName).orElse("");
     }
 
 
@@ -406,6 +587,7 @@ public class GlobalOperationDeclarationSemantics
         List<String> paramNames,
         List<IJadescriptType> paramTypes,
         SavedContext save2,
+        JvmDeclaredType itClass,
         SourceCodeBuilder scb
     ) {
         contextManager.restore(save2);
@@ -413,7 +595,7 @@ public class GlobalOperationDeclarationSemantics
 
         final Boolean isFunction =
             input.__(GlobalFunctionOrProcedure::isFunction)
-                .extract(nullAsFalse);
+                .orElse(false);
 
         if (isFunction) {
             contextManager.enterProceduralFeature((mod, out) ->
@@ -443,24 +625,57 @@ public class GlobalOperationDeclarationSemantics
         }
 
 
-        final Maybe<CodeBlock> body =
+        final Maybe<OptionalBlock> body =
             method.__(GlobalFunctionOrProcedure::getBody);
 
-        if (body.isPresent()) {
+
+        final WriterFactory w = SemanticsConsts.w;
+        if (method.__(GlobalFunctionOrProcedure::isNative).orElse(false)) {
+
+            int argSize = paramNames.size();
+
+            List<ExpressionWriter> argumentsCompiled =
+                new ArrayList<>(1 + argSize);
+
+            final String qualifiedName = itClass.getQualifiedName('.');
+
+            argumentsCompiled.add(
+                w.callExpr(
+                    SemanticsConsts.AGENT_ENV + ".createInvoker",
+                    w.stringLiteral(qualifiedName)
+                )
+            );
+
+            for (final String paramName : paramNames) {
+                argumentsCompiled.add(w.expr(paramName));
+            }
+
+            final String call = "jadescript.java.Jadescript.<"
+                + qualifiedName + ">getInstance(" +
+                qualifiedName + ".class)." + methodNameSafe;
+            
+            if(isFunction){
+                w.returnStmnt(w.callExpr(call, argumentsCompiled))
+                    .writeSonnet(scb);
+            }else{
+                w.callStmnt(call, argumentsCompiled).writeSonnet(scb);
+            }
+
+        } else if (body.isPresent()) {
             final List<IJadescriptType> ontoTypes = getUsedOntologyTypes(input);
 
             for (IJadescriptType usedOntologyType : ontoTypes) {
                 String ontologyVarName =
                     CompilationHelper.extractOntologyVarName(usedOntologyType);
 
-                String ontologyName = usedOntologyType
+                String ontologyTypeCompiled = usedOntologyType
                     .compileToJavaTypeReference();
 
-                SemanticsConsts.w.variable(
-                    ontologyName,
+                w.variable(
+                    ontologyTypeCompiled,
                     ontologyVarName,
-                    SemanticsConsts.w.expr("(" + ontologyName + ") "
-                        + ontologyName +
+                    w.expr("(" + ontologyTypeCompiled + ") "
+                        + ontologyTypeCompiled +
                         ".getInstance()")
                 ).writeSonnet(scb);
             }
@@ -472,7 +687,7 @@ public class GlobalOperationDeclarationSemantics
 
 
             final PSR<BlockWriter> bodyPSR =
-                blockSemantics.compile(body, inBody);
+                blockSemantics.compileOptionalBlock(body, inBody);
 
             bodyPSR.result().writeSonnet(scb);
         }
@@ -488,13 +703,15 @@ public class GlobalOperationDeclarationSemantics
 
         final Boolean isProcedure =
             input.__(GlobalFunctionOrProcedure::isProcedure)
-                .extract(nullAsTrue);
+                .orElse(true);
         if (isProcedure) {
-            return Optional.of(module.get(TypeHelper.class).jtFromClass(
-                jadescript.lang.JadescriptGlobalProcedure.class));
+            return Optional.of(module.get(TypeSolver.class).fromClass(
+                jadescript.lang.JadescriptGlobalProcedure.class
+            ));
         } else { //input.isFunction()
-            return Optional.of(module.get(TypeHelper.class).jtFromClass(
-                jadescript.lang.JadescriptGlobalFunction.class));
+            return Optional.of(module.get(TypeSolver.class).fromClass(
+                jadescript.lang.JadescriptGlobalFunction.class
+            ));
         }
     }
 

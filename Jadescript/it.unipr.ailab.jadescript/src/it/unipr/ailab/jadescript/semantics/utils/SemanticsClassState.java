@@ -29,7 +29,7 @@ public class SemanticsClassState<I extends EObject, T> {
     }
 
     public boolean hasState(Maybe<I> input){
-        return input.__(stateMap::containsKey).extract(Maybe.nullAsFalse);
+        return input.__(stateMap::containsKey).orElse(false);
     }
 
     public void set(Maybe<I> input, T newState){

@@ -13,20 +13,17 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedName;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.maybe.utils.LazyInit;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.common.types.JvmDeclaredType;
 
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
+import static it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils.safeFilter;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public class ProceduralFeatureContainerContext
@@ -39,8 +36,8 @@ public class ProceduralFeatureContainerContext
     private final TopLevelDeclarationContext outer;
     private final Maybe<IJadescriptType> thisReferenceType;
     private final Maybe<? extends EObject> featureContainer;
-    private final LazyValue<Maybe<TypeNamespace>> thisReferenceNamespace;
-    private final LazyValue<Maybe<CompilableName>> thisReferenceElement;
+    private final LazyInit<Maybe<TypeNamespace>> thisReferenceNamespace;
+    private final LazyInit<Maybe<CompilableName>> thisReferenceElement;
 
 
     public ProceduralFeatureContainerContext(
@@ -54,15 +51,15 @@ public class ProceduralFeatureContainerContext
         this.thisReferenceType = some(thisReferenceType);
 
         this.featureContainer = featureContainer;
-        this.thisReferenceNamespace = new LazyValue<>(() ->
+        this.thisReferenceNamespace = new LazyInit<>(() ->
             some(thisReferenceType.namespace())
         );
 
-        this.thisReferenceElement = new LazyValue<>(() ->
+        this.thisReferenceElement = new LazyInit<>(() ->
             some(new ContextGeneratedName(
                 THIS,
                 thisReferenceType,
-                () -> Util.getOuterClassThisReference(featureContainer)
+                () -> SemanticsUtils.getOuterClassThisReference(featureContainer)
                     .orElse(THIS)
             ))
         );
@@ -81,8 +78,8 @@ public class ProceduralFeatureContainerContext
         this.featureContainer = featureContainer;
 
         this.thisReferenceType = Maybe.nothing();
-        this.thisReferenceNamespace = new LazyValue<>(Maybe::nothing);
-        this.thisReferenceElement = new LazyValue<>(Maybe::nothing);
+        this.thisReferenceNamespace = new LazyInit<>(Maybe::nothing);
+        this.thisReferenceElement = new LazyInit<>(Maybe::nothing);
     }
 
 

@@ -16,7 +16,14 @@ import org.junit.Assert
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.eclipse.xtext.testing.validation.ValidationTestHelper
+import org.junit.Before
+import org.eclipse.xtext.util.JavaVersion
 
+/**
+ * Set of example tests (i.e., examples to help create new tests). 
+ * Do not run, as they may fail on new Jadescript versions!
+ * Please run {@link TestSuite} to run all (valid) tests.
+ */
 @RunWith(XtextRunner)
 @InjectWith(JadescriptInjectorProvider)
 class GuideToTestJadeScript {
@@ -24,8 +31,12 @@ class GuideToTestJadeScript {
 	ParseHelper<Model> parseHelper
 	@Inject extension ValidationTestHelper
 	@Inject extension ReflectExtensions
-	@Inject extension CompilationTestHelper
 	@Inject extension ParseHelper<Model>
+	@Inject extension CompilationTestHelper
+	@Before
+	public def setJavaVersion() {
+		javaVersion = JavaVersion.JAVA11
+	}	
 
 	boolean parsingError
 
@@ -62,7 +73,7 @@ class GuideToTestJadeScript {
 		'''.parse.assertNoIssues
 	}
 
-	// 3) Test you correctly generated Java code
+	// 3) Test that the compiler correctly generated Java code
 	@Test
 	def void testGeneratedJavaCode() {
 		'''		

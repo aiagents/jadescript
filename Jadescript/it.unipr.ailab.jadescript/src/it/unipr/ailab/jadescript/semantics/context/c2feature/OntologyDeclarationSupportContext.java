@@ -11,34 +11,34 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementConstru
 import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementStructuralPattern;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntologyType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedOntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.UserDefinedOntologyType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmParameterizedTypeReference;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 public class OntologyDeclarationSupportContext
     extends TopLevelDeclarationContext
     implements GlobalCallable.Namespace, GlobalPattern.Namespace {
 
     private final Maybe<Ontology> input;
-    private final String ontoFQName;
+    private final @NotNull Maybe<String> ontoFQName;
 
 
     public OntologyDeclarationSupportContext(
         SemanticsModule module,
         FileContext outer,
         Maybe<Ontology> input,
-        String ontoFQName
+        @NotNull Maybe<String> ontoFQName
     ) {
         super(module, outer);
         this.input = input;
@@ -50,15 +50,20 @@ public class OntologyDeclarationSupportContext
     public Stream<? extends GlobalCallable> globalCallables(
         @Nullable String name
     ) {
-        return Maybe.toListOfMaybes(input.__(Ontology::getFeatures)).stream()
+        return someStream(input.__(Ontology::getFeatures))
             .filter(f -> f.__(ff -> ff instanceof ExtendingFeature)
-                .extract(nullAsFalse))
+                .orElse(false))
             .map(f -> f.__(ff -> (ExtendingFeature) ff))
             .filter(f -> f.__(ff -> ff.getName().equals(name))
-                .extract(nullAsFalse))
-            .map(f -> OntologyElementConstructor.fromFeature(
-                module, f, ontoFQName, currentLocation()
-            )).filter(Maybe::isPresent)
+                .orElse(false))
+            .map(f ->
+                OntologyElementConstructor.fromFeature(
+                    module,
+                    f,
+                    ontoFQName,
+                    currentLocation()
+                )
+            ).filter(Maybe::isPresent)
             .map(Maybe::toNullable);
     }
 
@@ -67,12 +72,12 @@ public class OntologyDeclarationSupportContext
     public Stream<? extends GlobalPattern> globalPatterns(
         @Nullable String name
     ) {
-        return Maybe.toListOfMaybes(input.__(Ontology::getFeatures)).stream()
+        return someStream(input.__(Ontology::getFeatures))
             .filter(f -> f.__(ff -> ff instanceof ExtendingFeature)
-                .extract(nullAsFalse))
+                .orElse(false))
             .map(f -> f.__(ff -> (ExtendingFeature) ff))
             .filter(f -> f.__(ff -> ff.getName().equals(name))
-                .extract(nullAsFalse))
+                .orElse(false))
             .map(f -> OntologyElementStructuralPattern.fromFeature(
                 module, f, currentLocation()
             )).filter(Maybe::isPresent)
@@ -81,7 +86,7 @@ public class OntologyDeclarationSupportContext
 
 
     public String getOntologyName() {
-        return input.__(NamedElement::getName).extract(nullAsEmptyString);
+        return input.__(NamedElement::getName).orElse("");
     }
 
 
@@ -130,14 +135,15 @@ public class OntologyDeclarationSupportContext
     public boolean isDeclarationOrExtensionOfOntology(
         String expectedOntoName
     ) {
-        if (ontoFQName != null && ontoFQName.equals(expectedOntoName)) {
+        if (ontoFQName.isPresent()
+            && ontoFQName.wrappedEquals(expectedOntoName)) {
             return true;
         }
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
 
-        final List<Maybe<JvmParameterizedTypeReference>> superOntologies =
-            Maybe.toListOfMaybes(input.__(FeatureContainer::getSuperTypes));
+        final MaybeList<JvmParameterizedTypeReference> superOntologies =
+            input.__toList(FeatureContainer::getSuperTypes);
 
         for (Maybe<JvmParameterizedTypeReference> superOntology :
             superOntologies) {
@@ -157,15 +163,15 @@ public class OntologyDeclarationSupportContext
                 continue;
             }
 
-            final IJadescriptType superType = typeHelper.jtFromJvmTypeRef(
-                superOntology.toNullable());
+            final IJadescriptType superType = typeSolver.fromJvmTypeReference(
+                superOntology.toNullable()
+            ).ignoreBound();
 
-            if (superType instanceof UserDefinedOntologyType &&
-                isExtensionOfOntology(
-                    ((UserDefinedOntologyType) superType),
-                    expectedOntoName
-                )
-            ) {
+            if (superType instanceof UserDefinedOntologyType
+                && isExtensionOfOntology(
+                ((UserDefinedOntologyType) superType),
+                expectedOntoName
+            )) {
                 return true;
             }
         }

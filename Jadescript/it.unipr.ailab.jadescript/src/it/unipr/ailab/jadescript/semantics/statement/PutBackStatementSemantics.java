@@ -7,9 +7,9 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -72,7 +72,7 @@ public class PutBackStatementSemantics
         IJadescriptType messageType = rves.inferType(message, state);
 
         module.get(ValidationHelper.class).assertExpectedType(
-            module.get(TypeHelper.class).ANYMESSAGE,
+            module.get(BuiltinTypeProvider.class).anyMessage(),
             messageType,
             "InvalidPutbackStatement",
             message,

@@ -1,49 +1,112 @@
 package jadescript.java;
 
-import java.util.HashMap;
+
+import jadescript.content.onto.basic.InvalidNativeOperationInvocation;
+import jadescript.core.exception.JadescriptException;
+
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RuntimeBindingsManager {
 
-    RuntimeBindingsManager(){
+    RuntimeBindingsManager() {
         //Only Jadescript class can create it
     }
 
-    private Map<String, NativeValueFactory> factories = new HashMap<>();
 
+    private final Map<String, Class<?>> implementations
+        = new ConcurrentHashMap<>();
 
     void bindNativeType(
-            Class<?> interface_,
-            NativeValueFactory spec
+        Class<?> interface_,
+        Class<?> implementation
     ) {
-        factories.put(interface_.getName(), spec);
+        this.implementations.put(interface_.getName(), implementation);
     }
 
-    NativeValueFactory getFactoryOrNull(String interfaceName){
-        return factories.get(interfaceName);
+    void bindNativeType(
+        String interfaceName,
+        Class<?> implementation
+    ) {
+        this.implementations.put(interfaceName, implementation);
     }
 
-    NativeValueFactory getFactoryOrNull(
-            Class<?> interface_
-    ){
-        return getFactoryOrNull(interface_.getName());
-    }
 
-    NativeValueFactory getFactory(String interfaceName){
-        final NativeValueFactory specification = getFactoryOrNull(interfaceName);
-        if(specification == null){
-            throw new MissingBindingException(interfaceName);
+    @SuppressWarnings("unchecked")
+    <T> T createOrNull(String interfaceName){
+        try {
+            return (T) this.implementations.get(interfaceName)
+                .getDeclaredConstructor()
+                .newInstance();
+        } catch (NoSuchMethodException | InvocationTargetException |
+                 InstantiationException | IllegalAccessException e) {
+            throw JadescriptException.wrap(e);
         }
-        return specification;
     }
 
-    NativeValueFactory getFactory(Class<?> interface_){
-        return getFactory(interface_.getName());
+    <T> T createOrNull(Class<? extends T> interface_) {
+        return createOrNull(interface_.getName());
+    }
+
+    <T> T create(String interfaceName){
+        final T implemented = createOrNull(interfaceName);
+        if(implemented == null){
+            throw new JadescriptException(
+                new InvalidNativeOperationInvocation(
+                    "Could not find implementation class for interface '" +
+                        interfaceName + "'. Use Jadescript.bindNative(...) to" +
+                        " " +
+                        "register the implementation class.",
+                    ""
+                )
+            );
+        }
+        return implemented;
+    }
+
+    <T> T create(Class<? extends T> interface_){
+        return create(interface_.getName());
+    }
+
+
+    Class<?> getImplementationClassOrNull(
+        String interfaceName
+    ) {
+        return this.implementations.get(interfaceName);
+    }
+
+
+    Class<?> getImplementationClassOrNull(
+        Class<?> interface_
+    ) {
+        return this.getImplementationClassOrNull(interface_.getName());
     }
 
     Class<?> getImplementationClass(
-            String interfaceName
+        String interfaceName
     ){
-        return this.getFactory(interfaceName).getImplementationClass();
+        final Class<?> implementation =
+            getImplementationClassOrNull(interfaceName);
+        if(implementation == null){
+            throw new JadescriptException(
+                new InvalidNativeOperationInvocation(
+                    "Could not find implementation class for interface '" +
+                        interfaceName + "'. Use Jadescript.bindNative(...) to" +
+                        " " +
+                        "register the implementation class.",
+                    ""
+                )
+            );
+        }
+        return implementation;
     }
+
+    Class<?> getImplementationClass(
+        Class<?> interface_
+    ) {
+        return getImplementationClass(interface_.getName());
+    }
+
+
 }

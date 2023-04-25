@@ -5,7 +5,7 @@ import it.unipr.ailab.jadescript.semantics.namespace.ImportedMembersNamespace;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithCompilables;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.ecore.EObject;
@@ -42,7 +42,7 @@ public class BehaviourAssociation
     ) {
         return ImportedMembersNamespace.importMembersNamespace(
             module,
-            acceptor -> Util.getOuterClassThisReference(eObject).orElse(THIS),
+            acceptor -> SemanticsUtils.getOuterClassThisReference(eObject).orElse(THIS),
             ExpressionDescriptor.thisReference,
             getAssociatedType().namespace()
         );

@@ -7,10 +7,15 @@ import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c1toplevel.TopLevelBehaviourDeclarationContext;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.SEMode;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDeclaration;
 import it.unipr.ailab.maybe.Maybe;
 import jadescript.core.behaviours.CyclicBehaviour;
@@ -29,7 +34,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 public class BehaviourDeclarationSemantics
     extends ForAgentTopLevelDeclarationSemantics<BehaviourDeclaration> {
@@ -42,7 +47,7 @@ public class BehaviourDeclarationSemantics
     private static boolean hasEventClassSystem(Feature input) {
         return input instanceof OnExecuteHandler
             || input instanceof OnMessageHandler
-            || input instanceof OnPerceptHandler;
+            || input instanceof OnNativeEventHandler;
     }
 
 
@@ -55,7 +60,7 @@ public class BehaviourDeclarationSemantics
 
 
         if (input.__(BehaviourDeclaration::isMemberBehaviour)
-            .extract(nullAsFalse)) {
+            .orElse(false)) {
             contextManager.enterEmulatedFile();
         }
 
@@ -71,8 +76,8 @@ public class BehaviourDeclarationSemantics
 
 
         contextManager.enterProceduralFeatureContainer(
-            module.get(TypeHelper.class)
-                .jtFromJvmTypePermissive(jvmDeclaredType),
+            module.get(TypeSolver.class)
+                .fromJvmTypePermissive(jvmDeclaredType),
             input
         );
     }
@@ -87,7 +92,7 @@ public class BehaviourDeclarationSemantics
         module.get(ContextManager.class).exit();
 
         if (input.__(BehaviourDeclaration::isMemberBehaviour)
-            .extract(nullAsFalse)) {
+            .orElse(false)) {
             //From EmulatedFileContext:
             module.get(ContextManager.class).exit();
         }
@@ -114,28 +119,31 @@ public class BehaviourDeclarationSemantics
             input.__(BehaviourDeclaration::getForAgent)
                 .extract(Maybe::flatten);
 
-        List<IJadescriptType> typeArgs = new ArrayList<>();
+        List<TypeArgument> typeArgs = new ArrayList<>();
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
         if (typeArg.isPresent()) {
-            typeArgs.add(typeHelper.jtFromJvmTypeRef(typeArg.toNullable()));
+            typeArgs.add(typeSolver.fromJvmTypeReference(typeArg.toNullable()));
         } else {
-            typeArgs.add(typeHelper.AGENT);
+            typeArgs.add(builtins.agent());
         }
 
-        if (Maybe.nullAsFalse(input
+        if (input
             .__(BehaviourDeclaration::getType)
-            .__(String::equals, "cyclic"))) {
+            .__partial2(String::equals, "cyclic")
+            .orElse(false)) {
 
-            return Collections.singletonList(typeHelper.jtFromClass(
+            return Collections.singletonList(typeSolver.fromClass(
                 jadescript.core.behaviours.CyclicBehaviour.class,
                 typeArgs
             ));
 
         } else {//it's one shot
 
-            return Collections.singletonList(typeHelper.jtFromClass(
+            return Collections.singletonList(typeSolver.fromClass(
                 jadescript.core.behaviours.OneShotBehaviour.class,
                 typeArgs
             ));
@@ -152,16 +160,14 @@ public class BehaviourDeclarationSemantics
             input.__(BehaviourDeclaration::getForAgent)
                 .extract(Maybe::flatten);
 
-        List<IJadescriptType> typeArgs = new ArrayList<>(1);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        if (typeArg.isPresent()) {
-            typeArgs.add(typeHelper.jtFromJvmTypeRef(typeArg.toNullable()));
-        }
-        if (Maybe.nullAsFalse(input
-            .__(BehaviourDeclaration::getType)
-            .__(String::equals, "cyclic"))) {
+        List<TypeArgument> typeArgs = new ArrayList<>(1);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
 
-            final IJadescriptType value = typeHelper.jtFromClass(
+        if (typeArg.isPresent()) {
+            typeArgs.add(typeSolver.fromJvmTypeReference(typeArg.toNullable()));
+        }
+        if (input.__(BehaviourDeclaration::getType).wrappedEquals("cyclic")) {
+            final IJadescriptType value = typeSolver.fromClass(
                 CyclicBehaviour.class,
                 typeArgs
             );
@@ -169,7 +175,7 @@ public class BehaviourDeclarationSemantics
 
         } else { //it's one shot
 
-            final IJadescriptType value = typeHelper.jtFromClass(
+            final IJadescriptType value = typeSolver.fromClass(
                 OneShotBehaviour.class,
                 typeArgs
             );
@@ -193,9 +199,9 @@ public class BehaviourDeclarationSemantics
         final BehaviourDeclaration inputSafe = input.toNullable();
 
         final Optional<OnCreateHandler> onCreateHandler =
-            stream(input.__(BehaviourDeclaration::getFeatures))
+            someStream(input.__(BehaviourDeclaration::getFeatures))
                 .filter(j -> j.__(f -> f instanceof OnCreateHandler)
-                    .extract(nullAsFalse))
+                    .orElse(false))
                 .map(Maybe::toOpt)
                 .findFirst()
                 .flatMap(x -> x)
@@ -210,13 +216,10 @@ public class BehaviourDeclarationSemantics
 
 
         if (onCreateHandler.isPresent()) {
-            final List<Maybe<FormalParameter>> formalParameters =
-                toListOfMaybes(onCreateHandler.get().getParameters());
-
             final TypeExpressionSemantics tes =
                 module.get(TypeExpressionSemantics.class);
 
-            formalParameters.stream()
+            Maybe.someStream(onCreateHandler.get().getParameters())
                 .map(m -> m.__(FormalParameter::getType))
                 .map(tes::toJadescriptType)
                 .map(t -> {
@@ -237,6 +240,10 @@ public class BehaviourDeclarationSemantics
             module.get(JvmTypesBuilder.class);
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
@@ -245,8 +252,15 @@ public class BehaviourDeclarationSemantics
             module.get(IQualifiedNameProvider.class);
 
 
+        final Maybe<String> fqn =
+            input.__(qnProvider::getFullyQualifiedName)
+                .__(f -> f.toString("."))
+                .nullIf(String::isBlank);
+
+
         members.add(jvmTB.toMethod(inputSafe, "__createEmpty",
-            typeHelper.typeRef(inputSafe),
+            fqn.__(jvm::typeRef)
+                .orElseGet(builtins.anyBehaviour()::asJvmTypeReference),
             itMethod -> {
 
                 contextManager.restore(savedContext);
@@ -260,23 +274,33 @@ public class BehaviourDeclarationSemantics
                 itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
                     AGENT_ENV,
-                    typeHelper.AGENTENV
-                        .apply(List.of(
-                            typeHelper.covariant(contextAgent),
-                            typeHelper.jtFromClass(
-                                AgentEnvType.toSEModeClass(
-                                    AgentEnvType.SEMode.WITH_SE
-                                )
+                    builtins.agentEnv(
+                        typeHelper.covariant(contextAgent),
+                        typeHelper.covariant(
+                            typeSolver.fromClass(
+                                AgentEnvType.toSEModeClass(SEMode.WITH_SE)
                             )
-                        )).asJvmTypeReference()
+                        )
+                    ).asJvmTypeReference()
                 ));
 
                 compilationHelper.createAndSetBody(
                     itMethod,
                     scb -> {
+                        final Maybe<String> fqnMaybe = input
+                            .__(qnProvider::getFullyQualifiedName)
+                            .__(qn -> qn.toString("."))
+                            .nullIf(String::isBlank);
+
+                        if (fqnMaybe.isNothing()) {
+                            scb.line("/* Fully qualified name of behaviour" +
+                                " resulted empty or null */");
+                            scb.line("return null;");
+                            return;
+                        }
+
                         scb.line("return new " +
-                            input.__(qnProvider::getFullyQualifiedName)
-                                .__(qn -> qn.toString(".")) +
+                            fqnMaybe +
                             "(" +
                             AGENT_ENV +
                             (paramDefaultValues.isEmpty() ? "" : ", ") +
@@ -292,7 +316,7 @@ public class BehaviourDeclarationSemantics
         members.add(jvmTB.toField(
                 inputSafe,
                 IGNORE_MSG_HANDLERS_VAR_NAME,
-                typeHelper.typeRef(Boolean.class),
+                jvm.typeRef(Boolean.class),
                 itField -> compilationHelper.createAndSetInitializer(
                     itField,
                     scb -> scb.add("false")
@@ -313,12 +337,12 @@ public class BehaviourDeclarationSemantics
         members.add(jvmTB.toMethod(
             inputSafe,
             "doAction",
-            typeHelper.typeRef(void.class),
+            jvm.typeRef(void.class),
             itMethod -> {
                 itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
                     "_tickCount",
-                    typeHelper.typeRef(Integer.TYPE)
+                    jvm.typeRef(Integer.TYPE)
                 ));
                 itMethod.setVisibility(JvmVisibility.PUBLIC);
 
@@ -330,13 +354,13 @@ public class BehaviourDeclarationSemantics
 
                     scb.line("super.doAction(_tickCount);");
 
-                    toListOfMaybes(input.__(FeatureContainer::getFeatures))
-                        .stream()
+                    someStream(input.__(FeatureContainer::getFeatures))
                         .filter(Maybe::isPresent)
                         .map(Maybe::toNullable)
                         .filter(
                             BehaviourDeclarationSemantics::hasEventClassSystem
-                        ).map(this::synthesizeEventFieldName)
+                        )
+                        .map(this::synthesizeEventFieldName)
                         .forEach(eventName -> scb.line(eventName + ".run();"));
 
                     w.ifStmnt(
@@ -347,8 +371,7 @@ public class BehaviourDeclarationSemantics
                     ).writeSonnet(scb);
 
                     scb.add("if ( true ");
-                    toListOfMaybes(input.__(FeatureContainer::getFeatures))
-                        .stream()
+                    someStream(input.__(FeatureContainer::getFeatures))
                         .filter(Maybe::isPresent)
                         .map(Maybe::toNullable)
                         .filter(
@@ -378,10 +401,10 @@ public class BehaviourDeclarationSemantics
         members.add(jvmTB.toMethod(
             inputSafe,
             "__hasStaleMessageHandler",
-            typeHelper.BOOLEAN.asJvmTypeReference(),
+            builtins.boolean_().asJvmTypeReference(),
             itMethod -> {
                 boolean result =
-                    Maybe.stream(input.__(BehaviourDeclaration::getFeatures))
+                    someStream(input.__(BehaviourDeclaration::getFeatures))
                         .anyMatch(featureMaybe -> {
                             if (featureMaybe.isPresent()) {
                                 Feature f = featureMaybe.toNullable();
@@ -436,24 +459,25 @@ public class BehaviourDeclarationSemantics
             itCtor -> {
                 contextManager.restore(savedContext);
 
-
                 final IJadescriptType contextAgent =
                     getAssociatedAgentType(input, null);
 
                 final TypeHelper typeHelper = module.get(TypeHelper.class);
+                final TypeSolver typeSolver = module.get(TypeSolver.class);
+                final BuiltinTypeProvider builtins =
+                    module.get(BuiltinTypeProvider.class);
 
                 itCtor.getParameters().add(jvmTB.toParameter(
                     inputSafe,
                     AGENT_ENV,
-                    typeHelper.AGENTENV
-                        .apply(List.of(
-                            typeHelper.covariant(contextAgent),
-                            typeHelper.jtFromClass(
-                                AgentEnvType.toSEModeClass(
-                                    AgentEnvType.SEMode.WITH_SE
-                                )
+                    builtins.agentEnv(
+                        typeHelper.covariant(contextAgent),
+                        typeHelper.covariant(
+                            typeSolver.fromClass(
+                                AgentEnvType.toSEModeClass(SEMode.WITH_SE)
                             )
-                        )).asJvmTypeReference()
+                        )
+                    ).asJvmTypeReference()
                 ));
 
                 compilationHelper.createAndSetBody(

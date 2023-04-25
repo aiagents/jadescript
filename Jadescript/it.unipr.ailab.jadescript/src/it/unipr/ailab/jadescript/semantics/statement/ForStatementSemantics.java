@@ -14,12 +14,12 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.LocalVariable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
@@ -39,7 +39,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
     }
 
 
-    //TODO new var assignment semantics
+    //TODO migrate to new var assignment semantics
     @Override
     public StaticState compileStatement(
         Maybe<ForStatement> input,
@@ -63,8 +63,10 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
         IJadescriptType firstVarType;
 
-        if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
-            firstVarType = module.get(TypeHelper.class).INTEGER;
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        if (input.__(ForStatement::isIndexedLoop).orElse(false)) {
+            firstVarType = builtins.integer();
         } else if (collectionType instanceof MapType) {
             firstVarType = ((MapType) collectionType).getKeyType();
         } else if (collectionType instanceof ListType) {
@@ -72,9 +74,9 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         } else if (collectionType instanceof SetType) {
             firstVarType = ((SetType) collectionType).getElementType();
         } else {
-            firstVarType = module.get(TypeHelper.class).TOP.apply(
+            firstVarType = builtins.any(
                 "Unexpected collection type: " +
-                    collectionType.getJadescriptName()
+                    collectionType.getFullJadescriptName()
             );
         }
 
@@ -86,7 +88,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
         final StaticState afterCollection = rves.advance(collection, state);
 
-        if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
+        if (input.__(ForStatement::isIndexedLoop).orElse(false)) {
             Maybe<RValueExpression> end = input.__(ForStatement::getEndIndex);
 
             final String compiledEndIndex =
@@ -102,7 +104,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
             StaticState withVar = afterEndIndex.declareName(
                 LocalVariable.localVariable(
-                    varName.extract(nullAsEmptyString),
+                    varName.orElse(""),
                     firstVarType
                 )
             );
@@ -124,7 +126,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
             acceptor.accept(w.foreach(
                 firstVarType.compileToJavaTypeReference(),
-                varName.extract(nullAsEmptyString),
+                varName.orElse(""),
                 completeCollExpression,
                 compiledBlock
             ));
@@ -132,7 +134,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             return afterEndIndex.intersectAlternative(afterBlock);
 
         } else if (
-            input.__(ForStatement::isMapIteration).extract(nullAsFalse)
+            input.__(ForStatement::isMapIteration).orElse(false)
                 && collectionType instanceof MapType
         ) {
 
@@ -151,12 +153,12 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             StaticState withVars = afterCollection
                 .declareName(
                     LocalVariable.localVariable(
-                        varName.extract(nullAsEmptyString),
+                        varName.orElse(""),
                         firstVarType
                     )
                 ).declareName(
                     LocalVariable.localVariable(
-                        var2Name.extract(nullAsEmptyString),
+                        var2Name.orElse(""),
                         secondVarType
                     )
                 );
@@ -179,15 +181,15 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                 0,
                 w.variable(
                     secondVarType.compileToJavaTypeReference(),
-                    var2Name.extract(nullAsEmptyString),
-                    w.expr(collectionAuxVar + ".get(" + varName.extract(
-                        nullAsEmptyString) + ")")
+                    var2Name.orElse(""),
+                    w.expr(collectionAuxVar + ".get(" +
+                        varName.orElse("") + ")")
                 )
             );
 
             acceptor.accept(w.foreach(
                 firstVarType.compileToJavaTypeReference(),
-                varName.extract(nullAsEmptyString),
+                varName.orElse(""),
                 w.expr(collectionAuxVar + ".keySet()"),
                 compiledBlock
             ));
@@ -199,7 +201,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             StaticState withVar = afterCollection
                 .declareName(
                     LocalVariable.localVariable(
-                        varName.extract(nullAsEmptyString),
+                        varName.orElse(""),
                         firstVarType
                     )
                 );
@@ -220,7 +222,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
             acceptor.accept(w.foreach(
                 firstVarType.compileToJavaTypeReference(),
-                varName.extract(nullAsEmptyString),
+                varName.orElse(""),
                 w.expr(compiledCollection),
                 blockCompiled
             ));
@@ -239,10 +241,12 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return state;
+        if (input == null) {
+            return state;
+        }
 
-        if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)
-            && input.__(ForStatement::isMapIteration).extract(nullAsFalse)) {
+        if (input.__(ForStatement::isIndexedLoop).orElse(false)
+            && input.__(ForStatement::isMapIteration).orElse(false)) {
             input.safeDo(inputSafe -> {
                 acceptor.acceptError(
                     "Cannot iterate by pairs in an indexed loop",
@@ -290,7 +294,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
 
         StaticState afterForHeader;
         boolean endIndexCheck;
-        if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
+        if (input.__(ForStatement::isIndexedLoop).orElse(false)) {
             endIndexCheck = rves.validate(
                 endIndex,
                 afterCollection,
@@ -318,7 +322,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
                 state.searchAs(
                     CompilableName.Namespace.class,
                     (CompilableName.Namespace s) -> s.compilableNames(
-                        varName.extract(nullAsEmptyString)
+                        varName.orElse("")
                     )
                 ).findAny().isEmpty(),
                 "AlreadyDefinedName",
@@ -337,33 +341,35 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         }
 
 
-        if (input.__(ForStatement::isIndexedLoop).extract(nullAsFalse)) {
+        if (input.__(ForStatement::isIndexedLoop).orElse(false)) {
             @SuppressWarnings("UnnecessaryLocalVariable")
             IJadescriptType startType = collectionType;
             IJadescriptType endType = rves.inferType(
                 endIndex,
                 afterCollection
             );
-            validationHelper.assertExpectedType(module.get(
-                    TypeHelper.class).INTEGER, startType,
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
+            validationHelper.assertExpectedType(
+                builtins.integer(),
+                startType,
                 "InvalidIndexType",
                 input,
                 JadescriptPackage.eINSTANCE.getForStatement_Collection(),
                 acceptor
             );
-            validationHelper.assertExpectedType(module.get(
-                    TypeHelper.class).INTEGER, endType,
+            validationHelper.assertExpectedType(
+                builtins.integer(),
+                endType,
                 "InvalidIndexType",
                 input,
                 JadescriptPackage.eINSTANCE.getForStatement_EndIndex(),
                 acceptor
             );
-            IJadescriptType varType =
-                module.get(TypeHelper.class).INTEGER;
 
             final StaticState afterBody = validateBody(
                 input,
-                varType,
+                builtins.integer(),
                 nothing(),
                 afterForHeader,
                 acceptor
@@ -372,8 +378,7 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             return afterForHeader.intersectAlternative(afterBody);
 
         } else {
-            if (input.__(ForStatement::isMapIteration).extract(
-                nullAsFalse)) {
+            if (input.__(ForStatement::isMapIteration).orElse(false)) {
                 if (var2Name.isPresent()) {
                     validationHelper.asserting(
                         state.searchAs(

@@ -8,9 +8,10 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Dereference
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
@@ -23,6 +24,8 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 
 public class Operation implements MemberCallable {
 
@@ -95,8 +98,8 @@ public class Operation implements MemberCallable {
             parameterNames,
             location,
             withoutSideEffects,
-            Operation.defaultInvokeByArity(name),
-            Operation.defaultInvokeByName(name, parameterNames)
+            Operation.defaultInvokeMemberByArity(name),
+            Operation.defaultInvokeMemberByName(name, parameterNames)
         );
     }
 
@@ -115,7 +118,8 @@ public class Operation implements MemberCallable {
         List<String> paramNames = new ArrayList<>();
         Map<String, IJadescriptType> paramNamesToTypes = new HashMap<>();
 
-        final IJadescriptType anyAE = module.get(TypeHelper.class).ANYAGENTENV;
+        final IJadescriptType anyAE =
+            module.get(BuiltinTypeProvider.class).anyAgentEnv();
 
         boolean withoutSideEffects = false;
 
@@ -133,7 +137,7 @@ public class Operation implements MemberCallable {
 
             if (paramName.equals(SemanticsConsts.AGENT_ENV)) {
                 final IJadescriptType envType =
-                    namespace.resolveType(paramTypeRef);
+                    namespace.resolveType(paramTypeRef).ignoreBound();
 
                 if(envType instanceof AgentEnvType){
                     withoutSideEffects =
@@ -144,8 +148,9 @@ public class Operation implements MemberCallable {
             }
 
             final IJadescriptType solvedType =
-                namespace.resolveType(paramTypeRef);
-            if (anyAE.isSupEqualTo(solvedType)) {
+                namespace.resolveType(paramTypeRef).ignoreBound();
+            final TypeComparator comparator = module.get(TypeComparator.class);
+            if (comparator.compare(anyAE, solvedType).is(superTypeOrEqual())) {
                 continue;
             }
 
@@ -155,16 +160,16 @@ public class Operation implements MemberCallable {
 
 
         return new Operation(
-            namespace.resolveType(operation.getReturnType()),
+            namespace.resolveType(operation.getReturnType()).ignoreBound(),
             operation.getSimpleName(),
             paramNamesToTypes,
             paramNames,
             namespace.currentLocation(),
             withoutSideEffects,
-            CompilationHelper.addEnvParameterByArity(defaultInvokeByArity(
+            CompilationHelper.addEnvParameterByArity(defaultInvokeMemberByArity(
                 operation.getSimpleName()
             )),
-            CompilationHelper.addEnvParameterByName(defaultInvokeByName(
+            CompilationHelper.addEnvParameterByName(defaultInvokeMemberByName(
                 operation.getSimpleName(),
                 paramNames
             ))
@@ -173,7 +178,7 @@ public class Operation implements MemberCallable {
 
 
     public static BiFunction<String, Map<String, String>, String>
-    defaultInvokeByName(
+    defaultInvokeMemberByName(
         String name,
         List<String> parameterNames
     ) {
@@ -191,7 +196,7 @@ public class Operation implements MemberCallable {
 
 
     public static BiFunction<String, List<String>, String>
-    defaultInvokeByArity(
+    defaultInvokeMemberByArity(
         String name
     ) {
         return (

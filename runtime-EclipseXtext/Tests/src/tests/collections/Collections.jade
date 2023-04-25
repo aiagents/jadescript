@@ -1,7 +1,7 @@
 module tests.collections
 
 ontology Collections
-    concept C1(x as list of text)
+    concept C1(x as list of text) 
     concept C2(x as list of C1)
     concept C3(x as map of integer:boolean)
     concept CR(x as list of CR)
@@ -31,3 +31,7 @@ agent CollectionSender uses ontology Collections
         send message inform P1({"a"}) to receiver
         send message inform P2([1]) to receiver
         send message inform P3({"b":2}) to receiver
+        
+    cyclic behaviour MemberBehaviour
+        on message inform P4([C1(["a, b"]), C1(["c, a"])]) do
+            do nothing

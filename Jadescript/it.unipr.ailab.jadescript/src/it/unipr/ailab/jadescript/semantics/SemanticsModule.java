@@ -6,6 +6,8 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmAnnotationReferenceBuilder;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypeReferenceBuilder;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
@@ -46,7 +48,7 @@ public class SemanticsModule {
 
 
     @SuppressWarnings("unchecked")
-    public <T> T get(Class<? extends T> clazz) {
+    public <T> T get(@NotNull Class<? extends T> clazz) {
         if (clazz.isAssignableFrom(JvmTypesBuilder.class)) {
             return (T) jvmTypesBuilder;
         }

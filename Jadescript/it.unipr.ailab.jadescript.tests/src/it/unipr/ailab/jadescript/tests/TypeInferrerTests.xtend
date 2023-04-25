@@ -9,6 +9,8 @@ import org.eclipse.xtext.xbase.testing.CompilationTestHelper
 import com.google.inject.Inject
 import org.junit.Test
 import org.junit.Assert
+import org.junit.Before
+import org.eclipse.xtext.util.JavaVersion
 
 /*
  * Tests to check if the validator correctly flags duplicate elements (variables, features, top-elements) as errors.
@@ -20,6 +22,10 @@ class TypeInferrerTests {
 	@Inject ParseHelper<Model> parseHelper
 	
 	@Inject extension CompilationTestHelper
+	@Before
+	public def setJavaVersion() {
+		javaVersion = JavaVersion.JAVA11
+	}	
 
 
 
@@ -43,7 +49,11 @@ class TypeInferrerTests {
                     } of Proposition
                     do proc with s
 		'''.compile [
-			Assert.assertTrue(errorsAndWarnings.isNullOrEmpty)
+			var msg = ""
+	 		if(!errorsAndWarnings.isNullOrEmpty){
+	 			msg = errorsAndWarnings.get(0).message
+	 		}
+			Assert.assertTrue(msg, errorsAndWarnings.isNullOrEmpty)
 		]
 	}
 	
@@ -69,7 +79,7 @@ class TypeInferrerTests {
 	 		if(!errorsAndWarnings.isNullOrEmpty){
 	 			msg = errorsAndWarnings.get(0).message
 	 		}
-	 		Assert.assertTrue(msg,errorsAndWarnings.isNullOrEmpty)
+	 		Assert.assertTrue(msg, errorsAndWarnings.isNullOrEmpty)
 	 	]
 	 }
 
@@ -121,6 +131,63 @@ class TypeInferrerTests {
 	 			msg = errorsAndWarnings.get(0).message
 	 		}
 			Assert.assertTrue(msg, errorsAndWarnings.isNullOrEmpty)
+		]
+	}
+	
+	@Test
+	def void testMessageSubtyping(){
+		'''
+		module exampl
+		ontology JustAnAction
+			action TheAction
+			
+		cyclic behaviour WaitingARequest
+			uses ontology JustAnAction
+			
+			on message request TheAction do
+				log f1(message)
+				log f2(message)
+			
+			function f1(m as RequestMessage of TheAction) as text do
+				return f2(m)
+				
+			function f2(m as Message of TheAction) as text do
+				return (performative of m) as text
+		'''.compile[
+			var msg = ""
+			if(!errorsAndWarnings.isNullOrEmpty){
+				msg = errorsAndWarnings.get(0).message
+			}
+			Assert.assertTrue(msg, errorsAndWarnings.isNullOrEmpty)
+		]
+	}
+	
+	@Test
+	def void testMessageSubtypingError(){
+		// inverted the type relationships of the arguments of f1 and f2
+		'''
+		module exampl
+		ontology JustAnAction
+			action TheAction
+			
+		cyclic behaviour WaitingARequest
+			uses ontology JustAnAction
+			
+			on message request TheAction do
+				log f1(message)
+				log f2(message)
+			
+			function f1(m as Message of TheAction) as text do
+				return f2(m)
+				
+			function f2(m as RequestMessage of TheAction) as text do
+				return (performative of m) as text
+		'''.compile[
+			var msg = ""
+			if(!errorsAndWarnings.isNullOrEmpty){
+				msg = errorsAndWarnings.get(0).message
+			}
+			Assert.assertFalse(msg, errorsAndWarnings.isNullOrEmpty)
 		]
 	}
 	

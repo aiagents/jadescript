@@ -3,24 +3,31 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.JadescriptTypeLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
-import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import static it.unipr.ailab.maybe.Maybe.nothing;
 
-public abstract class JadescriptType implements SemanticsConsts,
-    IJadescriptType {
+public abstract class JadescriptType
+    implements SemanticsConsts, IJadescriptType {
+
 
     protected final SemanticsModule module;
-    protected final String typeID;
+
+    // Unique id of the type (excluding type arguments)
+    protected final String typeRawID;
+    // Simple name showed to the programmer (excluding type arguments)
     protected final String simpleName;
+    // Category name used for the runtime converter
     protected final String categoryName;
 
 
@@ -31,16 +38,9 @@ public abstract class JadescriptType implements SemanticsConsts,
         String categoryName
     ) {
         this.module = module;
-        this.typeID = typeID;
+        this.typeRawID = typeID;
         this.simpleName = simpleName;
         this.categoryName = categoryName;
-    }
-
-
-    @Override
-    public boolean typeEquals(IJadescriptType other) {
-        if (other == null) return false;
-        return this == other || this.getID().equals(other.getID());
     }
 
 
@@ -57,35 +57,21 @@ public abstract class JadescriptType implements SemanticsConsts,
 
 
     @Override
-    public boolean isSupEqualTo(IJadescriptType other) {
-        other = other.postResolve();
-
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        if (other.typeEquals(typeHelper.NOTHING)) {
-            return true;
+    public String getID() {
+        final String result = this.getRawID();
+        if(typeArguments().isEmpty()){
+            return result;
         }
-
-        if (this.typeEquals(other)) {
-            return true;
-        }
-
-        if (typeHelper.implicitConversionCanOccur(other, this)) {
-            return true;
-        }
-
-        return typeHelper.isAssignable(
-            this.asJvmTypeReference(),
-            other.asJvmTypeReference()
-        );
+        return result +
+            typeArguments().stream()
+                .map(TypeArgument::getID)
+                .collect(Collectors.joining(", ", "[", "]"));
     }
 
 
-    public abstract void addProperty(Property prop);
-
-
     @Override
-    public String getID() {
-        return typeID;
+    public String getRawID() {
+        return this.typeRawID;
     }
 
 
@@ -94,10 +80,13 @@ public abstract class JadescriptType implements SemanticsConsts,
         Maybe<? extends EObject> input,
         ValidationMessageAcceptor acceptor
     ) {
-        return module.get(ValidationHelper.class).asserting(
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
+        return validationHelper.asserting(
             !isErroneous(),
             "InvalidType",
-            "Invalid type: '" + getJadescriptName() + "'.",
+            "Invalid type: '" + this.getFullJadescriptName() + "'.",
             input,
             acceptor
         );
@@ -106,13 +95,35 @@ public abstract class JadescriptType implements SemanticsConsts,
 
     @Override
     public String toString() {
-        return getJadescriptName();
+        return this.getFullJadescriptName();
     }
 
 
     @Override
-    public String getJadescriptName() {
-        return simpleName;
+    public String getRawJadescriptName() {
+        return this.simpleName;
+    }
+
+
+    @Override
+    public String getFullJadescriptName() {
+        String result = this.getRawJadescriptName();
+        String opener = getParametricIntroductor().isBlank()
+            ? getParametricListDelimiterOpen()
+            : " " + getParametricIntroductor().trim() +
+            " " + getParametricListDelimiterOpen();
+
+        if (typeArguments().isEmpty()) {
+            return result;
+        }
+
+        return result + typeArguments().stream()
+            .map(TypeArgument::getFullJadescriptName)
+            .collect(Collectors.joining(
+                getParametricListSeparator(),
+                opener,
+                getParametricListDelimiterClose()
+            ));
     }
 
 
@@ -124,9 +135,16 @@ public abstract class JadescriptType implements SemanticsConsts,
 
     @Override
     public String compileConversionType() {
-
+        final List<TypeArgument> typeArguments = typeArguments();
         return "new jadescript.util.types.JadescriptTypeReference(" +
-            "jadescript.util.types.JadescriptBuiltinTypeAtom." + getCategoryName() + ")";
+            "jadescript.util.types.JadescriptBuiltinTypeAtom." +
+            getCategoryName() +
+            (typeArguments.isEmpty() ? "" :
+                ", " + typeArguments.stream()
+                    .map(TypeArgument::ignoreBound)
+                    .map(IJadescriptType::compileConversionType)
+                    .collect(Collectors.joining(", "))) +
+            ")";
     }
 
 
@@ -163,12 +181,13 @@ public abstract class JadescriptType implements SemanticsConsts,
 
     @Override
     public String getDebugPrint() {
-        return getJadescriptName()
-            + "{Class=("
-            + getClass().getSimpleName()
-            + "); JvmTypeReference=("
-            + compileToJavaTypeReference()
-            + ")}";
+        return this.getFullJadescriptName() + "{Class=(" +
+            getClass().getSimpleName() + "); JvmTypeReference=(" +
+            compileToJavaTypeReference() + ")" +
+            typeArguments().stream()
+                .map(TypeArgument::getDebugPrint)
+                .collect(Collectors.joining(", ", "; typeargs: [", "]")) +
+            "}";
     }
 
 }

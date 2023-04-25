@@ -7,8 +7,8 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableN
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.ImportedMembersNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithMembers;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.maybe.utils.LazyInit;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import jadescript.lang.Performative;
@@ -25,8 +25,8 @@ public class OnMessageHandlerContext
     private final Maybe<String> performative;
     private final IJadescriptType messageContentType;
     private final IJadescriptType messageType;
-    private final LazyValue<NamespaceWithMembers> messageNamespace;
-    private final LazyValue<ImportedMembersNamespace> importedFromMessage;
+    private final LazyInit<NamespaceWithMembers> messageNamespace;
+    private final LazyInit<ImportedMembersNamespace> importedFromMessage;
 
 
     public OnMessageHandlerContext(
@@ -41,8 +41,8 @@ public class OnMessageHandlerContext
         this.messageContentType = messageContentType;
         this.messageType = messageType;
         this.messageNamespace =
-            new LazyValue<>(() -> getMessageType().namespace());
-        this.importedFromMessage = new LazyValue<>(() ->
+            new LazyInit<>(() -> getMessageType().namespace());
+        this.importedFromMessage = new LazyInit<>(() ->
             ImportedMembersNamespace.importMembersNamespace(
                 module,
                 (__) -> MESSAGE_VAR_NAME,
@@ -76,7 +76,7 @@ public class OnMessageHandlerContext
         @Nullable String name
     ) {
         return Stream.concat(
-            Util.buildStream(
+            SemanticsUtils.buildStream(
                 this::getMessageName,
                 this::getContentName
             ).filter(n -> name == null || name.equals(n.name())),

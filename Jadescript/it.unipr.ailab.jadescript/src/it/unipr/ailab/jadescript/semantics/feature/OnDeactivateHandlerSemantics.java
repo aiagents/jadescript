@@ -2,15 +2,15 @@ package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnDeactivateHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
@@ -22,8 +22,6 @@ import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
-
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
 public class OnDeactivateHandlerSemantics
     extends DeclarationMemberSemantics<OnDeactivateHandler> {
@@ -44,9 +42,10 @@ public class OnDeactivateHandlerSemantics
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
-        Maybe<QualifiedName> containerName = input
-            .__(EcoreUtil2::getContainerOfType, TopElement.class)
-            .__(compilationHelper::getFullyQualifiedName);
+        Maybe<String> containerName = input
+            .__partial2(EcoreUtil2::getContainerOfType, TopElement.class)
+            .__(compilationHelper::getFullyQualifiedName)
+            .__(QualifiedName::toString);
 
         final SavedContext savedContext =
             module.get(ContextManager.class).save();
@@ -56,7 +55,7 @@ public class OnDeactivateHandlerSemantics
         input.safeDo(handlerSafe -> members.add(jvmTypesBuilder.toMethod(
             handlerSafe,
             "doOnDeactivate",
-            module.get(TypeHelper.class).typeRef(void.class),
+            module.get(JvmTypeHelper.class).typeRef(void.class),
             itMethod -> {
                 fillDoOnDeactivateMethod(
                     input,
@@ -72,21 +71,19 @@ public class OnDeactivateHandlerSemantics
 
     private void fillDoOnDeactivateMethod(
         Maybe<OnDeactivateHandler> input,
-        Maybe<QualifiedName> containerName,
+        Maybe<String> containerName,
         SavedContext savedContext,
         JvmTypesBuilder jvmTypesBuilder,
         JvmOperation itMethod
     ) {
         jvmTypesBuilder.setDocumentation(
             itMethod,
-            containerName
-                .__(QualifiedName::toString)
-                .extract(nullAsEmptyString) + " doOnDeactivate"
+            containerName.orElse("") + " doOnDeactivate"
         );
         itMethod.setVisibility(JvmVisibility.PUBLIC);
 
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
-        if (body.isPresent()) {
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
+        if (body.isPresent() && !body.toNullable().isNothing()) {
             module.get(CompilationHelper.class).createAndSetBody(
                 itMethod,
                 scb -> {
@@ -121,14 +118,16 @@ public class OnDeactivateHandlerSemantics
         ValidationMessageAcceptor acceptor
     ) {
 
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
+
         module.get(ContextManager.class).enterProceduralFeature(
             OnDeactivateHandlerContext::new);
 
 
         StaticState state = StaticState.beginningOfOperation(module);
 
-        module.get(BlockSemantics.class).validate(body, state, acceptor);
+        module.get(BlockSemantics.class)
+            .validateOptionalBlock(body, state, acceptor);
 
         module.get(ContextManager.class).exit();
     }

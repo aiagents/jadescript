@@ -2,8 +2,11 @@ package it.unipr.ailab.jadescript.semantics.context.staticstate;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
 import org.jetbrains.annotations.Contract;
+
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 
 /**
  * Immutable structure implementing the concept of type interval.
@@ -49,7 +52,9 @@ public class TypeInterval {
 
 
     public boolean isEmpty() {
-        return this.negatedUpperBound.isSupEqualTo(upperBound);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        return comparator.compare(negatedUpperBound, upperBound)
+            .is(superTypeOrEqual());
     }
 
 
@@ -64,9 +69,10 @@ public class TypeInterval {
     public TypeInterval assertUpperBound(
         IJadescriptType ub
     ) {
-        if(ub.isSupEqualTo(this.getUpperBound())){
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        if (comparator.compare(ub, getUpperBound()).is(superTypeOrEqual())) {
             return this;
-        }else{
+        } else {
             return new TypeInterval(
                 this.module,
                 ub,
@@ -99,7 +105,11 @@ public class TypeInterval {
     public TypeInterval assertNegatedUpperBound(
         IJadescriptType nub
     ) {
-        if (this.getNegatedUpperBound().isSupEqualTo(nub)) {
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        if (comparator.compare(
+            getNegatedUpperBound(),
+            nub
+        ).is(superTypeOrEqual())) {
             return this;
         } else {
             return new TypeInterval(
@@ -133,7 +143,11 @@ public class TypeInterval {
     public TypeInterval alternativeUpperBound(
         IJadescriptType ub
     ) {
-        if (this.getUpperBound().isSupEqualTo(ub)) {
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        if (comparator.compare(
+            this.getUpperBound(),
+            ub
+        ).is(superTypeOrEqual())) {
             return this;
         } else {
             return new TypeInterval(
@@ -167,7 +181,9 @@ public class TypeInterval {
     public TypeInterval alternativeNegatedUpperBound(
         IJadescriptType nub
     ) {
-        if (nub.isSupEqualTo(this.getNegatedUpperBound())) {
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        if (comparator.compare(nub, this.negatedUpperBound)
+            .is(superTypeOrEqual())) {
             return this;
         } else {
             return new TypeInterval(

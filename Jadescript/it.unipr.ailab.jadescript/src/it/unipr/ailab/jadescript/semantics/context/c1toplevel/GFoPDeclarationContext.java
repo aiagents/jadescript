@@ -6,8 +6,8 @@ import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociation;
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
@@ -59,7 +59,7 @@ implements AgentAssociated {
     @Override
     public Stream<AgentAssociation> computeForClauseAgentAssociations() {
         return Stream.of(new AgentAssociation(
-            module.get(TypeHelper.class).AGENT,
+            module.get(BuiltinTypeProvider.class).agent(),
             AgentAssociation.F_A.INSTANCE
         ));
     }
@@ -72,7 +72,7 @@ implements AgentAssociated {
     @Override
     public Stream<OntologyAssociation> computeForClauseOntologyAssociations() {
         return Stream.of(new OntologyAssociation(
-            module.get(TypeHelper.class).ONTOLOGY,
+            module.get(BuiltinTypeProvider.class).ontology(),
             OntologyAssociation.F_U_O.INSTANCE
         ));
     }

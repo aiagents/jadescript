@@ -17,8 +17,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.IJvmDeclaredTypeAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
-import java.util.Optional;
-
 /**
  * Created on 26/04/18.
  */
@@ -68,7 +66,7 @@ public abstract class NamedTopLevelDeclarationSemantics<T extends NamedElement>
 
         if (nameShouldStartWithCapital()) {
             validationHelper.advice(
-                name.__(String::charAt, 0).__(Character::isUpperCase),
+                name.__partial2(String::charAt, 0).__(Character::isUpperCase),
                 "LowerCaseElementName",
                 "Names here should start with a capital letter",
                 input,
@@ -109,31 +107,48 @@ public abstract class NamedTopLevelDeclarationSemantics<T extends NamedElement>
         if (isNameAlwaysRequired() && name.isNothing()) {
             return;
         }
-        Optional<T> inputSafe = input.toOpt();
 
-        if (inputSafe.isPresent()) {
-            final CompilationHelper compilationHelper =
-                module.get(CompilationHelper.class);
-
-            Optional<QualifiedName> fullyQualifiedName = input
-                .__(compilationHelper::getFullyQualifiedName)
-                .toOpt();
-
-            final JvmTypesBuilder jvmTB =
-                module.get(JvmTypesBuilder.class);
-            fullyQualifiedName.ifPresent(fqn -> acceptor.accept(
-                jvmTB.toClass(inputSafe.get(), fqn, itClass -> {
-                    populateMainSuperTypes(input, itClass.getSuperTypes());
-                }),
-                itClass -> {
-                    populateMainMembers(
-                        input,
-                        itClass.getMembers(),
-                        itClass
-                    );
-                }
-            ));
+        if(input.isNothing()){
+            return;
         }
+
+        final CompilationHelper compilationHelper =
+            module.get(CompilationHelper.class);
+
+        Maybe<QualifiedName> fullyQualifiedName =
+            input.__(compilationHelper::getFullyQualifiedName);
+
+        final JvmTypesBuilder jvmTB =
+            module.get(JvmTypesBuilder.class);
+
+        final T inputSafe = input.toNullable();
+
+        if(fullyQualifiedName.isNothing()){
+            return;
+        }
+
+        final QualifiedName fqnSafe = fullyQualifiedName.toNullable();
+
+        acceptor.accept(
+            jvmTB.toClass(inputSafe, fqnSafe, itClass -> {
+                populateMainSuperTypes(input, itClass.getSuperTypes());
+            }),
+            itClass -> {
+                if(mainGeneratedClassIsAbstract(input)){
+                    itClass.setAbstract(true);
+                }
+
+                populateMainMembers(
+                    input,
+                    itClass.getMembers(),
+                    itClass
+                );
+            }
+        );
+    }
+
+    public boolean mainGeneratedClassIsAbstract(Maybe<T> input){
+        return false;
     }
 
 

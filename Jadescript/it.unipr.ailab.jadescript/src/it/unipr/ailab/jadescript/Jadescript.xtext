@@ -32,18 +32,21 @@ TopElement:
  */
 NamedElement:
 	{NamedElement}
-	name=Identifier;
+	name=Identifier
+;
 
 FeatureContainer returns NamedElement:
 	{FeatureContainer}
-	features+=Feature;
+	features+=Feature
+;
 
 Feature:
 	{Feature};
 
 FeatureWithBody returns Feature:
 	{FeatureWithBody}
-	body=CodeBlock;
+	body=OptionalBlock
+;
 
 
 
@@ -134,29 +137,57 @@ Ontology returns FeatureContainer:
 	(ENDLINE)*
 	DEDENT;
 
-GlobalFunctionOrProcedure returns UsesOntologyElement:
-	{GlobalFunctionOrProcedure}
-	((function?='function' name=Identifier
-	('('
-	(parameters+=FormalParameter
-	(',' parameters+=FormalParameter)*)?
-	')')?
-	'as' type=TypeExpression 
-	('uses'
-		(('ontology' ontologies+=JvmTypeReference) | ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*)))
-	)?
-	'do'
-	body=CodeBlock)
-	|
-	(procedure?='procedure' name=Identifier
-	('with'
-	(parameters+=FormalParameter
-	(',' parameters+=FormalParameter)*)?)? 
-	('uses'
-		(('ontology' ontologies+=JvmTypeReference) | ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*)))
-	)?
-	'do'
-	body=CodeBlock));
+GlobalFunctionOrProcedure returns UsesOntologyElement: {GlobalFunctionOrProcedure}(
+	(
+		// Native Global Function
+		native?='native' function?='function' name=Identifier
+		('('
+			(parameters+=FormalParameter (',' parameters+=FormalParameter)*)?
+		')')?
+		'as' type=TypeExpression
+		('uses'
+			(('ontology' ontologies+=JvmTypeReference) 
+				| ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*))
+			)
+		)?
+	) | (
+		// Concrete Global Function
+		function?='function' name=Identifier
+		('('
+			(parameters+=FormalParameter (',' parameters+=FormalParameter)*)?
+		')')?
+		'as' type=TypeExpression
+		('uses'
+			(('ontology' ontologies+=JvmTypeReference) 
+				| ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*))
+			)
+		)?
+		'do' body=OptionalBlock
+	) | (	
+		// Native Global Procedure	
+		native?='native' procedure?='procedure' name=Identifier
+		('with'
+			(parameters+=FormalParameter (',' parameters+=FormalParameter)*)?
+		)?
+		('uses'
+			(('ontology' ontologies+=JvmTypeReference) 
+				| ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*))
+			)
+		)?	
+	) | (
+		// Concrete Global Procedure	
+		procedure?='procedure' name=Identifier
+		('with'
+			(parameters+=FormalParameter (',' parameters+=FormalParameter)*)?
+		)?
+		('uses'
+			(('ontology' ontologies+=JvmTypeReference) 
+				| ('ontologies' (ontologies+=JvmTypeReference (',' ontologies+=JvmTypeReference)*))
+			)
+		)?	
+		'do' body=OptionalBlock
+	)
+);
 
 	/**
  * FEATURES
@@ -177,7 +208,7 @@ BehaviourFeature returns Feature:
 	Field 
 	| FunctionOrProcedure 
 	| OnMessageHandler
-	| OnPerceptHandler 
+	| OnNativeEventHandler 
 	| OnCreateHandler 
 	| OnDestroyHandler
 	| OnActivateHandler
@@ -220,30 +251,28 @@ FunctionOrProcedure returns ParameterizedFeature:
 	(',' parameters+=FormalParameter)*)?
 	')')?
 	'as' type=TypeExpression
-	'do'
-	body=CodeBlock)
+	'do' body=OptionalBlock)
 	|
 	(procedure?='procedure' name=Identifier
 	('with'
 	(parameters+=FormalParameter
 	(',' parameters+=FormalParameter)*)?)?
-	'do'
-	body=CodeBlock));
+	'do' body=OptionalBlock));
 
 
 OnMessageHandler returns FeatureWithBody:
 	{OnMessageHandler}(
 	'on' stale?='stale'? name='message' performative=Performative? pattern=Pattern?
 	('when' whenBody=WhenExpression)?
-	'do' (body=CodeBlock | nothing?='nothing')
+	'do' body=OptionalBlock
 	);
 	
 	
-OnPerceptHandler returns FeatureWithBody:
-	{OnPerceptHandler}(
-	'on' stale?='stale'? name='percept' pattern=Pattern?
+OnNativeEventHandler returns FeatureWithBody:
+	{OnNativeEventHandler}(
+	'on' stale?='stale'? name='native' pattern=Pattern?
 	('when' whenBody=WhenExpression)?
-	'do' (body=CodeBlock | nothing?='nothing')
+	'do' body=OptionalBlock
 	)
 ;
 	
@@ -251,32 +280,32 @@ OnCreateHandler returns FeatureWithBody:
 	{OnCreateHandler}(
 		'on' name='create'
 		('with' parameters+=FormalParameter (',' parameters+=FormalParameter)*)?
-		'do' (body=CodeBlock | nothing?='nothing')
+		'do' body=OptionalBlock
 		
 	)
 ;
 
 OnDestroyHandler returns FeatureWithBody:
 	{OnDestroyHandler} (
-		'on' name='destroy' 'do' (body=CodeBlock | nothing?='nothing')
+		'on' name='destroy' 'do' body=OptionalBlock
 	)
 ;
 
 OnActivateHandler returns FeatureWithBody:
 	{OnActivateHandler} (
-		'on' name='activate' 'do' (body=CodeBlock | nothing?='nothing')
+		'on' name='activate' 'do' body=OptionalBlock
 	)
 ;
 
 OnDeactivateHandler returns FeatureWithBody:
 	{OnDeactivateHandler} (
-		'on' name='deactivate' 'do' (body=CodeBlock | nothing?='nothing')
+		'on' name='deactivate' 'do' body=OptionalBlock
 	)
 ;
 
 OnExecuteHandler returns FeatureWithBody:
 	{OnExecuteHandler} (
-		'on' name='execute' 'do' (body=CodeBlock | nothing?='nothing')
+		'on' name='execute' 'do' body=OptionalBlock
 	)
 ;
 
@@ -284,14 +313,14 @@ OnExceptionHandler returns FeatureWithBody:
 	{OnExceptionHandler}(
 	'on' name='exception' pattern=Pattern?
 	('when' whenBody=WhenExpression)?
-	'do' (body=CodeBlock | nothing?='nothing')	
+	'do' body=OptionalBlock	
 	);
 
 OnBehaviourFailureHandler returns FeatureWithBody:
 	{OnBehaviourFailureHandler}(
 		'on' name='behaviour' 'failure' pattern=Pattern?
 		('when' whenBody=WhenExpression)?
-		'do' (body=CodeBlock | nothing?='nothing')
+		'do' body=OptionalBlock
 	);
 
 Concept returns FeatureWithSlots:
@@ -323,7 +352,9 @@ OntologyAction returns FeatureWithSlots:
 	('('
 	slots+=SlotDeclaration (',' slots+=SlotDeclaration)*
 	')')?
-	('extends' superType=JvmParameterizedTypeReference (withSuperSlots?='with' namedSuperSlots=NamedArgumentList)?)?;
+	('extends' superType=JvmParameterizedTypeReference 
+		(withSuperSlots?='with' namedSuperSlots=NamedArgumentList)?
+	)?;
 
 SlotDeclaration:
 	name=Identifier 'as' type=TypeExpression;
@@ -470,11 +501,22 @@ NamedArgumentList:
 ;
 
 
-ProcedureCallStatement:
-	{ProcedureCallStatement}
-	'do' ((name=ID
-	(hasParameters?='with' ((=> namedArgs=NamedArgumentList) | simpleArgs=SimpleArgumentList))?)
-	| isNothing?='nothing');
+ProcedureCallStatement:{ProcedureCallStatement} (
+	'do' (
+	  (
+	  	    name=ID (hasParameters?='with' 
+	  	    	((=> namedArgs=NamedArgumentList) | simpleArgs=SimpleArgumentList)
+	  	    )?	
+	  ) | (
+	  	    nothing?='nothing'
+	  ) | (
+			native?='native' (
+				resolveDynamically?='['nameExpr=RValueExpression']'
+				| javaFQName=JavaFullyQualifiedName
+			) ('with' => simpleArgs=SimpleArgumentList)?
+	  )
+	)
+);
 
 
 ClearStatement:
@@ -630,58 +672,6 @@ Matches:
 Pattern:
 	LValueExpression
 ;
-//	 listPattern = ListPattern
-//	 | mapOrSetPattern = MapOrSetPattern
-//	 | structPattern = StructurePattern
-//	 | tuplePattern = TuplePattern
-//;
-
-TuplePattern: {TuplePattern}
-	 '('terms+=PatternTerm (',' terms+=PatternTerm)+ ')'
-	 (=> withTypeSpecifiers?='as' '(' typeSpecifiers+=TypeExpression (',' typeSpecifiers+=TypeExpression)+ ')')?
-;
-
-StructurePattern:
-	name = Identifier
-	(-> (withParentheses?='('
-	(terms+=PatternTerm (',' terms+=PatternTerm)*)?
-	')') | (withAs?='as' expectedType=TypeExpression))? 
-;
-
-
-ListPattern: {ListPattern}
-	'['
-	(terms+=PatternTerm (',' terms+=PatternTerm)*)?
-	(isPipe?='|' restPattern=PatternTerm)?
-	']'
-	(withTypeSpecifier?='of' typeParameter=TypeExpression)?
-	
-;
-
-
-MapOrSetPattern: {MapOrSetPattern}
-	'{'
-	(termsKey+=MapPatternKeyTerm(=>isMap?=':'termsValue+=PatternTerm)? (',' termsKey+=MapPatternKeyTerm (=>':'termsValue+=PatternTerm)?)*)?
-	(isPipe?='|' restPattern=PatternTerm)?
-	'}'
-	(withTypeSpecifiers?='of' keyTypeParameter=TypeExpression (=>isMapT?=':' valueTypeParameter=TypeExpression)?)?
-;
-
-MapPatternKeyTerm:
-	  number = NumberLiteral
-	| boolean = BooleanLiteral
-	| text = StringLiteralSimple
-	| identifier = Identifier  
-;
-
-PatternTerm:
-	  number = NumberLiteral
-	| boolean = BooleanLiteral
-	| text = StringLiteralSimple
-	| (underscore ?= '_' (withAs?='as' expectedType=TypeExpression)?)
-	| subPattern = Pattern
-;
-
 
 
     
@@ -732,36 +722,40 @@ Trailer:
 	(isACall?='('
 	((=> namedArgs=NamedArgumentList) | simpleArgs=SimpleArgumentList)?
 	')')
-	|
-	(isASubscription?='['
+	|(isASubscription?='['
 	key=RValueExpression
 	']');
 
 
-
-
-	
 Primary:
 	{Primary}( //level 0
 	('(' exprs+=RValueExpression (',' exprs+=RValueExpression)* ')')
 	| literal=Literal 
 	| identifier=VarIdentifier 
 	| placeholder?='_'
-	| invokeExpression=InvokeExpression)
+	| nativeExpression=NativeExpression)
 	;
 
-InvokeExpression:
-	{InvokeExpression}(
-		'invoke' name=(ID|STRINGSIMPLE)
-		((static?='in' className=STRINGSIMPLE)|('on' expr=RValueExpression)) 
-		(args?='with'  argumentValues+=RValueExpression (',' argumentValues+=RValueExpression)*)?
-	)
-;
+NativeExpression:{NativeExpression}(
+	(
+		'native' resolveDynamically?='[' nameExpr=RValueExpression ']'
+		'('simpleArguments=SimpleArgumentList?')'
+	 	withAsClause?='as' type=TypeExpression
+ 	)|(
+ 		'native' javaFQName=JavaFullyQualifiedName
+		'('simpleArguments=SimpleArgumentList?')'
+	 	( => withAsClause?='as' type=TypeExpression)?
+ 	)
+);
 
+
+JavaFullyQualifiedName:{JavaFullyQualifiedName}(
+	segments+=VarIdentifier ('.' segments+=VarIdentifier)*
+);
 
 
 VarIdentifier:
-	Identifier | 'aid' | 'this' | 'agent' | 'percept' | 'exception' | 'behaviour' | 'message'
+	Identifier | 'aid' | 'this' | 'agent' | 'event' | 'exception' | 'behaviour' | 'message'
 ;
 
 
@@ -934,7 +928,7 @@ StringLiteralSimple:
 
 
 Identifier:
-	'content' | 'performative' | 'ontology' | ID;
+   'content' | 'performative' | 'ontology' | ID;
 
 NumberLiteral:
 	Number;

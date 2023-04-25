@@ -14,11 +14,16 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ActualParameter;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.SEMode;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -28,7 +33,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -76,20 +80,19 @@ public class OnCreateHandlerSemantics
 
         final JvmTypesBuilder jvmTypesBuilder =
             module.get(JvmTypesBuilder.class);
-        final TypeHelper typeHelper =
-            module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
         members.add(jvmTypesBuilder.toMethod(
             handlerSafe,
             "__onCreate",
-            typeHelper.typeRef(void.class),
+            jvm.typeRef(void.class),
             itMethod -> {
-                Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+                Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
                 itMethod.setVisibility(JvmVisibility.PRIVATE);
 
-                if (body.isNothing()) {
+                if (body.isNothing() || body.toNullable().isNothing()) {
                     compilationHelper.createAndSetBody(
                         itMethod,
                         scb -> scb.line("//do nothing;")
@@ -100,9 +103,8 @@ public class OnCreateHandlerSemantics
 
                 compilationHelper.createAndSetBody(itMethod, scb -> {
 
-                    List<Maybe<FormalParameter>> parameters = toListOfMaybes(
-                        input.__(OnCreateHandler::getParameters)
-                    );
+                    MaybeList<FormalParameter> parameters =
+                        input.__toList(OnCreateHandler::getParameters);
 
                     List<ActualParameter> extractedParameters =
                         new ArrayList<>();
@@ -140,7 +142,7 @@ public class OnCreateHandlerSemantics
 
     private void prepareStartupArguments(
         SourceCodeBuilder scb,
-        List<Maybe<FormalParameter>> parameters,
+        MaybeList<FormalParameter> parameters,
         List<ActualParameter> extractedParameters
     ) {
 
@@ -149,7 +151,9 @@ public class OnCreateHandlerSemantics
         }
 
 
-        TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
         if (isListOfText(parameters)) {
             //if that was true, add a variable in the scope with
             // type JadescriptList<String>.
@@ -193,9 +197,7 @@ public class OnCreateHandlerSemantics
 
             extractedParameters.add(ActualParameter.actualParameter(
                 paramNameSafe,
-                typeHelper.LIST.apply(
-                    Collections.singletonList(typeHelper.TEXT)
-                )
+                builtins.list(builtins.text())
             ));
 
         } else {
@@ -247,18 +249,17 @@ public class OnCreateHandlerSemantics
      * Returns true if the list of formal parameters is just a single parameter
      * of type 'list of text'.
      */
-    private boolean isListOfText(List<Maybe<FormalParameter>> parameters) {
+    private boolean isListOfText(MaybeList<FormalParameter> parameters) {
         Maybe<CollectionTypeExpression> typeExpr = parameters.get(0)
             .__(FormalParameter::getType)
             .__(TypeExpression::getCollectionTypeExpression);
-        List<Maybe<TypeExpression>> typeParameters = toListOfMaybes(
-            typeExpr.__(CollectionTypeExpression::getTypeParameters)
-        );
+        MaybeList<TypeExpression> typeParameters =
+            typeExpr.__toList(CollectionTypeExpression::getTypeParameters);
         return parameters.size() == 1
             && typeExpr.__(CollectionTypeExpression::getCollectionType)
             .wrappedEquals("list")
             && typeParameters.get(0)
-            .__(TypeExpression::isText).extract(nullAsFalse);
+            .__(TypeExpression::isText).orElse(false);
     }
 
 
@@ -288,6 +289,9 @@ public class OnCreateHandlerSemantics
             CompilationHelper.class);
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
 
         members.add(jvmTB.toConstructor(
@@ -308,20 +312,19 @@ public class OnCreateHandlerSemantics
                     itCtor.getParameters().add(jvmTB.toParameter(
                         inputSafe,
                         AGENT_ENV,
-                        typeHelper.AGENTENV
-                            .apply(List.of(
-                                typeHelper.covariant(
-                                    contextAgent.orElse(typeHelper.AGENT)
-                                ),
-                                typeHelper.jtFromClass(
-                                    AgentEnvType.toSEModeClass(
-                                        AgentEnvType.SEMode.WITH_SE
-                                    )
+                        builtins.agentEnv(
+                            typeHelper.covariant(
+                                contextAgent.orElse(builtins.agent())
+                            ),
+                            typeHelper.covariant(
+                                typeSolver.fromClass(
+                                    AgentEnvType.toSEModeClass(SEMode.WITH_SE)
                                 )
-                            )).asJvmTypeReference()
+                            )
+                        ).asJvmTypeReference()
                     ));
 
-                    stream(parameters)
+                    someStream(parameters)
                         .flatMap(Maybe::filterNulls)
                         .map(p -> jvmTB.toParameter(
                             p,
@@ -346,9 +349,9 @@ public class OnCreateHandlerSemantics
                             )
                             .map(jvmPar -> ActualParameter.actualParameter(
                                 jvmPar.getName(),
-                                typeHelper.jtFromJvmTypeRef(
+                                typeSolver.fromJvmTypeReference(
                                     jvmPar.getParameterType()
-                                )
+                                ).ignoreBound()
                             ))
                             .collect(Collectors.toList()));
 
@@ -410,11 +413,11 @@ public class OnCreateHandlerSemantics
         }
 
 
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(OnCreateHandler::getBody);
         List<ActualParameter> extractedParameters = new ArrayList<>();
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
-        if (!parameters.__(List::isEmpty).extract(nullAsTrue)) {
+        if (!parameters.__(List::isEmpty).orElse(true)) {
 
             for (Maybe<FormalParameter> parameter : iterate(parameters)) {
                 boolean paramTypeCheck = tes.validate(
@@ -437,16 +440,19 @@ public class OnCreateHandlerSemantics
             }
         }
 
-        module.get(ContextManager.class).enterProceduralFeature((mod, out) ->
+        final ContextManager contextManager = module.get(ContextManager.class);
+
+        contextManager.enterProceduralFeature((mod, out) ->
             new OnCreateHandlerContext(mod, out, extractedParameters));
 
         StaticState inBody = StaticState.beginningOfOperation(module);
 
         inBody = inBody.enterScope();
 
-        module.get(BlockSemantics.class).validate(body, inBody, acceptor);
+        module.get(BlockSemantics.class)
+            .validateOptionalBlock(body, inBody, acceptor);
 
-        module.get(ContextManager.class).exit();
+        contextManager.exit();
     }
 
 

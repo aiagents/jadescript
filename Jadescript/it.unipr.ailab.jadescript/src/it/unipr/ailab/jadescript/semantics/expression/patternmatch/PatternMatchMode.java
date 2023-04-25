@@ -1,12 +1,12 @@
 package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 
 public class PatternMatchMode {
 
     /* Requirements on the pattern and the input value: */
     private final HolesAndGroundness holesAndGroundness;
-    private final Class<? extends TypeRelationship> typeRelationshipRequirement;
+    private final TypeRelationshipQuery typeRelationshipRequirement;
     private final RequiresSuccessfulMatch requiresSuccessfulMatch;
     private final PatternApplicationSideEffects patternApplicationSideEffects;
     private final Reassignment reassignment;
@@ -19,7 +19,7 @@ public class PatternMatchMode {
 
     public PatternMatchMode(
         HolesAndGroundness holesAndGroundness,
-        Class<? extends TypeRelationship> typeRelationshipRequirement,
+        TypeRelationshipQuery typeRelationshipRequirement,
         RequiresSuccessfulMatch requiresSuccessfulMatch,
         PatternApplicationSideEffects patternApplicationSideEffects,
         Reassignment reassignment,
@@ -48,7 +48,7 @@ public class PatternMatchMode {
      * input of the pattern is required to have with
      * the type of the input value at compile time.
      */
-    public Class<? extends TypeRelationship> getTypeRelationshipRequirement() {
+    public TypeRelationshipQuery getTypeRelationshipRequirement() {
         return typeRelationshipRequirement;
     }
 

@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.feature;
 
 import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
@@ -11,14 +12,15 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.OnBehaviourFailureH
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
@@ -75,7 +77,7 @@ public class OnBehaviourFailureHandlerSemantics
         members.add(module.get(JvmTypesBuilder.class).toField(
             inputSafe,
             synthesizeBehaviourFailureEventVariableName(inputSafe),
-            module.get(TypeHelper.class).typeRef(eventClass), it -> {
+            module.get(JvmTypeHelper.class).typeRef(eventClass), it -> {
                 it.setVisibility(JvmVisibility.PRIVATE);
                 module.get(CompilationHelper.class).createAndSetInitializer(
                     it,
@@ -97,6 +99,10 @@ public class OnBehaviourFailureHandlerSemantics
         final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
 
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+
 
         return jvmTB.toClass(
             inputSafe,
@@ -107,7 +113,7 @@ public class OnBehaviourFailureHandlerSemantics
                 it.getMembers().add(jvmTB.toField(
                     inputSafe,
                     FAILURE_MATCHED_BOOL_VAR_NAME,
-                    module.get(TypeHelper.class).BOOLEAN.asJvmTypeReference(),
+                    builtins.boolean_().asJvmTypeReference(),
                     itField -> {
                         itField.setVisibility(JvmVisibility.PUBLIC);
                         module.get(CompilationHelper.class)
@@ -121,7 +127,7 @@ public class OnBehaviourFailureHandlerSemantics
                 it.getMembers().add(jvmTB.toMethod(
                     inputSafe,
                     EVENT_HANDLER_STATE_RESET_METHOD_NAME,
-                    module.get(TypeHelper.class).VOID.asJvmTypeReference(),
+                    builtins.javaVoid().asJvmTypeReference(),
                     itMethod -> {
                         itMethod.setVisibility(JvmVisibility.PUBLIC);
                         module.get(CompilationHelper.class).createAndSetBody(
@@ -138,20 +144,19 @@ public class OnBehaviourFailureHandlerSemantics
                 it.getMembers().add(jvmTB.toMethod(
                     inputSafe,
                     "handle",
-                    module.get(TypeHelper.class).typeRef(void.class),
+                    jvm.typeRef(void.class),
                     itMethod -> {
                         itMethod.getParameters().add(jvmTB.toParameter(
                             inputSafe,
                             "__failedBehaviour",
-                            module.get(TypeHelper.class)
-                                .typeRef(
-                                    "jadescript.core.behaviours.Behaviour<?>")
+                            jvm.typeRef(
+                                "jadescript.core.behaviours.Behaviour<?>"
+                            )
                         ));
                         itMethod.getParameters().add(jvmTB.toParameter(
                             inputSafe,
                             "__failureReason",
-                            module.get(TypeHelper.class)
-                                .PROPOSITION.asJvmTypeReference()
+                            builtins.proposition().asJvmTypeReference()
                         ));
 
 
@@ -188,9 +193,12 @@ public class OnBehaviourFailureHandlerSemantics
             input.__(OnBehaviourFailureHandler::getPattern);
         final Maybe<LValueExpression> pattern = contentPattern
             .__(x -> (LValueExpression) x);
-        final Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        final Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
 
         module.get(ContextManager.class).enterProceduralFeature(
             OnBehaviourFailureHandlerWhenExpressionContext::new
@@ -198,8 +206,8 @@ public class OnBehaviourFailureHandlerSemantics
 
         StaticState beforePattern = StaticState.beginningOfOperation(module);
 
-        final IJadescriptType propositionUpperBound = typeHelper.PROPOSITION;
-        final IJadescriptType behaviourUpperBound = typeHelper.ANYBEHAVIOUR;
+        final IJadescriptType propositionUpperBound = builtins.proposition();
+        final IJadescriptType behaviourUpperBound = builtins.anyBehaviour();
 
         IJadescriptType pattNarrowedContentType = propositionUpperBound;
         IJadescriptType wexpNarrowedContentType = propositionUpperBound;
@@ -349,7 +357,7 @@ public class OnBehaviourFailureHandlerSemantics
 
         module.get(ContextManager.class).exit();
 
-        final IJadescriptType finalContentType = typeHelper.getGLB(
+        final IJadescriptType finalContentType = lattice.getGLB(
             pattNarrowedContentType,
             wexpNarrowedContentType
         );
@@ -357,11 +365,11 @@ public class OnBehaviourFailureHandlerSemantics
         final IJadescriptType finalBehaviourType = wexpNarrowedBehaviourType;
 
         scb.open("if (__failureReason instanceof "
-            + module.get(TypeHelper.class).noGenericsTypeName(
+            + JvmTypeHelper.noGenericsTypeName(
             finalContentType.compileToJavaTypeReference()
         ) + "&&" +
             "__failedBehaviour instanceof "
-            + module.get(TypeHelper.class).noGenericsTypeName(
+            + JvmTypeHelper.noGenericsTypeName(
             finalBehaviourType.compileToJavaTypeReference()
         ) + ") {");
 
@@ -415,7 +423,7 @@ public class OnBehaviourFailureHandlerSemantics
         Maybe<WhenExpression> whenBody =
             input.__(OnBehaviourFailureHandler::getWhenBody);
 
-        final Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        final Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
         final Maybe<RValueExpression> whenExpr =
             whenBody.__(WhenExpression::getExpr);
         final Maybe<LValueExpression> pattern = input
@@ -423,10 +431,13 @@ public class OnBehaviourFailureHandlerSemantics
             .__(x -> (LValueExpression) x);
 
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
 
-        final IJadescriptType propositionUpperBound = typeHelper.PROPOSITION;
-        final IJadescriptType behaviourUpperBound = typeHelper.ANYBEHAVIOUR;
+        final IJadescriptType propositionUpperBound = builtins.proposition();
+        final IJadescriptType behaviourUpperBound = builtins.anyBehaviour();
 
         IJadescriptType pattNarrowedContentType = propositionUpperBound;
         IJadescriptType wexpNarrowedContentType = propositionUpperBound;
@@ -444,7 +455,7 @@ public class OnBehaviourFailureHandlerSemantics
 
         StaticState afterPatternDidMatch = beforePattern;
 
-        if(pattern.isPresent()){
+        if (pattern.isPresent()) {
             final PatternMatchHelper patternMatchHelper
                 = module.get(PatternMatchHelper.class);
 
@@ -488,7 +499,7 @@ public class OnBehaviourFailureHandlerSemantics
         }
 
         StaticState afterWhenExprReturnedTrue = afterPatternDidMatch;
-        if(whenExpr.isPresent()){
+        if (whenExpr.isPresent()) {
             final RValueExpressionSemantics rves =
                 module.get(RValueExpressionSemantics.class);
 
@@ -504,7 +515,7 @@ public class OnBehaviourFailureHandlerSemantics
                     acceptor
                 );
 
-                        if (whenExprCheck == VALID) {
+            if (whenExprCheck == VALID) {
                 final StaticState afterWhenExpr = rves.advance(
                     whenExpr,
                     afterPatternDidMatch
@@ -548,7 +559,7 @@ public class OnBehaviourFailureHandlerSemantics
         module.get(ContextManager.class).exit();
 
 
-        final IJadescriptType finalContentType = typeHelper.getGLB(
+        final IJadescriptType finalContentType = lattice.getGLB(
             pattNarrowedContentType,
             wexpNarrowedContentType
         );
@@ -572,7 +583,7 @@ public class OnBehaviourFailureHandlerSemantics
 
         inBody = inBody.enterScope();
 
-        module.get(BlockSemantics.class).validate(
+        module.get(BlockSemantics.class).validateOptionalBlock(
             body,
             inBody,
             acceptor

@@ -3,6 +3,8 @@ package it.unipr.ailab.jadescript.semantics.context.symbol.interfaces;
 import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 import java.util.List;
@@ -98,17 +100,24 @@ public interface Callable extends Located {
                 return false;
             }
 
-            if (getReturnType() != null
-                ? !getReturnType().typeEquals(that.getReturnType())
-                : that.getReturnType() != null) {
-                return false;
+            if (getReturnType() != null) {
+                if(!TypeComparator.rawEquals(
+                    this.getReturnType(),
+                    that.getReturnType()
+                )) {
+                    return false;
+                }
+            } else {
+                if (that.getReturnType() != null) {
+                    return false;
+                }
             }
 
             return getParameterTypes() != null
                 ? (Streams.zip(
                 getParameterTypes().stream(),
                 that.getParameterTypes().stream(),
-                IJadescriptType::typeEquals
+                TypeComparator::rawEquals
             ).allMatch(it -> it))
                 : that.getParameterTypes() == null;
         }

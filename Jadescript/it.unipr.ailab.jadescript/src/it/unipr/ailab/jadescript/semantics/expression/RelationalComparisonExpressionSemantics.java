@@ -3,23 +3,25 @@ package it.unipr.ailab.jadescript.semantics.expression;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.ContainmentCheck;
 import it.unipr.ailab.jadescript.jadescript.RelationalComparison;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.subTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 /**
@@ -58,7 +60,9 @@ public class RelationalComparisonExpressionSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        if (input == null) return "";
+        if (input == null) {
+            return "";
+        }
         final Maybe<ContainmentCheck> left =
             input.__(RelationalComparison::getLeft);
         final Maybe<ContainmentCheck> right =
@@ -76,16 +80,25 @@ public class RelationalComparisonExpressionSemantics
         StaticState afterLeft = cces.advance(left, state);
         IJadescriptType t1 = cces.inferType(left, state);
 
-        TypeHelper th = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
 
         String rightCompiled = cces.compile(right, afterLeft, acceptor);
         IJadescriptType t2 = cces.inferType(right, afterLeft);
-        if (t1.isSupEqualTo(th.DURATION)
-            && t2.isSupEqualTo(th.DURATION)) {
+
+        if (comparator.compare(t1, builtins.duration())
+            .is(subTypeOrEqual())
+            && comparator.compare(t2, builtins.duration())
+            .is(subTypeOrEqual())) {
             return "jadescript.lang.Duration.compare(" + leftCompiled
                 + ", " + rightCompiled + ") " + relationalOp + " 0";
-        } else if (t1.isSupEqualTo(th.TIMESTAMP)
-            && t2.isSupEqualTo(th.TIMESTAMP)) {
+        }
+
+        if (comparator.compare(t1, builtins.timestamp())
+            .is(subTypeOrEqual())
+            && comparator.compare(t2, builtins.timestamp())
+            .is(subTypeOrEqual())) {
             return "jadescript.lang.Timestamp.compare(" + leftCompiled
                 + ", " + rightCompiled + ") " + relationalOp + " 0";
         } else {
@@ -99,8 +112,10 @@ public class RelationalComparisonExpressionSemantics
         Maybe<RelationalComparison> input,
         StaticState state
     ) {
-        if (input == null) return module.get(TypeHelper.class).ANY;
-        return module.get(TypeHelper.class).BOOLEAN;
+        if (input == null) {
+            return module.get(BuiltinTypeProvider.class).any("");
+        }
+        return module.get(BuiltinTypeProvider.class).boolean_();
     }
 
 
@@ -193,14 +208,60 @@ public class RelationalComparisonExpressionSemantics
     }
 
 
+    private boolean isInteger(IJadescriptType type){
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(type, builtins.integer())
+            .is(subTypeOrEqual());
+    }
+
+    private boolean isReal(IJadescriptType type){
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(type, builtins.real())
+            .is(subTypeOrEqual());
+    }
+
+    private boolean isNumber(IJadescriptType type) {
+        return isInteger(type) || isReal(type);
+    }
+
+
+    private boolean isDuration(IJadescriptType type) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(type, builtins.duration())
+            .is(subTypeOrEqual());
+    }
+
+
+    private boolean isTimestamp(IJadescriptType type) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(type, builtins.timestamp())
+            .is(subTypeOrEqual());
+    }
+
+
     @Override
     protected boolean validateInternal(
         Maybe<RelationalComparison> input,
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
-        final TypeHelper th = module.get(TypeHelper.class);
+        if (input == null) {
+            return VALID;
+        }
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
         final Maybe<ContainmentCheck> left =
             input.__(RelationalComparison::getLeft);
         final Maybe<ContainmentCheck> right =
@@ -215,15 +276,25 @@ public class RelationalComparisonExpressionSemantics
             IJadescriptType typeRight = cces.inferType(right, afterLeft);
             final ValidationHelper validationHelper =
                 module.get(ValidationHelper.class);
-            boolean ltValidation = validationHelper.assertExpectedTypes(
-                Arrays.asList(th.NUMBER, th.TIMESTAMP, th.DURATION),
+            boolean ltValidation = validationHelper.assertExpectedTypesAny(
+                List.of(
+                    builtins.integer(),
+                    builtins.real(),
+                    builtins.timestamp(),
+                    builtins.duration()
+                ),
                 typeLeft,
                 "InvalidOperandType",
                 left,
                 acceptor
             );
-            boolean rtValidation = validationHelper.assertExpectedTypes(
-                Arrays.asList(th.NUMBER, th.TIMESTAMP, th.DURATION),
+            boolean rtValidation = validationHelper.assertExpectedTypesAny(
+                List.of(
+                    builtins.integer(),
+                    builtins.real(),
+                    builtins.timestamp(),
+                    builtins.duration()
+                ),
                 typeRight,
                 "InvalidOperandType",
                 right,
@@ -232,24 +303,17 @@ public class RelationalComparisonExpressionSemantics
 
             boolean otherValidation = validationHelper.asserting(
                 //implication: if left is NUMBER, right has to be NUMBER too
-                (
-                    !th.NUMBER.isSupEqualTo(typeLeft)
-                        || th.NUMBER.isSupEqualTo(typeRight)
-                ) && (
+                (!isNumber(typeLeft) || isNumber(typeRight))
                     //implication: if left is DURATION,
                     // right has to be DURATION too
-                    !th.DURATION.isSupEqualTo(typeLeft)
-                        || th.DURATION.isSupEqualTo(typeRight)
-                ) && (
+                    && (!isDuration(typeLeft) || isDuration(typeRight))
                     //implication: if left is TIMESTAMP,
                     // right has to be TIMESTAMP too
-                    !th.TIMESTAMP.isSupEqualTo(typeLeft)
-                        || th.TIMESTAMP.isSupEqualTo(typeRight)
-                ),
+                    && (!isTimestamp(typeLeft) || isTimestamp(typeRight)),
                 "IncongruentOperandTypes",
                 "Incompatible types for comparison: '"
-                    + typeLeft.getJadescriptName()
-                    + "', '" + typeRight.getJadescriptName() + "'",
+                    + typeLeft.getFullJadescriptName()
+                    + "', '" + typeRight.getFullJadescriptName() + "'",
                 input,
                 acceptor
             );

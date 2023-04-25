@@ -6,10 +6,10 @@ import it.unipr.ailab.jadescript.semantics.context.associations.BehaviourAssocia
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.search.WithSupertype;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -22,8 +22,8 @@ public class TopLevelBehaviourDeclarationContext
     implements WithSupertype, BehaviourAssociated {
 
     private final JvmDeclaredType behaviourJvmType;
-    private final LazyValue<IJadescriptType> behaviourType;
-    private final LazyValue<TypeNamespace> behaviourTypeNamespace;
+    private final LazyInit<IJadescriptType> behaviourType;
+    private final LazyInit<TypeNamespace> behaviourTypeNamespace;
 
 
     public TopLevelBehaviourDeclarationContext(
@@ -35,11 +35,11 @@ public class TopLevelBehaviourDeclarationContext
     ) {
         super(module, outer, ontologyTypes, agentType);
         this.behaviourJvmType = behaviourType;
-        this.behaviourType = new LazyValue<>(() ->
-            module.get(TypeHelper.class)
-                .jtFromJvmTypePermissive(behaviourJvmType)
+        this.behaviourType = new LazyInit<>(() ->
+            module.get(TypeSolver.class)
+                .fromJvmTypePermissive(behaviourJvmType)
         );
-        this.behaviourTypeNamespace = new LazyValue<>(
+        this.behaviourTypeNamespace = new LazyInit<>(
             () -> this.behaviourType.get().namespace()
         );
 

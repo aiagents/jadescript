@@ -1,9 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.helpers;
 
-import it.unipr.ailab.jadescript.jadescript.CodeBlock;
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.jadescript.Statement;
-import it.unipr.ailab.jadescript.jadescript.TypeExpression;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.jvmmodel.JadescriptCompilerUtils;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -13,7 +10,8 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.implicit.ImplicitConversionsHelper;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.WriterFactory;
@@ -88,7 +86,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
     public static Maybe<String> sourceToLocationText(
         Maybe<? extends EObject> input
     ) {
-        return Util.extractEObject(input).__(eObject -> {
+        return SemanticsUtils.extractEObject(input).__(eObject -> {
             final ICompositeNode node = NodeModelUtils.getNode(eObject);
             int startLine = node.getStartLine();
             int endLine = node.getEndLine();
@@ -116,7 +114,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
 
 
     public static Maybe<String> sourceToText(Maybe<? extends EObject> input) {
-        return Util.extractEObject(input).__(eObject -> {
+        return SemanticsUtils.extractEObject(input).__(eObject -> {
             final ICompositeNode node = NodeModelUtils.getNode(eObject);
             return node.getText();
         });
@@ -194,7 +192,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
     public static String compileAgentReference(
         Maybe<? extends EObject> container
     ) {
-        return Util.getOuterClassThisReference(container).orElse(THIS)
+        return SemanticsUtils.getOuterClassThisReference(container).orElse(THIS)
             + "." + compileAgentReference();
     }
 
@@ -255,19 +253,21 @@ public class CompilationHelper implements IQualifiedNameProvider {
     }
 
 
-    public List<String> adaptAndCompileRValueList(
+    public List<String> implicitConversionsOnRValueList(
         List<String> compiledArgs,
         List<IJadescriptType> argTypes,
         List<IJadescriptType> destinationTypes
     ) {
         List<String> result = new ArrayList<>();
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        for (int i = 0; i < Math.min(
+        final ImplicitConversionsHelper conversions
+            = module.get(ImplicitConversionsHelper.class);
+        final int assumedSize = Math.min(
             compiledArgs.size(),
             Math.min(argTypes.size(), destinationTypes.size())
-        ); i++) {
+        );
+        for (int i = 0; i < assumedSize; i++) {
             result.add(
-                typeHelper.compileWithEventualImplicitConversions(
+                conversions.compileWithEventualImplicitConversions(
                     compiledArgs.get(i),
                     argTypes.get(i),
                     destinationTypes.get(i)
@@ -333,7 +333,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
             type = startType;
         } else {
             returnExpr =
-                module.get(TypeHelper.class)
+                module.get(ImplicitConversionsHelper.class)
                     .compileWithEventualImplicitConversions(
                         compiled,
                         startType,
@@ -355,11 +355,11 @@ public class CompilationHelper implements IQualifiedNameProvider {
 
     public PSR<SourceCodeBuilder> compileBlockToNewSCB(
         StaticState initialState,
-        Maybe<CodeBlock> cb
+        Maybe<OptionalBlock> cb
     ) {
         SourceCodeBuilder ssb = new SourceCodeBuilder("");
-        final PSR<BlockWriter> blockPSR =
-            module.get(BlockSemantics.class).compile(cb, initialState);
+        final PSR<BlockWriter> blockPSR = module.get(BlockSemantics.class)
+            .compileOptionalBlock(cb, initialState);
         final StaticState afterBlock = blockPSR.state();
         final BlockWriter result = blockPSR.result();
         result.writeSonnet(ssb);
@@ -387,8 +387,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
 
 
     @Override
-    @Nullable
-    public QualifiedName getFullyQualifiedName(EObject eObject) {
+    public @Nullable QualifiedName getFullyQualifiedName(EObject eObject) {
         if (eObject == null) {
             return null;
         }
@@ -398,9 +397,12 @@ public class CompilationHelper implements IQualifiedNameProvider {
 
 
     @SuppressWarnings("unused")
-    public QualifiedName apply(EObject arg0) {
+    public @Nullable QualifiedName apply(EObject eObject) {
+        if (eObject == null) {
+            return null;
+        }
         return module.get(IQualifiedNameProvider.class)
-            .getFullyQualifiedName(arg0);
+            .getFullyQualifiedName(eObject);
     }
 
 

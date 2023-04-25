@@ -8,7 +8,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -72,7 +72,7 @@ public class LogStatementSemantics extends StatementSemantics<LogStatement> {
         }
 
 
-        var thisRef = Util.getOuterClassThisReference(input).orElse("this");
+        var thisRef = SemanticsUtils.getOuterClassThisReference(input).orElse("this");
         String logLevelCompiled = "jade.util.Logger." + logLevel.orElse("INFO");
         acceptor.accept(w.callStmnt(
             logger,

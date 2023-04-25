@@ -11,12 +11,13 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCalla
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -25,8 +26,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.equal;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.not;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 
 /**
@@ -117,11 +119,11 @@ public class ContainmentCheckExpressionSemantics
     ) {
         final Maybe<Additive> collection =
             input.__(ContainmentCheck::getCollection);
-        boolean isAny = input.__(ContainmentCheck::isAny).extract(nullAsFalse);
-        boolean isAll = input.__(ContainmentCheck::isAll).extract(nullAsFalse);
-        boolean isKey = input.__(ContainmentCheck::isKey).extract(nullAsFalse);
+        boolean isAny = input.__(ContainmentCheck::isAny).orElse(false);
+        boolean isAll = input.__(ContainmentCheck::isAll).orElse(false);
+        boolean isKey = input.__(ContainmentCheck::isKey).orElse(false);
         boolean isValue = input.__(ContainmentCheck::isValue)
-            .extract(nullAsFalse);
+            .orElse(false);
 
         final String collectionCompiled =
             module.get(AdditiveExpressionSemantics.class)
@@ -206,14 +208,14 @@ public class ContainmentCheckExpressionSemantics
         Maybe<ContainmentCheck> input
         , StaticState state
     ) {
-        return module.get(TypeHelper.class).BOOLEAN;
+        return module.get(BuiltinTypeProvider.class).boolean_();
     }
 
 
     @Override
     protected boolean mustTraverse(Maybe<ContainmentCheck> input) {
         return input.__(ContainmentCheck::isContains).__(not)
-            .extract(Maybe.nullAsFalse);
+            .orElse(false);
     }
 
 
@@ -350,11 +352,11 @@ public class ContainmentCheckExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        boolean isAny = input.__(ContainmentCheck::isAny).extract(nullAsFalse);
-        boolean isAll = input.__(ContainmentCheck::isAll).extract(nullAsFalse);
-        boolean isKey = input.__(ContainmentCheck::isKey).extract(nullAsFalse);
+        boolean isAny = input.__(ContainmentCheck::isAny).orElse(false);
+        boolean isAll = input.__(ContainmentCheck::isAll).orElse(false);
+        boolean isKey = input.__(ContainmentCheck::isKey).orElse(false);
         boolean isValue =
-            input.__(ContainmentCheck::isValue).extract(nullAsFalse);
+            input.__(ContainmentCheck::isValue).orElse(false);
 
         Maybe<Additive> collection = input.__(ContainmentCheck::getCollection);
         final AdditiveExpressionSemantics aes =
@@ -399,16 +401,23 @@ public class ContainmentCheckExpressionSemantics
                 methodName = operationName = "contains";
             }
 
-            final TypeHelper typeHelper = module.get(TypeHelper.class);
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
+            final TypeComparator comparator = module.get(TypeComparator.class);
+
             final List<? extends MemberCallable> matches = collectionType
                 .namespace().searchAs(
                     MemberCallable.Namespace.class,
                     s -> s.memberCallables(methodName)
-                        .filter(mc -> mc.returnType()
-                            .typeEquals(typeHelper.BOOLEAN))
+                        .filter(mc -> comparator.compare(
+                            mc.returnType(),
+                            builtins.boolean_()
+                        ).is(equal()))
                         .filter(mc -> mc.arity() == 1)
-                        .filter(mc -> mc.parameterTypes().get(0)
-                            .isSupEqualTo(elementType))
+                        .filter(mc -> comparator.compare(
+                            mc.parameterTypes().get(0),
+                            elementType
+                        ).is(superTypeOrEqual()))
                 ).collect(Collectors.toList());
 
 
@@ -417,7 +426,7 @@ public class ContainmentCheckExpressionSemantics
                     "InvalidContainsOperation",
                     "Cannot perform '" + operationName +
                         "' on this type of collection (" +
-                        collectionType.getJadescriptName() +
+                        collectionType.getFullJadescriptName() +
                         ") and/or for this typeof element (" +
                         elementType + ")",
                     input,

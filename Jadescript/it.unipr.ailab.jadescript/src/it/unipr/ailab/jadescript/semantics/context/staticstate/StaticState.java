@@ -9,11 +9,13 @@ import it.unipr.ailab.jadescript.semantics.context.search.UserLocalDefinition;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.LocalName;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Name;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.ImmutableMap;
-import it.unipr.ailab.jadescript.semantics.utils.ImmutableSet;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.ImmutableMap;
+import it.unipr.ailab.maybe.utils.ImmutableSet;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -25,7 +27,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.utils.Util.safeFilter;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.equal;
+import static it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils.safeFilter;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 
@@ -128,7 +131,7 @@ public final class StaticState
             }
         }
 
-        TypeHelper typeHelper = module.get(TypeHelper.class);
+        TypeLatticeComputer lattice = module.get(TypeLatticeComputer.class);
 
         //All names must be the same
         String name = null;
@@ -141,7 +144,7 @@ public final class StaticState
                 if (!name.equals(ns.name())) {
                     return empty();
                 }
-                lub = typeHelper.getLUB(lub, ns.readingType());
+                lub = lattice.getLUB(lub, ns.readingType());
             }
         }
 
@@ -227,7 +230,10 @@ public final class StaticState
         ExpressionDescriptor forExpression
     ) {
         return upperBounds.get(forExpression)
-            .orElseGet(() -> module.get(TypeHelper.class).ANY);
+            .orElseGet(() -> module.get(BuiltinTypeProvider.class).any(
+                "No upper bound proven for expression descriptor " +
+                    forExpression + " in current static state."
+            ));
     }
 
 
@@ -247,7 +253,10 @@ public final class StaticState
 
         return safeFilter(
             result.map(ed -> upperBounds.get(ed).orElseGet(
-                () -> module.get(TypeHelper.class).ANY
+                () -> module.get(BuiltinTypeProvider.class).any(
+                    "No upper bound proven for expression " +
+                        "descriptor " + ed + " in current static state."
+                )
             )),
             upperBound
         );
@@ -262,11 +271,13 @@ public final class StaticState
         final ImmutableMap<ExpressionDescriptor, IJadescriptType>
             flowTypingUpperBounds = this.getLocalScopeFlowTypingUpperBounds();
         if (flowTypingUpperBounds.containsKey(expressionDescriptor)) {
-            final IJadescriptType glb = module.get(TypeHelper.class).getGLB(
-                flowTypingUpperBounds.getUnsafe(expressionDescriptor),
-                bound
-            );
-            if (glb.typeEquals(bound)) {
+            final IJadescriptType glb = module.get(TypeLatticeComputer.class)
+                .getGLB(
+                    flowTypingUpperBounds.getUnsafe(expressionDescriptor),
+                    bound
+                );
+            final TypeComparator comparator = module.get(TypeComparator.class);
+            if (comparator.compare(glb, bound).is(equal())) {
                 // No change.
                 return this;
             }
@@ -599,9 +610,9 @@ public final class StaticState
 
         ImmutableSet<ExpressionDescriptor> keys = aKeys.intersection(bKeys);
 
-        final TypeHelper th = module.get(TypeHelper.class);
+        TypeLatticeComputer lattice = module.get(TypeLatticeComputer.class);
         return keys.associate(
-            key -> th.getLUB(a.getUnsafe(key), b.getUnsafe(key))
+            key -> lattice.getLUB(a.getUnsafe(key), b.getUnsafe(key))
         );
     }
 
@@ -692,7 +703,7 @@ public final class StaticState
                 this.getLocalScopeFlowTypingUpperBounds().getKeys()) {
                 final IJadescriptType ub =
                     this.getLocalScopeFlowTypingUpperBounds().getUnsafe(ed);
-                scb.line(ed + " <= " + ub.getJadescriptName());
+                scb.line(ed + " <= " + ub.getFullJadescriptName());
             }
             scb.close("]");
         } else {

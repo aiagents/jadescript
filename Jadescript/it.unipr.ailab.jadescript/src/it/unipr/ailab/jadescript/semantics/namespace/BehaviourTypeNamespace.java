@@ -6,8 +6,12 @@ import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.AgentType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BaseBehaviourType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BehaviourType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.UserDefinedBehaviourType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.maybe.Maybe;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,7 +26,7 @@ public class BehaviourTypeNamespace
     implements BehaviourAssociated, AgentAssociated, OntologyAssociated {
 
     private final BehaviourType behaviourType;
-    private final LazyValue<JvmTypeNamespace> jvmNamespace;
+    private final LazyInit<JvmTypeNamespace> jvmNamespace;
     private final boolean useJvmIndex;
     private final List<Property> builtinProperties;
 
@@ -37,7 +41,7 @@ public class BehaviourTypeNamespace
         useJvmIndex = !(behaviourType instanceof BaseBehaviourType);
         this.builtinProperties = builtinProperties;
         this.jvmNamespace =
-            new LazyValue<>(this.behaviourType::jvmNamespace);
+            new LazyInit<>(this.behaviourType::jvmNamespace);
     }
 
 
@@ -60,7 +64,8 @@ public class BehaviourTypeNamespace
             return namesFromJvm(jvmNamespace.get())
                 .memberNames(name);
         } else {
-            return Stream.empty();
+            return builtinProperties.stream()
+                .filter(bp -> name == null || name.equals(bp.name()));
         }
     }
 

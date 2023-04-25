@@ -17,9 +17,13 @@ import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.SEMode;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -32,8 +36,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
-import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
 /**
  * Created on 27/04/18.
@@ -47,6 +49,7 @@ public class MemberOperationSemantics
     public MemberOperationSemantics(SemanticsModule semanticsModule) {
         super(semanticsModule);
     }
+
 
     @Override
     public void generateJvmMembers(
@@ -66,8 +69,12 @@ public class MemberOperationSemantics
             module.get(TypeExpressionSemantics.class);
 
         final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
         if (type.isNothing()) {
-            returnType = typeHelper.VOID;
+            returnType = builtins.javaVoid();
         } else {
             returnType = tes.toJadescriptType(type);
         }
@@ -94,10 +101,8 @@ public class MemberOperationSemantics
             returnType.asJvmTypeReference(),
             itMethod -> {
                 itMethod.setVisibility(JvmVisibility.PUBLIC);
-                List<Maybe<FormalParameter>> parameters = toListOfMaybes(
-                    input.__(ParameterizedFeature::getParameters)
-                );
-
+                MaybeList<FormalParameter> parameters =
+                    input.__toList(ParameterizedFeature::getParameters);
 
                 contextManager.restore(savedContext);
 
@@ -111,15 +116,16 @@ public class MemberOperationSemantics
                 itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
                     SemanticsConsts.AGENT_ENV,
-                    typeHelper.AGENTENV
-                        .apply(List.of(
-                            typeHelper.covariant(
-                                contextAgent.orElse(typeHelper.AGENT)
-                            ),
-                            typeHelper.jtFromClass(AgentEnvType.toSEModeClass(
-                                AgentEnvType.SEMode.WITH_SE
-                            ))
-                        )).asJvmTypeReference()
+                    builtins.agentEnv(
+                        typeHelper.covariant(
+                            contextAgent.orElse(builtins.agent())
+                        ),
+                        typeHelper.covariant(
+                            typeSolver.fromClass(
+                                AgentEnvType.toSEModeClass(SEMode.WITH_SE)
+                            )
+                        )
+                    ).asJvmTypeReference()
                 ));
 
                 for (Maybe<FormalParameter> parameter : parameters) {
@@ -142,6 +148,7 @@ public class MemberOperationSemantics
                     ));
 
                 }
+
                 List<String> paramNames = new ArrayList<>();
                 List<IJadescriptType> paramTypes = new ArrayList<>();
 
@@ -157,7 +164,7 @@ public class MemberOperationSemantics
                 }
 
 
-                Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+                Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
 
                 final CompilationHelper compilationHelper =
                     module.get(CompilationHelper.class);
@@ -167,7 +174,7 @@ public class MemberOperationSemantics
 
                     final boolean isFunction =
                         input.__(FunctionOrProcedure::isFunction)
-                            .extract(nullAsFalse);
+                            .orElse(false);
 
                     if (isFunction) {
                         contextManager.enterProceduralFeature(
@@ -201,6 +208,7 @@ public class MemberOperationSemantics
                     inBody = inBody.enterScope();
 
                     final PSR<SourceCodeBuilder> bodyPSR =
+
                         compilationHelper.compileBlockToNewSCB(inBody, body);
 
                     scb.add(bodyPSR.result());
@@ -225,7 +233,8 @@ public class MemberOperationSemantics
             input.__(FunctionOrProcedure::getType),
             input.__(FeatureWithBody::getBody),
             module,
-            input.__(FunctionOrProcedure::isFunction).extract(nullAsFalse),
+            input.__(FunctionOrProcedure::isFunction).orElse(false),
+            false,
             getLocationOfThis(),
             acceptor
         );
@@ -245,7 +254,8 @@ public class MemberOperationSemantics
             input.__(FunctionOrProcedure::getType),
             input.__(FeatureWithBody::getBody),
             module,
-            input.__(FunctionOrProcedure::isFunction).extract(nullAsFalse),
+            input.__(FunctionOrProcedure::isFunction).orElse(false),
+            false,
             getLocationOfThis(),
             acceptor
         );

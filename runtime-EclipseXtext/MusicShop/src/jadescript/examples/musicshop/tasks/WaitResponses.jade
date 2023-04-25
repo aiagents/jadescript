@@ -6,10 +6,10 @@ import jadescript.examples.musicshop.onto.MusicShopOntology
 
 # TODO These two functions will be removed when we have a Jadescript library.
 function parseInt(t as text) as integer do
-    return (invoke parseInt in "jadescript.examples.musicshop.tasks.IntegerUtils" with t) as integer
+    return native jadescript.examples.musicshop.tasks.IntegerUtils.parseInt(t)
 
 function integerMaxValue as integer do
-    return (invoke integerMaxValue in "jadescript.examples.musicshop.tasks.IntegerUtils") as integer
+    return native jadescript.examples.musicshop.tasks.IntegerUtils.integerMaxValue()
 
 cyclic behaviour WaitResponses for agent BuyerAgent uses ontology MusicShopOntology
     property messageCounter = 0 #Counts how many proposal messages are received

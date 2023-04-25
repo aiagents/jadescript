@@ -1,5 +1,8 @@
 module examples.auction
 
+
+import examples.auction.Item
+
 # The Bidder requires a startup argument, which is the budget (integer).
 
 import examples.auction.Item
@@ -13,6 +16,8 @@ agent Bidder uses ontology EnglishAuction
         budget of this = budget
         log "Bidder "+name of agent+" created with budget: "+budget
         activate ParticipateToAuction
+        
+        
         
 cyclic behaviour ParticipateToAuction for agent Bidder
     on activate do

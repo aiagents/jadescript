@@ -13,8 +13,8 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Optional;
@@ -57,7 +57,9 @@ public class RValueExpressionSemantics
         Maybe<RValueExpression> input,
         StaticState state
     ) {
-        return module.get(TypeHelper.class).ANY;
+        return module.get(BuiltinTypeProvider.class).any(
+            "Detected semantics class is RValueExpressionSemantics."
+        );
     }
 
 

@@ -17,9 +17,14 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.helpers.*;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.BaseMessageType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.BaseMessageType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.message.MessageType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
@@ -38,7 +43,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
+import static it.unipr.ailab.maybe.Maybe.eitherGet;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 /**
  * Created on 26/10/2018.
@@ -98,10 +105,11 @@ public class OnMessageHandlerSemantics
         BlockElementAcceptor fieldInitializationAcceptor
     ) {
         final String eventFieldName = synthesizeEventFieldName(inputSafe);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         members.add(module.get(JvmTypesBuilder.class).toField(
             inputSafe,
             eventFieldName,
-            module.get(TypeHelper.class).typeRef(eventClass),
+            jvm.typeRef(eventClass),
             itField -> {
                 itField.setVisibility(JvmVisibility.PRIVATE);
                 module.get(CompilationHelper.class)
@@ -111,8 +119,7 @@ public class OnMessageHandlerSemantics
                             w.assign(
                                 eventFieldName,
                                 w.expr("new " +
-                                    module.get(TypeHelper.class)
-                                        .typeRef(eventClass)
+                                    jvm.typeRef(eventClass)
                                         .getQualifiedName('.') +
                                     "()"
                                 )
@@ -134,7 +141,7 @@ public class OnMessageHandlerSemantics
 //generating =>     return;
 //generating => }
         w.ifStmnt(
-            w.expr(Util.getOuterClassThisReference(input)
+            w.expr(SemanticsUtils.getOuterClassThisReference(input)
                 + "." + IGNORE_MSG_HANDLERS_VAR_NAME),
             w.block().addStatement(
                 w.assign(
@@ -157,7 +164,7 @@ public class OnMessageHandlerSemantics
         final Maybe<Pattern> contentPattern =
             input.__(OnMessageHandler::getPattern);
 
-        final Maybe<CodeBlock> body =
+        final Maybe<OptionalBlock> body =
             input.__(FeatureWithBody::getBody);
         final Maybe<RValueExpression> whenExpr =
             whenBody.__(WhenExpression::getExpr);
@@ -165,7 +172,11 @@ public class OnMessageHandlerSemantics
 
         module.get(ContextManager.class).restore(savedContext);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
 
 
         module.get(ContextManager.class).enterProceduralFeature(
@@ -175,15 +186,16 @@ public class OnMessageHandlerSemantics
         StaticState beforePattern = StaticState.beginningOfOperation(module);
 
         final IJadescriptType contentUpperBound = performative
-            .__(typeHelper::getContentBound)
-            .orElseGet(() -> typeHelper.ANY);
+            .__(typeSolver::getContentBoundForPerformative)
+            .orElseGet(() -> builtins.any(
+                "Could not solve message type for performative '" +
+                    performative + "'."));
 
-        BaseMessageType initialMsgType = typeHelper
-            .instantiateMessageType(
-                input.__(OnMessageHandler::getPerformative),
-                contentUpperBound,
-                /*normalizeToUpperBounds=*/ true
-            );
+        MessageType initialMsgType = typeSolver.instantiateMessageType(
+            input.__(OnMessageHandler::getPerformative),
+            contentUpperBound,
+            /*normalizeToUpperBounds=*/ true
+        );
 
         IJadescriptType pattNarrowedContentType = contentUpperBound;
         IJadescriptType wexpNarrowedContentType = contentUpperBound;
@@ -341,14 +353,14 @@ public class OnMessageHandlerSemantics
 
         final IJadescriptType finalContentType;
         if (wexpNarrowedMessageType instanceof BaseMessageType) {
-            finalContentType = typeHelper.getGLB(
+            finalContentType = lattice.getGLB(
                 pattNarrowedContentType,
                 wexpNarrowedContentType,
                 ((BaseMessageType) wexpNarrowedMessageType)
                     .getContentType()
             );
         } else {
-            finalContentType = typeHelper.getGLB(
+            finalContentType = lattice.getGLB(
                 pattNarrowedContentType,
                 wexpNarrowedContentType
             );
@@ -367,12 +379,12 @@ public class OnMessageHandlerSemantics
             );
         });
 
-        // add "Not a percept" constraint
+        // add "Not a native event" constraint
         messageTemplateExpressions.add(
-            TemplateCompilationHelper.notPercept()
+            TemplateCompilationHelper.notNative()
         );
 
-        if (input.__(OnMessageHandler::isStale).extract(nullAsFalse)) {
+        if (input.__(OnMessageHandler::isStale).orElse(false)) {
             // add staleness constraint
             messageTemplateExpressions.add(
                 TemplateCompilationHelper.isStale()
@@ -441,17 +453,17 @@ public class OnMessageHandlerSemantics
 
         ).writeSonnet(scb);
 
-        BaseMessageType finalMessageType =
-            typeHelper.instantiateMessageType(
-                input.__(OnMessageHandler::getPerformative),
-                finalContentType,
-                /*normalizeToUpperBounds=*/ true
-            );
+        MessageType finalMessageType = typeSolver.instantiateMessageType(
+            input.__(OnMessageHandler::getPerformative),
+            finalContentType,
+            /*normalizeToUpperBounds=*/ true
+        );
 
         final StaticState preparedState = prepareBodyState.apply(
             afterWhenExprRetunedTrue);
 
 
+        final MessageType effectivelyFinalMsg = finalMessageType;
         module.get(ContextManager.class).enterProceduralFeature((
             mod,
             out
@@ -459,7 +471,7 @@ public class OnMessageHandlerSemantics
             mod,
             out,
             input.__(OnMessageHandler::getPerformative),
-            finalMessageType,
+            effectivelyFinalMsg,
             finalContentType
         ));
 
@@ -511,7 +523,7 @@ public class OnMessageHandlerSemantics
         w.ifStmnt(
             w.expr(MESSAGE_VAR_NAME + " != null"),
             w.block().addStatement(
-                w.assign(Util.getOuterClassThisReference(input) + "."
+                w.assign(SemanticsUtils.getOuterClassThisReference(input) + "."
                     + IGNORE_MSG_HANDLERS_VAR_NAME, w.expr("true"))
             ).addStatement(w.callStmnt(
                     CompilationHelper.compileAgentReference() +
@@ -563,12 +575,14 @@ public class OnMessageHandlerSemantics
                 final CompilationHelper compilationHelper =
                     module.get(CompilationHelper.class);
 
-                final TypeHelper typeHelper = module.get(TypeHelper.class);
+                final BuiltinTypeProvider builtins =
+                    module.get(BuiltinTypeProvider.class);
+                final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
                 it.getMembers().add(jvmTypesBuilder.toField(
                     inputSafe,
                     MESSAGE_RECEIVED_BOOL_VAR_NAME,
-                    typeHelper.BOOLEAN.asJvmTypeReference(),
+                    builtins.boolean_().asJvmTypeReference(),
                     itField -> {
                         itField.setVisibility(JvmVisibility.DEFAULT);
                         compilationHelper
@@ -582,7 +596,7 @@ public class OnMessageHandlerSemantics
                 it.getMembers().add(jvmTypesBuilder.toMethod(
                     inputSafe,
                     "run",
-                    typeHelper.typeRef(void.class),
+                    jvm.typeRef(void.class),
                     itMethod -> compilationHelper
                         .createAndSetBody(itMethod, scb -> {
                             fillRunMethod(
@@ -612,7 +626,7 @@ public class OnMessageHandlerSemantics
         Maybe<WhenExpression> whenBody =
             input.__(OnMessageHandler::getWhenBody);
 
-        final Maybe<CodeBlock> body =
+        final Maybe<OptionalBlock> body =
             input.__(FeatureWithBody::getBody);
         final Maybe<RValueExpression> whenExpr =
             whenBody.__(WhenExpression::getExpr);
@@ -629,24 +643,29 @@ public class OnMessageHandlerSemantics
             );
 
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
 
         final IJadescriptType contentUpperBound = performative
-            .__(typeHelper::getContentBound)
-            .orElseGet(() -> typeHelper.ANY);
+            .__(typeSolver::getContentBoundForPerformative)
+            .orElseGet(() -> builtins.any("Could not resolve " +
+                "message type from performative '" + performative + "'."));
 
-        BaseMessageType initialMsgType = typeHelper
-            .instantiateMessageType(
-                input.__(OnMessageHandler::getPerformative),
-                contentUpperBound,
-                /*
-                 Not normalizing to upper bounds when validating, in
-                 order to not interfere with the
-                 type-inferring-from-pattern-match-and-when-expression
-                 system
-                */
-                /*normalizeToUpperBounds=*/ false
-            );
+        MessageType initialMsgType = typeSolver.instantiateMessageType(
+            input.__(OnMessageHandler::getPerformative),
+            contentUpperBound,
+            /*
+             Not normalizing to upper bounds when validating, in
+             order to not interfere with the
+             type-inferring-from-pattern-match-and-when-expression
+             system
+            */
+            /*normalizeToUpperBounds=*/ false
+        );
 
         module.get(ContextManager.class).enterProceduralFeature(
             (m, o) -> new OnMessageHandlerWhenExpressionContext(
@@ -770,14 +789,14 @@ public class OnMessageHandlerSemantics
 
         final IJadescriptType finalContentType;
         if (wexpNarrowedMessageType instanceof BaseMessageType) {
-            finalContentType = typeHelper.getGLB(
+            finalContentType = lattice.getGLB(
                 pattNarrowedContentType,
                 wexpNarrowedContentType,
                 ((BaseMessageType) wexpNarrowedMessageType)
                     .getContentType()
             );
         } else {
-            finalContentType = typeHelper.getGLB(
+            finalContentType = lattice.getGLB(
                 pattNarrowedContentType,
                 wexpNarrowedContentType
             );
@@ -790,7 +809,7 @@ public class OnMessageHandlerSemantics
                 finalContentType.isSendable(),
                 "UnexpectedContent",
                 "Suspicious content type; values of type '"
-                    + finalContentType.getJadescriptName() +
+                    + finalContentType.getFullJadescriptName() +
                     "' cannot be received as part of messages.",
                 eitherGet(eitherGet(pattern, whenExpr), input),
                 acceptor
@@ -799,23 +818,24 @@ public class OnMessageHandlerSemantics
 
         if (pattern.isPresent() || whenExpr.isPresent()) {
             module.get(ValidationHelper.class).advice(
-                contentUpperBound.isSupEqualTo(finalContentType),
+                comparator.compare(contentUpperBound, finalContentType)
+                    .is(superTypeOrEqual()),
                 "UnexpectedContent",
                 "Suspicious content type; Messages with performative '"
                     + performativeString + "' expect contents of type "
-                    + contentUpperBound.getJadescriptName()
+                    + contentUpperBound.getFullJadescriptName()
                     + "; type constrained by pattern/when expression: "
-                    + finalContentType.getJadescriptName(),
+                    + finalContentType.getFullJadescriptName(),
                 eitherGet(pattern, whenExpr),
                 acceptor
             );
         }
 
-        BaseMessageType finalMessageType = typeHelper.instantiateMessageType(
-            input.__(OnMessageHandler::getPerformative),
-            finalContentType,
-            /*normalizeToUpperBounds=*/ true
-        );
+        MessageType finalMessageType = typeSolver.instantiateMessageType(
+                input.__(OnMessageHandler::getPerformative),
+                finalContentType,
+                /*normalizeToUpperBounds=*/ true
+            );
 
         final StaticState preparedState = prepareBodyState.apply(
             afterWhenExprReturnedTrue);
@@ -834,11 +854,8 @@ public class OnMessageHandlerSemantics
 
         inBody = inBody.enterScope();
 
-        module.get(BlockSemantics.class).validate(
-            body,
-            inBody,
-            acceptor
-        );
+        module.get(BlockSemantics.class)
+            .validateOptionalBlock(body, inBody, acceptor);
 
         module.get(ContextManager.class).exit();
 

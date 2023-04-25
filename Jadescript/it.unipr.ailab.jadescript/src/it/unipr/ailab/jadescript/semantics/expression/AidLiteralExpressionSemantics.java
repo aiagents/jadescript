@@ -10,9 +10,9 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -22,8 +22,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
-import static it.unipr.ailab.maybe.Maybe.nullAsTrue;
+
 
 public class AidLiteralExpressionSemantics
     extends AssignableExpressionSemantics<AidLiteral> {
@@ -48,10 +47,10 @@ public class AidLiteralExpressionSemantics
         boolean rightTypeValidation = VALID;
 
         if (leftValidation == VALID
-            && input.__(AidLiteral::isIsAidExpr).extract(nullAsFalse)) {
+            && input.__(AidLiteral::isIsAidExpr).orElse(false)) {
             leftTypeValidation = module.get(ValidationHelper.class)
                 .assertExpectedType(
-                    module.get(TypeHelper.class).TEXT,
+                    module.get(BuiltinTypeProvider.class).text(),
                     tces.inferType(left, state),
                     "InvalidAIDNickname",
                     left,
@@ -66,7 +65,7 @@ public class AidLiteralExpressionSemantics
             if (rightValidation == VALID) {
                 rightTypeValidation = module.get(ValidationHelper.class)
                     .assertExpectedType(
-                        module.get(TypeHelper.class).TEXT,
+                        module.get(BuiltinTypeProvider.class).text(),
                         tces.inferType(right, finalState),
                         "InvalidAIDHAP",
                         right,
@@ -116,7 +115,8 @@ public class AidLiteralExpressionSemantics
         final Maybe<TypeCast> hap = input.getPattern().__(AidLiteral::getHap);
         final TypeCastExpressionSemantics tces =
             module.get(TypeCastExpressionSemantics.class);
-        final IJadescriptType textType = module.get(TypeHelper.class).TEXT;
+        final IJadescriptType textType =
+            module.get(BuiltinTypeProvider.class).text();
 
         final PatternMatchInput.SubPattern<TypeCast, AidLiteral> localname =
             input.subPattern(
@@ -220,7 +220,8 @@ public class AidLiteralExpressionSemantics
         final Maybe<TypeCast> hap = input.getPattern().__(AidLiteral::getHap);
         final TypeCastExpressionSemantics tces =
             module.get(TypeCastExpressionSemantics.class);
-        final IJadescriptType textType = module.get(TypeHelper.class).TEXT;
+        final IJadescriptType textType =
+            module.get(BuiltinTypeProvider.class).text();
 
         final PatternMatchInput.SubPattern<TypeCast, AidLiteral> localname =
             input.subPattern(
@@ -320,7 +321,8 @@ public class AidLiteralExpressionSemantics
         final TypeCastExpressionSemantics tces =
             module.get(TypeCastExpressionSemantics.class);
 
-        final IJadescriptType textType = module.get(TypeHelper.class).TEXT;
+        final IJadescriptType textType =
+            module.get(BuiltinTypeProvider.class).text();
         List<PatternMatcher> subResults = new ArrayList<>(2);
 
         final IJadescriptType patternType = inferPatternType(
@@ -389,7 +391,7 @@ public class AidLiteralExpressionSemantics
         PatternMatchInput<AidLiteral> input,
         StaticState state
     ) {
-        return PatternType.simple(module.get(TypeHelper.class).AID);
+        return PatternType.simple(module.get(BuiltinTypeProvider.class).aid());
     }
 
 
@@ -402,7 +404,8 @@ public class AidLiteralExpressionSemantics
         final Maybe<TypeCast> hap = input.getPattern().__(AidLiteral::getHap);
         final TypeCastExpressionSemantics tces =
             module.get(TypeCastExpressionSemantics.class);
-        final IJadescriptType textType = module.get(TypeHelper.class).TEXT;
+        final IJadescriptType textType =
+            module.get(BuiltinTypeProvider.class).text();
 
 
         final PatternMatchInput.SubPattern<TypeCast, AidLiteral>
@@ -505,13 +508,13 @@ public class AidLiteralExpressionSemantics
         Maybe<AidLiteral> input,
         StaticState state
     ) {
-        return module.get(TypeHelper.class).AID;
+        return module.get(BuiltinTypeProvider.class).aid();
     }
 
 
     @Override
     protected boolean mustTraverse(Maybe<AidLiteral> input) {
-        return !input.__(AidLiteral::isIsAidExpr).extract(nullAsTrue);
+        return !input.__(AidLiteral::isIsAidExpr).orElse(true);
     }
 
 

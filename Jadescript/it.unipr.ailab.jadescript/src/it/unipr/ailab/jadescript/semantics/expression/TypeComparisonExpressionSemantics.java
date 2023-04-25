@@ -4,23 +4,24 @@ import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.RelationalComparison;
 import it.unipr.ailab.jadescript.jadescript.TypeComparison;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
  * Created on 28/12/16.
@@ -137,7 +138,9 @@ public class TypeComparisonExpressionSemantics
         Maybe<TypeComparison> input,
         StaticState state, BlockElementAcceptor acceptor
     ) {
-        if (input == null) return "";
+        if (input == null) {
+            return "";
+        }
 
         final Maybe<RelationalComparison> left =
             input.__(TypeComparison::getRelationalComparison);
@@ -151,8 +154,13 @@ public class TypeComparisonExpressionSemantics
                 .toJadescriptType(type);
         String compiledTypeExpression =
             jadescriptType.compileToJavaTypeReference();
-        if (module.get(TypeHelper.class).ONTOLOGY.isSupEqualTo(
-            jadescriptType)) {
+
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        if (comparator.compare(builtins.ontology(), jadescriptType)
+            .is(superTypeOrEqual())) {
             result = THE_AGENTCLASS + ".__checkOntology(" + result + ", " +
                 compiledTypeExpression + ".class, " +
                 compiledTypeExpression + ".getInstance())";
@@ -176,15 +184,19 @@ public class TypeComparisonExpressionSemantics
         Maybe<TypeComparison> input,
         StaticState state
     ) {
-        if (input == null) return module.get(TypeHelper.class).ANY;
-        return module.get(TypeHelper.class).BOOLEAN;
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        if (input == null) {
+            return builtins.any("");
+        }
+        return builtins.boolean_();
     }
 
 
     @Override
     protected boolean mustTraverse(Maybe<TypeComparison> input) {
         final boolean isOp = input.__(TypeComparison::isIsOp)
-            .extract(nullAsFalse);
+            .orElse(false);
         return !isOp;
     }
 
@@ -218,7 +230,9 @@ public class TypeComparisonExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
+        if (input == null) {
+            return VALID;
+        }
         final RelationalComparisonExpressionSemantics rces =
             module.get(RelationalComparisonExpressionSemantics.class);
         boolean leftCheck = rces.validate(

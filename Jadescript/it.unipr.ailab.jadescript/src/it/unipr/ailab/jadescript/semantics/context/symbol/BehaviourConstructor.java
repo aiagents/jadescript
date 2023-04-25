@@ -6,10 +6,12 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import org.eclipse.xtext.common.types.JvmConstructor;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -21,6 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 
 public class BehaviourConstructor implements GlobalCallable {
 
@@ -67,8 +71,12 @@ public class BehaviourConstructor implements GlobalCallable {
         List<String> paramNames = new ArrayList<>();
         Map<String, IJadescriptType> paramNamesToTypes = new HashMap<>();
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        final IJadescriptType anyAE = typeHelper.ANYAGENTENV;
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+
+        final IJadescriptType anyAE = builtins.anyAgentEnv();
 
         boolean withoutSideEffects = false;
 
@@ -86,7 +94,8 @@ public class BehaviourConstructor implements GlobalCallable {
 
             if (paramName.equals(SemanticsConsts.AGENT_ENV)) {
                 final IJadescriptType envType =
-                    namespace.resolveType(paramTypeRef);
+                    namespace.resolveType(paramTypeRef)
+                        .ignoreBound();
 
                 if (envType instanceof AgentEnvType) {
                     withoutSideEffects =
@@ -97,8 +106,10 @@ public class BehaviourConstructor implements GlobalCallable {
             }
 
             final IJadescriptType solvedType =
-                namespace.resolveType(paramTypeRef);
-            if (anyAE.isSupEqualTo(solvedType)) {
+                namespace.resolveType(paramTypeRef)
+                    .ignoreBound();
+
+            if (comparator.compare(anyAE, solvedType).is(superTypeOrEqual())) {
                 continue;
             }
 
@@ -110,7 +121,7 @@ public class BehaviourConstructor implements GlobalCallable {
         String fqn = constructor.getQualifiedName('.');
 
         return new BehaviourConstructor(
-            namespace.resolveType(typeHelper.typeRef(type)),
+            namespace.resolveType(jvm.typeRef(type)).ignoreBound(),
             type.getSimpleName(),
             paramNamesToTypes,
             paramNames,

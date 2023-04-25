@@ -4,7 +4,8 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,7 +32,7 @@ public class OnExceptionHandlerWhenExpressionContext
 
     @Override
     public IJadescriptType getExceptionReasonType() {
-        return module.get(TypeHelper.class).PROPOSITION;
+        return module.get(BuiltinTypeProvider.class).proposition();
     }
 
 
@@ -39,7 +40,7 @@ public class OnExceptionHandlerWhenExpressionContext
     public Stream<? extends CompilableName> compilableNames(
         @Nullable String name
     ) {
-        return Util.buildStream(
+        return SemanticsUtils.buildStream(
             this::getExceptionReasonName
         ).filter(n -> name == null || name.equals(n.name()));
     }

@@ -11,8 +11,9 @@ import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.maybe.Maybe;
-import org.eclipse.xtext.naming.QualifiedName;
+import it.unipr.ailab.maybe.MaybeList;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public class OntologyElementStructuralPattern implements GlobalPattern {
@@ -63,10 +65,8 @@ public class OntologyElementStructuralPattern implements GlobalPattern {
 
             final TypeExpressionSemantics typeExpressionSemantics =
                 module.get(TypeExpressionSemantics.class);
-            final List<Maybe<SlotDeclaration>> slots =
-                Maybe.toListOfMaybes(f.__(
-                    i -> ((FeatureWithSlots) i).getSlots()
-                ));
+            final MaybeList<SlotDeclaration> slots =
+                f.__toList(i -> ((FeatureWithSlots) i).getSlots());
             termNames = new ArrayList<>(slots.size());
             termTypesByName = new HashMap<>(slots.size());
 
@@ -87,24 +87,36 @@ public class OntologyElementStructuralPattern implements GlobalPattern {
             termTypesByName = Map.of();
         }
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
-        final QualifiedName nullableQN =
-            compilationHelper.getFullyQualifiedName(
-            ontologyElement);
-        final String ontoElementName = ontologyElement.getName() == null
-            ? ""
-            : ontologyElement.getName();
-        return some(nullableQN).__(qnSafe -> new OntologyElementStructuralPattern(
-            ontoElementName,
-            typeHelper.jtFromJvmTypeRef(
-                typeHelper.typeRef(qnSafe.toString("."))
-            ),
-            termNames,
-            termTypesByName,
-            currentLocation
-        ));
+
+        final Maybe<String> ontoElementFQN =
+            f.__(compilationHelper::getFullyQualifiedName)
+                .__(fqn -> fqn.toString("."));
+
+        compilationHelper.getFullyQualifiedName(ontologyElement);
+
+        final String ontoElementName = ontologyElement.getName();
+
+        if (ontoElementName == null) {
+            return nothing();
+        }
+
+        if (ontoElementFQN.isNothing()) {
+            return nothing();
+        }
+
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+
+        return some(
+            new OntologyElementStructuralPattern(
+                ontoElementName,
+                typeSolver.fromFullyQualifiedName(ontoElementFQN.toNullable()),
+                termNames,
+                termTypesByName,
+                currentLocation
+            )
+        );
     }
 
 

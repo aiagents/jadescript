@@ -10,7 +10,7 @@ import jade.domain.FIPAAgentManagement.*;
 import jade.domain.FIPAAgentManagement.InternalError;
 import jadescript.content.*;
 import jadescript.content.onto.basic.*;
-import jadescript.core.percept.Percept;
+import jadescript.core.nativeevent.NativeEvent;
 import jadescript.lang.Duration;
 import jadescript.lang.Performative;
 import jadescript.lang.Timestamp;
@@ -116,7 +116,7 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
             add(new AgentActionSchema(PERFORMATIVE), Performative.class);
             add(new ConceptSchema(DURATION), Duration.class);
             add(new ConceptSchema(TIMESTAMP), Timestamp.class);
-            add(new PredicateSchema(PERCEPT), Percept.class);
+            add(new PredicateSchema(NATIVE_EVENT), NativeEvent.class);
 
             //Built-in onto elements
             add(new ConceptSchema(NOTHING), Nothing.class);
@@ -157,8 +157,8 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
             cs2.add(TIMESTAMP_DATE, (PrimitiveSchema) getSchema(BasicOntology.DATE));
             cs2.add(TIMESTAMP_ZONE_OFFSET, (PrimitiveSchema) getSchema(BasicOntology.INTEGER));
 
-            PredicateSchema cs3 = (PredicateSchema) getSchema(PERCEPT);
-            cs3.add(PERCEPT_CONTENT, PredicateSchema.getBaseSchema());
+            PredicateSchema cs3 = (PredicateSchema) getSchema(NATIVE_EVENT);
+            cs3.add(NATIVE_EVENT_CONTENT, PredicateSchema.getBaseSchema());
 
             PredicateSchema ps = (PredicateSchema) getSchema(INTERNAL_EXCEPTION);
             ps.add(INTERNAL_EXCEPTION_DESCRIPTION, getSchema(BasicOntology.STRING));

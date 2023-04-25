@@ -22,8 +22,8 @@ public interface Ontology_Vocabulary {
     String TIMESTAMP_DATE = "date";
     String TIMESTAMP_ZONE_OFFSET = "zoneOffset";
 
-    String PERCEPT = "Percept";
-    String PERCEPT_CONTENT = "content";
+    String NATIVE_EVENT = "NativeEvent";
+    String NATIVE_EVENT_CONTENT = "content";
 
     /* Base ontology content types */
     String DO_NOTHING = "DoNothing";

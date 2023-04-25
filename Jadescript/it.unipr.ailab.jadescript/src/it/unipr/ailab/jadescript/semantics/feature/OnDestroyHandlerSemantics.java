@@ -10,7 +10,7 @@ import it.unipr.ailab.jadescript.semantics.context.SavedContext;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OnDestroyHandlerContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.common.util.EList;
@@ -23,7 +23,6 @@ import org.eclipse.xtext.naming.QualifiedName;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
 public class OnDestroyHandlerSemantics
     extends DeclarationMemberSemantics<OnDestroyHandler> {
@@ -44,9 +43,10 @@ public class OnDestroyHandlerSemantics
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
-        Maybe<QualifiedName> containerName = input
-            .__(EcoreUtil2::getContainerOfType, TopElement.class)
-            .__(compilationHelper::getFullyQualifiedName);
+        Maybe<String> containerName = input
+            .__partial2(EcoreUtil2::getContainerOfType, TopElement.class)
+            .__(compilationHelper::getFullyQualifiedName)
+            .__(QualifiedName::toString);
 
         if (container.isInstanceOf(Agent.class)) {
             generateOnDestroyHandlerForAgent(input, members, containerName);
@@ -59,7 +59,7 @@ public class OnDestroyHandlerSemantics
     public void generateOnDestroyHandlerForAgent(
         Maybe<OnDestroyHandler> input,
         EList<JvmMember> members,
-        Maybe<QualifiedName> containerName
+        Maybe<String> containerName
     ) {
         final SavedContext savedContext =
             module.get(ContextManager.class).save();
@@ -68,7 +68,7 @@ public class OnDestroyHandlerSemantics
         input.safeDo(handlerSafe -> members.add(jvmTypesBuilder.toMethod(
             handlerSafe,
             "__onDestroy",
-            module.get(TypeHelper.class).typeRef(void.class),
+            module.get(JvmTypeHelper.class).typeRef(void.class),
             itMethod -> {
                 fillTakeDownMethod(
                     input,
@@ -84,20 +84,18 @@ public class OnDestroyHandlerSemantics
 
     private void fillTakeDownMethod(
         Maybe<OnDestroyHandler> input,
-        Maybe<QualifiedName> containerName,
+        Maybe<String> containerName,
         SavedContext savedContext,
         JvmTypesBuilder jvmTypesBuilder,
         JvmOperation itMethod
     ) {
         jvmTypesBuilder.setDocumentation(
             itMethod,
-            containerName
-                .__(QualifiedName::toString)
-                .extract(nullAsEmptyString) + " on destroy"
+            containerName.orElse("") + " on destroy"
         );
         itMethod.setVisibility(JvmVisibility.PROTECTED);
 
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
         module.get(CompilationHelper.class).createAndSetBody(
             itMethod,
             scb -> {
@@ -106,7 +104,7 @@ public class OnDestroyHandlerSemantics
                 scb.line("getContentManager()" +
                         ".registerLanguage(" + CODEC_VAR_NAME + ");")
                     .line();
-                if (!body.isPresent()) {
+                if (!body.isPresent() || body.toNullable().isNothing()) {
                     scb.line("//do nothing;");
                     return;
                 }
@@ -136,7 +134,7 @@ public class OnDestroyHandlerSemantics
     public void generateOnDestroyHandlerForBehaviour(
         Maybe<OnDestroyHandler> input,
         EList<JvmMember> members,
-        Maybe<QualifiedName> containerName
+        Maybe<String> containerName
     ) {
         final SavedContext savedContext =
             module.get(ContextManager.class).save();
@@ -145,7 +143,7 @@ public class OnDestroyHandlerSemantics
                 .toMethod(
                     handlerSafe,
                     "doOnDestroy",
-                    module.get(TypeHelper.class).typeRef(void.class),
+                    module.get(JvmTypeHelper.class).typeRef(void.class),
                     itMethod -> {
                         fillDoOnDestroyMethod(
                             input,
@@ -162,23 +160,22 @@ public class OnDestroyHandlerSemantics
 
     private void fillDoOnDestroyMethod(
         Maybe<OnDestroyHandler> input,
-        Maybe<QualifiedName> containerName,
+        Maybe<String> containerName,
         SavedContext savedContext,
         JvmOperation itMethod
     ) {
         module.get(JvmTypesBuilder.class).setDocumentation(
             itMethod,
-            containerName.__(QualifiedName::toString)
-                .extract(nullAsEmptyString) + " doOnDestroy"
+            containerName.orElse("") + " doOnDestroy"
         );
         itMethod.setVisibility(JvmVisibility.PROTECTED);
 
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
 
         module.get(CompilationHelper.class).createAndSetBody(
             itMethod,
             scb -> {
-                if (body.isPresent()) {
+                if (body.isPresent() && !body.toNullable().isNothing()) {
                     w.callStmnt("super.doOnDestroy").writeSonnet(scb);
                     scb.line("//do nothing;");
                     return;
@@ -211,14 +208,15 @@ public class OnDestroyHandlerSemantics
         Maybe<FeatureContainer> container,
         ValidationMessageAcceptor acceptor
     ) {
-        Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
 
         module.get(ContextManager.class)
             .enterProceduralFeature(OnDestroyHandlerContext::new);
 
         StaticState state = StaticState.beginningOfOperation(module);
 
-        module.get(BlockSemantics.class).validate(body, state, acceptor);
+        module.get(BlockSemantics.class)
+            .validateOptionalBlock(body, state, acceptor);
 
         module.get(ContextManager.class).exit();
     }

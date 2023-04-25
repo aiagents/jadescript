@@ -7,9 +7,9 @@ import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementConstructor;
 import it.unipr.ailab.jadescript.semantics.context.symbol.OntologyElementStructuralPattern;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.*;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.OntologyType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedOntologyType;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.UserDefinedOntologyType;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.jetbrains.annotations.Nullable;
@@ -24,7 +24,7 @@ public class OntologyTypeNamespace
     implements OntologyAssociated, NamespaceWithGlobals {
 
     private final OntologyType ontologyType;
-    private final LazyValue<JvmTypeNamespace> jvmNamespace;
+    private final LazyInit<JvmTypeNamespace> jvmNamespace;
 
 
     public OntologyTypeNamespace(
@@ -33,7 +33,7 @@ public class OntologyTypeNamespace
     ) {
         super(module);
         this.ontologyType = ontologyType;
-        this.jvmNamespace = new LazyValue<>(ontologyType::jvmNamespace);
+        this.jvmNamespace = new LazyInit<>(ontologyType::jvmNamespace);
     }
 
 
@@ -148,7 +148,9 @@ public class OntologyTypeNamespace
 
 
     @Override
-    public Stream<? extends GlobalName> globalNames(@Nullable String name) {
+    public @Nullable Stream<? extends GlobalName> globalNames(
+        @Nullable String name
+    ) {
         return null;
     }
 

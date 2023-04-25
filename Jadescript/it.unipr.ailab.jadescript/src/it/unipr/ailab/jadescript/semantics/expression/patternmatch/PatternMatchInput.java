@@ -4,7 +4,8 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeRelationship;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.jetbrains.annotations.NotNull;
@@ -231,7 +232,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
         public static final PatternMatchMode MODE = new PatternMatchMode(
             PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
-            TypeRelationship.Related.class,
+            TypeRelationshipQuery.related(),
             PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
             PatternMatchMode.PatternApplicationSideEffects
                 .CAN_HAVE_SIDE_EFFECTS,
@@ -288,7 +289,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
         public static final PatternMatchMode MODE = new PatternMatchMode(
             PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
-            TypeRelationship.SubtypeOrEqual.class,
+            TypeRelationshipQuery.subTypeOrEqual(),
             PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
             PatternMatchMode.PatternApplicationSideEffects
                 .HAS_TO_BE_WITHOUT_SIDE_EFFECTS,
@@ -345,7 +346,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
         public static final PatternMatchMode MODE = new PatternMatchMode(
             PatternMatchMode.HolesAndGroundness.ACCEPTS_NONVAR_HOLES_ONLY,
-            TypeRelationship.Related.class,
+            TypeRelationshipQuery.related(),
             PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
             PatternMatchMode.PatternApplicationSideEffects
                 .CAN_HAVE_SIDE_EFFECTS,
@@ -404,7 +405,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
         public static final PatternMatchMode MODE = new PatternMatchMode(
             PatternMatchMode.HolesAndGroundness
                 .REQUIRES_FREE_OR_ASSIGNABLE_VARS,
-            TypeRelationship.SupertypeOrEqual.class,
+            TypeRelationshipQuery.superTypeOrEqual(),
             PatternMatchMode.RequiresSuccessfulMatch.REQUIRES_SUCCESSFUL_MATCH,
             PatternMatchMode.PatternApplicationSideEffects
                 .CAN_HAVE_SIDE_EFFECTS,
@@ -475,7 +476,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 module,
                 new PatternMatchMode(
                     PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_VARS,
-                    TypeRelationship.SupertypeOrEqual.class,
+                    TypeRelationshipQuery.superTypeOrEqual(),
                     PatternMatchMode.RequiresSuccessfulMatch
                         .REQUIRES_SUCCESSFUL_MATCH,
                     PatternMatchMode.PatternApplicationSideEffects
@@ -569,7 +570,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 pattern,
                 rootInput.termID + suffixID,
                 rootInput.getRootPatternMatchVariableName(),
-                rootInput.getInputDescriptor().flatMap(generateSubDescriptor)
+                rootInput.getInputDescriptor().flatApp(generateSubDescriptor)
             );
             this.rootInput = rootInput;
             this.suffixID = suffixID;
@@ -593,8 +594,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                 rootInput.getMode().getRequiresSuccessfulMatch()
                     == PatternMatchMode.RequiresSuccessfulMatch
                     .REQUIRES_SUCCESSFUL_MATCH
-                    ? TypeRelationship.SupertypeOrEqual.class
-                    : TypeRelationship.Related.class,
+                    ? TypeRelationshipQuery.superTypeOrEqual()
+                    : TypeRelationshipQuery.related(),
                 rootInput.getMode().getRequiresSuccessfulMatch(),
                 rootInput.getMode().getPatternApplicationPurity(),
                 rootInput.getMode().getReassignment(),

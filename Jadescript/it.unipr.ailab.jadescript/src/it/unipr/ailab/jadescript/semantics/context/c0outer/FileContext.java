@@ -4,19 +4,18 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalName;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.xtype.XImportDeclaration;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 public class FileContext
     extends OuterLevelAbstractContext
@@ -27,7 +26,7 @@ public class FileContext
     private final String fileURI;
     private final ModuleContext outer;
 
-    private final List<Maybe<XImportDeclaration>> importDeclarations;
+    private final MaybeList<XImportDeclaration> importDeclarations;
 
 
     public FileContext(
@@ -35,7 +34,7 @@ public class FileContext
         ModuleContext outer,
         String fileName,
         String fileURI,
-        List<Maybe<XImportDeclaration>> importDeclarations
+        MaybeList<XImportDeclaration> importDeclarations
     ) {
         super(module);
         this.outer = outer;
@@ -63,7 +62,7 @@ public class FileContext
         return getImportedJvmTypeDeclarations()
             .filter(i -> name == null || name.equals(i.getSimpleName()))
             .flatMap(imported -> getCallableStreamFromDeclaredType(
-                module.get(TypeHelper.class).typeRef(imported),
+                module.get(JvmTypeHelper.class).typeRef(imported),
                 imported
             ));
     }
@@ -75,7 +74,7 @@ public class FileContext
     ) {
         return getImportedJvmTypeDeclarations()
             .flatMap(imported -> getNamedReferencesFromDeclaredType(
-                module.get(TypeHelper.class).typeRef(imported),
+                module.get(JvmTypeHelper.class).typeRef(imported),
                 imported
             ))
             .filter(n -> name == null || n.name().equals(name));
@@ -85,7 +84,7 @@ public class FileContext
     public Stream<JvmDeclaredType> getImportedJvmTypeDeclarations() {
         return getImportDeclarations().stream()
             .filter(j -> j.__(id -> !id.isWildcard()
-                && !id.isStatic()).extract(nullAsFalse))
+                && !id.isStatic()).orElse(false))
             .filter(Maybe::isPresent)
             .map(Maybe::toNullable)
             .flatMap(it -> it.getImportedType() != null
@@ -95,7 +94,7 @@ public class FileContext
     }
 
 
-    public List<Maybe<XImportDeclaration>> getImportDeclarations() {
+    public MaybeList<XImportDeclaration> getImportDeclarations() {
         return importDeclarations;
     }
 
@@ -148,7 +147,7 @@ public class FileContext
                 return splits[splits.length - 1].equals(typeRefIdentifier);
             })
             .map(XImportDeclaration::getImportedName)
-            .map(module.get(TypeHelper.class)::typeRef);
+            .map(module.get(JvmTypeHelper.class)::typeRef);
     }
 
 }

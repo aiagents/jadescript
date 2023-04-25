@@ -13,11 +13,13 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.SubPattern;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -28,7 +30,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.someStream;
+import static it.unipr.ailab.maybe.MaybeList.fromMaybeAList;
 
 /**
  * Created on 31/03/18.
@@ -63,7 +66,7 @@ public class ListLiteralExpressionSemantics
 
         return Streams.concat(
                 Stream.of(input.__(ListLiteral::getRest)),
-                Maybe.toListOfMaybes(values).stream()
+                someStream(values)
             )
             .filter(Maybe::isPresent)
             .map(x -> new SemanticsBoundToExpression<>(
@@ -81,15 +84,16 @@ public class ListLiteralExpressionSemantics
             input.__(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter =
             input.__(ListLiteral::getTypeParameter);
-        if (values.__(List::isEmpty).extract(Maybe.nullAsTrue)) {
+        if (values.__(List::isEmpty).orElse(true)) {
             final TypeExpressionSemantics tes =
                 module.get(TypeExpressionSemantics.class);
 
             final IJadescriptType elementType =
                 tes.toJadescriptType(typeParameter);
-            final TypeHelper typeHelper = module.get(TypeHelper.class);
 
-            return typeHelper.LIST.apply(List.of(elementType))
+
+            return module.get(BuiltinTypeProvider.class)
+                .list(elementType)
                 .compileNewEmptyInstance();
 
         }
@@ -97,7 +101,7 @@ public class ListLiteralExpressionSemantics
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        List<Maybe<RValueExpression>> elements = Maybe.toListOfMaybes(values);
+        MaybeList<RValueExpression> elements = fromMaybeAList(values);
 
         return "jadescript.util.JadescriptCollections.createList(" +
             "java.util.List.of(" + mapExpressionsWithState(
@@ -118,42 +122,47 @@ public class ListLiteralExpressionSemantics
         Maybe<ListLiteral> input,
         StaticState state
     ) {
-        Maybe<EList<RValueExpression>> values =
-            input.__(ListLiteral::getValues);
+        MaybeList<RValueExpression> values =
+            input.__toList(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter =
             input.__(ListLiteral::getTypeParameter);
         boolean hasTypeSpecifier =
-            input.__(ListLiteral::isWithTypeSpecifier).extract(nullAsFalse);
+            input.__(ListLiteral::isWithTypeSpecifier).orElse(false);
         boolean isWithPipe =
-            input.__(ListLiteral::isWithPipe).extract(nullAsFalse);
+            input.__(ListLiteral::isWithPipe).orElse(false);
         Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
 
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
+
         if (hasTypeSpecifier) {
-            return typeHelper.LIST.apply(
-                List.of(module.get(TypeExpressionSemantics.class).
-                    toJadescriptType(typeParameter))
+            return builtins.list(
+                module.get(TypeExpressionSemantics.class).
+                    toJadescriptType(typeParameter)
             );
-        } else {
-            final IJadescriptType elementsTypePrePipe =
-                computeElementsTypeLUB(toListOfMaybes(values), state);
-            if (isWithPipe) {
-                IJadescriptType restType =
-                    module.get(RValueExpressionSemantics.class)
-                        .inferType(rest, state);
-                if (restType instanceof ListType) {
-                    return typeHelper.LIST.apply(List.of(typeHelper.getLUB(
+        }
+        final IJadescriptType elementsTypePrePipe =
+            computeElementsTypeLUB(values, state);
+
+        if (isWithPipe) {
+            IJadescriptType restType =
+                module.get(RValueExpressionSemantics.class)
+                    .inferType(rest, state);
+            if (restType.category().isList()) {
+                return builtins.list(
+                    lattice.getLUB(
                         elementsTypePrePipe,
                         restType
-                    )));
-                } else {
-                    return typeHelper.LIST.apply(List.of(elementsTypePrePipe));
-                }
-            } else {
-                return typeHelper.LIST.apply(List.of(elementsTypePrePipe));
+                    )
+                );
             }
+            return builtins.list(elementsTypePrePipe);
         }
+
+        return builtins.list(elementsTypePrePipe);
 
 
     }
@@ -175,14 +184,14 @@ public class ListLiteralExpressionSemantics
     ) {
         Maybe<EList<RValueExpression>> values =
             input.__(ListLiteral::getValues);
-        if (values.__(List::isEmpty).extract(Maybe.nullAsTrue)) {
+        if (values.__(List::isEmpty).orElse(true)) {
             return state;
         }
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        List<Maybe<RValueExpression>> valuesList = Maybe.toListOfMaybes(values);
+        MaybeList<RValueExpression> valuesList = fromMaybeAList(values);
         StaticState newState = state;
 
         for (Maybe<RValueExpression> rValueExpressionMaybe : valuesList) {
@@ -197,14 +206,19 @@ public class ListLiteralExpressionSemantics
 
 
     private IJadescriptType computeElementsTypeLUB(
-        List<Maybe<RValueExpression>> valuesList,
+        MaybeList<RValueExpression> valuesList,
         StaticState state
     ) {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
         boolean seen = false;
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
-        IJadescriptType acc = typeHelper.NOTHING;
+
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
+
+        IJadescriptType acc = builtins.nothing("");
         StaticState newState = state;
         for (int i = 0; i < valuesList.size(); i++) {
             Maybe<RValueExpression> input = valuesList.get(i);
@@ -216,10 +230,10 @@ public class ListLiteralExpressionSemantics
                 seen = true;
                 acc = jadescriptType;
             } else {
-                acc = typeHelper.getLUB(acc, jadescriptType);
+                acc = lattice.getLUB(acc, jadescriptType);
             }
         }
-        return seen ? acc : typeHelper.TOP.apply(
+        return seen ? acc : builtins.any(
             "Cannot infer the type of the elements of the list from an " +
                 "empty list expression. Please specify it by adding " +
                 "'of TYPE' after the closed bracket."
@@ -254,12 +268,12 @@ public class ListLiteralExpressionSemantics
         PatternMatchInput<ListLiteral> input,
         StaticState state
     ) {
-        List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
+        MaybeList<RValueExpression> values =
+            input.getPattern().__toList(ListLiteral::getValues);
         Maybe<RValueExpression> rest =
             input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe =
-            input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse)
+            input.getPattern().__(ListLiteral::isWithPipe).orElse(false)
                 && rest.isPresent();
         int prePipeElementCount = values.size();
         PatternType patternType = inferPatternType(input, state);
@@ -281,11 +295,11 @@ public class ListLiteralExpressionSemantics
 
         if (prePipeElementCount > 0) {
             IJadescriptType elementType;
-            if (solvedPatternType instanceof ListType) {
+            if (solvedPatternType.category().isList()) {
                 elementType = ((ListType) solvedPatternType).getElementType();
             } else {
                 elementType = solvedPatternType.getElementTypeIfCollection()
-                    .orElseGet(() -> module.get(TypeHelper.class).TOP.apply(
+                    .orElseGet(() -> module.get(BuiltinTypeProvider.class).any(
                         PROVIDED_TYPE_TO_PATTERN_IS_NOT_LIST_MESSAGE
                     ));
             }
@@ -370,7 +384,7 @@ public class ListLiteralExpressionSemantics
             input.getPattern().__(ListLiteral::getTypeParameter);
         boolean hasTypeSpecifier =
             input.getPattern().__(ListLiteral::isWithTypeSpecifier)
-                .extract(nullAsFalse);
+                .orElse(false);
         if (hasTypeSpecifier && typeParameter.isPresent()) {
             return false;
         } else {
@@ -394,12 +408,12 @@ public class ListLiteralExpressionSemantics
         StaticState state
     ) {
 
-        List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
+        MaybeList<RValueExpression> values =
+            input.getPattern().__toList(ListLiteral::getValues);
         Maybe<RValueExpression> rest =
             input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe =
-            input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse)
+            input.getPattern().__(ListLiteral::isWithPipe).orElse(false)
                 && rest.isPresent();
         int prePipeElementCount = values.size();
         PatternType patternType = inferPatternType(input, state);
@@ -424,11 +438,11 @@ public class ListLiteralExpressionSemantics
 
         if (prePipeElementCount > 0) {
             IJadescriptType elementType;
-            if (solvedPatternType instanceof ListType) {
+            if (solvedPatternType.category().isList()) {
                 elementType = ((ListType) solvedPatternType).getElementType();
             } else {
                 elementType = solvedPatternType.getElementTypeIfCollection()
-                    .orElseGet(() -> module.get(TypeHelper.class).TOP.apply(
+                    .orElseGet(() -> module.get(BuiltinTypeProvider.class).any(
                         PROVIDED_TYPE_TO_PATTERN_IS_NOT_LIST_MESSAGE
                     ));
             }
@@ -499,12 +513,12 @@ public class ListLiteralExpressionSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
+        MaybeList<RValueExpression> values =
+            input.getPattern().__toList(ListLiteral::getValues);
         Maybe<RValueExpression> rest =
             input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe =
-            input.getPattern().__(ListLiteral::isWithPipe).extract(nullAsFalse)
+            input.getPattern().__(ListLiteral::isWithPipe).orElse(false)
                 && rest.isPresent();
         int prePipeElementCount = values.size();
         PatternType patternType = inferPatternType(input, state);
@@ -518,121 +532,122 @@ public class ListLiteralExpressionSemantics
                 solvedPatternType,
                 "__x.isEmpty()"
             );
-        } else {
-            final RValueExpressionSemantics rves =
-                module.get(RValueExpressionSemantics.class);
-            final List<PatternMatcher> subResults =
-                new ArrayList<>(prePipeElementCount + (isWithPipe ? 1 : 0));
+        }
 
-            final List<SubPattern<RValueExpression, ListLiteral>> subPatterns
-                = new ArrayList<>();
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        final List<PatternMatcher> subResults =
+            new ArrayList<>(prePipeElementCount + (isWithPipe ? 1 : 0));
+
+        final List<SubPattern<RValueExpression, ListLiteral>> subPatterns
+            = new ArrayList<>();
 
 
-            StaticState runningState = state;
-            if (prePipeElementCount > 0) {
-                IJadescriptType elementType;
-                if (solvedPatternType instanceof ListType) {
-                    elementType =
-                        ((ListType) solvedPatternType).getElementType();
-                } else {
-                    elementType = solvedPatternType.getElementTypeIfCollection()
-                        .orElseGet(() -> module.get(TypeHelper.class).TOP.apply(
+        StaticState runningState = state;
+        if (prePipeElementCount > 0) {
+            IJadescriptType elementType;
+            if (solvedPatternType.category().isList()) {
+                elementType =
+                    ((ListType) solvedPatternType).getElementType();
+            } else {
+                elementType = solvedPatternType.getElementTypeIfCollection()
+                    .orElseGet(() -> module.get(BuiltinTypeProvider.class)
+                        .any(
                             PROVIDED_TYPE_TO_PATTERN_IS_NOT_LIST_MESSAGE
                         ));
-                }
-
-
-                for (int i = 0; i < prePipeElementCount; i++) {
-                    Maybe<RValueExpression> term = values.get(i);
-                    final SubPattern<RValueExpression, ListLiteral>
-                        termSubpattern = input.subPattern(
-                        elementType,
-                        __ -> term.toNullable(),
-                        "_listelem" + i
-                    );
-
-                    subPatterns.add(termSubpattern);
-
-                    if (i > 0) {
-                        runningState = rves.assertDidMatch(
-                            subPatterns.get(i - 1),
-                            runningState
-                        );
-                    }
-
-
-                    final PatternMatcher elemOutput = rves.compilePatternMatch(
-                        termSubpattern,
-                        runningState,
-                        acceptor
-                    );
-
-                    runningState = rves.advancePattern(
-                        termSubpattern,
-                        runningState
-                    );
-                    subResults.add(elemOutput);
-                }
-
-
             }
 
-            if (isWithPipe) {
-                final SubPattern<RValueExpression, ListLiteral> restSubpattern =
-                    input.subPattern(
-                        solvedPatternType,
-                        __ -> rest.toNullable(),
-                        "_listrest"
-                    );
 
-                if (!subPatterns.isEmpty()) {
+            for (int i = 0; i < prePipeElementCount; i++) {
+                Maybe<RValueExpression> term = values.get(i);
+                final SubPattern<RValueExpression, ListLiteral>
+                    termSubpattern = input.subPattern(
+                    elementType,
+                    __ -> term.toNullable(),
+                    "_listelem" + i
+                );
+
+                subPatterns.add(termSubpattern);
+
+                if (i > 0) {
                     runningState = rves.assertDidMatch(
-                        subPatterns.get(subPatterns.size() - 1),
+                        subPatterns.get(i - 1),
                         runningState
                     );
                 }
 
-                final PatternMatcher restOutput = rves.compilePatternMatch(
-                    restSubpattern,
+
+                final PatternMatcher elemOutput = rves.compilePatternMatch(
+                    termSubpattern,
                     runningState,
                     acceptor
                 );
 
-                subResults.add(restOutput);
+                runningState = rves.advancePattern(
+                    termSubpattern,
+                    runningState
+                );
+                subResults.add(elemOutput);
             }
 
 
-            Function<Integer, String> compiledSubInputs;
-            if (isWithPipe) {
-                compiledSubInputs = (i) -> {
-                    if (i < 0 || i > prePipeElementCount) {
-                        return "/* Index out of bounds */";
-                    } else if (i == prePipeElementCount) {
-                        return "jadescript.util.JadescriptCollections" +
-                            ".getRest(__x)";
-                    } else {
-                        return "__x.get(" + i + ")";
-                    }
-                };
-            } else {
-                compiledSubInputs = (i) -> {
-                    if (i < 0 || i >= prePipeElementCount) {
-                        return "/* Index out of bounds */";
-                    } else {
-                        return "__x.get(" + i + ")";
-                    }
-                };
-            }
-
-            String sizeOp = isWithPipe ? ">=" : "==";
-
-            return input.createCompositeMethodOutput(
-                solvedPatternType,
-                List.of("__x.size() " + sizeOp + " " + prePipeElementCount),
-                compiledSubInputs,
-                subResults
-            );
         }
+
+        if (isWithPipe) {
+            final SubPattern<RValueExpression, ListLiteral> restSubpattern =
+                input.subPattern(
+                    solvedPatternType,
+                    __ -> rest.toNullable(),
+                    "_listrest"
+                );
+
+            if (!subPatterns.isEmpty()) {
+                runningState = rves.assertDidMatch(
+                    subPatterns.get(subPatterns.size() - 1),
+                    runningState
+                );
+            }
+
+            final PatternMatcher restOutput = rves.compilePatternMatch(
+                restSubpattern,
+                runningState,
+                acceptor
+            );
+
+            subResults.add(restOutput);
+        }
+
+
+        Function<Integer, String> compiledSubInputs;
+        if (isWithPipe) {
+            compiledSubInputs = (i) -> {
+                if (i < 0 || i > prePipeElementCount) {
+                    return "/* Index out of bounds */";
+                } else if (i == prePipeElementCount) {
+                    return "jadescript.util.JadescriptCollections" +
+                        ".getRest(__x)";
+                } else {
+                    return "__x.get(" + i + ")";
+                }
+            };
+        } else {
+            compiledSubInputs = (i) -> {
+                if (i < 0 || i >= prePipeElementCount) {
+                    return "/* Index out of bounds */";
+                } else {
+                    return "__x.get(" + i + ")";
+                }
+            };
+        }
+
+        String sizeOp = isWithPipe ? ">=" : "==";
+
+        return input.createCompositeMethodOutput(
+            solvedPatternType,
+            List.of("__x.size() " + sizeOp + " " + prePipeElementCount),
+            compiledSubInputs,
+            subResults
+        );
 
 
     }
@@ -646,15 +661,16 @@ public class ListLiteralExpressionSemantics
         if (isTypelyHoled(input, state)) {
             // Has no type specifier and it is typely holed.
             return PatternType.holed(inputType -> {
-                final TypeHelper typeHelper = module.get(TypeHelper.class);
-                if (inputType instanceof ListType) {
+                final BuiltinTypeProvider builtins =
+                    module.get(BuiltinTypeProvider.class);
+                if (inputType.category().isList()) {
                     final IJadescriptType inputElementType =
                         ((ListType) inputType).getElementType();
-                    return typeHelper.LIST.apply(List.of(inputElementType));
+                    return builtins.list(inputElementType);
                 } else {
-                    return typeHelper.LIST.apply(List.of(typeHelper.TOP.apply(
+                    return builtins.list(builtins.any(
                         PROVIDED_TYPE_TO_PATTERN_IS_NOT_LIST_MESSAGE
-                    )));
+                    ));
                 }
             });
         } else {
@@ -669,13 +685,13 @@ public class ListLiteralExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        List<Maybe<RValueExpression>> values =
-            toListOfMaybes(input.getPattern().__(ListLiteral::getValues));
+        MaybeList<RValueExpression> values =
+            input.getPattern().__toList(ListLiteral::getValues);
         Maybe<RValueExpression> rest =
             input.getPattern().__(ListLiteral::getRest);
         boolean isWithPipe = input.getPattern()
             .__(ListLiteral::isWithPipe)
-            .extract(nullAsFalse)
+            .orElse(false)
             && rest.isPresent();
         int prePipeElementCount = values.size();
         PatternType patternType = inferPatternType(input, state);
@@ -692,11 +708,11 @@ public class ListLiteralExpressionSemantics
 
         if (prePipeElementCount > 0) {
             IJadescriptType elementType;
-            if (solvedPatternType instanceof ListType) {
+            if (solvedPatternType.category().isList()) {
                 elementType = ((ListType) solvedPatternType).getElementType();
             } else {
                 elementType = solvedPatternType.getElementTypeIfCollection()
-                    .orElseGet(() -> module.get(TypeHelper.class).TOP.apply(
+                    .orElseGet(() -> module.get(BuiltinTypeProvider.class).any(
                         PROVIDED_TYPE_TO_PATTERN_IS_NOT_LIST_MESSAGE));
             }
             for (int i = 0; i < values.size(); i++) {
@@ -757,19 +773,21 @@ public class ListLiteralExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
-        Maybe<EList<RValueExpression>> values =
-            input.__(ListLiteral::getValues);
+        if (input == null) {
+            return VALID;
+        }
+        MaybeList<RValueExpression> values =
+            input.__toList(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter =
             input.__(ListLiteral::getTypeParameter);
         boolean hasTypeSpecifier =
-            input.__(ListLiteral::isWithTypeSpecifier).extract(nullAsFalse);
+            input.__(ListLiteral::isWithTypeSpecifier).orElse(false);
 
         boolean stage1 = VALID;
         StaticState newState = state;
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
-        for (Maybe<RValueExpression> element : iterate(values)) {
+        for (Maybe<RValueExpression> element : values) {
             final boolean elementCheck = rves.validate(
                 element,
                 newState,
@@ -780,10 +798,10 @@ public class ListLiteralExpressionSemantics
             newState = rves.advance(element, newState);
         }
 
-        List<Maybe<RValueExpression>> valuesList = Maybe.toListOfMaybes(values);
+
         stage1 = stage1 && module.get(ValidationHelper.class).asserting(
-            (!valuesList.isEmpty()
-                && !valuesList.stream().allMatch(Maybe::isNothing))
+            (!values.isEmpty()
+                && !values.stream().allMatch(Maybe::isNothing))
                 || hasTypeSpecifier,
             "ListLiteralCannotComputeType",
             "Missing type specification for empty list literal",
@@ -792,9 +810,9 @@ public class ListLiteralExpressionSemantics
         );
 
         if (stage1 == VALID
-            && !valuesList.isEmpty()
-            && !valuesList.stream().allMatch(Maybe::isNothing)) {
-            IJadescriptType lub = computeElementsTypeLUB(valuesList, state);
+            && !values.isEmpty()
+            && !values.stream().allMatch(Maybe::isNothing)) {
+            IJadescriptType lub = computeElementsTypeLUB(values, state);
 
             boolean typeValidation =
                 module.get(ValidationHelper.class).asserting(

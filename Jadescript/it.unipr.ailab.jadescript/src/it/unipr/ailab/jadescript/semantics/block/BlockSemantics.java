@@ -11,6 +11,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.SemanticsDispatchHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsClassState;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.emf.common.util.EList;
@@ -20,7 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.iterate;
+import static it.unipr.ailab.maybe.Maybe.wrappedSubCast;
 
 /**
  * Created on 28/12/16.
@@ -65,14 +67,14 @@ public class BlockSemantics extends Semantics {
         Maybe<OptionalBlock> input,
         StaticState state
     ) {
-        if (input.isPresent() && input.toNullable().isNothing()) {
+        if (input.isNothing() || input.toNullable().isNothing()) {
             return EMPTY_BLOCK.compile(
                 input.__(OptionalBlock::getBlock),
                 state
             );
-        } else {
-            return compile(input.__(OptionalBlock::getBlock), state);
         }
+
+        return compile(input.__(OptionalBlock::getBlock), state);
     }
 
 
@@ -81,15 +83,15 @@ public class BlockSemantics extends Semantics {
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (!input.isPresent() || !input.toNullable().isNothing()) {
-            return validate(
-                input.__(OptionalBlock::getBlock),
-                state,
-                acceptor
-            );
-        } else {
+        if (input.isNothing() || input.toNullable().isNothing()) {
             return state;
         }
+
+        return validate(
+            input.__(OptionalBlock::getBlock),
+            state,
+            acceptor
+        );
     }
 
 
@@ -169,9 +171,8 @@ public class BlockSemantics extends Semantics {
             return state;
         }
 
-        List<Maybe<Statement>> statements = toListOfMaybes(
-            input.__(CodeBlock::getStatements)
-        );
+        MaybeList<Statement> statements =
+            input.__toList(CodeBlock::getStatements);
 
 
         final AtomicReference<StaticState> runningState =
@@ -241,4 +242,5 @@ public class BlockSemantics extends Semantics {
 
 
     }
+
 }

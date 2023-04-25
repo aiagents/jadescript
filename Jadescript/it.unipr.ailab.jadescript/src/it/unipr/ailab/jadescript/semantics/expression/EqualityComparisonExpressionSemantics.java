@@ -11,8 +11,8 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput.SubPattern;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -190,7 +190,7 @@ public class EqualityComparisonExpressionSemantics
         Maybe<EqualityComparison> input,
         StaticState state
     ) {
-        return module.get(TypeHelper.class).BOOLEAN;
+        return module.get(BuiltinTypeProvider.class).boolean_();
     }
 
 
@@ -687,7 +687,9 @@ public class EqualityComparisonExpressionSemantics
         final TypeComparisonExpressionSemantics tces =
             module.get(TypeComparisonExpressionSemantics.class);
         if (equalityOp.equals(NOT_EQUALS_OPERATOR)) {
-            return PatternType.simple(module.get(TypeHelper.class).BOOLEAN);
+            return PatternType.simple(
+                module.get(BuiltinTypeProvider.class).boolean_()
+            );
         } else {
             return tces.inferPatternType(
                 input.subPattern(

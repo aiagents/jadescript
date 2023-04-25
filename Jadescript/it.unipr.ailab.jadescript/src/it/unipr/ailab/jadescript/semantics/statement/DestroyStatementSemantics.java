@@ -9,6 +9,7 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -55,7 +56,7 @@ public class DestroyStatementSemantics
         boolean targetCheck = rves.validate(target, state, acceptor);
         if (targetCheck == VALID) {
             module.get(ValidationHelper.class).assertExpectedType(
-                module.get(TypeHelper.class).ANYBEHAVIOUR,
+                module.get(BuiltinTypeProvider.class).anyBehaviour(),
                 rves.inferType(target, state),
                 "InvalidDestroyStatement",
                 target,

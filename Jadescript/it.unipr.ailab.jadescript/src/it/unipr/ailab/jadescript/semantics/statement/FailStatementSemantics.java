@@ -8,6 +8,7 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -59,7 +60,7 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
         boolean targetCheck = rves.validate(target, runningState, acceptor);
         if (targetCheck == VALID) {
             module.get(ValidationHelper.class).assertExpectedType(
-                module.get(TypeHelper.class).ANYBEHAVIOUR,
+                module.get(BuiltinTypeProvider.class).anyBehaviour(),
                 rves.inferType(target, runningState),
                 "InvalidFailStatement",
                 target,
@@ -71,7 +72,7 @@ public class FailStatementSemantics extends StatementSemantics<FailStatement> {
         boolean reasonCheck = rves.validate(reason, runningState, acceptor);
         if (reasonCheck == VALID) {
             module.get(ValidationHelper.class).assertExpectedType(
-                module.get(TypeHelper.class).PROPOSITION,
+                module.get(BuiltinTypeProvider.class).proposition(),
                 rves.inferType(reason, runningState),
                 "InvalidFailStatement",
                 reason,

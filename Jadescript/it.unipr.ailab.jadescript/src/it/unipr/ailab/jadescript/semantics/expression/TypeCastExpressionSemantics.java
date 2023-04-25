@@ -2,7 +2,10 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.jadescript.AtomExpr;
+import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.jadescript.TypeCast;
+import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
@@ -10,10 +13,11 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.List;
@@ -21,7 +25,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.related;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 
 /**
@@ -136,11 +142,12 @@ public class TypeCastExpressionSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        if (input == null) return "";
+        if (input == null) {
+            return "";
+        }
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
-        final List<Maybe<TypeExpression>> typeCasts =
-            Maybe.toListOfMaybes(input.__(
-                TypeCast::getTypeCasts));
+        final MaybeList<TypeExpression> typeCasts =
+            input.__toList(TypeCast::getTypeCasts);
         final AtomWithTrailersExpressionSemantics awtes =
             module.get(AtomWithTrailersExpressionSemantics.class);
         String result = awtes.compile(atomExpr, state, acceptor);
@@ -178,8 +185,7 @@ public class TypeCastExpressionSemantics
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
         final List<IJadescriptType> castsTypes =
-            toListOfMaybes(input.getPattern().__(
-                TypeCast::getTypeCasts)).stream()
+            someStream(input.getPattern().__(TypeCast::getTypeCasts))
                 .map(tes::toJadescriptType)
                 .collect(Collectors.toList());
 
@@ -257,12 +263,13 @@ public class TypeCastExpressionSemantics
         Maybe<TypeCast> input,
         StaticState state
     ) {
-        if (input == null)
-            return module.get(TypeHelper.class).ANY;
+        if (input == null) {
+            return module.get(BuiltinTypeProvider.class).any("");
+        }
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
-        final List<Maybe<TypeExpression>> typeCasts =
-            Maybe.toListOfMaybes(input.__(
-                TypeCast::getTypeCasts));
+        final MaybeList<TypeExpression> typeCasts =
+            input.__toList(TypeCast::getTypeCasts);
+
         if (!typeCasts.isEmpty()) {
             // This can be assumed to be true, but we will include it for more
             // safety.
@@ -282,7 +289,7 @@ public class TypeCastExpressionSemantics
 
     @Override
     protected boolean mustTraverse(Maybe<TypeCast> input) {
-        return Maybe.toListOfMaybes(input.__(TypeCast::getTypeCasts)).isEmpty();
+        return input.__toList(TypeCast::getTypeCasts).isEmpty();
     }
 
 
@@ -307,8 +314,7 @@ public class TypeCastExpressionSemantics
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
         final List<IJadescriptType> castsTypes =
-            toListOfMaybes(input.getPattern().__(
-                TypeCast::getTypeCasts)).stream()
+            someStream(input.getPattern().__(TypeCast::getTypeCasts))
                 .map(tes::toJadescriptType)
                 .collect(Collectors.toList());
 
@@ -387,8 +393,7 @@ public class TypeCastExpressionSemantics
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
         final List<IJadescriptType> castsTypes =
-            toListOfMaybes(input.getPattern().__(
-                TypeCast::getTypeCasts)).stream()
+            someStream(input.getPattern().__(TypeCast::getTypeCasts))
                 .map(tes::toJadescriptType)
                 .collect(Collectors.toList());
 
@@ -445,8 +450,9 @@ public class TypeCastExpressionSemantics
         PatternMatchInput<TypeCast> input,
         StaticState state
     ) {
-        final List<Maybe<TypeExpression>> casts = toListOfMaybes(
-            input.getPattern().__(TypeCast::getTypeCasts));
+        final MaybeList<TypeExpression> casts =
+            input.getPattern().__toList(TypeCast::getTypeCasts);
+
         if (casts.isEmpty()) {
             //The if condition can be assumed to be false, but included
             // for extra safety.
@@ -468,11 +474,9 @@ public class TypeCastExpressionSemantics
         PatternMatchInput<TypeCast> input,
         StaticState state, ValidationMessageAcceptor acceptor
     ) {
-        final List<Maybe<TypeExpression>> casts = toListOfMaybes(
-            input.getPattern()
-                .__(TypeCast::getTypeCasts)
-        );
-        final List<IJadescriptType> castsTypes = casts.stream()
+        final List<IJadescriptType> castsTypes = someStream(
+            input.getPattern().__(TypeCast::getTypeCasts)
+        )
             .map(module.get(TypeExpressionSemantics.class)::toJadescriptType)
             .collect(Collectors.toList());
 
@@ -532,11 +536,13 @@ public class TypeCastExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
+        if (input == null) {
+            return VALID;
+        }
         final Maybe<AtomExpr> atomExpr = input.__(TypeCast::getAtomExpr);
-        final List<Maybe<TypeExpression>> typeCasts =
-            Maybe.toListOfMaybes(input.__(
-                TypeCast::getTypeCasts));
+        final MaybeList<TypeExpression> typeCasts =
+            input.__toList(TypeCast::getTypeCasts);
+
         final AtomWithTrailersExpressionSemantics awtes = module.get(
             AtomWithTrailersExpressionSemantics.class);
         boolean exprCheck = awtes.validate(
@@ -562,19 +568,20 @@ public class TypeCastExpressionSemantics
             IJadescriptType typeOfCast0 = tes.toJadescriptType(cast0);
             boolean result = tes.validate(cast0, acceptor);
 
-            module.get(ValidationHelper.class).advice(
-                isNumberToNumberCast(
-                    typeOfExpression,
-                    typeOfCast0
-                ) || isCastable(typeOfExpression, typeOfCast0),
-                "InvalidCast",
-                typeOfExpression + " seems not to be convertible to "
-                    + typeOfCast0,
-                input,
-                JadescriptPackage.eINSTANCE.getTypeCast_TypeCasts(),
-                0,
-                acceptor
-            );
+            //TODO fix to include conversion semantics and re-enable
+//            module.get(ValidationHelper.class).advice(
+//                isNumberToNumberCast(
+//                    typeOfExpression,
+//                    typeOfCast0
+//                ) || isCastable(typeOfExpression, typeOfCast0),
+//                "InvalidCast",
+//                typeOfExpression + " seems not to be convertible to "
+//                    + typeOfCast0,
+//                input,
+//                JadescriptPackage.eINSTANCE.getTypeCast_TypeCasts(),
+//                0,
+//                acceptor
+//            );
 
             for (int i = 1; i < typeCasts.size(); i++) {
                 final Maybe<TypeExpression> casti = typeCasts.get(i - 1);
@@ -588,18 +595,17 @@ public class TypeCastExpressionSemantics
                 result = result && typeExpressionValidationNext;
                 IJadescriptType typeAfter =
                     tes.toJadescriptType(typeCasts.get(i));
-                module.get(ValidationHelper.class).advice(
-                    isNumberToNumberCast(typeBefore, typeAfter) || isCastable(
-                        typeBefore,
-                        typeAfter
-                    ),
-                    "InvalidCast",
-                    typeBefore + " seems not to be castable to " + typeAfter,
-                    input,
-                    JadescriptPackage.eINSTANCE.getTypeCast_TypeCasts(),
-                    i,
-                    acceptor
-                );
+                //TODO fix to include conversion semantics and re-enable
+//                module.get(ValidationHelper.class).advice(
+//                    isNumberToNumberCast(typeBefore, typeAfter)
+//                        || isCastable(typeBefore, typeAfter),
+//                    "InvalidCast",
+//                    typeBefore + " seems not to be castable to " + typeAfter,
+//                    input,
+//                    JadescriptPackage.eINSTANCE.getTypeCast_TypeCasts(),
+//                    i,
+//                    acceptor
+//                );
             }
 
             return result;
@@ -617,12 +623,34 @@ public class TypeCastExpressionSemantics
 
 
     private boolean isNumber(IJadescriptType type) {
-        return module.get(TypeHelper.class).NUMBER.isSupEqualTo(type);
+        return isInteger(type) || isReal(type);
+    }
+
+
+    private boolean isInteger(IJadescriptType type) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(builtins.integer(), type)
+            .is(superTypeOrEqual());
+    }
+
+
+    private boolean isReal(IJadescriptType type) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(builtins.real(), type)
+            .is(superTypeOrEqual());
     }
 
 
     private boolean isCastable(IJadescriptType x1, IJadescriptType x2) {
-        return x1.isSupEqualTo(x2) || x1.isSupEqualTo(x1);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(x1, x2).is(related());
     }
 
 

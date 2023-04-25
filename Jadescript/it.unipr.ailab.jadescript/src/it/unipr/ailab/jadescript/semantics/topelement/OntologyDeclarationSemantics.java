@@ -9,16 +9,27 @@ import it.unipr.ailab.jadescript.semantics.context.c1toplevel.OntologyDeclaratio
 import it.unipr.ailab.jadescript.semantics.context.c2feature.OntologyDeclarationSupportContext;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.DeclaresOntologyAdHocClass;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.TupleType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsClassState;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
-import jade.core.AID;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.naming.QualifiedName;
+import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.IJvmDeclaredTypeAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
@@ -29,7 +40,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Functional.filterAndCast;
 import static it.unipr.ailab.maybe.Maybe.*;
 
@@ -78,17 +91,18 @@ public class OntologyDeclarationSemantics extends
         ValidationMessageAcceptor acceptor
     ) {
         super.validateOnEdit(input, acceptor);
-        if (input == null) return;
+
+        if (input == null) {
+            return;
+        }
 
 
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
-        final String ontoFqName = input
+        final Maybe<String> ontoFqName = input
             .__(compilationHelper::getFullyQualifiedName)
-            .__(qn -> qn.toString("."))
-            .or(input.__(NamedElement::getName))
-            .orElse("");
+            .__(qn -> qn.toString("."));
 
         module.get(ContextManager.class).enterTopLevelDeclaration((mod, out) ->
             new OntologyDeclarationSupportContext(mod, out, input, ontoFqName));
@@ -119,15 +133,21 @@ public class OntologyDeclarationSemantics extends
         Maybe<EList<JvmParameterizedTypeReference>> superTypes =
             input.__(FeatureContainer::getSuperTypes);//TODO multiple ontologies
 
-        if (!superTypes.__(List::isEmpty).extract(nullAsTrue)) {
+        if (!superTypes.__(List::isEmpty).orElse(true)) {
             final ValidationHelper validationHelper =
                 module.get(ValidationHelper.class);
+            final BuiltinTypeProvider builtins = module.get(
+                BuiltinTypeProvider.class);
             validationHelper.assertExpectedType(
-                jade.content.onto.Ontology.class,
+                builtins.ontology(),
                 superTypes//TODO multiple ontologies
-                    .__(EList::get, 0)
-                    .__(st -> module.get(TypeHelper.class).jtFromJvmTypeRef(st))
-                    .orElse(module.get(TypeHelper.class).ANY),
+                    .__partial2(EList::get, 0)
+                    .__(st -> module.get(TypeSolver.class)
+                        .fromJvmTypeReference(st))
+                    .__(TypeArgument::ignoreBound)
+                    .orElse(builtins.any(
+                        "Could not resolve ontology supertype."
+                    )),
                 "NotAValidOntologyTypeReference",
                 input,
                 JadescriptPackage.eINSTANCE.getFeatureContainer_SuperTypes(),
@@ -145,13 +165,13 @@ public class OntologyDeclarationSemantics extends
         JvmDeclaredType itClass
     ) {
         super.populateMainMembers(input, members, itClass);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         JvmTypeReference superOntologyType = input//TODO multiple ontologies
             .__(FeatureContainer::getSuperTypes)
             .nullIf(List::isEmpty)
-            .__(List::get, 0)
+            .__partial2(List::get, 0)
             .__(t -> (JvmTypeReference) t)
-            .orElse(typeHelper.typeRef(jadescript.content.onto.Ontology.class));
+            .orElse(jvm.typeRef(jadescript.content.onto.Ontology.class));
 
         if (input.isNothing()) {
             return;
@@ -188,7 +208,7 @@ public class OntologyDeclarationSemantics extends
             members.add(jvmTB.toField(
                 inputsafe,
                 ONTOLOGY_STATIC_INSTANCE_NAME,
-                typeHelper.typeRef(jadescript.content.onto.Ontology.class),
+                jvm.typeRef(jadescript.content.onto.Ontology.class),
                 itField -> {
                     itField.setVisibility(JvmVisibility.PRIVATE);
                     itField.setStatic(true);
@@ -201,7 +221,7 @@ public class OntologyDeclarationSemantics extends
             members.add(jvmTB.toField(
                 inputsafe,
                 "__NAME",
-                typeHelper.typeRef(String.class),
+                jvm.typeRef(String.class),
                 itField -> {
                     itField.setVisibility(JvmVisibility.PUBLIC);
                     itField.setStatic(true);
@@ -217,7 +237,7 @@ public class OntologyDeclarationSemantics extends
         members.add(jvmTB.toMethod(
             inputsafe,
             "getInstance",
-            typeHelper.typeRef(jadescript.content.onto.Ontology.class),
+            jvm.typeRef(jadescript.content.onto.Ontology.class),
             it -> {
                 it.setStatic(true);
                 compilationHelper.createAndSetBody(
@@ -265,7 +285,7 @@ public class OntologyDeclarationSemantics extends
                 if (input
                     .__(FeatureContainer::getFeatures)
                     .__(List::isEmpty)
-                    .extract(nullAsTrue)) {
+                    .orElse(true)) {
                     return;
                 }
 
@@ -302,7 +322,7 @@ public class OntologyDeclarationSemantics extends
                 for (Maybe<? extends Feature> feature :
                     iterate(input.__(FeatureContainer::getFeatures))) {
                     if (feature.__(f -> f instanceof FeatureWithSlots)
-                        .extract(nullAsFalse)
+                        .orElse(false)
                         && feature.isPresent()
                         && isSchemaCompilable(feature.toNullable())) {
                         scb.line(compileSchemaDescription(
@@ -331,7 +351,7 @@ public class OntologyDeclarationSemantics extends
         List<StatementWriter> addSchemaWriters,
         List<StatementWriter> descriptionSchemaWriters
     ) {
-        Optional<FeatureWithSlots> featureWithSlots = feature.stream()
+        Optional<FeatureWithSlots> featureWithSlots = feature.someStream()
             .flatMap(filterAndCast(FeatureWithSlots.class))
             .findAny();
 
@@ -443,62 +463,66 @@ public class OntologyDeclarationSemantics extends
         } else if (safeSlotType.getCollectionTypeExpression() != null) {
             EList<TypeExpression> typeParameters =
                 safeSlotType.getCollectionTypeExpression().getTypeParameters();
-            switch (
-                safeSlotType.getCollectionTypeExpression().getCollectionType()
-            ) {
-                case "list": {
-                    IJadescriptType elemType =
-                        module.get(TypeHelper.class).ANY;
-                    if (typeParameters.size() == 1) {
-                        elemType = tes.toJadescriptType(
-                            some(typeParameters.get(0))
-                        );
-                    }
+            final String collectionType =
+                safeSlotType.getCollectionTypeExpression().getCollectionType();
 
-                    return enclosingSchemaName + ".add("
-                        + vocabularyName + ", " +
-                        "(jade.content.schema.ConceptSchema) getSchema(\"" +
-                        ListType.getAdHocListClassName(elemType) +
-                        "\"));";
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
 
-                }
-                case "map":
-                    IJadescriptType keyType =
-                        module.get(TypeHelper.class).ANY;
-                    IJadescriptType valType =
-                        module.get(TypeHelper.class).ANY;
-                    if (typeParameters.size() == 2) {
-                        keyType = tes.toJadescriptType(
-                            some(typeParameters.get(0)));
-                        valType = tes.toJadescriptType(
-                            some(typeParameters.get(1)));
-                    }
-
-                    return enclosingSchemaName + ".add(" +
-                        vocabularyName + ", " +
-                        "(jade.content.schema.ConceptSchema) getSchema(\"" +
-                        MapType.getAdHocMapClassName(keyType, valType) +
-                        "\"));";
-                case "set":
-                    IJadescriptType elemType =
-                        module.get(TypeHelper.class).ANY;
-                    if (typeParameters.size() == 1) {
-                        elemType = tes.toJadescriptType(
-                            some(typeParameters.get(0)));
-                    }
-
-                    return enclosingSchemaName + ".add(" +
-                        vocabularyName + ", " +
-                        "(jade.content.schema.ConceptSchema) getSchema(\"" +
-                        SetType.getAdHocSetClassName(elemType) +
-                        "\"));";
-                default:
-                    throw new RuntimeException(
-                        "unsupported collection type: " +
-                            safeSlotType.getCollectionTypeExpression()
-                                .getCollectionType()
+            if (collectionType.equals("list")) {
+                IJadescriptType elemType =
+                    builtins.any("No element type specified.");
+                if (typeParameters.size() == 1) {
+                    elemType = tes.toJadescriptType(
+                        some(typeParameters.get(0))
                     );
+                }
+
+                return enclosingSchemaName + ".add("
+                    + vocabularyName + ", " +
+                    "(jade.content.schema.ConceptSchema) getSchema(\"" +
+                    ListType.getAdHocListClassName(elemType) +
+                    "\"));";
             }
+
+            if (collectionType.equals("map")) {
+                IJadescriptType keyType =
+                    builtins.any("No key type specified.");
+                IJadescriptType valType =
+                    builtins.any("No value type specified.");
+                if (typeParameters.size() == 2) {
+                    keyType = tes.toJadescriptType(
+                        some(typeParameters.get(0)));
+                    valType = tes.toJadescriptType(
+                        some(typeParameters.get(1)));
+                }
+
+                return enclosingSchemaName + ".add(" +
+                    vocabularyName + ", " +
+                    "(jade.content.schema.ConceptSchema) getSchema(\"" +
+                    MapType.getAdHocMapClassName(keyType, valType) +
+                    "\"));";
+            }
+
+            if (collectionType.equals("set")) {
+                IJadescriptType elemType =
+                    builtins.any("No element type specified.");
+                if (typeParameters.size() == 1) {
+                    elemType = tes.toJadescriptType(
+                        some(typeParameters.get(0)));
+                }
+
+                return enclosingSchemaName + ".add(" +
+                    vocabularyName + ", " +
+                    "(jade.content.schema.ConceptSchema) getSchema(\"" +
+                    SetType.getAdHocSetClassName(elemType) +
+                    "\"));";
+            }
+
+            throw new RuntimeException(
+                "unsupported collection type: " +
+                    collectionType
+            );
         }
 
         Maybe<String> schemaType = getSchemaKindForSlot(safeSlotType);
@@ -536,28 +560,46 @@ public class OntologyDeclarationSemantics extends
         IJadescriptType type = module.get(TypeExpressionSemantics.class)
             .toJadescriptType(some(slotType));
         final TypeHelper typeHelper = module.get(TypeHelper.class);
-        if (type instanceof MapType || type instanceof SetType) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+
+        if (type.category().isMap()
+            || type.category().isSet()
+            || type.category().isList()) {
             return some("jade.content.schema.ConceptSchema");
-        } else if (type instanceof TupleType) {
-            return some("jade.content.schema.AgentActionSchema");
-        } else if (type instanceof ListType) {
-            return some("jade.content.schema.TermSchema");
-        } else if (typeHelper.CONCEPT.isSupEqualTo(type)
-            || typeHelper.AID.isSupEqualTo(type)
-            || typeHelper.TIMESTAMP.isSupEqualTo(type)
-            || typeHelper.DURATION.isSupEqualTo(type)) {
-            return some("jade.content.schema.ConceptSchema");
-        } else if (typeHelper.PROPOSITION.isSupEqualTo(type)
-            || typeHelper.PREDICATE.isSupEqualTo(type)
-            || typeHelper.ATOMIC_PROPOSITION.isSupEqualTo(type)) {
-            return some("jade.content.schema.PredicateSchema");
-        } else if (typeHelper.ACTION.isSupEqualTo(type)) {
-            return some("jade.content.schema.AgentActionSchema");
-        } else if (typeHelper.isTypeWithPrimitiveOntologySchema(type)) {
-            return some("jade.content.schema.PrimitiveSchema");
-        } else {
-            return nothing();
         }
+        if (type.category().isTuple()) {
+            return some("jade.content.schema.AgentActionSchema");
+        }
+        if (Stream.of(
+                builtins.concept(),
+                builtins.aid(),
+                builtins.timestamp(),
+                builtins.duration()
+            ).map(t -> comparator.compare(t, type))
+            .anyMatch(r -> r.is(superTypeOrEqual()))) {
+            return some("jade.content.schema.ConceptSchema");
+        }
+        if (Stream.of(
+                builtins.proposition(),
+                builtins.predicate(),
+                builtins.atomicProposition()
+            ).map(t -> comparator.compare(t, type))
+            .anyMatch(r -> r.is(superTypeOrEqual()))) {
+            return some("jade.content.schema.PredicateSchema");
+        }
+
+        if (comparator.compare(builtins.action(), type)
+            .is(superTypeOrEqual())) {
+            return some("jade.content.schema.AgentActionSchema");
+        }
+        if (typeHelper.isTypeWithPrimitiveOntologySchema(type)) {
+            return some("jade.content.schema.PrimitiveSchema");
+        }
+
+        return nothing();
     }
 
 
@@ -595,34 +637,35 @@ public class OntologyDeclarationSemantics extends
 
 
     private String compileAddSchema(Maybe<ExtendingFeature> feature) {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         JvmTypeReference type = feature.__(featureSafe -> {
-            if (featureSafe instanceof Concept || featureSafe instanceof AID) {
-                return typeHelper.typeRef(
+            if (featureSafe instanceof Concept) {
+                return jvm.typeRef(
                     jade.content.schema.ConceptSchema.class
                 );
             } else if (featureSafe instanceof OntologyAction) {
-                return typeHelper.typeRef(
+                return jvm.typeRef(
                     jade.content.schema.AgentActionSchema.class
                 );
             } else if (featureSafe instanceof Predicate
                 || featureSafe instanceof Proposition) {
-                return typeHelper.typeRef(
+                return jvm.typeRef(
                     jade.content.schema.PredicateSchema.class
                 );
             }
-            return typeHelper.typeRef(Object.class);
-        }).orElse(typeHelper.typeRef(Object.class));
+            return jvm.objectTypeRef();
+        }).orElse(jvm.objectTypeRef());
+
         String featureName = feature.__(ExtendingFeature::getName)
-            .extract(nullAsEmptyString);
+            .orElse("");
 
         final String obtainClass;
 
-        if (feature.__(ExtendingFeature::isNative).extract(nullAsFalse)) {
-            obtainClass = retrieveNativeTypeFactory(
+        if (feature.__(ExtendingFeature::isNative).orElse(false)) {
+            obtainClass = retrieveNativeTypeImplementationClass(
                 //feature in this branch is safe to extract:
                 feature.toNullable()
-            ) + ".getImplementationClass()";
+            );
         } else {
             obtainClass = featureName + ".class";
         }
@@ -640,14 +683,13 @@ public class OntologyDeclarationSemantics extends
         addVocabularyElement(members, feature, vocabularyName, vocabularyName);
 
         if (feature.__(f -> f instanceof FeatureWithSlots)
-            .extract(nullAsFalse)) {
+            .orElse(false)) {
             for (Maybe<SlotDeclaration> slot :
                 iterate(((Maybe<FeatureWithSlots>) feature).__(
                     FeatureWithSlots::getSlots))) {
                 Maybe<String> slotName = slot.__(SlotDeclaration::getName);
                 Maybe<String> name =
-                    vocabularyName.__(v -> v + "_" + slotName.extract(
-                        nullAsEmptyString));
+                    vocabularyName.__(v -> v + "_" + slotName.orElse(""));
                 addVocabularyElement(members, feature, name, slotName);
             }
         }
@@ -660,7 +702,9 @@ public class OntologyDeclarationSemantics extends
         Maybe<String> name,
         Maybe<String> init
     ) {
-        if (members == null) return;
+        if (members == null) {
+            return;
+        }
         if (ontologyElement.isNothing()) {
             return;
         }
@@ -676,10 +720,11 @@ public class OntologyDeclarationSemantics extends
         final String nameSafe = name.toNullable();
         final String initSafe = init.toNullable();
 
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         members.add(module.get(JvmTypesBuilder.class).toField(
             ontologyElementSafe,
             nameSafe,
-            module.get(TypeHelper.class).typeRef(String.class),
+            jvm.typeRef(String.class),
             it -> {
                 it.setVisibility(JvmVisibility.PUBLIC);
                 it.setStatic(true);
@@ -698,7 +743,6 @@ public class OntologyDeclarationSemantics extends
         EList<JvmMember> members,
         Maybe<ExtendingFeature> ontoElement
     ) {
-
         if (ontoElement.isNothing()) {
             return;
         }
@@ -716,20 +760,22 @@ public class OntologyDeclarationSemantics extends
 
 
         JvmTypeReference returnType;
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+
         if (declaredSchemaTypes.getOrNew(input)
             .containsKey(ontoElementNameSafe)) {
 
-            returnType = typeHelper.typeRef(
+            returnType = jvm.typeRef(
                 declaredSchemaTypes.getOrNew(input)
                     .get(ontoElementNameSafe)
             );
         } else {
-            returnType = typeHelper.typeRef(ontoElementNameSafe);
+            returnType = jvm.typeRef(ontoElementNameSafe);
         }
 
         final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
+
         members.add(jvmTB.toMethod(
             ontoElementSafe,
             ontoElementNameSafe,
@@ -745,26 +791,12 @@ public class OntologyDeclarationSemantics extends
                     module.get(TypeExpressionSemantics.class);
 
                 if (isWithSlots) {
-                    final EList<SlotDeclaration> slots =
-                        ((FeatureWithSlots) ontoElementSafe).getSlots();
-
-                    if (slots != null) {
-                        for (SlotDeclaration slot : slots) {
-                            if (slot == null || slot.getName() == null
-                                || slot.getType() == null) {
-                                continue;
-                            }
-
-                            IJadescriptType type =
-                                tes.toJadescriptType(some(slot.getType()));
-
-                            it.getParameters().add(jvmTB.toParameter(
-                                ontoElementSafe,
-                                slot.getName(),
-                                type.asJvmTypeReference()
-                            ));
-                        }
-                    }
+                    populateParametersFromSlots(
+                        ontoElementSafe,
+                        jvmTB,
+                        it,
+                        tes
+                    );
                 }
 
 
@@ -772,65 +804,57 @@ public class OntologyDeclarationSemantics extends
                     module.get(CompilationHelper.class);
 
                 compilationHelper.createAndSetBody(it, scb -> {
-                    final String methodName;
-                    if (ontoElement.__(ExtendingFeature::isNative)
-                        .extract(nullAsFalse)) {
+                    if (ontoElement
+                        .__(ExtendingFeature::isNative)
+                        .orElse(false)) {
 
-                        final String methodNamePrefix =
-                            retrieveNativeTypeFactory(ontoElementSafe);
+                        final String ontoElementFqName =
+                            getOntoElementFqName(ontoElementSafe);
+
+                        final String createInstanceExpression =
+                            createNativeTypeInstance(
+                                ontoElementFqName
+                            );
+
 
                         if (isWithSlots) {
-                            methodName = methodNamePrefix + ".create";
+                            w.variable(
+                                ontoElementFqName,
+                                "_x",
+                                w.expr(createInstanceExpression)
+                            ).writeSonnet(scb);
+
+                            initializeNativePropertiesFromSlots(
+                                (FeatureWithSlots) ontoElementSafe,
+                                tes,
+                                scb
+                            );
+
+                            w.returnStmnt(w.expr("_x")).writeSonnet(scb);
                         } else {
-                            methodName = methodNamePrefix + ".empty";
+                            w.returnStmnt(w.expr(createInstanceExpression))
+                                .writeSonnet(scb);
                         }
 
                     } else {
-                        methodName = "new " + ontoElementNameSafe;
-                    }
-                    StringBuilder line =
-                        new StringBuilder("return " + methodName + "(");
+                        final String methodName = "new " + ontoElementNameSafe;
 
-                    if (isWithSlots) {
-                        FeatureWithSlots withSlots =
-                            (FeatureWithSlots) ontoElementSafe;
+                        scb.add("return ")
+                            .add(methodName)
+                            .add("(");
 
-                        for (int i = 0; i < withSlots.getSlots().size(); i++) {
-                            SlotDeclaration slot = withSlots.getSlots().get(i);
-
-                            final IJadescriptType slotType =
-                                tes.toJadescriptType(
-                                    some(slot).__(SlotDeclaration::getType));
-
-                            if (slotType
-                                instanceof DeclaresOntologyAdHocClass) {
-                                DeclaresOntologyAdHocClass adHocType =
-                                    (DeclaresOntologyAdHocClass) slotType;
-
-                                final String adHocClassName =
-                                    adHocType.getAdHocClassName();
-
-                                final String converterName = adHocType
-                                    .getConverterToAdHocClassMethodName();
-
-                                line.append(adHocClassName)
-                                    .append(".")
-                                    .append(converterName)
-                                    .append("(")
-                                    .append(slot.getName())
-                                    .append(")");
-                            } else {
-                                line.append(slot.getName());
-                            }
-
-                            if (i < withSlots.getSlots().size() - 1) {
-                                line.append(", ");
-                            }
-
+                        if (isWithSlots) {
+                            populateArgumentsFromSlots(
+                                (FeatureWithSlots) ontoElementSafe,
+                                tes,
+                                scb
+                            );
                         }
+                        scb.line(");");
+
                     }
-                    line.append(");");
-                    scb.line(line.toString());
+
+
                 });
             }
         ));
@@ -838,20 +862,151 @@ public class OntologyDeclarationSemantics extends
     }
 
 
+    private void initializeNativePropertiesFromSlots(
+        FeatureWithSlots ontoElementSafe,
+        TypeExpressionSemantics tes,
+        SourceCodeBuilder scb
+    ) {
+        final EList<SlotDeclaration> slots = ontoElementSafe.getSlots();
+        for (SlotDeclaration slot : slots) {
+            final IJadescriptType slotType =
+                tes.toJadescriptType(
+                    some(slot).__(SlotDeclaration::getType)
+                );
+
+            final String slotName = slot.getName();
+
+            if (slotName == null || slotName.isBlank()) {
+                continue;
+            }
+
+            final String setterName = "_x.set" +
+                Strings.toFirstUpper(slotName);
+
+            if (slotType instanceof DeclaresOntologyAdHocClass) {
+                DeclaresOntologyAdHocClass adHocType =
+                    (DeclaresOntologyAdHocClass) slotType;
+
+                final String adHocClassName =
+                    adHocType.getAdHocClassName();
+
+                final String converterName = adHocType
+                    .getConverterToAdHocClassMethodName();
+
+                w.callStmnt(setterName, w.callExpr(
+                    adHocClassName + "." + converterName,
+                    w.expr(slotName)
+                )).writeSonnet(scb);
+
+            } else {
+                w.callStmnt(setterName, w.expr(slotName)).writeSonnet(scb);
+            }
+        }
+    }
+
+
+    private void populateArgumentsFromSlots(
+        FeatureWithSlots ontoElementSafe,
+        TypeExpressionSemantics tes,
+        SourceCodeBuilder scb
+    ) {
+
+        final EList<SlotDeclaration> slots = ontoElementSafe.getSlots();
+        final int size = slots.size();
+        for (int i = 0; i < size; i++) {
+            SlotDeclaration slot = slots.get(i);
+
+            final IJadescriptType slotType =
+                tes.toJadescriptType(
+                    some(slot).__(SlotDeclaration::getType));
+
+            if (slotType instanceof DeclaresOntologyAdHocClass) {
+
+                DeclaresOntologyAdHocClass adHocType =
+                    (DeclaresOntologyAdHocClass) slotType;
+
+                final String adHocClassName =
+                    adHocType.getAdHocClassName();
+
+                final String converterName = adHocType
+                    .getConverterToAdHocClassMethodName();
+
+                scb.add(adHocClassName)
+                    .add(".")
+                    .add(converterName)
+                    .add("(")
+                    .add(slot.getName())
+                    .add(")");
+            } else {
+                scb.add(slot.getName());
+            }
+
+            if (i < size - 1) {
+                scb.add(", ");
+            }
+
+        }
+    }
+
+
+    private void populateParametersFromSlots(
+        ExtendingFeature ontoElementSafe,
+        JvmTypesBuilder jvmTB,
+        JvmOperation it,
+        TypeExpressionSemantics tes
+    ) {
+        final EList<SlotDeclaration> slots =
+            ((FeatureWithSlots) ontoElementSafe).getSlots();
+
+        if (slots != null) {
+            for (SlotDeclaration slot : slots) {
+                if (slot == null
+                    || slot.getName() == null
+                    || slot.getType() == null) {
+                    continue;
+                }
+
+                IJadescriptType type =
+                    tes.toJadescriptType(some(slot.getType()));
+
+                it.getParameters().add(jvmTB.toParameter(
+                    ontoElementSafe,
+                    slot.getName(),
+                    type.asJvmTypeReference()
+                ));
+            }
+        }
+    }
+
+
     @NotNull
-    private String retrieveNativeTypeFactory(
+    private String createNativeTypeInstance(
+        String ontoElementFqName
+    ) {
+        return "((" + ontoElementFqName + ") " +
+            "jadescript.java.Jadescript.createEmptyValue(" +
+            ontoElementFqName + ".class))";
+    }
+
+
+    private String getOntoElementFqName(ExtendingFeature ontologyElementSafe) {
+        return some(module.get(CompilationHelper.class)
+            .getFullyQualifiedName(ontologyElementSafe))
+            .__(fqn -> fqn.toString("."))
+            .orElse("");
+    }
+
+
+    @NotNull
+    private String retrieveNativeTypeImplementationClass(
         ExtendingFeature ontologyElementSafe
     ) {
-        final QualifiedName nullableFQName =
-            module.get(CompilationHelper.class)
-                .getFullyQualifiedName(ontologyElementSafe);
-        final String ontoElementFqName = nullableFQName == null
-            ? ""
-            : nullableFQName.toString(".");
+        final String ontoElementFqName =
+            getOntoElementFqName(ontologyElementSafe);
 
-        return "((" + ontoElementFqName + "Factory) " +
-            "(jadescript.java.Jadescript." +
-            "getNativeFactory(" + ontoElementFqName + ".class)))";
+        return "jadescript.java.Jadescript.getImplementationClass(" +
+            ontoElementFqName +
+            ".class)";
     }
 
 
@@ -865,11 +1020,9 @@ public class OntologyDeclarationSemantics extends
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
-        final String ontoFqName = input
+        final Maybe<String> ontoFqName = input
             .__(compilationHelper::getFullyQualifiedName)
-            .__(qn -> qn.toString("."))
-            .or(input.__(NamedElement::getName))
-            .orElse("");
+            .__(qn -> qn.toString("."));
 
         //creates all the classes of the elements of the ontology:
         module.get(ContextManager.class).enterTopLevelDeclaration(
@@ -903,6 +1056,7 @@ public class OntologyDeclarationSemantics extends
 
             Maybe<QualifiedName> ontoFullQualifiedName =
                 input.__(compilationHelper::getFullyQualifiedName);
+
             List<JvmDeclaredType> pojoTypes = oes.declareTypes(
                 feature.__(f -> (ExtendingFeature) f),
                 ontoFullQualifiedName,
@@ -952,53 +1106,49 @@ public class OntologyDeclarationSemantics extends
         }
         final CompilationHelper compilationHelper = module.get(
             CompilationHelper.class);
-        final Maybe<QualifiedName> qualifiedNameMaybe =
+        final Maybe<QualifiedName> fqn =
             input.__(compilationHelper::getFullyQualifiedName);
 
-        if (qualifiedNameMaybe.isNothing()) {
+        if (fqn.isNothing()) {
             return;
         }
 
-        final QualifiedName fullyQualifiedNameSafe =
-            qualifiedNameMaybe.toNullable();
+        final QualifiedName fqnSafe =
+            fqn.toNullable();
 
-        final JvmTypesBuilder jvmTypesBuilder =
+        final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
 
-        acceptor.accept(jvmTypesBuilder.toInterface(
-                inputSafe,
-                fullyQualifiedNameSafe + "_Vocabulary",
-                itInterf -> {
-                    if (!isPreIndexingPhase) {
-                        final TypeHelper typeHelper =
-                            module.get(TypeHelper.class);
-                        JvmTypeReference superOntologyType = input
-                            .__(FeatureContainer::getSuperTypes)
-                            .nullIf(List::isEmpty)
-                            .__(List::get, 0)
-                            .__(t -> (JvmTypeReference) t)
-                            .orElse(typeHelper.typeRef(
-                                jadescript.content.onto.Ontology.class
-                            ));
+        final String vocabularyName = fqnSafe + "_Vocabulary";
+        acceptor.accept(jvmTB.toInterface(inputSafe, vocabularyName, it -> {
+            if (!isPreIndexingPhase) {
+                final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
-                        itInterf.getSuperTypes().add(
-                            typeHelper.typeRef(
-                                superOntologyType.getQualifiedName('.') +
-                                    "_Vocabulary")
-                        );
+                JvmTypeReference superOntologyType = input
+                    .__(FeatureContainer::getSuperTypes)
+                    .nullIf(List::isEmpty)
+                    .__partial2(List::get, 0)
+                    .__(t -> (JvmTypeReference) t)
+                    .orElse(jvm.typeRef(
+                        jadescript.content.onto.Ontology.class
+                    ));
 
-                        for (Maybe<? extends Feature> feature :
-                            iterate(input.__(FeatureContainer::getFeatures))) {
-                            addVocabulary(
-                                itInterf.getMembers(),
-                                feature.__(f -> (ExtendingFeature) f)
-                            );
-                        }
+                it.getSuperTypes().add(
+                    jvm.typeRef(
+                        superOntologyType.getQualifiedName('.') +
+                            "_Vocabulary")
+                );
 
-                    }
+                for (Maybe<? extends Feature> feature :
+                    iterate(input.__(FeatureContainer::getFeatures))) {
+                    addVocabulary(
+                        it.getMembers(),
+                        feature.__(f -> (ExtendingFeature) f)
+                    );
                 }
-            )
-        );
+
+            }
+        }));
     }
 
 
@@ -1007,15 +1157,17 @@ public class OntologyDeclarationSemantics extends
         Maybe<Ontology> input,
         EList<JvmTypeReference> superTypes
     ) {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        superTypes.add(typeHelper.ONTOLOGY.asJvmTypeReference());
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
+        superTypes.add(builtins.ontology().asJvmTypeReference());
         final CompilationHelper compilationHelper = module.get(
             CompilationHelper.class);
         Maybe<QualifiedName> fullyQualifiedName =
             input.__(compilationHelper::getFullyQualifiedName);
         fullyQualifiedName.safeDo(fullyQualifiedNameSafe -> {
             superTypes.add(
-                typeHelper.typeRef(fullyQualifiedNameSafe + "_Vocabulary")
+                jvm.typeRef(fullyQualifiedNameSafe + "_Vocabulary")
             );
         });
         super.populateMainSuperTypes(input, superTypes);

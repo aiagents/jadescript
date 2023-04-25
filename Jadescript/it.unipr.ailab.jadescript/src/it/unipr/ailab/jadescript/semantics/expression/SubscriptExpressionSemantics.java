@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 import it.unipr.ailab.jadescript.jadescript.Literal;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -10,14 +11,12 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.expression.trailersexprchain.ReversedTrailerChain;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ListType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.TupleType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.TupleType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Subscript;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -31,7 +30,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 
 public class SubscriptExpressionSemantics
     extends AssignableExpressionSemantics<Subscript> {
@@ -52,7 +51,7 @@ public class SubscriptExpressionSemantics
         return input.__(Subscript::getRest)
             .__(ReversedTrailerChain::getElements)
             .__(List::isEmpty)
-            .extract(nullAsFalse);
+            .orElse(false);
     }
 
 
@@ -61,7 +60,7 @@ public class SubscriptExpressionSemantics
     ) {
         return input
             .__(Subscript::getRest)
-            .flatMap(ReversedTrailerChain::resolveChain);
+            .flatApp(ReversedTrailerChain::resolveChain);
     }
 
 
@@ -119,14 +118,14 @@ public class SubscriptExpressionSemantics
         //NOT NEEDED
 //        final StaticState afterKey =
 //            module.get(RValueExpressionSemantics.class)
-//                .advance(input.__(Subscript::getKey), afterRest);
+//                .advance(input.mapPartial2(Subscript::getKey), afterRest);
 
-        if (restType instanceof ListType) {
+        if (restType.category().isList()) {
             acceptor.accept(w.simpleStmt(
                 restCompiled + ".set(" + keyCompiled
                     + ", " + compiledExpression + ")"
             ));
-        } else if (restType instanceof MapType) {
+        } else if (restType.category().isMap()) {
             acceptor.accept(w.simpleStmt(
                 restCompiled + ".put(" + keyCompiled
                     + ", " + compiledExpression + ")"
@@ -206,8 +205,14 @@ public class SubscriptExpressionSemantics
             return INVALID;
         }
 
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
         keyCheck = module.get(ValidationHelper.class).asserting(
-            !module.get(TypeHelper.class).TEXT.isSupEqualTo(restType),
+
+            !comparator.compare(builtins.text(), restType)
+                .is(superTypeOrEqual()),
             "InvalidAssignment",
             "Invalid assignment; values of 'text' are immutable.",
             key,
@@ -220,10 +225,12 @@ public class SubscriptExpressionSemantics
         IJadescriptType keyType = rves.inferType(key, afterRest);
 
 
-        if (restType instanceof ListType || restType instanceof MapType) {
+        if (restType.category().isList()
+            || restType.category().isMap()) {
+
             String methodName;
 
-            if (restType instanceof ListType) {
+            if (restType.category().isList()) {
                 methodName = "set";
             } else {
                 methodName = "put";
@@ -234,21 +241,25 @@ public class SubscriptExpressionSemantics
                     MemberCallable.Namespace.class,
                     searcher -> searcher.memberCallables(methodName)
                         .filter(mc -> mc.arity() == 2)
-                        .filter(mc -> mc.parameterTypes().get(0)
-                            .isSupEqualTo(keyType))
-                        .filter(mc -> mc.parameterTypes().get(1)
-                            .isSupEqualTo(rightType))
+                        .filter(mc -> comparator.compare(
+                            mc.parameterTypes().get(0),
+                            keyType
+                        ).is(superTypeOrEqual()))
+                        .filter(mc -> comparator.compare(
+                            mc.parameterTypes().get(1),
+                            rightType
+                        ).is(superTypeOrEqual()))
                 ).collect(Collectors.toList());
 
             if (matchesFound.size() != 1) {
                 return module.get(ValidationHelper.class).emitError(
                     "InvalidElementAccessOperation",
                     "Cannot perform '[]' subscript on values of type " +
-                        restType.getJadescriptName() +
+                        restType.getFullJadescriptName() +
                         ", with index of type " +
-                        keyType.getJadescriptName() +
+                        keyType.getFullJadescriptName() +
                         ", assigning values of type " +
-                        rightType.getJadescriptName() + ".",
+                        rightType.getFullJadescriptName() + ".",
                     key,
                     acceptor
                 );
@@ -260,7 +271,7 @@ public class SubscriptExpressionSemantics
                 "InvalidSubscriptOperation",
                 "[] operator cannot be used on types that are " +
                     "not list, map, or text. Type found: " +
-                    restType.getJadescriptName(),
+                    restType.getFullJadescriptName(),
                 key,
                 acceptor
             );
@@ -328,9 +339,14 @@ public class SubscriptExpressionSemantics
 //                .advance(key, afterRest);
 
 
-        if (module.get(TypeHelper.class).TEXT.isSupEqualTo(restType)) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        if (comparator.compare(builtins.text(), restType)
+            .is(superTypeOrEqual())) {
             return "(\"\"+" + restCompiled + ".charAt(" + keyCompiled + "))";
-        } else if (restType instanceof TupleType) {
+        } else if (restType.category().isTuple()) {
             final Optional<Integer> integer = extractIntegerIfAvailable(key);
             if (integer.isPresent()) {
                 return ((TupleType) restType).compileGet(
@@ -386,11 +402,15 @@ public class SubscriptExpressionSemantics
             input,
             (s, i) -> s.inferType(i, state)
         );
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-        if (typeHelper.TEXT.isSupEqualTo(restType)) {
-            return typeHelper.TEXT;
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        if (comparator.compare(builtins.text(), restType)
+            .is(superTypeOrEqual())) {
+            return builtins.text();
         }
-        if (restType instanceof TupleType) {
+        if (restType.category().isTuple()) {
             final Optional<Integer> integer = extractIntegerIfAvailable(key);
             if (integer.isPresent()) {
                 return ((TupleType) restType).getElementTypes().get(
@@ -399,7 +419,7 @@ public class SubscriptExpressionSemantics
             }
         }
         return restType.getElementTypeIfCollection()
-            .orElseGet(() -> typeHelper.ANY);
+            .orElseGet(() -> builtins.any(""));
     }
 
 
@@ -445,10 +465,14 @@ public class SubscriptExpressionSemantics
 //            .advance(key, afterRest);
 
 
-        if (restType instanceof TupleType) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        if (restType.category().isTuple()) {
             boolean indexTypeValidation =
                 module.get(ValidationHelper.class).assertExpectedType(
-                    module.get(TypeHelper.class).INTEGER,
+                    builtins.integer(),
                     keyType,
                     "InvalidTupleIndex",
                     key,
@@ -487,25 +511,28 @@ public class SubscriptExpressionSemantics
 
             return indexValidation;
 
-        } else if (module.get(TypeHelper.class).TEXT
-            .isSupEqualTo(restType)) {
+        } else if (comparator.compare(builtins.text(), restType)
+            .is(superTypeOrEqual())) {
             return module.get(ValidationHelper.class).assertExpectedType(
-                module.get(TypeHelper.class).INTEGER,
+                builtins.integer(),
                 keyType,
                 "InvalidStringSubscription",
                 key,
                 acceptor
             );
-        } else if (restType instanceof MapType
-            || restType instanceof ListType) {
+        } else if (restType.category().isMap()
+            || restType.category().isList()) {
 
             final List<? extends MemberCallable> matchesFound =
                 restType.namespace().searchAs(
                     MemberCallable.Namespace.class,
                     searcher -> searcher.memberCallables("get")
                         .filter(mc -> mc.arity() == 1)
-                        .filter(mc -> mc.parameterTypes().get(0)
-                            .isSupEqualTo(keyType))
+                        .filter(mc ->
+                            comparator.compare(
+                                mc.parameterTypes().get(0),
+                                keyType
+                            ).is(superTypeOrEqual()))
                 ).collect(Collectors.toList());
 
             if (matchesFound.size() != 1) {
@@ -513,8 +540,8 @@ public class SubscriptExpressionSemantics
                 return module.get(ValidationHelper.class).emitError(
                     "InvalidElementAccessOperation",
                     "Cannot perform '[]' operator on values of type "
-                        + restType.getJadescriptName() + ", using values " +
-                        "of type" + keyType.getJadescriptName() +
+                        + restType.getFullJadescriptName() + ", using values " +
+                        "of type" + keyType.getFullJadescriptName() +
                         "as index.",
                     key,
                     acceptor
@@ -528,7 +555,7 @@ public class SubscriptExpressionSemantics
                 "InvalidElementAccessOperation",
                 "[] operator cannot be used on types that are " +
                     "not list, map, or text. Type found: " +
-                    restType.getJadescriptName(),
+                    restType.getFullJadescriptName(),
                 key,
                 acceptor
             );
@@ -694,7 +721,6 @@ public class SubscriptExpressionSemantics
     ) {
         return state;
     }
-
 
 
 }

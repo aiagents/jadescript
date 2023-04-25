@@ -18,9 +18,13 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Callable;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.MapType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.SetType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.WriterFactory;
 import jadescript.lang.Performative;
@@ -31,14 +35,15 @@ import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.iterate;
 import static it.unipr.ailab.maybe.Maybe.some;
 
@@ -137,17 +142,17 @@ public class ValidationHelper implements SemanticsConsts {
             case DEFAULT: //assuming this is package private:
                 //return true only if contextOfAccess is in the same package
                 // of containingType
-                return TypeHelper.extractPackageName(containingType)
-                    .equals(TypeHelper.extractPackageName(contextOfAccess));
+                return JvmTypeHelper.extractPackageName(containingType)
+                    .equals(JvmTypeHelper.extractPackageName(contextOfAccess));
             case PRIVATE:
                 //return true only if containingType == contextOfAccess
-                return TypeHelper
+                return JvmTypeHelper
                     .typeReferenceEquals(containingType, contextOfAccess);
             case PROTECTED:
                 //return true only if contextOfAccess isAssignable to
                 // containingType
-                return module.get(TypeHelper.class)
-                    .isAssignable(containingType, contextOfAccess);
+                return module.get(JvmTypeHelper.class)
+                    .isAssignable(containingType, contextOfAccess, true);
             case PUBLIC:
                 //always return true
                 return true;
@@ -245,7 +250,7 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
-    //TODO unify with SubscriptExpressionSemantics
+    //TODO unify in SubscriptExpressionSemantics
     public boolean validateIndex(
         IJadescriptType collectionType,
         Maybe<RValueExpression> indexExpression,
@@ -286,7 +291,7 @@ public class ValidationHelper implements SemanticsConsts {
             );
         } else {
             return assertExpectedType(
-                Integer.class,
+                module.get(BuiltinTypeProvider.class).integer(),
                 rves.inferType(indexExpression, beforeIndex),
                 "InvalidIndexType",
                 indexExpression,
@@ -309,7 +314,7 @@ public class ValidationHelper implements SemanticsConsts {
                 .flatMap(ccv -> ccv.checkCallableClash(module, toBeAdded))
                 .filter(dc -> !dc.getAlreadyPresentSymbol().sourceLocation()
                     .equals(dc.getToBeAddedSymbol().sourceLocation())
-                ).filter(Util.dinstinctBy(dc -> Util.tuple(
+                ).filter(SemanticsUtils.dinstinctBy(dc -> SemanticsUtils.tuple(
                     dc.getAlreadyPresentSymbol().getSignature(),
                     dc.getAlreadyPresentSymbol().sourceLocation()
                 )))
@@ -353,7 +358,7 @@ public class ValidationHelper implements SemanticsConsts {
                 ))
                 .filter(dc -> !dc.getAlreadyPresentSymbol().sourceLocation()
                     .equals(dc.getToBeAddedSymbol().sourceLocation())
-                ).filter(Util.dinstinctBy(dc -> Util.tuple(
+                ).filter(SemanticsUtils.dinstinctBy(dc -> SemanticsUtils.tuple(
                     dc.getAlreadyPresentSymbol().getSignature(),
                     dc.getAlreadyPresentSymbol().sourceLocation()
                 )))
@@ -397,19 +402,34 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
+
     public boolean assertExpectedType(
-        IJadescriptType expected,
-        IJadescriptType actual,
+        TypeArgument expected,
+        TypeArgument actual,
         String issueCode,
         Maybe<? extends EObject> object,
         ValidationMessageAcceptor acceptor
     ) {
-        expected = expected.postResolve();
+        expected = expected instanceof IJadescriptType
+            ? ((IJadescriptType) expected).postResolve()
+            : expected;
+
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        final TypeRelationship result;
+        if(expected instanceof IJadescriptType
+            && actual instanceof IJadescriptType){
+            result = comparator.compare(
+                (IJadescriptType) expected,
+                (IJadescriptType) actual
+            );
+        }else {
+            result = comparator.compareTypeArguments(expected, actual);
+        }
         return asserting(
-            expected.isSupEqualTo(actual),
+            result.is(superTypeOrEqual()),
             issueCode,
-            "Invalid type; found: '" + actual.getJadescriptName() +
-                "'; expected: '" + expected.getJadescriptName() +
+            "Invalid type; found: '" + actual.getFullJadescriptName() +
+                "'; expected: '" + expected.getFullJadescriptName() +
                 "' or subtype.",
             object,
             acceptor
@@ -422,39 +442,59 @@ public class ValidationHelper implements SemanticsConsts {
         IJadescriptType actual
     ) {
         StringBuilder sb = new StringBuilder("Invalid type; found: '");
-        sb.append(actual.getJadescriptName()).append("'; expected: ");
+        sb.append(actual.getFullJadescriptName()).append("'; expected: ");
         for (int i = 0; i < expected.size(); i++) {
             final IJadescriptType e = expected.get(i);
             if (i != 0) {
                 sb.append(", ");
             }
-            sb.append("'").append(e.getJadescriptName()).append("'");
+            sb.append("'").append(e.getFullJadescriptName()).append("'");
         }
         sb.append(", or subtypes.");
         return sb.toString();
     }
 
 
-    public boolean assertExpectedTypes(
+    public boolean assertExpectedTypesAny(
         List<IJadescriptType> alternatives,
         IJadescriptType actual,
         String issueCode,
         Maybe<? extends EObject> object,
         ValidationMessageAcceptor acceptor
     ) {
+        return assertExpectedTypesAny(
+            alternatives,
+            actual,
+            issueCode,
+            object,
+            null,
+            acceptor
+        );
+    }
+
+    public boolean assertExpectedTypesAny(
+        List<IJadescriptType> alternatives,
+        IJadescriptType actual,
+        String issueCode,
+        Maybe<? extends EObject> object,
+        @Nullable EStructuralFeature feature,
+        ValidationMessageAcceptor acceptor
+    ) {
         if (alternatives == null || alternatives.isEmpty()) {
             return VALID;
         }
         boolean b = false;
+        final TypeComparator comparator = module.get(TypeComparator.class);
         for (IJadescriptType e : alternatives) {
             e = e.postResolve();
-            b = b || e.isSupEqualTo(actual);
+            b = b || comparator.compare(e, actual).is(superTypeOrEqual());
         }
         return asserting(
             b,
             issueCode,
             multiInvalidTypeMessage(alternatives, actual),
             object,
+            feature,
             acceptor
         );
     }
@@ -469,11 +509,12 @@ public class ValidationHelper implements SemanticsConsts {
         ValidationMessageAcceptor acceptor
     ) {
         expected = expected.postResolve();
+        final TypeComparator comparator = module.get(TypeComparator.class);
         return asserting(
-            expected.isSupEqualTo(actual),
+            comparator.compare(expected, actual).is(superTypeOrEqual()),
             issueCode,
-            "invalid type; found: '" + actual.getJadescriptName() +
-                "'; expected: '" + expected.getJadescriptName() +
+            "invalid type; found: '" + actual.getFullJadescriptName() +
+                "'; expected: '" + expected.getFullJadescriptName() +
                 "' or subtype",
             object,
             feature,
@@ -493,84 +534,13 @@ public class ValidationHelper implements SemanticsConsts {
         ValidationMessageAcceptor acceptor
     ) {
         expected = expected.postResolve();
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
         return asserting(
-            expected.isSupEqualTo(actual),
+            comparator.compare(expected, actual).is(superTypeOrEqual()),
             issueCode,
-            "invalid type; found: '" + actual.getJadescriptName() +
-                "'; expected: '" + expected.getJadescriptName() +
-                "' or subtype",
-            object,
-            feature,
-            index,
-            acceptor
-        );
-    }
-
-
-    public boolean assertExpectedType(
-        Class<?> expected,
-        IJadescriptType actual,
-        String issueCode,
-        Maybe<? extends EObject> object,
-        ValidationMessageAcceptor acceptor
-    ) {
-        Objects.requireNonNull(expected);
-        final IJadescriptType expectedType =
-            module.get(TypeHelper.class).jtFromClass(expected);
-        return asserting(
-            expectedType.isSupEqualTo(actual),
-            issueCode,
-            "invalid type; found: '" + actual.getJadescriptName() +
-                "'; expected: '" + expectedType.getJadescriptName() +
-                "' or subtype",
-            object,
-            acceptor
-        );
-    }
-
-
-    public boolean assertExpectedType(
-        Class<?> expected,
-        IJadescriptType actual,
-        String issueCode,
-        Maybe<? extends EObject> object,
-        EStructuralFeature feature,
-        ValidationMessageAcceptor acceptor
-    ) {
-        Objects.requireNonNull(expected);
-        final IJadescriptType expectedType =
-            module.get(TypeHelper.class).jtFromClass(expected);
-        return asserting(
-            expectedType.isSupEqualTo(actual),
-            issueCode,
-            "invalid type; found: '" + actual.getJadescriptName() +
-                "'; expected: '" + expectedType.getJadescriptName() +
-                "' or subtype",
-            object,
-            feature,
-            acceptor
-        );
-    }
-
-
-    @SuppressWarnings("UnusedReturnValue")
-    public boolean assertExpectedType(
-        Class<?> expected,
-        IJadescriptType actual,
-        String issueCode,
-        Maybe<? extends EObject> object,
-        EStructuralFeature feature,
-        int index,
-        ValidationMessageAcceptor acceptor
-    ) {
-        Objects.requireNonNull(expected);
-        final IJadescriptType expectedDescriptor =
-            module.get(TypeHelper.class).jtFromClass(expected);
-        return asserting(
-            expectedDescriptor.isSupEqualTo(actual),
-            issueCode,
-            "invalid type; found: '" + actual.getJadescriptName() +
-                "'; expected: '" + expectedDescriptor.getJadescriptName() +
+            "invalid type; found: '" + actual.getFullJadescriptName() +
+                "'; expected: '" + expected.getFullJadescriptName() +
                 "' or subtype",
             object,
             feature,
@@ -707,6 +677,7 @@ public class ValidationHelper implements SemanticsConsts {
         );
     }
 
+
     public void emitInfo(
         String issueCode,
         String description,
@@ -714,8 +685,9 @@ public class ValidationHelper implements SemanticsConsts {
         EStructuralFeature feature,
         int index,
         ValidationMessageAcceptor acceptor
-    ){
-        final Maybe<? extends EObject> eobject = Util.extractEObject(object);
+    ) {
+        final Maybe<? extends EObject> eobject = SemanticsUtils.extractEObject(
+            object);
         if (eobject.isNothing()) {
             return;
         }
@@ -735,12 +707,12 @@ public class ValidationHelper implements SemanticsConsts {
         String issueCode,
         String description,
         Maybe<? extends EObject> object,
-        EStructuralFeature feature,
+        @Nullable EStructuralFeature feature,
         int index,
         ValidationMessageAcceptor acceptor
     ) {
         if (!isTrue) {
-            Util.extractEObject(object).safeDo(value -> {
+            SemanticsUtils.extractEObject(object).safeDo(value -> {
                 acceptor.acceptError(
                     description,
                     value,
@@ -760,7 +732,7 @@ public class ValidationHelper implements SemanticsConsts {
         String issueCode,
         String description,
         Maybe<? extends EObject> object,
-        EStructuralFeature feature,
+        @Nullable EStructuralFeature feature,
         ValidationMessageAcceptor acceptor
     ) {
         return asserting(
@@ -820,7 +792,8 @@ public class ValidationHelper implements SemanticsConsts {
         ValidationMessageAcceptor acceptor
     ) {
 
-        Maybe<? extends EObject> eObject = Util.extractEObject(object);
+        Maybe<? extends EObject> eObject =
+            SemanticsUtils.extractEObject(object);
         if (!isTrue.orElse(true) && eObject.isPresent()) {
             acceptor.acceptError(
                 description,
@@ -884,7 +857,8 @@ public class ValidationHelper implements SemanticsConsts {
         int index,
         ValidationMessageAcceptor acceptor
     ) {
-        Maybe<? extends EObject> eObject = Util.extractEObject(object);
+        Maybe<? extends EObject> eObject =
+            SemanticsUtils.extractEObject(object);
 
         if (!isTrue && eObject.isPresent()) {
             acceptor.acceptWarning(
@@ -949,7 +923,8 @@ public class ValidationHelper implements SemanticsConsts {
         int index,
         ValidationMessageAcceptor acceptor
     ) {
-        Maybe<? extends EObject> eObject = Util.extractEObject(object);
+        Maybe<? extends EObject> eObject =
+            SemanticsUtils.extractEObject(object);
 
         if (!isTrue.orElse(true) && eObject.isPresent()) {
             acceptor.acceptWarning(

@@ -46,7 +46,7 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
 
 
     public Behaviour(
-        AgentEnv<? extends A, SideEffectsFlag.AnySideEffectFlag> _agentEnv
+        AgentEnv<? extends A, ? extends SideEffectsFlag.WithSideEffects> _agentEnv
     ) {
         super(_agentEnv.getAgent());
         this.macroState = MacroState.NOT_ACTIVE;
@@ -125,7 +125,7 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
 
     //Used by generated behaviours, when they detect that no event handler
     // fired in an execution step, to put the
-    // behaviour to sleep until a new event (message/percept) occurs.
+    // behaviour to sleep until a new event (message/native) occurs.
     public void __awaitForEvents() {
         __waitings.add(Waiting.waitForEvents());
 

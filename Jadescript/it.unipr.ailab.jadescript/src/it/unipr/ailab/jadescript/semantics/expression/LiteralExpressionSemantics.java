@@ -8,10 +8,11 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.XNumberLiteral;
@@ -21,7 +22,6 @@ import org.eclipse.xtext.xbase.typesystem.computation.NumberLiterals;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 
 /**
@@ -87,7 +87,7 @@ public class LiteralExpressionSemantics
      * happens when there is no type specification.
      */
     private boolean isMapT(Maybe<MapOrSetLiteral> input) {
-        return input.__(MapOrSetLiteral::isIsMapT).extract(nullAsFalse)
+        return input.__(MapOrSetLiteral::isIsMapT).orElse(false)
             || input.__(MapOrSetLiteral::getValueTypeParameter).isPresent();
     }
 
@@ -98,7 +98,7 @@ public class LiteralExpressionSemantics
      * its an empty ('{:}') map literal.
      */
     private boolean isMapV(Maybe<MapOrSetLiteral> input) {
-        return input.__(MapOrSetLiteral::isIsMap).extract(nullAsFalse);
+        return input.__(MapOrSetLiteral::isIsMap).orElse(false);
     }
 
 
@@ -115,7 +115,9 @@ public class LiteralExpressionSemantics
         Maybe<Literal> input, StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        if (input == null) return "";
+        if (input == null){
+            return "";
+        }
 
         final Maybe<String> number = input.__(Literal::getNumber);
         final Maybe<String> timestamp = input.__(Literal::getTimestamp);
@@ -151,13 +153,13 @@ public class LiteralExpressionSemantics
 
 
         if (number.isPresent()) {
-            return module.get(TypeHelper.class).jtFromClass(
+            return module.get(TypeSolver.class).fromClass(
                 getTypeOfNumberLiteral(module, number)
             );
         } else if (bool.isPresent()) {
-            return module.get(TypeHelper.class).BOOLEAN;
+            return module.get(BuiltinTypeProvider.class).boolean_();
         } else if (timestamp.isPresent()) {
-            return module.get(TypeHelper.class).TIMESTAMP;
+            return module.get(BuiltinTypeProvider.class).timestamp();
         } else {
             throw new UnsupportedNodeType("Unsupported type of literal");
         }
@@ -370,7 +372,9 @@ public class LiteralExpressionSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return VALID;
+        if (input == null){
+            return VALID;
+        }
 
         final Maybe<String> number = input.__(Literal::getNumber);
 

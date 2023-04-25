@@ -6,10 +6,10 @@ import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociat
 import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.search.WithSupertype;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -20,8 +20,8 @@ public class OntologyDeclarationContext
         extends TopLevelDeclarationContext
         implements WithSupertype, OntologyAssociated {
     private final JvmDeclaredType ontology;
-    private final LazyValue<IJadescriptType> ontoType;
-    private final LazyValue<TypeNamespace> ontoNamespace;
+    private final LazyInit<IJadescriptType> ontoType;
+    private final LazyInit<TypeNamespace> ontoNamespace;
 
     public OntologyDeclarationContext(
             SemanticsModule module,
@@ -30,14 +30,14 @@ public class OntologyDeclarationContext
     ) {
         super(module, outer);
         this.ontology = ontology;
-        this.ontoType = new LazyValue<>(() ->
-            module.get(TypeHelper.class).jtFromJvmType(this.ontology));
-        this.ontoNamespace = new LazyValue<>(() ->
+        this.ontoType = new LazyInit<>(() ->
+            module.get(TypeSolver.class).fromJvmType(this.ontology));
+        this.ontoNamespace = new LazyInit<>(() ->
             this.ontoType.get().namespace());
     }
 
     public String getOntologyName(){
-        return ontoType.get().getJadescriptName();
+        return ontoType.get().getFullJadescriptName();
     }
 
     @Override

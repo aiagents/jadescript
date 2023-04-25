@@ -9,12 +9,17 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 import jade.wrapper.ContainerController;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
@@ -23,7 +28,7 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyList;
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 public class CreateAgentStatementSemantics
     extends StatementSemantics<CreateAgentStatement> {
@@ -39,26 +44,26 @@ public class CreateAgentStatementSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        final List<Maybe<RValueExpression>> namedArgsValues =
-            Maybe.toListOfMaybes(input
-                    .__(CreateAgentStatement::getNamedArgs)
-                    .__(NamedArgumentList::getParameterValues))
-                .stream().filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> namedArgsValues =
+            someStream(input
+                .__(CreateAgentStatement::getNamedArgs)
+                .__(NamedArgumentList::getParameterValues))
+                .filter(Maybe::isPresent)
+                .collect(MaybeList.collectFromStreamOfMaybes());
 
-        final List<Maybe<String>> namedArgsKeys =
-            Maybe.toListOfMaybes(input
-                    .__(CreateAgentStatement::getNamedArgs)
-                    .__(NamedArgumentList::getParameterNames))
-                .stream().filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<String> namedArgsKeys =
+            someStream(input
+                .__(CreateAgentStatement::getNamedArgs)
+                .__(NamedArgumentList::getParameterNames))
+                .filter(Maybe::isPresent)
+                .collect(MaybeList.collectFromStreamOfMaybes());
 
-        final List<Maybe<RValueExpression>> simpleArgs =
-            Maybe.toListOfMaybes(input
-                    .__(CreateAgentStatement::getSimpleArgs)
-                    .__(SimpleArgumentList::getExpressions))
-                .stream().filter(Maybe::isPresent)
-                .collect(Collectors.toList());
+        final MaybeList<RValueExpression> simpleArgs =
+            someStream(input
+                .__(CreateAgentStatement::getSimpleArgs)
+                .__(SimpleArgumentList::getExpressions))
+                .filter(Maybe::isPresent)
+                .collect(MaybeList.collectFromStreamOfMaybes());
 
 
         final RValueExpressionSemantics rves =
@@ -71,7 +76,7 @@ public class CreateAgentStatementSemantics
 
         if (nickNameCheck == VALID) {
             module.get(ValidationHelper.class).assertExpectedType(
-                module.get(TypeHelper.class).TEXT,
+                module.get(BuiltinTypeProvider.class).text(),
                 rves.inferType(nickName, state),
                 "InvalidAgentName",
                 nickName,
@@ -100,7 +105,7 @@ public class CreateAgentStatementSemantics
         );
 
         module.get(ValidationHelper.class).assertExpectedType(
-            module.get(TypeHelper.class).AGENT,
+            module.get(BuiltinTypeProvider.class).agent(),
             agentType,
             "InvalidAgentType",
             agentTypeEObject,
@@ -111,6 +116,10 @@ public class CreateAgentStatementSemantics
             module,
             agentType.asJvmTypeReference()
         );
+
+        if (agentNamespace == null) {
+            return state;
+        }
 
         Optional<? extends JvmOperation> createMethodOpt =
             getCreateMethod(agentNamespace);
@@ -144,6 +153,7 @@ public class CreateAgentStatementSemantics
                     .map(JvmFormalParameter::getParameterType)
                     .filter(Objects::nonNull)
                     .map(agentNamespace::resolveType)
+                    .map(TypeArgument::ignoreBound)
                     .collect(Collectors.toList());
 
             module.get(ValidationHelper.class).asserting(
@@ -181,6 +191,7 @@ public class CreateAgentStatementSemantics
                         .map(JvmFormalParameter::getParameterType)
                         .filter(Objects::nonNull)
                         .map(agentNamespace::resolveType)
+                        .map(TypeArgument::ignoreBound)
                         .collect(Collectors.toList());
 
                 module.get(ValidationHelper.class).asserting(
@@ -235,6 +246,7 @@ public class CreateAgentStatementSemantics
                     .map(JvmFormalParameter::getParameterType)
                     .filter(Objects::nonNull)
                     .map(agentNamespace::resolveType)
+                    .map(TypeArgument::ignoreBound)
                     .collect(Collectors.toList());
 
 
@@ -264,7 +276,13 @@ public class CreateAgentStatementSemantics
     private Optional<? extends JvmOperation> getCreateMethod(
         JvmTypeNamespace namespace
     ) {
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        if (namespace == null) {
+            return Optional.empty();
+        }
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         return namespace.searchAs(
             JvmTypeNamespace.class,
             searcher -> searcher.searchJvmOperation()
@@ -279,13 +297,19 @@ public class CreateAgentStatementSemantics
                         return false;
                     }
                     final IJadescriptType param0Type =
-                        searcher.resolveType(param0.getParameterType());
+                        searcher.resolveType(param0.getParameterType())
+                            .ignoreBound();
                     final IJadescriptType param1Type =
-                        searcher.resolveType(param1.getParameterType());
-                    return typeHelper.isAssignable(
-                        typeHelper.typeRef(ContainerController.class),
-                        param0Type.asJvmTypeReference()
-                    ) && typeHelper.TEXT.isSupEqualTo(param1Type);
+                        searcher.resolveType(param1.getParameterType())
+                            .ignoreBound();
+                    return jvm.isAssignable(
+                        jvm.typeRef(ContainerController.class),
+                        param0Type.asJvmTypeReference(),
+                        false
+                    ) && comparator.compare(
+                        builtins.text(),
+                        param1Type
+                    ).is(TypeRelationshipQuery.superTypeOrEqual());
                 })
         ).findFirst();
     }
@@ -294,10 +318,10 @@ public class CreateAgentStatementSemantics
     private void validateCreateArguments(
         List<IJadescriptType> paramTypes,
         List<IJadescriptType> argTypes,
-        List<Maybe<RValueExpression>> argExprs,
+        MaybeList<RValueExpression> argExprs,
         ValidationMessageAcceptor acceptor
     ) {
-        final int size = Util.min(
+        final int size = SemanticsUtils.min(
             paramTypes.size(),
             argTypes.size(),
             argExprs.size()
@@ -321,7 +345,7 @@ public class CreateAgentStatementSemantics
         List<String> paramNames,
         List<IJadescriptType> paramTypes,
         List<String> argNames,
-        List<Maybe<RValueExpression>> argExprs,
+        MaybeList<RValueExpression> argExprs,
         List<IJadescriptType> argTypes,
         Maybe<CreateAgentStatement> input,
         ValidationMessageAcceptor acceptor
@@ -371,7 +395,10 @@ public class CreateAgentStatementSemantics
                 super(
                     argName,
                     expr,
-                    module.get(TypeHelper.class).ANY,
+                    module.get(BuiltinTypeProvider.class).any(
+                        "Attempted to compute the type " +
+                            "of an invalid argument."
+                    ),
                     type,
                     oldPosition,
                     -1
@@ -381,7 +408,7 @@ public class CreateAgentStatementSemantics
         }
 
 
-        int size = Util.min(
+        int size = SemanticsUtils.min(
             paramNames.size(),
             paramTypes.size(),
             argNames.size(),
@@ -389,7 +416,7 @@ public class CreateAgentStatementSemantics
             argTypes.size()
         );
 
-        final int argMin = Util.min(
+        final int argMin = SemanticsUtils.min(
             argNames.size(),
             argExprs.size(),
             argTypes.size()
@@ -499,7 +526,7 @@ public class CreateAgentStatementSemantics
         validateCreateArguments(
             newParamTypes,
             newArgTypes,
-            newArgExprs,
+            MaybeList.fromListOfMaybesFinalize(newArgExprs),
             acceptor
         );
 
@@ -512,30 +539,27 @@ public class CreateAgentStatementSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        List<Maybe<RValueExpression>> args;
+        MaybeList<RValueExpression> args;
         if (input.__(CreateAgentStatement::getNamedArgs).isPresent()) {
-            args = Maybe.toListOfMaybes(input
+            args = input
                 .__(CreateAgentStatement::getNamedArgs)
-                .__(NamedArgumentList::getParameterValues)
-            );
+                .__toList(NamedArgumentList::getParameterValues);
 
         } else {
-            args = Maybe.toListOfMaybes(input
+            args = input
                 .__(CreateAgentStatement::getSimpleArgs)
-                .__(SimpleArgumentList::getExpressions)
-            );
+                .__toList(SimpleArgumentList::getExpressions);
         }
 
 
         final IJadescriptType agentType = input
             .__(CreateAgentStatement::getAgentType)
-            .extract(module.get(TypeExpressionSemantics.class)
-                ::toJadescriptType);
+            .extract(
+                module.get(TypeExpressionSemantics.class)::toJadescriptType
+            );
 
-        final JvmTypeNamespace agentNamespace = JvmTypeNamespace.resolve(
-            module,
-            agentType.asJvmTypeReference()
-        );
+        final JvmTypeNamespace agentNamespace =
+            JvmTypeNamespace.resolve(module, agentType.asJvmTypeReference());
 
         final Optional<? extends JvmOperation> createMethodOpt =
             getCreateMethod(agentNamespace);
@@ -555,9 +579,9 @@ public class CreateAgentStatementSemantics
 
             args = CallSemantics.sortToMatchParamNames(
                 args,
-                nullAsEmptyList(input.__(CreateAgentStatement::getNamedArgs)
-                    .__(NamedArgumentList::getParameterNames)
-                    .__(ArrayList::new)),
+                input.__(CreateAgentStatement::getNamedArgs)
+                    .<List<String>>__(NamedArgumentList::getParameterNames)
+                    .orElseGet(ArrayList::new),
                 paramNames.subList(2, paramNames.size())
             );
         }

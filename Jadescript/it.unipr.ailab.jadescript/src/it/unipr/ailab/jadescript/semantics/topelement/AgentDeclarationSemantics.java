@@ -7,8 +7,11 @@ import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c1toplevel.AgentDeclarationContext;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import jade.wrapper.ContainerController;
@@ -44,16 +47,17 @@ public class AgentDeclarationSemantics
         JvmDeclaredType beingDeclared
     ) {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
 
         return typeHelper.beingDeclaredAgentType(
             beingDeclared,
-            Maybe.toListOfMaybes(input.__(Agent::getSuperTypes)).stream()
+            Maybe.someStream(input.__(Agent::getSuperTypes))
                 .findFirst()
                 .orElse(nothing())
                 .__(JvmParameterizedTypeReference::getType)
                 .require(t -> t instanceof JvmDeclaredType)
                 .__(t -> (JvmDeclaredType) t)
-                .__(typeHelper::jtFromJvmType)
+                .__(typeSolver::fromJvmType)
         );
     }
 
@@ -63,6 +67,7 @@ public class AgentDeclarationSemantics
         Maybe<Agent> input,
         JvmDeclaredType jvmDeclaredType
     ) {
+
         final ContextManager contextManager = module.get(ContextManager.class);
         contextManager.enterTopLevelDeclaration((module, outer) ->
             new AgentDeclarationContext(
@@ -74,8 +79,7 @@ public class AgentDeclarationSemantics
         );
 
         contextManager.enterProceduralFeatureContainer(
-            module.get(TypeHelper.class)
-                .jtFromJvmTypePermissive(jvmDeclaredType),
+            module.get(TypeSolver.class).fromJvmTypePermissive(jvmDeclaredType),
             input
         );
 
@@ -104,13 +108,17 @@ public class AgentDeclarationSemantics
 
     @Override
     public List<IJadescriptType> allowedIndirectSupertypes(Maybe<Agent> input) {
-        return Collections.singletonList(module.get(TypeHelper.class).AGENT);
+        return Collections.singletonList(
+            module.get(BuiltinTypeProvider.class).agent()
+        );
     }
 
 
     @Override
     public Optional<IJadescriptType> defaultSuperType(Maybe<Agent> input) {
-        return Optional.ofNullable(module.get(TypeHelper.class).AGENT);
+        return Optional.ofNullable(
+            module.get(BuiltinTypeProvider.class).agent()
+        );
     }
 
 
@@ -129,7 +137,9 @@ public class AgentDeclarationSemantics
 
         final Agent inputSafe = input.toNullable();
         final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
@@ -144,7 +154,7 @@ public class AgentDeclarationSemantics
         members.add(jvmTB.toMethod(
             inputSafe,
             THE_AGENT,
-            typeHelper.typeRef(itClass),
+            jvm.typeRef(itClass),
             itMethod -> compilationHelper.createAndSetBody(
                 itMethod,
                 scb -> {
@@ -156,7 +166,7 @@ public class AgentDeclarationSemantics
         members.add(jvmTB.toMethod(
             inputSafe,
             "setup",
-            typeHelper.VOID.asJvmTypeReference(),
+            builtins.javaVoid().asJvmTypeReference(),
             itMethod -> {
                 itMethod.setVisibility(JvmVisibility.PROTECTED);
                 compilationHelper.createAndSetBody(itMethod, scb -> {
@@ -171,14 +181,14 @@ public class AgentDeclarationSemantics
         members.add(jvmTB.toMethod(
             inputSafe,
             "__registerCodecs",
-            typeHelper.VOID.asJvmTypeReference(),
+            builtins.javaVoid().asJvmTypeReference(),
             itMethod -> {
                 itMethod.setVisibility(JvmVisibility.PROTECTED);
                 itMethod.getParameters().add(
                     jvmTB.toParameter(
                         inputSafe,
                         "cm",
-                        typeHelper.typeRef(jade.content.ContentManager.class)
+                        jvm.typeRef(jade.content.ContentManager.class)
                     )
                 );
 
@@ -196,12 +206,12 @@ public class AgentDeclarationSemantics
         ));
 
 
-        Maybe<OnCreateHandler> createHandler = stream(
+        Maybe<OnCreateHandler> createHandler = someStream(
             input.__(FeatureContainer::getFeatures)
         ).filter(maybeF ->
                 //f instanceof OnCreateHandler
                 maybeF.__(f -> f instanceof OnCreateHandler)
-                    .extract(nullAsFalse)
+                    .orElse(false)
             ).map(maybeF -> maybeF.__(f -> (OnCreateHandler) f)).findAny()
             .orElse(Maybe.nothing());
 
@@ -232,7 +242,8 @@ public class AgentDeclarationSemantics
         members.add(module.get(JvmTypesBuilder.class).toMethod(
             agent,
             "__onCreate",
-            module.get(TypeHelper.class).VOID.asJvmTypeReference(),
+            module.get(BuiltinTypeProvider.class)
+                .javaVoid().asJvmTypeReference(),
             itMethod -> {
                 itMethod.setVisibility(JvmVisibility.PRIVATE);
                 module.get(CompilationHelper.class).createAndSetBody(
@@ -253,7 +264,7 @@ public class AgentDeclarationSemantics
     ) {
         final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
 
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
@@ -261,12 +272,18 @@ public class AgentDeclarationSemantics
         final TypeExpressionSemantics tes = module.get(
             TypeExpressionSemantics.class);
 
-        final JvmTypeReference ctrlrType = typeHelper.typeRef(
-            JadescriptAgentController.class);
+        final JvmTypeReference ctrlrType =
+            jvm.typeRef(JadescriptAgentController.class);
 
         members.add(jvmTB.toMethod(inputSafe, "create", ctrlrType, itMethod -> {
             itMethod.setVisibility(JvmVisibility.PUBLIC);
             itMethod.setStatic(true);
+
+
+            final Maybe<String> inputFQN =
+                some(compilationHelper.getFullyQualifiedName(inputSafe))
+                    .__(fqn -> fqn.toString("."))
+                    .nullIf(String::isBlank);
 
 
             if (createHandler.isPresent()) {
@@ -278,15 +295,15 @@ public class AgentDeclarationSemantics
                 itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
                     "_container",
-                    typeHelper.typeRef(ContainerController.class)
+                    jvm.typeRef(ContainerController.class)
                 ));
                 itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
                     "_agentName",
-                    typeHelper.typeRef(String.class)
+                    jvm.typeRef(String.class)
                 ));
 
-                itMethod.getExceptions().add(typeHelper.typeRef(
+                itMethod.getExceptions().add(jvm.typeRef(
                     jade.wrapper.StaleProxyException.class
                 ));
 
@@ -294,8 +311,7 @@ public class AgentDeclarationSemantics
                 createArgs.add(w.expr("_container"));
                 createArgs.add(w.expr("_agentName"));
                 createArgs.add(w.expr(
-                    compilationHelper.getFullyQualifiedName(inputSafe)
-                        + ".class"
+                    inputFQN.orElse("jadescript.core.Agent") + ".class"
                 ));
 
                 for (FormalParameter parameter :
@@ -342,25 +358,24 @@ public class AgentDeclarationSemantics
                 itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
                     "_container",
-                    typeHelper.typeRef(ContainerController.class)
+                    jvm.typeRef(ContainerController.class)
                 ));
 
                 itMethod.getParameters().add(jvmTB.toParameter(
                     inputSafe,
                     "_agentName",
-                    typeHelper.typeRef(String.class)
+                    jvm.typeRef(String.class)
                 ));
 
                 itMethod.getExceptions().add(
-                    typeHelper.typeRef(jade.wrapper.StaleProxyException.class)
+                    jvm.typeRef(jade.wrapper.StaleProxyException.class)
                 );
 
                 List<ExpressionWriter> createArgs = new ArrayList<>();
                 createArgs.add(w.expr("_container"));
                 createArgs.add(w.expr("_agentName"));
                 createArgs.add(w.expr(
-                    compilationHelper.getFullyQualifiedName(inputSafe)
-                        + ".class"
+                    inputFQN.orElse("jadescript.core.Agent") + ".class"
                 ));
 
 

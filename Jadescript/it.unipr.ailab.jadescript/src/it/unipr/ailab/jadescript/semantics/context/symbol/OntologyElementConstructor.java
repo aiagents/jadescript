@@ -5,46 +5,50 @@ import it.unipr.ailab.jadescript.jadescript.FeatureWithSlots;
 import it.unipr.ailab.jadescript.jadescript.SlotDeclaration;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
+import it.unipr.ailab.jadescript.semantics.CallSemantics;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
-import it.unipr.ailab.jadescript.semantics.utils.LazyValue;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
 import org.eclipse.xtext.common.types.JvmTypeReference;
-import org.eclipse.xtext.naming.QualifiedName;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static it.unipr.ailab.jadescript.semantics.context.symbol.GlobalFunctionOrProcedure.defaultInvokeByArity;
-import static it.unipr.ailab.jadescript.semantics.context.symbol.GlobalFunctionOrProcedure.defaultInvokeByName;
+
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public class OntologyElementConstructor implements GlobalCallable {
 
-    private final String ontoFQName;
+    private final Maybe<String> ontoFQName;
     private final String name;
-    private final LazyValue<IJadescriptType> type;
+    private final LazyInit<IJadescriptType> type;
     private final Map<String, IJadescriptType> parameterTypesByName;
     private final List<String> parameterNames;
     private final SearchLocation sourceLocation;
 
 
     private OntologyElementConstructor(
-        String ontoFQName,
+        Maybe<String> ontoFQName,
         String name,
-        LazyValue<IJadescriptType> type,
+        LazyInit<IJadescriptType> type,
         Map<String, IJadescriptType> parameterTypesByName,
         List<String> parameterNames,
         SearchLocation sourceLocation
@@ -73,7 +77,8 @@ public class OntologyElementConstructor implements GlobalCallable {
         List<String> paramNames = new ArrayList<>();
         Map<String, IJadescriptType> paramNamesToTypes = new HashMap<>();
 
-        final IJadescriptType anyAE = module.get(TypeHelper.class).ANYAGENTENV;
+        final IJadescriptType anyAE =
+            module.get(BuiltinTypeProvider.class).anyAgentEnv();
 
 
         for (JvmFormalParameter parameter : parameters) {
@@ -93,8 +98,11 @@ public class OntologyElementConstructor implements GlobalCallable {
             }
 
             final IJadescriptType solvedType =
-                jvmTypeNamespace.resolveType(paramTypeRef);
-            if (anyAE.isSupEqualTo(solvedType)) {
+                jvmTypeNamespace.resolveType(paramTypeRef).ignoreBound();
+
+            final TypeComparator comparator = module.get(TypeComparator.class);
+
+            if (comparator.compare(anyAE, solvedType).is(superTypeOrEqual())) {
                 continue;
             }
 
@@ -103,11 +111,11 @@ public class OntologyElementConstructor implements GlobalCallable {
         }
 
         return new OntologyElementConstructor(
-            ontoFQName,
+            some(ontoFQName),
             operation.getSimpleName(),
-            new LazyValue<>(() -> jvmTypeNamespace.resolveType(
+            new LazyInit<>(() -> jvmTypeNamespace.resolveType(
                 operation.getReturnType()
-            )),
+            ).ignoreBound()),
             paramNamesToTypes,
             paramNames,
             location == null
@@ -120,7 +128,7 @@ public class OntologyElementConstructor implements GlobalCallable {
     public static Maybe<OntologyElementConstructor> fromFeature(
         SemanticsModule module,
         Maybe<ExtendingFeature> f,
-        String ontoFQName,
+        Maybe<String> ontoFQName,
         SearchLocation currentLocation
     ) {
         if (f.isNothing()) {
@@ -135,10 +143,8 @@ public class OntologyElementConstructor implements GlobalCallable {
 
             final TypeExpressionSemantics typeExpressionSemantics =
                 module.get(TypeExpressionSemantics.class);
-            final List<Maybe<SlotDeclaration>> slots =
-                Maybe.toListOfMaybes(f.__(
-                    i -> ((FeatureWithSlots) i).getSlots()
-                ));
+            final MaybeList<SlotDeclaration> slots =
+                f.__toList(i -> ((FeatureWithSlots) i).getSlots());
             paramNames = new ArrayList<>(slots.size());
             paramTypesByName = new HashMap<>(slots.size());
 
@@ -162,21 +168,21 @@ public class OntologyElementConstructor implements GlobalCallable {
         return some(new OntologyElementConstructor(
             ontoFQName,
             ontologyElement.getName() == null ? "" : ontologyElement.getName(),
-            new LazyValue<>(() -> {
-                final TypeHelper typeHelper = module.get(TypeHelper.class);
+            new LazyInit<>(() -> {
+                final TypeSolver typeSolver = module.get(TypeSolver.class);
+                final BuiltinTypeProvider builtins =
+                    module.get(BuiltinTypeProvider.class);
                 final CompilationHelper compilationHelper =
                     module.get(CompilationHelper.class);
-                final QualifiedName fqname = compilationHelper.
-                    getFullyQualifiedName(ontologyElement);
 
+                return some(
+                    compilationHelper.getFullyQualifiedName(ontologyElement)
+                )
+                    .__(fqn -> fqn.toString("."))
+                    .nullIf(String::isBlank)
+                    .__(typeSolver::fromFullyQualifiedName)
+                    .orElse(builtins.anyOntologyElement());
 
-                String fqnameString = fqname == null
-                    ? ""
-                    : fqname.toString(".");
-
-                return typeHelper.jtFromJvmTypeRef(
-                    typeHelper.typeRef(fqnameString)
-                );
             }),
             paramTypesByName,
             paramNames,
@@ -230,9 +236,10 @@ public class OntologyElementConstructor implements GlobalCallable {
         List<String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
-        return defaultInvokeByArity(
-            ontoFQName + "." + name
-        ).apply(compiledRexprs);
+        String fullyQualifiedName = javaMethodName();
+        return ((Function<List<String>, String>) (args) -> fullyQualifiedName + "(" +
+            String.join(" ,", args) +
+            ")").apply(compiledRexprs);
     }
 
 
@@ -241,11 +248,24 @@ public class OntologyElementConstructor implements GlobalCallable {
         Map<String, String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
-        return defaultInvokeByName(
-            ontoFQName + "." + name,
-            parameterNames()
-        ).apply(compiledRexprs);
+        String fullyQualifiedName = javaMethodName();
+        List<String> paramNames = parameterNames();
+        return ((Function<Map<String, String>, String>) (args) -> fullyQualifiedName + "(" + String.join(
+            " ,",
+            CallSemantics.sortToMatchParamNames(
+                args,
+                paramNames
+            )
+        ) + ")").apply(compiledRexprs);
+    }
 
+
+    private String javaMethodName() {
+        if (ontoFQName.isNothing()) {
+            return name;
+        }
+
+        return ontoFQName.toNullable() + "." + name;
     }
 
 

@@ -1,6 +1,9 @@
 module examples.auction
 
 # Auctioneer agent.
+
+import examples.auction.ItemNotForSale
+
 agent Auctioneer uses ontology EnglishAuction
 
     # --Auctioneer parameters. Change these accordingly--
@@ -33,9 +36,10 @@ agent Auctioneer uses ontology EnglishAuction
 
 
 cyclic behaviour AwaitParticipants for agent Auctioneer
+
     procedure logStatus do
         log "Awaiting participants (" + size of participants + "/" + minimumParticipants + ")..."
-
+ 
     on activate do
         do logStatus
 

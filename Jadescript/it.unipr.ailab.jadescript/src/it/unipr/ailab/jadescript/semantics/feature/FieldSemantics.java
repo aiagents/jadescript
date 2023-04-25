@@ -1,7 +1,12 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.*;
+
+import it.unipr.ailab.jadescript.jadescript.FeatureContainer;
+import it.unipr.ailab.jadescript.jadescript.Field;
+import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
+import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.GenerationParameters;
 import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
@@ -13,10 +18,11 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -51,7 +57,8 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
             return;
         }
         final ContextManager contextManager = module.get(ContextManager.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
         Maybe<RValueExpression> right = input.__(Field::getRight);
         final Maybe<TypeExpression> explicitTypeExpr = input.__(Field::getType);
@@ -74,7 +81,7 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
 
             contextManager.exit();
         } else {
-            finalType = typeHelper.TOP.apply(
+            finalType = builtins.any(
                 "Cannot infer type of field without initializer expression " +
                     "or type specifier."
             );
@@ -111,7 +118,7 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
                     scb.add("null");
 
                     final String dereferencedField =
-                        Util.getOuterClassThisReference(container) +
+                        SemanticsUtils.getOuterClassThisReference(container) +
                             "." + nameSafe;
 
                     // But then uses the __initializeProperties() method to
@@ -147,17 +154,15 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
                 typeRef,
                 itMethod -> {
                     itMethod.setVisibility(JvmVisibility.PRIVATE);
+                    final JvmTypeHelper jvmTypeHelper =
+                        module.get(JvmTypeHelper.class);
                     JvmTypeReference typeReference2 =
-                        TypeHelper.attemptResolveTypeRef(
-                            module, typeRef
-                        );
+                        jvmTypeHelper.attemptResolveTypeRef(typeRef);
                     String eObjectToStringReattempt1 = "" + typeReference2;
                     compilationHelper.createAndSetBody(itMethod, scb -> {
                         String eObjectToStringAfter = "" + typeRef;
                         JvmTypeReference typeReference3 =
-                            TypeHelper.attemptResolveTypeRef(
-                                module, typeRef
-                            );
+                            jvmTypeHelper.attemptResolveTypeRef(typeRef);
                         String eObjectToStringReattempt2 = "" + typeReference3;
                         itMethod.setReturnType(typeReference3);
 
@@ -184,7 +189,7 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
             members.add(module.get(JvmTypesBuilder.class).toField(
                 inputSafe,
                 "__eIsProxy_" + nameSafe + "_" + typeRef.eIsProxy(),
-                typeHelper.BOOLEAN.asJvmTypeReference(),
+                builtins.boolean_().asJvmTypeReference(),
                 itField -> compilationHelper.createAndSetInitializer(
                     itField,
                     scb -> {
@@ -300,7 +305,7 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
         }
 
         IJadescriptType finalType = explicitType
-            .orElseGet(() -> module.get(TypeHelper.class).TOP.apply(
+            .orElseGet(() -> module.get(BuiltinTypeProvider.class).any(
                 "Cannot compute type of property with no explicit type " +
                     "and no initializer expression"
             ));
@@ -321,43 +326,17 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
             );
 
             if (initExprCheck == VALID) {
-                IJadescriptType inferredType =
-                    rves.inferType(right, beforeInit);
-
-                boolean typeConformanceCheck = VALID;
-                if (explicitType.isPresent()) {
-                    typeConformanceCheck = validationHelper.assertExpectedType(
-                        explicitType.toNullable(),
-                        inferredType,
-                        "TypeMismatch",
-                        right,
-                        acceptor
-                    );
-                }
-
-                if (typeConformanceCheck == VALID) {
-
-                    if (name.isPresent() && input.isPresent()) {
-                        final Field inputSafe = input.toNullable();
-
-                        inferredType.validateType(right, acceptor);
-                        if (GenerationParameters.VALIDATOR__SHOW_INFO_MARKERS) {
-                            acceptor.acceptInfo(
-                                "Field declaration; type: " + inferredType,
-                                inputSafe,
-                                JadescriptPackage.eINSTANCE.getField_Name(),
-                                ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
-                                ISSUE_CODE_PREFIX + "Info"
-                            );
-                        }
-
-                    }
-
-
-                    if (explicitType.isNothing()) {
-                        finalType = inferredType;
-                    }
-                }
+                finalType = doTypeConformanceCheck(
+                    input,
+                    acceptor,
+                    name,
+                    validationHelper,
+                    right,
+                    explicitType,
+                    finalType,
+                    rves,
+                    beforeInit
+                );
             }
 
             module.get(ContextManager.class).exit();
@@ -372,6 +351,58 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
             acceptor
         );
 
+    }
+
+
+    private IJadescriptType doTypeConformanceCheck(
+        Maybe<Field> input,
+        ValidationMessageAcceptor acceptor,
+        Maybe<String> name,
+        ValidationHelper validationHelper,
+        Maybe<RValueExpression> right,
+        Maybe<IJadescriptType> explicitType,
+        IJadescriptType finalType,
+        RValueExpressionSemantics rves,
+        StaticState beforeInit
+    ) {
+        IJadescriptType inferredType =
+            rves.inferType(right, beforeInit);
+
+        boolean typeConformanceCheck = VALID;
+        if (explicitType.isPresent()) {
+            typeConformanceCheck = validationHelper.assertExpectedType(
+                explicitType.toNullable(),
+                inferredType,
+                "TypeMismatch",
+                right,
+                acceptor
+            );
+        }
+
+        if (typeConformanceCheck == VALID) {
+
+            if (name.isPresent() && input.isPresent()) {
+                final Field inputSafe = input.toNullable();
+
+                inferredType.validateType(right, acceptor);
+                if (GenerationParameters.VALIDATOR__SHOW_INFO_MARKERS) {
+                    acceptor.acceptInfo(
+                        "Field declaration; type: " + inferredType,
+                        inputSafe,
+                        JadescriptPackage.eINSTANCE.getField_Name(),
+                        ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
+                        ISSUE_CODE_PREFIX + "Info"
+                    );
+                }
+
+            }
+
+
+            if (explicitType.isNothing()) {
+                finalType = inferredType;
+            }
+        }
+        return finalType;
     }
 
 

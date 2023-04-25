@@ -3,11 +3,10 @@ package it.unipr.ailab.jadescript.semantics.context.c2feature;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class OnBehaviourFailureHandlerContext
@@ -43,7 +42,7 @@ public class OnBehaviourFailureHandlerContext
     public Stream<? extends CompilableName> compilableNames(
         @Nullable String name
     ) {
-        return Util.buildStream(
+        return SemanticsUtils.buildStream(
             this::getFailureReasonName,
             this::getFailedBehaviourName
         ).filter(n -> name == null || name.equals(n.name()));

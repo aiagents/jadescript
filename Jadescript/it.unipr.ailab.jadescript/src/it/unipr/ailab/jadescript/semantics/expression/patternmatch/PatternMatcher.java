@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.WriterFactory;
@@ -50,7 +51,7 @@ public abstract class PatternMatcher {
         final TypeHelper typeHelper = module.get(TypeHelper.class);
         final TryCatchWriter checkXType = w.tryCatch(w.block()
                 .addStatement(w.ifStmnt(
-                    w.expr("__objx instanceof " + typeHelper
+                    w.expr("__objx instanceof " + JvmTypeHelper
                         .noGenericsTypeName(adaptType)),
                     w.block().addStatement(w.assign(
                         "__x",

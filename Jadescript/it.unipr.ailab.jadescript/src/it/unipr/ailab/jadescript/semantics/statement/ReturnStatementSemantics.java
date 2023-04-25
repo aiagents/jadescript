@@ -10,14 +10,17 @@ import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c2feature.ReturnExpectedContext;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.implicit.ImplicitConversionsHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 
 /**
  * Created on 26/04/18.
@@ -54,7 +57,7 @@ public class ReturnStatementSemantics
             if (expectedReturn.isPresent()) {
                 IJadescriptType returnExprType =
                     rves.inferType(expr, state);
-                compiledExpression = module.get(TypeHelper.class)
+                compiledExpression = module.get(ImplicitConversionsHelper.class)
                     .compileWithEventualImplicitConversions(
                         compiledExpression,
                         returnExprType,
@@ -106,8 +109,8 @@ public class ReturnStatementSemantics
             module.get(ValidationHelper.class);
 
 
-        if (expectedReturn.isPresent() && module.get(TypeHelper.class).VOID
-            .typeEquals(expectedReturn.get())
+        if (expectedReturn.isPresent() &&
+            expectedReturn.get().category().isJavaVoid()
             || expectedReturn.isEmpty()) {
             //just check that has not expr
             validationHelper.asserting(
@@ -132,9 +135,11 @@ public class ReturnStatementSemantics
             return state;
         }
 
+        final TypeComparator comparator = module.get(TypeComparator.class);
         IJadescriptType actualType = rves.inferType(expr, state);
         validationHelper.asserting(
-            expectedReturn.get().isSupEqualTo(actualType),
+            comparator.compare(expectedReturn.get(), actualType)
+                .is(superTypeOrEqual()),
             "InvalidReturnStatement",
             "Expected returned value type: " + expectedReturn.get()
                 + "; found: " + actualType,

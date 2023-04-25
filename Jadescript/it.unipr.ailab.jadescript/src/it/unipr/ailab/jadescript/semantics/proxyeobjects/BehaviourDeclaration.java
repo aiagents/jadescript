@@ -6,10 +6,10 @@ import it.unipr.ailab.jadescript.jadescript.MemberBehaviour;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EReference;
 import org.eclipse.xtext.common.types.JvmParameterizedTypeReference;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public class BehaviourDeclaration extends ProxyEObject
@@ -23,6 +23,7 @@ public class BehaviourDeclaration extends ProxyEObject
     private Maybe<String> behaviourType;
     private Maybe<String> name;
     private Maybe<JvmTypeReference> forAgent;
+
 
 
     private BehaviourDeclaration(
@@ -116,7 +117,7 @@ public class BehaviourDeclaration extends ProxyEObject
 
     @Override
     public String getName() {
-        return name.extract(nullAsEmptyString);
+        return name.orElse("");
     }
 
 
@@ -154,5 +155,8 @@ public class BehaviourDeclaration extends ProxyEObject
     public EList<JvmTypeReference> getOntologies() {
         return ontologies.toNullable();
     }
+
+
+
 
 }

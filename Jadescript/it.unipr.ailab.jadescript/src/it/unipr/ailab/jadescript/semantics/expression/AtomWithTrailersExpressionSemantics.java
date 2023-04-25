@@ -7,12 +7,10 @@ import it.unipr.ailab.jadescript.jadescript.Trailer;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.expression.trailersexprchain.ReversedTrailerChain;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.MaybeList;
 
-import java.util.List;
 import java.util.Optional;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
-import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
 /**
  * Created on 26/08/18.
@@ -55,19 +53,19 @@ public class AtomWithTrailersExpressionSemantics
         ReversedTrailerChain chain = new ReversedTrailerChain(module);
         boolean isAtomEaten = false;
         Maybe<Primary> atom = input.__(AtomExpr::getAtom);
-        List<Maybe<Trailer>> trailers =
-            toListOfMaybes(input.__(AtomExpr::getTrailers));
+        MaybeList<Trailer> trailers =
+            input.__toList(AtomExpr::getTrailers);
         for (int i = trailers.size() - 1; i >= 0; i--) {
             Maybe<Trailer> currentTrailer = trailers.get(i);
             if (currentTrailer
                 .__(Trailer::isIsACall)
-                .extract(nullAsFalse)) {
+                .orElse(false)) {
                 i--; //get previous (by eating a trailer)
                 chain.addGlobalMethodCall(atom, currentTrailer);
                 isAtomEaten = true;
             } else if (currentTrailer
                 .__(Trailer::isIsASubscription)
-                .extract(nullAsFalse)) {
+                .orElse(false)) {
                 chain.addSubscription(currentTrailer);
             }
         }

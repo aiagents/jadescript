@@ -1,9 +1,9 @@
 package it.unipr.ailab.jadescript.semantics.context.search;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import org.jetbrains.annotations.NotNull;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 
 public class FQNameLocation extends SearchLocation {
     private final String fullyQualifiedName;
@@ -22,19 +22,23 @@ public class FQNameLocation extends SearchLocation {
     }
 
     public IJadescriptType extractType(SemanticsModule module){
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+            final TypeSolver typeSolver = module.get(TypeSolver.class);
+            final BuiltinTypeProvider builtins =
+                module.get(BuiltinTypeProvider.class);
         if(fullyQualifiedName!=null) {
-            return typeHelper
-                .jtFromFullyQualifiedName(fullyQualifiedName);
+            return typeSolver.fromFullyQualifiedName(fullyQualifiedName);
         }else{
-            return typeHelper.ANY;
+            return builtins.any("Failed to extract type from " +
+                "null qualified name.");
         }
     }
 
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof FQNameLocation) {
-            return fullyQualifiedName.equals(((FQNameLocation) obj).fullyQualifiedName);
+            return this.fullyQualifiedName.equals(
+                ((FQNameLocation) obj).fullyQualifiedName
+            );
         }else{
             return false;
         }

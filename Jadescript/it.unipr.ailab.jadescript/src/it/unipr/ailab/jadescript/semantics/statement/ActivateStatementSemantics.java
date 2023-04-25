@@ -11,10 +11,11 @@ import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedBehaviourType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.UserDefinedBehaviourType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import jade.core.behaviours.Behaviour;
@@ -24,6 +25,8 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 
 /**
  * Created on 09/03/18.
@@ -138,7 +141,7 @@ public class ActivateStatementSemantics
         IJadescriptType exprType = rves.inferType(expr, state);
         if (behaviourCheck == VALID) {
             validationHelper.assertExpectedType(
-                Behaviour.class,
+                module.get(BuiltinTypeProvider.class).anyBehaviour(),
                 exprType,
                 "InvalidBehaviourExpressionType",
                 expr,
@@ -151,8 +154,6 @@ public class ActivateStatementSemantics
         validationHelper.assertCanUseAgentReference(expr, acceptor);
 
 
-        final TypeHelper th = module.get(TypeHelper.class);
-
         final Optional<IJadescriptType> agentType = module.get(
             ContextManager.class).currentContext().actAs(
             AgentAssociated.class
@@ -163,6 +164,9 @@ public class ActivateStatementSemantics
                 .map(AgentAssociation::getAgent)
         );
 
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
 
         if (agentType.isPresent()
             && exprType instanceof UserDefinedBehaviourType
@@ -170,16 +174,18 @@ public class ActivateStatementSemantics
             final IJadescriptType forAgentType =
                 ((UserDefinedBehaviourType) exprType).getForAgentType();
             validationHelper.asserting(
-                forAgentType.isSupEqualTo(agentType.get()),
+                comparator.compare(forAgentType, agentType.get())
+                    .is(superTypeOrEqual()),
                 "InvalidBehaviourActivation",
-                "An agent of type '" + agentType.get().getJadescriptName() +
+                "An agent of type '" + agentType.get().getFullJadescriptName() +
                     "' can not activate a behaviour " +
                     "designed for agents of type '" +
-                    forAgentType.getJadescriptName() + "'.",
+                    forAgentType.getFullJadescriptName() + "'.",
                 expr,
                 acceptor
             );
         }
+
 
         if (period.isPresent()) {
             boolean periodCheck = rves.validate(period, runningState, acceptor);
@@ -189,7 +195,7 @@ public class ActivateStatementSemantics
                     runningState
                 );
                 validationHelper.assertExpectedType(
-                    th.DURATION,
+                    builtins.duration(),
                     periodType,
                     "InvalidPeriodType",
                     period,
@@ -198,7 +204,8 @@ public class ActivateStatementSemantics
                 runningState = rves.advance(period, runningState);
             }
             validationHelper.asserting(
-                !th.isAssignable(OneShot.class, exprType),
+                !comparator.compare(OneShot.class, exprType)
+                    .is(superTypeOrEqual()),
                 "InvalidEveryClause",
                 "Can not apply 'every' clause to the activation of a" +
                     " one-shot behaviour",
@@ -212,7 +219,7 @@ public class ActivateStatementSemantics
             boolean delayCheck = rves.validate(delay, runningState, acceptor);
             if (delayCheck == VALID) {
                 validationHelper.assertExpectedType(
-                    th.DURATION,
+                    builtins.duration(),
                     rves.inferType(delay, runningState),
                     "InvalidDelayType",
                     delay,
@@ -226,7 +233,7 @@ public class ActivateStatementSemantics
             boolean startCheck = rves.validate(start, runningState, acceptor);
             if (startCheck == VALID) {
                 validationHelper.assertExpectedType(
-                    th.TIMESTAMP,
+                    builtins.timestamp(),
                     rves.inferType(start, runningState),
                     "InvalidDelayType",
                     start,

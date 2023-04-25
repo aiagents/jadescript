@@ -27,8 +27,8 @@ public class SemanticsDispatchHelper {
             action.accept(module.get(MemberOperationSemantics.class));
         } else if (feature instanceof OnMessageHandler) {
             action.accept(module.get(OnMessageHandlerSemantics.class));
-        } else if (feature instanceof OnPerceptHandler) {
-            action.accept(module.get(OnPerceptHandlerSemantics.class));
+        } else if (feature instanceof OnNativeEventHandler) {
+            action.accept(module.get(OnNativeEventHandlerSemantics.class));
         } else if (feature instanceof MemberBehaviour) {
             action.accept(module.get(MemberBehaviourSemantics.class));
         } else if (feature instanceof OnExceptionHandler) {

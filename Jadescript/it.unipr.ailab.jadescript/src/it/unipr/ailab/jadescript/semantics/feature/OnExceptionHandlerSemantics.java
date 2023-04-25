@@ -17,9 +17,11 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
@@ -74,7 +76,7 @@ public class OnExceptionHandlerSemantics
         members.add(module.get(JvmTypesBuilder.class).toField(
             inputSafe,
             synthesizeExceptionEventVariableName(inputSafe),
-            module.get(TypeHelper.class).typeRef(eventClass), it -> {
+            module.get(JvmTypeHelper.class).typeRef(eventClass), it -> {
                 it.setVisibility(JvmVisibility.PRIVATE);
                 module.get(CompilationHelper.class).createAndSetInitializer(
                     it,
@@ -96,7 +98,9 @@ public class OnExceptionHandlerSemantics
     ) {
         final JvmTypesBuilder jvmTB =
             module.get(JvmTypesBuilder.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
         final CompilationHelper compilationHelper =
             module.get(CompilationHelper.class);
 
@@ -109,7 +113,7 @@ public class OnExceptionHandlerSemantics
                 it.getMembers().add(jvmTB.toField(
                     inputSafe,
                     EXCEPTION_MATCHED_BOOL_VAR_NAME,
-                    typeHelper.BOOLEAN.asJvmTypeReference(),
+                    builtins.boolean_().asJvmTypeReference(),
                     itField -> {
                         itField.setVisibility(JvmVisibility.PUBLIC);
                         compilationHelper.createAndSetInitializer(
@@ -122,7 +126,7 @@ public class OnExceptionHandlerSemantics
                 it.getMembers().add(jvmTB.toMethod(
                     inputSafe,
                     EVENT_HANDLER_STATE_RESET_METHOD_NAME,
-                    typeHelper.VOID.asJvmTypeReference(),
+                    builtins.javaVoid().asJvmTypeReference(),
                     itMethod -> {
                         itMethod.setVisibility(JvmVisibility.PUBLIC);
                         compilationHelper.createAndSetBody(
@@ -138,18 +142,18 @@ public class OnExceptionHandlerSemantics
                 it.getMembers().add(jvmTB.toMethod(
                     inputSafe,
                     "handle",
-                    typeHelper.typeRef(void.class),
+                    jvm.typeRef(void.class),
                     itMethod -> {
                         itMethod.getParameters().add(jvmTB.toParameter(
                             inputSafe,
                             "__inputException",
-                            typeHelper.typeRef(JadescriptException.class)
+                            jvm.typeRef(JadescriptException.class)
                         ));
 
                         itMethod.getParameters().add(jvmTB.toParameter(
                             inputSafe,
                             EXCEPTION_THROWER_NAME,
-                            typeHelper.typeRef(ExceptionThrower.class)
+                            jvm.typeRef(ExceptionThrower.class)
                         ));
 
 
@@ -190,9 +194,12 @@ public class OnExceptionHandlerSemantics
             input.__(OnExceptionHandler::getPattern);
         final Maybe<LValueExpression> pattern = contentPattern
             .__(x -> (LValueExpression) x);
-        final Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        final Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
 
 
         module.get(ContextManager.class).enterProceduralFeature(
@@ -201,7 +208,7 @@ public class OnExceptionHandlerSemantics
 
         StaticState beforePattern = StaticState.beginningOfOperation(module);
 
-        final IJadescriptType propositionUpperBound = typeHelper.PROPOSITION;
+        final IJadescriptType propositionUpperBound = builtins.proposition();
 
 
         IJadescriptType pattNarrowedContentType = propositionUpperBound;
@@ -339,16 +346,15 @@ public class OnExceptionHandlerSemantics
 
         module.get(ContextManager.class).exit();
 
-        final IJadescriptType finalContentType = typeHelper
-            .getGLB(
-                pattNarrowedContentType,
-                wexpNarrowedContentType
-            );
+        final IJadescriptType finalContentType = lattice.getGLB(
+            pattNarrowedContentType,
+            wexpNarrowedContentType
+        );
 
 
         scb.open(
             "if (__inputException.getReason() instanceof " +
-                typeHelper.noGenericsTypeName(
+                JvmTypeHelper.noGenericsTypeName(
                     finalContentType.compileToJavaTypeReference()
                 ) + ") {");
 
@@ -411,7 +417,7 @@ public class OnExceptionHandlerSemantics
         Maybe<WhenExpression> whenBody =
             input.__(OnExceptionHandler::getWhenBody);
 
-        final Maybe<CodeBlock> body = input.__(FeatureWithBody::getBody);
+        final Maybe<OptionalBlock> body = input.__(FeatureWithBody::getBody);
         final Maybe<RValueExpression> whenExpr =
             whenBody.__(WhenExpression::getExpr);
         final Maybe<LValueExpression> pattern = input
@@ -419,9 +425,12 @@ public class OnExceptionHandlerSemantics
             .__(x -> (LValueExpression) x);
 
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
 
-        final IJadescriptType contentUpperBound = typeHelper.PROPOSITION;
+        final IJadescriptType contentUpperBound = builtins.proposition();
 
         module.get(ContextManager.class).enterProceduralFeature(
             OnExceptionHandlerWhenExpressionContext::new
@@ -529,7 +538,7 @@ public class OnExceptionHandlerSemantics
 
         module.get(ContextManager.class).exit();
 
-        final IJadescriptType finalContentType = typeHelper.getGLB(
+        final IJadescriptType finalContentType = lattice.getGLB(
             pattNarrowedContentType,
             wexpNarrowedContentType
         );
@@ -554,11 +563,8 @@ public class OnExceptionHandlerSemantics
 
         inBody = inBody.enterScope();
 
-        module.get(BlockSemantics.class).validate(
-            body,
-            inBody,
-            acceptor
-        );
+        module.get(BlockSemantics.class)
+            .validateOptionalBlock(body, inBody, acceptor);
 
         module.get(ContextManager.class).exit();
 

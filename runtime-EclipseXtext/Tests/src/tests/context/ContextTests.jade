@@ -6,6 +6,7 @@ ontology SuperOntology
 
 ontology MyOntology extends SuperOntology
     concept MyConcept extends SuperConcept
+    action MyAction
 
 
 agent SuperAgent uses ontology MyOntology
@@ -21,6 +22,7 @@ agent MyAgent extends SuperAgent
         
     on create do
         log sax
+        log say
         log ax
         activate MyBehaviour
 
@@ -44,7 +46,7 @@ one shot behaviour MyBehaviour extends SuperBehaviour
     property bx = inform
     function by as performative do
         return cfp
-        
+    
     on execute do
         log __dt__ SuperConcept 
         log __dt__ MyConcept

@@ -7,13 +7,16 @@ import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
 import org.eclipse.xtext.common.types.JvmTypeReference;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -38,7 +41,7 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
     private final boolean withoutSideEffects;
 
 
-    public GlobalFunctionOrProcedure(
+    private GlobalFunctionOrProcedure(
         IJadescriptType returnType,
         String name,
         Map<String, IJadescriptType> parameterNamesToTypes,
@@ -82,7 +85,8 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
         List<String> paramNames = new ArrayList<>();
         Map<String, IJadescriptType> paramNamesToTypes = new HashMap<>();
 
-        final IJadescriptType anyAE = module.get(TypeHelper.class).ANYAGENTENV;
+        final IJadescriptType anyAE =
+            module.get(BuiltinTypeProvider.class).anyAgentEnv();
 
         boolean withoutSideEffects = false;
 
@@ -100,7 +104,8 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
 
             if (paramName.equals(SemanticsConsts.AGENT_ENV)) {
                 final IJadescriptType envType =
-                    namespace.resolveType(paramTypeRef);
+                    namespace.resolveType(paramTypeRef)
+                        .ignoreBound();
 
                 if (envType instanceof AgentEnvType) {
                     withoutSideEffects =
@@ -111,8 +116,13 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
             }
 
             final IJadescriptType solvedType =
-                namespace.resolveType(paramTypeRef);
-            if (anyAE.isSupEqualTo(solvedType)) {
+                namespace.resolveType(paramTypeRef)
+                    .ignoreBound();
+
+            final TypeComparator comparator = module.get(TypeComparator.class);
+            if (TypeRelationshipQuery.superTypeOrEqual().matches(
+                comparator.compare(anyAE, solvedType)
+            )) {
                 continue;
             }
 
@@ -121,8 +131,9 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
         }
 
 
+        String fullyQualifiedName = operation.getQualifiedName('.');
         return new GlobalFunctionOrProcedure(
-            namespace.resolveType(operation.getReturnType()),
+            namespace.resolveType(operation.getReturnType()).ignoreBound(),
             operation.getSimpleName(),
             paramNamesToTypes,
             paramNames,
@@ -130,37 +141,34 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
                 ? namespace.currentLocation()
                 : location,
             withoutSideEffects,
-            CompilationHelper.addEnvParameterByArity(defaultInvokeByArity(
-                operation.getQualifiedName('.')
-            )),
-            CompilationHelper.addEnvParameterByName(defaultInvokeByName(
-                operation.getQualifiedName('.'),
-                paramNames
-            ))
+            CompilationHelper.addEnvParameterByArity(
+                invokeGlobalByArity(fullyQualifiedName)),
+            CompilationHelper.addEnvParameterByName(
+                invokeGlobalByName(fullyQualifiedName, paramNames))
         );
     }
 
 
-    public static Function<List<String>, String> defaultInvokeByArity(
-        String fullyQualifiedName
-    ) {
-        return (args) -> fullyQualifiedName + "(" +
-            String.join(" ,", args) +
-            ")";
-    }
-
-
-    public static Function<Map<String, String>, String> defaultInvokeByName(
+    @NotNull
+    private static Function<Map<String, String>, String> invokeGlobalByName(
         String fullyQualifiedName,
         List<String> paramNames
     ) {
-        return (args) -> fullyQualifiedName + "(" + String.join(
+        return (args1) -> fullyQualifiedName + "(" + String.join(
             " ,",
             CallSemantics.sortToMatchParamNames(
-                args,
+                args1,
                 paramNames
             )
         ) + ")";
+    }
+
+
+    @NotNull
+    private static Function<List<String>, String> invokeGlobalByArity(String fullyQualifiedName) {
+        return (args) -> fullyQualifiedName + "(" +
+            String.join(" ,", args) +
+            ")";
     }
 
 

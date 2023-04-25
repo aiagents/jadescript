@@ -1,7 +1,5 @@
 module tests.exceptions
 
-
-
 ontology ExcOnto
     proposition Hello
 
@@ -24,7 +22,8 @@ agent Exceptions uses ontology ExcOnto
 
     on behaviour failure InternalException(desc) when behaviour is DoSomethingWrong do
         log "Behaviour failure occurred for behaviour " + (__dt__ behaviour) + " :" + desc
-    
+
+
 cyclic behaviour DoSomethingWrong for agent Exceptions
     on message inform Hello do
         send message inform Hello to "Pippo"@

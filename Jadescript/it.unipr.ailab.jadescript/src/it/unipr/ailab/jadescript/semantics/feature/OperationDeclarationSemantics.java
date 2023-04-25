@@ -1,7 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
-import it.unipr.ailab.jadescript.jadescript.CodeBlock;
 import it.unipr.ailab.jadescript.jadescript.FormalParameter;
+import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.block.BlockSemantics;
@@ -15,10 +15,10 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.ActualParameter;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
@@ -30,13 +30,11 @@ import java.util.List;
 import java.util.Map;
 
 import static it.unipr.ailab.maybe.Maybe.iterate;
-import static it.unipr.ailab.maybe.Maybe.toListOfMaybes;
 
 /**
  * Created on 2019-05-17.
  */
-public interface OperationDeclarationSemantics
-    extends SemanticsConsts {
+public interface OperationDeclarationSemantics extends SemanticsConsts {
 
 
     default void validateGenericFunctionOrProcedureOnSave(
@@ -44,9 +42,10 @@ public interface OperationDeclarationSemantics
         Maybe<String> name,
         Maybe<EList<FormalParameter>> parameters,
         Maybe<TypeExpression> type,
-        @SuppressWarnings("unused") Maybe<CodeBlock> body,
+        @SuppressWarnings("unused") Maybe<OptionalBlock> body,
         SemanticsModule module,
         @SuppressWarnings("unused") boolean isFunction,
+        @SuppressWarnings("unused") boolean isNative,
         SearchLocation locationOfThis,
         ValidationMessageAcceptor acceptor
     ) {
@@ -64,7 +63,8 @@ public interface OperationDeclarationSemantics
         final TypeExpressionSemantics tes =
             module.get(TypeExpressionSemantics.class);
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
         IJadescriptType returnType;
         if (type.isPresent()) {
@@ -73,10 +73,10 @@ public interface OperationDeclarationSemantics
             if (returnTypeCheck == VALID) {
                 returnType = tes.toJadescriptType(type);
             } else {
-                returnType = typeHelper.VOID;
+                returnType = builtins.javaVoid();
             }
         } else {
-            returnType = typeHelper.VOID;
+            returnType = builtins.javaVoid();
         }
 
 
@@ -84,7 +84,7 @@ public interface OperationDeclarationSemantics
 
         Map<String, IJadescriptType> namesToTypes = new HashMap<>();
 
-        for (Maybe<FormalParameter> parameter : toListOfMaybes(parameters)) {
+        for (Maybe<FormalParameter> parameter : iterate(parameters)) {
             final String paramName =
                 parameter.__(FormalParameter::getName).orElse("");
             if (paramName.isBlank()) {
@@ -106,7 +106,7 @@ public interface OperationDeclarationSemantics
             } else {
                 namesToTypes.put(
                     paramName,
-                    typeHelper.ANY
+                    builtins.any("")
                 );
             }
         }
@@ -127,15 +127,15 @@ public interface OperationDeclarationSemantics
     }
 
 
-
     default void validateGenericFunctionOrProcedureOnEdit(
         Maybe<? extends EObject> input,
         Maybe<String> name,
         Maybe<EList<FormalParameter>> parameters,
         Maybe<TypeExpression> type,
-        Maybe<CodeBlock> body,
+        Maybe<OptionalBlock> body,
         SemanticsModule module,
         boolean isFunction,
+        boolean isNative,
         @SuppressWarnings("unused") SearchLocation locationOfThis,
         ValidationMessageAcceptor acceptor
     ) {
@@ -143,7 +143,10 @@ public interface OperationDeclarationSemantics
             return;
         }
         ValidationHelper validationHelper = module.get(ValidationHelper.class);
-        TypeHelper typeHelper = module.get(TypeHelper.class);
+
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
         TypeExpressionSemantics tes = module.get(TypeExpressionSemantics.class);
         BlockSemantics blockSemantics = module.get(BlockSemantics.class);
 
@@ -179,16 +182,16 @@ public interface OperationDeclarationSemantics
             if (returnTypeCheck == VALID) {
                 returnType = tes.toJadescriptType(type);
             } else {
-                returnType = typeHelper.VOID;
+                returnType = builtins.javaVoid();
             }
         } else {
-            returnType = typeHelper.VOID;
+            returnType = builtins.javaVoid();
         }
 
         List<String> paramNames = new ArrayList<>();
         List<IJadescriptType> paramTypes = new ArrayList<>();
 
-        for (Maybe<FormalParameter> parameter : toListOfMaybes(parameters)) {
+        for (Maybe<FormalParameter> parameter : iterate(parameters)) {
             final String paramName =
                 parameter.__(FormalParameter::getName).orElse("");
             if (paramName.isBlank()) {
@@ -205,7 +208,7 @@ public interface OperationDeclarationSemantics
             if (paramTypeCheck == VALID) {
                 paramTypes.add(tes.toJadescriptType(paramTypeExpr));
             } else {
-                paramTypes.add(typeHelper.ANY);
+                paramTypes.add(builtins.any(""));
             }
         }
 
@@ -249,15 +252,16 @@ public interface OperationDeclarationSemantics
 
         inBody = inBody.enterScope();
 
-        if (body.isPresent()) {
-            final StaticState endOfBody = blockSemantics.validate(
-                body,
-                inBody,
-                acceptor
-            );
 
+        final StaticState endOfBody = blockSemantics.validateOptionalBlock(
+            body,
+            inBody,
+            acceptor
+        );
+
+        if(!isNative) {
             validationHelper.asserting(
-                Util.implication(
+                SemanticsUtils.implication(
                     type.isPresent(),
                     !endOfBody.isValid()
                 ),
@@ -267,19 +271,10 @@ public interface OperationDeclarationSemantics
                 type,
                 acceptor
             );
-        } else {
-            validationHelper.emitError(
-                SemanticsConsts.ISSUE_CODE_PREFIX + "InvalidBody",
-                "The body of this function/procedure is not valid",
-                input,
-                acceptor
-            );
         }
 
+
         module.get(ContextManager.class).exit();
-
-
-
 
 
     }

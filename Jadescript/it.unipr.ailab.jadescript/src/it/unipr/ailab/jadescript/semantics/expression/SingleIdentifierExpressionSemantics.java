@@ -19,13 +19,14 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchMode;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.implicit.ImplicitConversionsHelper;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.Call;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.ProxyEObject;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.SingleIdentifier;
-import it.unipr.ailab.jadescript.semantics.utils.Util;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Either;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -33,7 +34,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 
@@ -59,8 +59,7 @@ public class SingleIdentifierExpressionSemantics
     ) {
         Maybe<Either<CompilableName, CompilableCallable>> resolved =
             resolveAsExpression(input, state);
-        final String ident = input.__(SingleIdentifier::getIdent)
-            .extract(nullAsEmptyString);
+        final String ident = input.__(SingleIdentifier::getIdent).orElse("");
         if (resolved.isNothing() || ident.isBlank()) {
             return Maybe.nothing();
         } else if (resolved.toNullable() instanceof Either.Left) {
@@ -89,8 +88,7 @@ public class SingleIdentifierExpressionSemantics
     ) {
         Maybe<Either<CompilableName, CompilableCallable>>
             resolved = resolveAsExpression(input, state);
-        final String ident = input.__(SingleIdentifier::getIdent)
-            .extract(nullAsEmptyString);
+        final String ident = input.__(SingleIdentifier::getIdent).orElse("");
 
         if (resolved.isNothing() || ident.isBlank()
             || resolved.toNullable() instanceof Either.Left) {
@@ -181,10 +179,12 @@ public class SingleIdentifierExpressionSemantics
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        if (input == null) return "";
+        if (input == null) {
+            return "";
+        }
         Maybe<String> ident = input.__(SingleIdentifier::getIdent);
         if (ident.wrappedEquals(THIS)) {
-            return Util.getOuterClassThisReference(
+            return SemanticsUtils.getOuterClassThisReference(
                 input.__(ProxyEObject::getProxyEObject)
             ).orElse("");
         }
@@ -223,8 +223,6 @@ public class SingleIdentifierExpressionSemantics
             resolveAsNamedSymbol(input, state);
 
 
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
-
         if (!variable.isPresent()) {
             // Inferred declaration
             String name = ident.orElse("");
@@ -243,11 +241,14 @@ public class SingleIdentifierExpressionSemantics
         String adaptedExpression = compiledExpression;
         final CompilableName variableSafe = variable.toNullable();
 
-        if (typeHelper.implicitConversionCanOccur(
+        final ImplicitConversionsHelper implicits =
+            module.get(ImplicitConversionsHelper.class);
+
+        if (implicits.implicitConversionCanOccur(
             exprType,
             variableSafe.writingType()
         )) {
-            adaptedExpression = typeHelper.compileImplicitConversion(
+            adaptedExpression = implicits.compileImplicitConversion(
                 compiledExpression,
                 exprType,
                 variableSafe.writingType()
@@ -264,7 +265,9 @@ public class SingleIdentifierExpressionSemantics
         IJadescriptType exprType,
         StaticState state
     ) {
-        if (input == null) return state;
+        if (input == null) {
+            return state;
+        }
         final Maybe<String> ident = input.__(SingleIdentifier::getIdent);
 
         final Maybe<CompilableName> variable =
@@ -297,13 +300,15 @@ public class SingleIdentifierExpressionSemantics
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
-        if (input == null) return module.get(TypeHelper.class).ANY;
+        if (input == null) {
+            return module.get(BuiltinTypeProvider.class).any("");
+        }
         final Maybe<String> ident = input.__(SingleIdentifier::getIdent);
         final Maybe<Either<CompilableName, CompilableCallable>>
             resolved = resolveAsExpression(input, state);
 
         if (resolved.isNothing()) {
-            return module.get(TypeHelper.class).BOTTOM.apply(
+            return module.get(BuiltinTypeProvider.class).nothing(
                 "Cannot infer the type of the expression. Reason: cannot " +
                     "resolve name '" + ident.toNullable() + "'"
             );
@@ -546,7 +551,7 @@ public class SingleIdentifierExpressionSemantics
                     module.get(ValidationHelper.class).emitInfo(
                         ISSUE_CODE_PREFIX + "Info",
                         "Inferred declaration, type: "
-                            + solvedPatternType.getJadescriptName(),
+                            + solvedPatternType.getFullJadescriptName(),
                         input.getPattern(),
                         acceptor
                     );
@@ -658,7 +663,7 @@ public class SingleIdentifierExpressionSemantics
                 module.get(ValidationHelper.class).emitInfo(
                     ISSUE_CODE_PREFIX + "Info",
                     "Inferred declaration; type: " +
-                        typeOfRExpression.getJadescriptName(),
+                        typeOfRExpression.getFullJadescriptName(),
                     input,
                     acceptor
                 );

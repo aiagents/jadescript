@@ -33,7 +33,8 @@ public class TestNativeGen extends Ontology implements TestNativeGen_Vocabulary 
   }
 
   public static TestNativeConcept TestNativeConcept() {
-    return ((testnativegen.TestNativeConceptFactory) (jadescript.java.Jadescript.getNativeFactory(testnativegen.TestNativeConcept.class))).create();
+    testnativegen.TestNativeConcept _x = ((testnativegen.TestNativeConcept) jadescript.java.Jadescript.createEmptyValue(testnativegen.TestNativeConcept.class));
+    return _x;
   }
 
   public TestNativeGen() {
@@ -41,7 +42,7 @@ public class TestNativeGen extends Ontology implements TestNativeGen_Vocabulary 
     try {
     	
     	
-    	add(new jade.content.schema.ConceptSchema(TestNativeConcept), ((testnativegen.TestNativeConceptFactory) (jadescript.java.Jadescript.getNativeFactory(testnativegen.TestNativeConcept.class))).getImplementationClass());
+    	add(new jade.content.schema.ConceptSchema(TestNativeConcept), jadescript.java.Jadescript.getImplementationClass(testnativegen.TestNativeConcept.class));
     	
     	
     	

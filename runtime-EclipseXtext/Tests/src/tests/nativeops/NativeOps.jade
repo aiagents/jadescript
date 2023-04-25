@@ -1,0 +1,17 @@
+module tests.nativeops
+
+native function reverse(t as text) as text
+
+native procedure sysout with t as text
+
+agent NativeOps
+    on create do
+        x = 1
+        do sysout with reverse(name as text)
+        
+    on destroy do
+        log "help."
+        
+    function boh as text do
+        return ""
+        

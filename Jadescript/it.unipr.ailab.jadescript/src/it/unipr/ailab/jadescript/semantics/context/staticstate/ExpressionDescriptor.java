@@ -1,6 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.context.staticstate;
 
-import it.unipr.ailab.jadescript.semantics.utils.ImmutableList;
+import it.unipr.ailab.maybe.utils.ImmutableList;
 
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -10,7 +10,7 @@ public interface ExpressionDescriptor {
     final PropertyChain agentReference = new PropertyChain("agent");
     final PropertyChain thisReference = new PropertyChain("this");
     final PropertyChain messageReference = new PropertyChain("message");
-    final PropertyChain perceptReference = new PropertyChain("percept");
+    final PropertyChain nativeEventReference = new PropertyChain("event");
     final PropertyChain contentOfMessageReference =
         new PropertyChain("content", "message");
     final PropertyChain failureReasonReference =

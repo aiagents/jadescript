@@ -15,8 +15,8 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.LocalClassStatementWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -25,7 +25,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.nothing;
-import static it.unipr.ailab.maybe.Maybe.nullAsFalse;
 
 /**
  * Created on 2019-08-18.
@@ -297,7 +296,7 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
         Maybe<Matches> input,
         StaticState state
     ) {
-        return module.get(TypeHelper.class).BOOLEAN;
+        return module.get(BuiltinTypeProvider.class).boolean_();
     }
 
 
@@ -305,7 +304,7 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
     protected boolean mustTraverse(Maybe<Matches> input) {
         final Maybe<Pattern> pattern = input.__(Matches::getPattern);
         final boolean isMatches =
-            input.__(Matches::isMatches).extract(nullAsFalse);
+            input.__(Matches::isMatches).orElse(false);
         return !isMatches || pattern.isNothing();
     }
 

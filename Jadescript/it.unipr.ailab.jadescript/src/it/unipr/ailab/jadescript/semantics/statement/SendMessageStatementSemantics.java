@@ -11,9 +11,15 @@ import it.unipr.ailab.jadescript.semantics.context.c2feature.OntologyDeclaration
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.*;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Functional;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
@@ -33,8 +39,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociation.OntologyAssociationKind;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.equal;
+import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
 import static it.unipr.ailab.maybe.Maybe.iterate;
-import static it.unipr.ailab.maybe.Maybe.nullAsEmptyString;
 
 /**
  * Created on 11/03/18.
@@ -66,7 +73,7 @@ public class SendMessageStatementSemantics
 
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
@@ -133,22 +140,23 @@ public class SendMessageStatementSemantics
 
 
         final IJadescriptType adaptedContentType =
-            typeHelper.adaptMessageContentDefaultTypes(
+            typeSolver.adaptMessageContentDefaultTypes(
                 performative,
                 inputContentType
             );
 
-        final IJadescriptType contentBound = typeHelper.getContentBound(
-            Performative.performativeByName.get(performative.toNullable())
-        );
+        final IJadescriptType contentBound = typeSolver
+            .getContentBoundForPerformative(
+                Performative.performativeByName.get(performative.toNullable())
+            );
 
         //The type of the content has to be "sendable" (i.e., should
         // not contain Agents, Behaviours...)
         validationHelper.asserting(
             adaptedContentType.isSendable(),
             "InvalidContent",
-            "Values of type '" + adaptedContentType.getJadescriptName() + "' " +
-                "cannot be sent as part of messages.",
+            "Values of type '" + adaptedContentType.getFullJadescriptName() +
+                "' cannot be sent as part of messages.",
             content,
             acceptor
         );
@@ -171,7 +179,7 @@ public class SendMessageStatementSemantics
             validateReceivers(receivers, afterContent, acceptor);
 
         Maybe<OntologyType> maybeOntologyType = ontologyRef
-            .__(typeHelper::jtFromJvmTypeRef)
+            .__(typeSolver::fromJvmTypeReference)
             .nullIf(it -> !(it instanceof OntologyType))
             .__(it -> (OntologyType) it);
 
@@ -201,6 +209,8 @@ public class SendMessageStatementSemantics
                 adaptedContentType.getDeclaringOntology();
 
 
+            final TypeComparator comparator = module.get(TypeComparator.class);
+
             if (declaringOntology.isPresent()) {
                 // ... and an ontology can be inferred from the content
                 final IJadescriptType ontologyType =
@@ -213,13 +223,14 @@ public class SendMessageStatementSemantics
                 // subtype-or-equal of the ontology that declared the
                 // content type
                 ontoCheck = validationHelper.asserting(
-                    declaringOntologyType.isSupEqualTo(ontologyType),
+                    comparator.compare(declaringOntologyType, ontologyType)
+                        .is(superTypeOrEqual()),
                     "OntologyMismatch",
                     "The type of this content is declared in ontology "
-                        + declaringOntologyType.getJadescriptName()
+                        + declaringOntologyType.getFullJadescriptName()
                         + ", but this operation requires a content " +
                         "declared in ontology "
-                        + ontologyType.getJadescriptName() + ".",
+                        + ontologyType.getFullJadescriptName() + ".",
                     content,
                     acceptor
                 );
@@ -234,6 +245,7 @@ public class SendMessageStatementSemantics
             final Maybe<? extends EObject> maybeEobject =
                 ontologyRef.isPresent() ? ontologyRef : input;
 
+            final TypeComparator comparator = module.get(TypeComparator.class);
             // Get all associations to the ontology declaring the content
             final List<OntologyAssociationKind>
                 associationsToOntotype = module.get(ContextManager.class)
@@ -243,7 +255,9 @@ public class SendMessageStatementSemantics
                 .orElse(OntologyAssociationComputer
                     .EMPTY_ONTOLOGY_ASSOCIATIONS)
                 .computeAllOntologyAssociations()
-                .filter(oa -> oa.getOntology().typeEquals(ontoType))
+                .filter(oa -> comparator.compare(
+                    oa.getOntology(), ontoType
+                ).is(equal()))
                 .map(OntologyAssociation::getAssociationKind)
                 .collect(Collectors.toList());
 
@@ -265,7 +279,7 @@ public class SendMessageStatementSemantics
                 validationHelper.asserting(
                     isInDeclaration,
                     "OntologyNotUsed",
-                    "Ontology " + ontoType.getJadescriptName() + " is not" +
+                    "Ontology " + ontoType.getFullJadescriptName() + " is not" +
                         " accessible in this context.",
                     maybeEobject,
                     acceptor
@@ -283,15 +297,16 @@ public class SendMessageStatementSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
         RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
         final List<IJadescriptType> validReceiverTypes = List.of(
-            typeHelper.AID,
-            typeHelper.LIST.apply(List.of(typeHelper.AID)),
-            typeHelper.SET.apply(List.of(typeHelper.AID))
+            builtins.aid(),
+            builtins.list(builtins.aid()),
+            builtins.set(builtins.aid())
         );
         Maybe<EList<RValueExpression>> rexprs = receivers.__(
             CommaSeparatedListOfRExpressions::getExpressions);
@@ -308,7 +323,7 @@ public class SendMessageStatementSemantics
                     runningState
                 );
                 runningState = rves.advance(receiverExpr, runningState);
-                validationHelper.assertExpectedTypes(
+                validationHelper.assertExpectedTypesAny(
                     validReceiverTypes,
                     receiverType,
                     "InvalidReceiver",
@@ -361,12 +376,12 @@ public class SendMessageStatementSemantics
             state
         );
         final IJadescriptType adaptedContentType =
-            module.get(TypeHelper.class).adaptMessageContentDefaultTypes(
+            module.get(TypeSolver.class).adaptMessageContentDefaultTypes(
                 performative,
                 inputContentType
             );
         final String adaptedCompiledContent =
-            module.get(TypeHelper.class).adaptMessageContentDefaultCompile(
+            module.get(TypeSolver.class).adaptMessageContentDefaultCompile(
                 performative,
                 inputContentType,
                 rves.compile(contentExpr, state, acceptor)
@@ -386,8 +401,7 @@ public class SendMessageStatementSemantics
             w.callExpr(
                 "new jadescript.core.message.Message",
                 w.expr("jadescript.core.message.Message." +
-                    performative.__(String::toUpperCase)
-                        .extract(nullAsEmptyString)
+                    performative.__(String::toUpperCase).orElse("")
                 )
             )
         ));
@@ -449,7 +463,9 @@ public class SendMessageStatementSemantics
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
 
         StaticState runningState = afterContent;
         for (Maybe<RValueExpression> receiver : iterate(rexprs)) {
@@ -463,7 +479,8 @@ public class SendMessageStatementSemantics
                     receiversType.compileToJavaTypeReference();
                 IJadescriptType receiversComponentType =
                     receiversType.getElementTypeIfCollection()
-                        .orElse(typeHelper.ANY);
+                        .orElse(builtins.any("Could not find " +
+                            "element type in type: " + receiversType));
 
                 setReceiverCollection(
                     input,
@@ -475,11 +492,9 @@ public class SendMessageStatementSemantics
                     acceptor
                 );
 
-            } else if (typeHelper.AID.isSupEqualTo(
-
-                receiversType)) {
+            } else if (comparator.compare(builtins.aid(), receiversType)
+                .is(superTypeOrEqual())) {
                 setReceiver(receiver, messageName, runningState, acceptor);
-
             }
             runningState = rves.advance(receiver, runningState);
         }
@@ -556,8 +571,14 @@ public class SendMessageStatementSemantics
         IJadescriptType componentType = rves.inferType(re, state);
         String argOfAddReceiver = rves.compile(re, state, acceptor);
 
-        boolean doAIDConversion = !module.get(TypeHelper.class).AID
-            .typeEquals(componentType);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        boolean doAIDConversion = !comparator.compare(
+            builtins.aid(),
+            componentType
+        ).is(equal());
 
         acceptor.accept(doAIDConversion ?
                 w.callStmnt(
@@ -625,7 +646,7 @@ public class SendMessageStatementSemantics
         BlockElementAcceptor acceptor
     ) {
 
-        Maybe<UsesOntologyElement> container = input.__(
+        Maybe<UsesOntologyElement> container = input.__partial2(
             EcoreUtil2::getContainerOfType,
             UsesOntologyElement.class
         );
