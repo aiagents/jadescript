@@ -29,7 +29,20 @@ public class MyAgent extends Agent {
   public Codec __codec = new jade.content.lang.leap.LEAPCodec();
 
   private void __onCreate() {
-    //do nothing;
+    try {
+    	/* 
+    	 * Compiled from source statement at line 4
+    	 * log 'Hello'
+    	 */
+    	
+    	jadescript.core.Agent.doLog(jade.util.Logger.INFO, MyAgent.this.getClass().getName(), MyAgent.this, "on create", java.lang.String.valueOf("Hello"));
+    }
+    catch(jadescript.core.exception.JadescriptException __throwable) {
+    	__handleJadescriptException(__throwable);
+    }
+    catch(java.lang.Throwable __throwable) {
+    	__handleJadescriptException(jadescript.core.exception.JadescriptException.wrap(__throwable));
+    }
   }
 
   private ExceptionThrower __thrower = jadescript.core.exception.ExceptionThrower.__DEFAULT_THROWER;

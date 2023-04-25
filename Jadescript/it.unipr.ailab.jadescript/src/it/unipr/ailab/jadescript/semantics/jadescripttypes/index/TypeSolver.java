@@ -151,7 +151,7 @@ public class TypeSolver {
             return nothing();
         }
 
-        List<TypeArgument > args = new ArrayList<>();
+        List<TypeArgument> args = new ArrayList<>();
 
         final EList<JvmTypeReference> jvmPTRArgs =
             ((JvmParameterizedTypeReference) typeReference).getArguments();
@@ -435,7 +435,7 @@ public class TypeSolver {
     public IJadescriptType getContentBoundForPerformative(
         @Nullable Performative performative
     ) {
-        if(performative == null){
+        if (performative == null) {
             return builtinTypes.any("");
         }
 
@@ -490,7 +490,7 @@ public class TypeSolver {
         final List<? extends TypeArgument> typeArguments =
             typeHelper.unpackTuple(inputContentType);
 
-        if(!schema.isApplicable(typeArguments)) {
+        if (!schema.isApplicable(typeArguments)) {
             return inputContentType;
         }
 
@@ -506,9 +506,9 @@ public class TypeSolver {
         if (performative.isNothing() || performative.toNullable().isBlank()) {
             return inputExpression;
         }
-        final @Nullable Performative perf = performativeByName.get(
-            performative.toNullable()
-        );
+        final String perfString = performative.toNullable();
+        final @Nullable Performative perf = performativeByName.get(perfString);
+
 
         if (perf == null) {
             return inputExpression;
@@ -529,16 +529,20 @@ public class TypeSolver {
         final int inputArgsCount =
             typeHelper.unpackTuple(inputContentType).size();
 
+        String result = inputExpression;
 
         final int parameterCount = messageSchema.getParameterCount();
         for (int i = inputArgsCount; i < parameterCount; i++) {
-            messageSchema.adaptContentExpression(
+            result = messageSchema.adaptContentExpression(
                 i,
                 inputContentType,
-                inputExpression
+                result
             );
         }
-        return inputExpression;
+
+
+
+        return result;
     }
 
 

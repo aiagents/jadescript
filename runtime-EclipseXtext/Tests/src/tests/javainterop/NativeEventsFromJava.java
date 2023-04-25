@@ -15,7 +15,7 @@ import jade.wrapper.StaleProxyException;
 public class NativeEventsFromJava {
 	
 	public static String nativeInvocationTest(Integer count) {
-		System.out.println("Hello!");
+		System.out.println("Hello from Java!");
 		return "The counter is "+count;
 	}
 	

@@ -13,7 +13,7 @@ ontology AlarmClockOntology
 
 # Parses a text in the format 'hh:mm:ss' into a Jadescript timestamp.
 function parseAlarmTime(time as text) as timestamp do
-    timeInJadescriptFormat = "T" + time + "+01:00" 
+    timeInJadescriptFormat = "T" + time + "+00:00" 
     finalTime = timeInJadescriptFormat as timestamp 
     # If the resulting time is in the past, 
     # it is changed into tomorrow's time (+24h) 
