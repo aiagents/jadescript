@@ -12,6 +12,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.JavaVoidType;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
@@ -91,7 +92,7 @@ public class Operation implements MemberCallable {
         SearchLocation location,
         boolean withoutSideEffects
     ){
-        return new Operation(
+        return operation(
             returnType,
             name,
             parameterNamesToTypes,
@@ -102,6 +103,46 @@ public class Operation implements MemberCallable {
             Operation.defaultInvokeMemberByName(name, parameterNames)
         );
     }
+
+    public static Operation procedure(
+        SemanticsModule module,
+        String name,
+        Map<String, IJadescriptType> parameterNamesToTypes,
+        List<String> parameterNames,
+        SearchLocation location,
+        BiFunction<String, List<String>, String> invokeByArityCustom,
+        BiFunction<String, Map<String, String>, String> invokeByNameCustom
+    ) {
+        return new Operation(
+            module.get(BuiltinTypeProvider.class).javaVoid(),
+            name,
+            parameterNamesToTypes,
+            parameterNames,
+            location,
+            false,
+            invokeByArityCustom,
+            invokeByNameCustom
+        );
+    }
+
+    public static Operation procedure(
+        SemanticsModule module,
+        String name,
+        Map<String, IJadescriptType> parameterNamesToTypes,
+        List<String> parameterNames,
+        SearchLocation location
+    ){
+        return procedure(
+            module,
+            name,
+            parameterNamesToTypes,
+            parameterNames,
+            location,
+            Operation.defaultInvokeMemberByArity(name),
+            Operation.defaultInvokeMemberByName(name, parameterNames)
+        );
+    }
+
 
 
     public static Operation fromJvmOperation(

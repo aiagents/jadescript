@@ -1,5 +1,6 @@
-
+module tests.startuparguments
 
 agent StartupArgumentsTest
     on create with args as list of text do
         log "Agent 'StartupArgumentsTest' created with arguments: " + args
+        do delete

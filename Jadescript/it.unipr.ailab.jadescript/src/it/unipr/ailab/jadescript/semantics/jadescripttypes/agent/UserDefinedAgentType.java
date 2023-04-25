@@ -51,7 +51,12 @@ public class UserDefinedAgentType
 
     @Override
     public AgentTypeNamespace namespace() {
-        return new AgentTypeNamespace(module, this, Collections.emptyList());
+        return new AgentTypeNamespace(
+            module,
+            this,
+            Collections.emptyList(),
+            Collections.emptyList()
+        );
     }
 
 

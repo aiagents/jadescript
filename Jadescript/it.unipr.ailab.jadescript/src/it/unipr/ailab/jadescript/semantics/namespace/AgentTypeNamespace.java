@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.semantics.context.associations.AgentAssociation
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociated;
 import it.unipr.ailab.jadescript.semantics.context.associations.OntologyAssociation;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
+import it.unipr.ailab.jadescript.semantics.context.symbol.Operation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
@@ -30,18 +31,21 @@ public class AgentTypeNamespace
     private final AgentType agentType;
     private final boolean useJvm;
     private final List<Property> builtinProperties;
+    private final List<Operation> builtinOperations;
     private final LazyInit<JvmTypeNamespace> jvmNamespace;
 
 
     public AgentTypeNamespace(
         SemanticsModule module,
         AgentType agentType,
-        List<Property> builtinProperties
+        List<Property> builtinProperties,
+        List<Operation> builtinOperations
     ) {
         super(module);
         this.agentType = agentType;
         useJvm = !(agentType instanceof BaseAgentType);
         this.builtinProperties = builtinProperties;
+        this.builtinOperations = builtinOperations;
         this.jvmNamespace = new LazyInit<>(this.agentType::jvmNamespace);
     }
 
@@ -54,7 +58,8 @@ public class AgentTypeNamespace
             return callablesFromJvm(jvmNamespace.get())
                 .memberCallables(name);
         } else {
-            return Stream.empty();
+            return builtinOperations.stream()
+                .filter(op -> name == null || op.name().equals(name));
         }
     }
 
