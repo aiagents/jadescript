@@ -38,6 +38,7 @@ import org.eclipse.xtext.common.types.JvmMember;
 import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -353,16 +354,27 @@ public class OnMessageHandlerSemantics
 
         final IJadescriptType finalContentType;
         if (wexpNarrowedMessageType instanceof BaseMessageType) {
+            final IJadescriptType messageBasedContentType =
+                ((BaseMessageType) wexpNarrowedMessageType)
+                .getContentType();
             finalContentType = lattice.getGLB(
+                getNarrowedContentErrorMsg(
+                    pattNarrowedContentType,
+                    wexpNarrowedContentType,
+                    messageBasedContentType
+                ),
                 pattNarrowedContentType,
                 wexpNarrowedContentType,
-                ((BaseMessageType) wexpNarrowedMessageType)
-                    .getContentType()
+                messageBasedContentType
             );
         } else {
             finalContentType = lattice.getGLB(
                 pattNarrowedContentType,
-                wexpNarrowedContentType
+                wexpNarrowedContentType,
+                TypeHelper.getNarrowedContentErrorMsg(
+                    pattNarrowedContentType,
+                    wexpNarrowedContentType
+                )
             );
         }
 
@@ -555,6 +567,20 @@ public class OnMessageHandlerSemantics
                 ))
         ).writeSonnet(scb);
 
+    }
+
+    @NotNull
+    private String getNarrowedContentErrorMsg(
+        IJadescriptType pattNarrowedContentType,
+        IJadescriptType wexpNarrowedBehaviourType,
+        IJadescriptType messageContentType
+    ) {
+        return "Could not compute content type: cannot find common " +
+            "subtype of type (inferred from pattern) '"
+            + pattNarrowedContentType + "', type (inferred from " +
+            "when-expression) '" + wexpNarrowedBehaviourType + "', and" +
+            " type (content type of the inferred message type in the " +
+            "when-expressions) '"+messageContentType+"'.";
     }
 
 
@@ -789,16 +815,27 @@ public class OnMessageHandlerSemantics
 
         final IJadescriptType finalContentType;
         if (wexpNarrowedMessageType instanceof BaseMessageType) {
+            final IJadescriptType messageBasedContentType =
+                ((BaseMessageType) wexpNarrowedMessageType)
+                .getContentType();
             finalContentType = lattice.getGLB(
+                getNarrowedContentErrorMsg(
+                    pattNarrowedContentType,
+                    wexpNarrowedContentType,
+                    messageBasedContentType
+                ),
                 pattNarrowedContentType,
                 wexpNarrowedContentType,
-                ((BaseMessageType) wexpNarrowedMessageType)
-                    .getContentType()
+                messageBasedContentType
             );
         } else {
             finalContentType = lattice.getGLB(
                 pattNarrowedContentType,
-                wexpNarrowedContentType
+                wexpNarrowedContentType,
+                TypeHelper.getNarrowedContentErrorMsg(
+                    pattNarrowedContentType,
+                    wexpNarrowedContentType
+                )
             );
         }
 

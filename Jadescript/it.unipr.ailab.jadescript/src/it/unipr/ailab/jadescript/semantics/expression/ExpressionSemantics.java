@@ -529,8 +529,18 @@ public abstract class ExpressionSemantics<T> extends Semantics {
                 ).findFirst();
 
             if (flowSensitiveInferredType.isPresent()) {
+                final IJadescriptType narrowedType =
+                    flowSensitiveInferredType.get();
                 return module.get(TypeLatticeComputer.class)
-                    .getGLB(inferredType, flowSensitiveInferredType.get());
+                    .getGLB(
+                        inferredType,
+                        narrowedType,
+                        "Could not narrow type of expression '"+
+                            descriptor+"': could not find common subtype of " +
+                            "inferred type '"+inferredType+"' and " +
+                            "type '"+narrowedType+"' based on flow-sensitive " +
+                            "information."
+                    );
             }
         }
 

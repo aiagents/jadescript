@@ -18,6 +18,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
@@ -359,7 +360,11 @@ public class OnBehaviourFailureHandlerSemantics
 
         final IJadescriptType finalContentType = lattice.getGLB(
             pattNarrowedContentType,
-            wexpNarrowedContentType
+            wexpNarrowedContentType,
+            TypeHelper.getNarrowedContentErrorMsg(
+                pattNarrowedContentType,
+                wexpNarrowedBehaviourType
+            )
         );
 
         final IJadescriptType finalBehaviourType = wexpNarrowedBehaviourType;
@@ -411,6 +416,9 @@ public class OnBehaviourFailureHandlerSemantics
         scb.close("}");
 
     }
+
+
+
 
 
     @Override
@@ -561,7 +569,11 @@ public class OnBehaviourFailureHandlerSemantics
 
         final IJadescriptType finalContentType = lattice.getGLB(
             pattNarrowedContentType,
-            wexpNarrowedContentType
+            wexpNarrowedContentType,
+            TypeHelper.getNarrowedContentErrorMsg(
+                pattNarrowedContentType,
+                wexpNarrowedContentType
+            )
         );
 
         final IJadescriptType finalBehaviourType = wexpNarrowedBehaviourType;

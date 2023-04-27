@@ -14,6 +14,7 @@ import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.utils.LazyInit;
 import jadescript.lang.Performative;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,6 +40,17 @@ public class TypeHelper implements SemanticsConsts {
     private final LazyInit<BuiltinTypeProvider> builtins;
     private final LazyInit<TypeComparator> comparator;
 
+
+    @NotNull
+    public static String getNarrowedContentErrorMsg(
+        IJadescriptType pattNarrowedContentType,
+        IJadescriptType wexpNarrowedBehaviourType
+    ) {
+        return "Could not compute content type: cannot find common " +
+            "subtype of type (inferred from pattern) '"
+            + pattNarrowedContentType + "' and type (inferred from " +
+            "when-expression) '" + wexpNarrowedBehaviourType + "'.";
+    }
 
     public TypeHelper(SemanticsModule module) {
         this.module = module;

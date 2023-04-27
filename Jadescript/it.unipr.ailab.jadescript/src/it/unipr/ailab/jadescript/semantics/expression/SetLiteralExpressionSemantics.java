@@ -1,7 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.common.collect.Streams;
-import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.MapOrSetLiteral;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.TypeExpression;
@@ -148,7 +147,14 @@ public class SetLiteralExpressionSemantics
                 seen = true;
                 acc = jadescriptType;
             } else {
-                acc = lattice.getLUB(acc, jadescriptType);
+                acc = lattice.getLUB(
+                    acc,
+                    jadescriptType,
+                    "Cannot compute the type of the elements " +
+                        "of the set: could not find a common supertype " +
+                        "of the types '" + acc + "' and '" + jadescriptType +
+                        "'."
+                );
             }
         }
         return seen ? acc : builtins.any(
@@ -191,10 +197,20 @@ public class SetLiteralExpressionSemantics
                 IJadescriptType restType =
                     module.get(RValueExpressionSemantics.class)
                         .inferType(rest, state);
-                if (restType instanceof SetType) {
+                if (restType.category().isSet()) {
+                    SetType restSetType = (SetType) restType;
+                    final IJadescriptType restElementType =
+                        restSetType.getElementType();
                     return builtins.set(lattice.getLUB(
                         elementsTypePrePipe,
-                        restType
+                        restElementType,
+                        "Cannot compute the type of the elements " +
+                            "of the set: could not find a common supertype " +
+                            "of the types of elements before the pipe " +
+                            "('" + elementsTypePrePipe + "') and the types of" +
+                            " the" +
+                            " elements of the set after the pipe ('" +
+                            restElementType + "')"
                     ));
                 } else {
                     return builtins.set(elementsTypePrePipe);
@@ -217,11 +233,14 @@ public class SetLiteralExpressionSemantics
         if (input == null) {
             return VALID;
         }
+
         final MaybeList<RValueExpression> elements =
             input.__toList(MapOrSetLiteral::getKeys);
+
         final boolean hasTypeSpecifiers =
             input.__(MapOrSetLiteral::isWithTypeSpecifiers)
                 .orElse(false);
+
         final Maybe<TypeExpression> keysTypeParameter =
             input.__(MapOrSetLiteral::getKeyTypeParameter);
 
@@ -230,77 +249,119 @@ public class SetLiteralExpressionSemantics
         final TypeLatticeComputer lattice =
             module.get(TypeLatticeComputer.class);
 
+        final TypeExpressionSemantics tes =
+            module.get(TypeExpressionSemantics.class);
+
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
         if (elements.isEmpty()) {
             if (hasTypeSpecifiers) {
-                return module.get(TypeExpressionSemantics.class).validate(
+                return tes.validate(
                     keysTypeParameter,
                     acceptor
-                );
+                ) && tes.toJadescriptType(
+                    keysTypeParameter
+                ).validateType(keysTypeParameter, acceptor);
             }
 
-            return module.get(ValidationHelper.class).emitError(
-                "SetLiteralCannotComputeTypes",
+            return validationHelper.emitError(
+                "SetLiteralCannotComputeType",
                 "Missing type specification for empty set literal.",
                 input,
                 acceptor
             );
         }
 
-        Maybe<RValueExpression> element0 = elements.get(0);
-        boolean elementsCheck = rves.validate(
-            element0,
-            state,
-            acceptor
-        );
-        IJadescriptType elementsLUB = rves.inferType(element0, state);
-        StaticState runningState = rves.advance(element0, state);
-        for (int i = 1; i < elements.size(); i++) {
-            Maybe<RValueExpression> element = elements.get(i);
-            boolean elementCheck = rves.validate(
-                element,
-                runningState,
-                acceptor
-            );
-            elementsCheck = elementsCheck && elementCheck;
-            if (elementCheck == VALID) {
+
+        //Assuming !elements.isEmpty()
+
+        final IJadescriptType explicitType =
+            tes.toJadescriptType(keysTypeParameter);
+
+        if (hasTypeSpecifiers) {
+            StaticState runningState = state;
+            boolean elementsCheck = VALID;
+
+            final int size = elements.size();
+            for (int i = 0; i < size; i++) {
+                Maybe<RValueExpression> element = elements.get(i);
+                boolean elementCheck = rves.validate(
+                    element,
+                    runningState,
+                    acceptor
+                );
+                elementsCheck = elementsCheck && elementCheck;
+                if (elementCheck == INVALID) {
+                    continue;
+                }
+
                 IJadescriptType elementType = rves.inferType(
                     element,
                     runningState
                 );
-                elementsLUB = lattice.getLUB(elementsLUB, elementType);
+                runningState = rves.advance(element, runningState);
+
+                boolean typeCheck = validationHelper.assertExpectedType(
+                    explicitType,
+                    elementType,
+                    "InvalidElementType",
+                    element,
+                    acceptor
+                );
+
+                elementsCheck = elementsCheck && typeCheck;
             }
-            runningState = rves.advance(element, runningState);
-        }
 
-        if (elementsCheck == INVALID) {
-            return INVALID;
-        }
-
-
-        if (hasTypeSpecifiers) {
-            return module.get(ValidationHelper.class).assertExpectedType(
-                module.get(TypeExpressionSemantics.class)
-                    .toJadescriptType(keysTypeParameter),
-                elementsLUB,
-                "SetLiteralTypeMismatch",
-                input,
-                JadescriptPackage.eINSTANCE
-                    .getMapOrSetLiteral_KeyTypeParameter(),
-                acceptor
-            ) && module.get(TypeExpressionSemantics.class).validate(
+            return tes.validate(
                 keysTypeParameter,
                 acceptor
-            );
+            ) && explicitType.validateType(
+                keysTypeParameter,
+                acceptor
+            ) && elementsCheck;
+
         } else {
-            return module.get(ValidationHelper.class).asserting(
-                !elementsLUB.isErroneous(),
-                "SetLiteralCannotComputeType",
-                "Can not find a valid common parent type of the " +
-                    "elements in the set literal.",
-                input,
+
+            Maybe<RValueExpression> element0 = elements.get(0);
+            boolean elementsCheck = rves.validate(
+                element0,
+                state,
                 acceptor
             );
+            IJadescriptType elementsLUB = rves.inferType(element0, state);
+            StaticState runningState = rves.advance(element0, state);
+
+            //Starting from second element
+            for (int i = 1; i < elements.size(); i++) {
+                Maybe<RValueExpression> element = elements.get(i);
+                boolean elementCheck = rves.validate(
+                    element,
+                    runningState,
+                    acceptor
+                );
+                elementsCheck = elementsCheck && elementCheck;
+                if (elementCheck == VALID) {
+                    IJadescriptType elementType = rves.inferType(
+                        element,
+                        runningState
+                    );
+                    elementsLUB = lattice.getLUB(
+                        elementsLUB,
+                        elementType,
+                        "Cannot compute the type of the elements " +
+                            "of the set: could not find a common supertype " +
+                            "of the types '" + elementsLUB + "' and '"
+                            + elementType + "'."
+                    );
+                }
+                runningState = rves.advance(element, runningState);
+            }
+
+            return elementsLUB.validateType(input, acceptor);
         }
+
+
     }
 
 

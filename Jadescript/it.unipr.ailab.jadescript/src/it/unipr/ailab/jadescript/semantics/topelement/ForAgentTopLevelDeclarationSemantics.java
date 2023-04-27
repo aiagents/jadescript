@@ -71,7 +71,8 @@ public abstract class ForAgentTopLevelDeclarationSemantics<T extends ForElement>
 
         return module.get(TypeLatticeComputer.class).getGLB(
             result1,
-            result2.get()
+            result2.get(),
+            null
         );
     }
 

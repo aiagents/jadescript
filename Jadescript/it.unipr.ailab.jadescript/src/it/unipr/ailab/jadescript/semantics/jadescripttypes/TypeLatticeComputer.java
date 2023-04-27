@@ -11,9 +11,11 @@ import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.utils.LazyInit;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmTypeReference;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.strictSubType;
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
@@ -88,44 +90,55 @@ public class TypeLatticeComputer {
     }
 
 
-    @SuppressWarnings("unused")
-    public IJadescriptType getLUB(IJadescriptType t0, IJadescriptType... ts) {
+    public IJadescriptType getGLB(
+        @Nullable String errorMessage,
+        IJadescriptType t0,
+        IJadescriptType... ts
+    ) {
         if (ts.length == 0) {
             return t0;
         } else if (ts.length == 1) {
-            return getLUB(t0, ts[0]);
+            return getLUB(t0, ts[0], errorMessage);
         } else {
-            return Arrays.stream(ts).reduce(t0, this::getLUB);
+            return Arrays.stream(ts).reduce(
+                t0,
+                (a, b) -> this.getGLB(a, b, errorMessage)
+            );
         }
     }
 
 
-    @SuppressWarnings("unused")
-    public IJadescriptType getGLB(IJadescriptType t1, IJadescriptType t2) {
+    public IJadescriptType getGLB(
+        IJadescriptType t1,
+        IJadescriptType t2,
+        @Nullable String errorMessage
+    ) {
         final TypeRelationship comparison = comparator.get().compare(t1, t2);
         if (superTypeOrEqual().matches(comparison)) {
             return t2;
         } else if (strictSubType().matches(comparison)) {
             return t1;
         } else {
-            return builtins.get().nothing(
-                "No greatest lower bound found for types " + t1 +
-                    " and " + t2
-            );
+            final String msg = errorMessage != null
+                ? errorMessage
+                : "Could not find common subtype for types '" + t1 + "' and '" +
+                t2 + "'";
+
+            return builtins.get().nothing(msg);
         }
 
     }
 
 
-    public IJadescriptType getGLB(IJadescriptType t0, IJadescriptType... ts) {
-        if (ts.length == 0) {
-            return t0;
-        } else if (ts.length == 1) {
-            return getGLB(t0, ts[0]);
-        } else {
-            return Arrays.stream(ts).reduce(t0, this::getGLB);
-        }
-    }
+//    public IJadescriptType getGLB(IJadescriptType t0, IJadescriptType... ts) {
+//        if (ts.length == 0) {
+//            return t0;
+//        } else if (ts.length == 1) {
+//            return getGLB(t0, ts[0]);
+//        } else {
+//            return Arrays.stream(ts).reduce(t0, this::getGLB);
+//        }
+//    }
 
 
     @SuppressWarnings("unused")
@@ -161,7 +174,11 @@ public class TypeLatticeComputer {
     }
 
 
-    public IJadescriptType getLUB(IJadescriptType t1, IJadescriptType t2) {
+    public IJadescriptType getLUB(
+        IJadescriptType t1,
+        IJadescriptType t2,
+        @Nullable String errorMessage
+    ) {
         final TypeRelationship comparison = comparator.get().compare(t1, t2);
 
         if (superTypeOrEqual().matches(comparison)) {
@@ -172,6 +189,15 @@ public class TypeLatticeComputer {
             return t2;
         }
 
+
+        final Optional<IJadescriptType> lub = t1.allSupertypesBFS()
+            .filter(st1 -> comparator.get()
+                .compare(st1, t2).is(superTypeOrEqual()))
+            .findFirst();
+
+        if(lub.isPresent()){
+            return lub.get();
+        }
 
         if (t1.asJvmTypeReference().getType() instanceof JvmDeclaredType
             && t2.asJvmTypeReference().getType() instanceof JvmDeclaredType) {
@@ -189,8 +215,15 @@ public class TypeLatticeComputer {
                 }
             }
         }
-        return builtins.get().any("Could not compute LUB between "
-            + t1 + " and " + t2);
+
+        final String msg = errorMessage != null
+            ? errorMessage
+            : "Could not find common supertype of types '" + t1 + "' and '" +
+            t2 + "'";
+
+        return builtins.get().any(msg);
     }
+
+
 
 }

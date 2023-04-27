@@ -171,7 +171,12 @@ public class TernaryConditionalExpressionSemantics
             .inferType(expression1, afterC);
         IJadescriptType type2 = module.get(RValueExpressionSemantics.class)
             .inferType(expression2, afterC);
-        return module.get(TypeLatticeComputer.class).getLUB(type1, type2);
+        return module.get(TypeLatticeComputer.class)
+            .getLUB(type1, type2,
+                "Cannot compute common supertype of the types " +
+                    "inferred from the branches of the ternary conditional. " +
+                    "The types are '" + type1 + "' and '" + type2 + "'"
+            );
     }
 
 

@@ -26,6 +26,8 @@ agent CollectionReceiver uses ontology Collections
             
         on message request do
             log __dt__ content
+            
+    
         
 
 agent CollectionSender uses ontology Collections
@@ -36,6 +38,7 @@ agent CollectionSender uses ontology Collections
         send message inform P1({"a"}) to receiver
         send message inform P2([1]) to receiver
         send message inform P3({"b":2}) to receiver
+        log {P1({} of text), P}
         
     cyclic behaviour MemberBehaviour
         on message inform P4([C1(["a, b"]), C1(["c, a"])]) do

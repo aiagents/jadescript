@@ -144,7 +144,13 @@ public final class StaticState
                 if (!name.equals(ns.name())) {
                     return empty();
                 }
-                lub = lattice.getLUB(lub, ns.readingType());
+                final IJadescriptType a = lub;
+                final IJadescriptType b = ns.readingType();
+                lub = lattice.getLUB(a, b,
+                    "Could not infer type of intersected name '" +
+                        name + "': could not find common supertype of types '" +
+                        a + "' and '" + b + "'"
+                );
             }
         }
 
@@ -271,10 +277,18 @@ public final class StaticState
         final ImmutableMap<ExpressionDescriptor, IJadescriptType>
             flowTypingUpperBounds = this.getLocalScopeFlowTypingUpperBounds();
         if (flowTypingUpperBounds.containsKey(expressionDescriptor)) {
+            final IJadescriptType a = flowTypingUpperBounds
+                .getUnsafe(expressionDescriptor);
             final IJadescriptType glb = module.get(TypeLatticeComputer.class)
                 .getGLB(
-                    flowTypingUpperBounds.getUnsafe(expressionDescriptor),
-                    bound
+                    a,
+                    bound,
+                    getUpperBoundMergeErrorMsg(
+                        true,
+                        expressionDescriptor,
+                        a,
+                        bound
+                    )
                 );
             final TypeComparator comparator = module.get(TypeComparator.class);
             if (comparator.compare(glb, bound).is(equal())) {
@@ -296,6 +310,21 @@ public final class StaticState
                 bound
             )
         );
+    }
+
+
+    @NotNull
+    private String getUpperBoundMergeErrorMsg(
+        boolean subtype,
+        ExpressionDescriptor expressionDescriptor,
+        IJadescriptType a,
+        IJadescriptType b
+    ) {
+        return "Could not infer type of expression '" +
+            expressionDescriptor + "' using " +
+            "flow-sensitive information: could not find common " +
+            (subtype?"subtype":"supertype")+
+            " of types '" + a + "' and '" + b + "'.";
     }
 
 
@@ -612,7 +641,15 @@ public final class StaticState
 
         TypeLatticeComputer lattice = module.get(TypeLatticeComputer.class);
         return keys.associate(
-            key -> lattice.getLUB(a.getUnsafe(key), b.getUnsafe(key))
+            key -> {
+                final IJadescriptType x = a.getUnsafe(key);
+                final IJadescriptType y = b.getUnsafe(key);
+                return lattice.getLUB(
+                    x,
+                    y,
+                    getUpperBoundMergeErrorMsg(false, key, x, y)
+                );
+            }
         );
     }
 

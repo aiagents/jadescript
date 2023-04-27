@@ -174,15 +174,26 @@ public class MapLiteralExpressionSemantics
             final Maybe<RValueExpression> key = keys.get(i);
             final Maybe<RValueExpression> value = values.get(i);
 
+            final IJadescriptType newKeyType = rves.inferType(key, newState);
             lubKeys = lattice.getLUB(
                 lubKeys,
-                rves.inferType(key, newState)
+                newKeyType,
+                "Cannot compute the type of the keys " +
+                    "of the map: could not find a common supertype " +
+                    "of the types '" + lubKeys + "' and '" + newKeyType +
+                    "'."
             );
             newState = rves.advance(key, newState);
 
+            final IJadescriptType newValueType =
+                rves.inferType(value, newState);
             lubValues = lattice.getLUB(
                 lubValues,
-                rves.inferType(value, newState)
+                newValueType,
+                "Cannot compute the type of the values " +
+                    "of the map: could not find a common supertype " +
+                    "of the types '" + lubValues + "' and '" + newValueType +
+                    "'."
             );
             newState = rves.advance(value, newState);
         }
@@ -200,6 +211,7 @@ public class MapLiteralExpressionSemantics
         if (input == null) {
             return VALID;
         }
+
         final MaybeList<RValueExpression> values =
             input.__toList(MapOrSetLiteral::getValues);
         final MaybeList<RValueExpression> keys =
@@ -236,22 +248,36 @@ public class MapLiteralExpressionSemantics
         IJadescriptType valuesLub = builtins.nothing(
             "Cannot infer the type of the values of the map."
         );
+
         for (int i = 0; i < assumedSize; i++) {
             final Maybe<RValueExpression> key = keys.get(i);
             final Maybe<RValueExpression> value = values.get(i);
 
             boolean keyCheck = rves.validate(key, newState, acceptor);
 
+            final IJadescriptType newKeyType = rves.inferType(key, newState);
             keysLub = lattice.getLUB(
                 keysLub,
-                rves.inferType(key, newState)
+                newKeyType,
+                "Cannot compute the type of the keys " +
+                    "of the map: could not find a common supertype " +
+                    "of the types '" + keysLub + "' and '" + newKeyType +
+                    "'."
             );
             newState = rves.advance(key, newState);
 
             boolean valCheck = rves.validate(value, newState, acceptor);
+            final IJadescriptType newValueType = rves.inferType(
+                value,
+                newState
+            );
             valuesLub = lattice.getLUB(
                 valuesLub,
-                rves.inferType(value, newState)
+                newValueType,
+                "Cannot compute the type of the values " +
+                    "of the map: could not find a common supertype " +
+                    "of the types '" + valuesLub + "' and '" + newValueType +
+                    "'."
             );
 
             newState = rves.advance(value, newState);
@@ -289,15 +315,9 @@ public class MapLiteralExpressionSemantics
         if (!values.isEmpty() && !values.stream().allMatch(Maybe::isNothing)
             && !keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing)) {
 
-            boolean keysValidation =
-                validationHelper.asserting(
-                    hasTypeSpecifiers || !keysLub.isErroneous(),
-                    "MapLiteralCannotComputeType",
-                    "Can not find a valid common parent type of the keys in" +
-                        " the map.",
-                    input,
-                    acceptor
-                );
+
+            boolean keysValidation = hasTypeSpecifiers
+                || keysLub.validateType(input, acceptor);
 
             final TypeExpressionSemantics tes =
                 module.get(TypeExpressionSemantics.class);
@@ -305,15 +325,8 @@ public class MapLiteralExpressionSemantics
                 && tes.validate(keysTypeParameter, acceptor);
 
 
-            boolean valsValidation =
-                validationHelper.asserting(
-                    hasTypeSpecifiers || !valuesLub.isErroneous(),
-                    "MapLiteralCannotComputeType",
-                    "Can not find a valid common parent type of the values in" +
-                        " the map.",
-                    input,
-                    acceptor
-                );
+            boolean valsValidation = hasTypeSpecifiers
+                || valuesLub.validateType(input, acceptor);
 
             valsValidation = valsValidation
                 && tes.validate(valuesTypeParameter, acceptor);

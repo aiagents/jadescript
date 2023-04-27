@@ -152,10 +152,20 @@ public class ListLiteralExpressionSemantics
                 module.get(RValueExpressionSemantics.class)
                     .inferType(rest, state);
             if (restType.category().isList()) {
+                ListType restListType = (ListType) restType;
+                final IJadescriptType restElementType =
+                    restListType.getElementType();
                 return builtins.list(
                     lattice.getLUB(
                         elementsTypePrePipe,
-                        restType
+                        restElementType,
+                        "Cannot compute the type of the elements " +
+                            "of the list: could not find a common supertype " +
+                            "of the types of elements before the pipe " +
+                            "('" + elementsTypePrePipe + "') and the types of" +
+                            " the" +
+                            " elements of the list after the pipe ('" +
+                            restElementType + "')."
                     )
                 );
             }
@@ -230,7 +240,14 @@ public class ListLiteralExpressionSemantics
                 seen = true;
                 acc = jadescriptType;
             } else {
-                acc = lattice.getLUB(acc, jadescriptType);
+                acc = lattice.getLUB(
+                    acc,
+                    jadescriptType,
+                    "Cannot compute the type of the elements " +
+                        "of the list: could not find a common supertype " +
+                        "of the types '" + acc + "' and '" + jadescriptType +
+                        "'."
+                );
             }
         }
         return seen ? acc : builtins.any(
@@ -776,81 +793,133 @@ public class ListLiteralExpressionSemantics
         if (input == null) {
             return VALID;
         }
+
         MaybeList<RValueExpression> values =
             input.__toList(ListLiteral::getValues);
+
         Maybe<TypeExpression> typeParameter =
             input.__(ListLiteral::getTypeParameter);
+
         boolean hasTypeSpecifier =
             input.__(ListLiteral::isWithTypeSpecifier).orElse(false);
 
-        boolean stage1 = VALID;
-        StaticState newState = state;
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
-        for (Maybe<RValueExpression> element : values) {
-            final boolean elementCheck = rves.validate(
-                element,
-                newState,
+
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
+
+        final TypeExpressionSemantics tes =
+            module.get(TypeExpressionSemantics.class);
+
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
+        if (values.isEmpty()) {
+            if (hasTypeSpecifier) {
+                return tes.validate(
+                    typeParameter,
+                    acceptor
+                ) && tes.toJadescriptType(
+                    typeParameter
+                ).validateType(typeParameter, acceptor);
+            }
+
+            return validationHelper.emitError(
+                "ListLiteralCannotComputeType",
+                "Missing type specification for empty list literal.",
+                input,
                 acceptor
             );
-            stage1 = stage1 && elementCheck;
-
-            newState = rves.advance(element, newState);
         }
 
 
-        stage1 = stage1 && module.get(ValidationHelper.class).asserting(
-            (!values.isEmpty()
-                && !values.stream().allMatch(Maybe::isNothing))
-                || hasTypeSpecifier,
-            "ListLiteralCannotComputeType",
-            "Missing type specification for empty list literal",
-            input,
-            acceptor
-        );
+        // Assuming !values.isEmpty()
 
-        if (stage1 == VALID
-            && !values.isEmpty()
-            && !values.stream().allMatch(Maybe::isNothing)) {
-            IJadescriptType lub = computeElementsTypeLUB(values, state);
+        final IJadescriptType explicitType =
+            tes.toJadescriptType(typeParameter);
 
-            boolean typeValidation =
-                module.get(ValidationHelper.class).asserting(
-                    !lub.isErroneous(),
-                    "ListLiteralCannotComputeType",
-                    "Can not find a valid common parent type of the elements " +
-                        "in the list literal.",
-                    input,
+
+        if (hasTypeSpecifier) {
+            StaticState runningState = state;
+            boolean elementsCheck = VALID;
+
+            final int size = values.size();
+            for (int i = 0; i < size; i++) {
+                Maybe<RValueExpression> element = values.get(i);
+                boolean elementCheck = rves.validate(
+                    element,
+                    runningState,
+                    acceptor
+                );
+                elementsCheck = elementsCheck && elementCheck;
+                if (elementCheck == INVALID) {
+                    continue;
+                }
+
+                IJadescriptType elementType = rves.inferType(
+                    element, runningState
+                );
+
+                runningState = rves.advance(element, runningState);
+
+                boolean typeCheck = validationHelper.assertExpectedType(
+                    explicitType,
+                    elementType,
+                    "InvalidElementType",
+                    element,
                     acceptor
                 );
 
-
-            boolean typeParameterValidation;
-            if (hasTypeSpecifier) {
-                typeParameterValidation =
-                    module.get(TypeExpressionSemantics.class)
-                        .validate(typeParameter, acceptor);
-            } else {
-                typeParameterValidation = VALID;
+                elementsCheck = elementsCheck && typeCheck;
             }
 
-            if (typeValidation == VALID
-                && typeParameterValidation == VALID
-                && hasTypeSpecifier) {
-                return module.get(ValidationHelper.class).assertExpectedType(
-                    module.get(TypeExpressionSemantics.class)
-                        .toJadescriptType(typeParameter),
-                    lub,
-                    "ListLiteralTypeMismatch",
-                    input,
+            return tes.validate(
+                typeParameter,
+                acceptor
+            ) && explicitType.validateType(
+                typeParameter,
+                acceptor
+            ) && elementsCheck;
+        } else {
+            Maybe<RValueExpression> element0 = values.get(0);
+            boolean elementsCheck = rves.validate(
+                element0,
+                state,
+                acceptor
+            );
+            IJadescriptType elementsLUB = rves.inferType(element0, state);
+            StaticState runningState = rves.advance(element0, state);
+
+            //Starting from second element
+            for (int i = 1; i < values.size(); i++) {
+                Maybe<RValueExpression> element = values.get(i);
+                boolean elementCheck = rves.validate(
+                    element,
+                    runningState,
                     acceptor
                 );
-            } else {
-                return typeValidation;
+
+                elementsCheck = elementsCheck && elementCheck;
+                if (elementsCheck == VALID) {
+                    IJadescriptType elementType = rves.inferType(
+                        element,
+                        runningState
+                    );
+                    elementsLUB = lattice.getLUB(
+                        elementsLUB,
+                        elementType,
+                        "Cannot compute the type of the elements " +
+                            "of the list: could not find a common supertype " +
+                            "of the types '" + elementsLUB + "' and '" +
+                            elementType + "'."
+                    );
+                }
+                runningState = rves.advance(element, runningState);
             }
+
+            return elementsLUB.validateType(input, acceptor);
         }
-
-        return stage1;
     }
 
 

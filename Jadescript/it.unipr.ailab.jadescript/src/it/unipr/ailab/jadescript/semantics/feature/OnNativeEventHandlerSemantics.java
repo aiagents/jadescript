@@ -15,10 +15,7 @@ import it.unipr.ailab.jadescript.semantics.expression.LValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
-import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.PatternMatchHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TemplateCompilationHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.*;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
@@ -352,7 +349,11 @@ public class OnNativeEventHandlerSemantics
 
         final IJadescriptType finalContentType = lattice.getGLB(
             pattNarrowedContentType,
-            wexpNarrowedContentType
+            wexpNarrowedContentType,
+            TypeHelper.getNarrowedContentErrorMsg(
+                pattNarrowedContentType,
+                wexpNarrowedContentType
+            )
         );
 
         //Building the message template
@@ -547,6 +548,7 @@ public class OnNativeEventHandlerSemantics
     }
 
 
+
     @Override
     public void validateOnEdit(
         Maybe<OnNativeEventHandler> input,
@@ -684,7 +686,11 @@ public class OnNativeEventHandlerSemantics
 
         final IJadescriptType finalContentType = lattice.getGLB(
             pattNarrowedContentType,
-            wexpNarrowedContentType
+            wexpNarrowedContentType,
+            TypeHelper.getNarrowedContentErrorMsg(
+                pattNarrowedContentType,
+                wexpNarrowedContentType
+            )
         );
 
         StaticState preparedState = prepareBodyState.apply(
