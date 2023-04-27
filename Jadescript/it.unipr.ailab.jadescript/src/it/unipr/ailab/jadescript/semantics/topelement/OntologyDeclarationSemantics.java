@@ -2,7 +2,6 @@ package it.unipr.ailab.jadescript.semantics.topelement;
 
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.*;
-import it.unipr.ailab.jadescript.semantics.InterceptAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.ContextManager;
 import it.unipr.ailab.jadescript.semantics.context.c1toplevel.OntologyDeclarationContext;
@@ -111,12 +110,11 @@ public class OntologyDeclarationSemantics extends
             iterate(input.__(FeatureContainer::getFeatures));
 
         for (Maybe<? extends Feature> feature : features) {
-            InterceptAcceptor acceptor1 = new InterceptAcceptor(acceptor);
 
             //noinspection unchecked
-            module.get(OntologyElementSemantics.class).validate(
+            module.get(OntologyElementSemantics.class).validateOnEdit(
                 (Maybe<ExtendingFeature>) feature,
-                acceptor1
+                acceptor
             );
         }
 

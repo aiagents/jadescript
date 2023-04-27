@@ -12,6 +12,8 @@ ontology Collections
     predicate P2(x as list of integer)
     predicate P3(x as map of text:integer)
     predicate P4(x as list of C1)
+    predicate P5(x as P1)
+    
     action A2(x as list of C2)
     
 agent CollectionReceiver uses ontology Collections
@@ -20,6 +22,9 @@ agent CollectionReceiver uses ontology Collections
         
     cyclic behaviour ReceiveCollection
         on message inform do
+            log __dt__ content
+            
+        on message request do
             log __dt__ content
         
 

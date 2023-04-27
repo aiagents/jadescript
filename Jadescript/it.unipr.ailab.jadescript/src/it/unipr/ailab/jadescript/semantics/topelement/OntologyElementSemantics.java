@@ -53,27 +53,19 @@ public class OntologyElementSemantics extends Semantics {
     }
 
 
-    public void validate(
+    public void validateOnSave(
         Maybe<ExtendingFeature> input,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null || input.isNothing()){
+        if (input == null || input.isNothing()) {
             return;
         }
 
         module.get(ContextManager.class).enterOntologyElementDeclaration();
 
-        Maybe<String> ontoElementName = input.__(ExtendingFeature::getName);
-
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
 
-        validationHelper.assertNotReservedName(
-            ontoElementName,
-            input,
-            JadescriptPackage.eINSTANCE.getNamedFeature_Name(),
-            acceptor
-        );
 
         Maybe<? extends JvmParameterizedTypeReference> superTypeExpr =
             input.__(ExtendingFeature::getSuperType);
@@ -131,23 +123,6 @@ public class OntologyElementSemantics extends Semantics {
         }
 
 
-        // if it is a 'predicate' declaration ...
-        if (input.isInstanceOf(
-            it.unipr.ailab.jadescript.jadescript.Predicate.class
-        )) {
-            // then at least a slot is required
-            validationHelper.asserting(
-                Maybe.someStream(input
-                        .__(i -> (Predicate) i)
-                        .__(FeatureWithSlots::getSlots))
-                    .anyMatch(Maybe::isPresent),
-                "InvalidPredicateDeclaration",
-                "Predicates require at least a slot.",
-                input,
-                acceptor
-            );
-        }
-
         // ensures that the supertype extends the basic type for that
         // kind of declaration ('concept', 'action' etc...)
         final IJadescriptType expectedSuperType =
@@ -166,26 +141,25 @@ public class OntologyElementSemantics extends Semantics {
             acceptor
         );
 
-        if (superTypeCheck == VALID) {
-            // if it is a concept ...
-            if (input.__(i -> i instanceof Concept).orElse(false)
-                && superTypeExpr.isPresent()) {
-                final JvmParameterizedTypeReference superTypeSafe =
-                    superTypeExpr.toNullable();
-                // ... it cannot extend an action
-                //     (the previous check fails to detect this because in JADE
-                //      AgentAction extends Concept)
-                validationHelper.asserting(
-                    !jvm.isAssignable(
-                        jade.content.AgentAction.class,
-                        superTypeSafe
-                    ),
-                    "InvalidOntologyElementSupertype",
-                    "concepts can not extend agent actions",
-                    superTypeExpr,
-                    acceptor
-                );
-            }
+        // if it is a concept ...
+        if (superTypeCheck == VALID
+            && input.__(i -> i instanceof Concept).orElse(false)
+            && superTypeExpr.isPresent()) {
+            final JvmParameterizedTypeReference superTypeSafe =
+                superTypeExpr.toNullable();
+            // ... it cannot extend an action
+            //     (the previous check fails to detect this because in JADE
+            //      AgentAction extends Concept)
+            validationHelper.asserting(
+                !jvm.isAssignable(
+                    jade.content.AgentAction.class,
+                    superTypeSafe
+                ),
+                "InvalidOntologyElementSupertype",
+                "concepts can not extend agent actions",
+                superTypeExpr,
+                acceptor
+            );
         }
 
 
@@ -209,7 +183,7 @@ public class OntologyElementSemantics extends Semantics {
                 module.get(TypeExpressionSemantics.class);
 
             for (Maybe<SlotDeclaration> slot : slots) {
-                boolean slotCheck = validateSlotDeclaration(
+                boolean slotCheck = validateSlotDeclarationOnSave(
                     slot,
                     tes,
                     acceptor
@@ -218,26 +192,18 @@ public class OntologyElementSemantics extends Semantics {
             }
 
             if (allSlotsCheck == VALID) {
-                //Validation of the set of declared slots
-                checkDuplicateDeclaredSlots(acceptor, inputWithSlots);
-
+                // Preparing slot info for super-schema check
                 for (Maybe<SlotDeclaration> slot : slots) {
                     Maybe<String> slotName =
                         slot.__(SlotDeclaration::getName);
-                    boolean slotTypeCheck = tes.validate(
-                        slot.__(SlotDeclaration::getType),
-                        acceptor
+                    IJadescriptType slotType = tes.toJadescriptType(
+                        slot.__(SlotDeclaration::getType)
                     );
-                    if (slotTypeCheck == VALID) {
-                        IJadescriptType slotType = tes.toJadescriptType(
-                            slot.__(SlotDeclaration::getType)
-                        );
 
-                        slotName.safeDo(slotNameSafe -> {
-                            slotTypeSet.put(slotNameSafe, slotType);
-                            slotSet.put(slotNameSafe, slot);
-                        });
-                    }
+                    slotName.safeDo(slotNameSafe -> {
+                        slotTypeSet.put(slotNameSafe, slotType);
+                        slotSet.put(slotNameSafe, slot);
+                    });
                 }
             }
         }
@@ -250,6 +216,85 @@ public class OntologyElementSemantics extends Semantics {
                 input,
                 superTypeExpr, slotTypeSet, slotSet, acceptor
             );
+        }
+
+        module.get(ContextManager.class).exit();
+    }
+
+
+    public void validateOnEdit(
+        Maybe<ExtendingFeature> input,
+        ValidationMessageAcceptor acceptor
+    ) {
+        if (input == null || input.isNothing()) {
+            return;
+        }
+
+        module.get(ContextManager.class).enterOntologyElementDeclaration();
+
+        Maybe<String> ontoElementName = input.__(ExtendingFeature::getName);
+
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
+        validationHelper.assertNotReservedName(
+            ontoElementName,
+            input,
+            JadescriptPackage.eINSTANCE.getNamedFeature_Name(),
+            acceptor
+        );
+
+
+        boolean isPredicate = false;
+
+        // if it is a 'predicate' declaration ...
+        if (input.isInstanceOf(
+            it.unipr.ailab.jadescript.jadescript.Predicate.class
+        )) {
+            isPredicate = true;
+            // then at least a slot is required
+            validationHelper.asserting(
+                Maybe.someStream(input
+                        .__(i -> (Predicate) i)
+                        .__(FeatureWithSlots::getSlots))
+                    .anyMatch(Maybe::isPresent),
+                "InvalidPredicateDeclaration",
+                "Predicates require at least a slot.",
+                input,
+                acceptor
+            );
+        }
+
+
+        final Boolean hasSlots = input.__(i -> i instanceof FeatureWithSlots)
+            .orElse(false);
+
+        boolean allSlotsCheck = VALID;
+        if (hasSlots) {
+            Maybe<FeatureWithSlots> inputWithSlots =
+                input.__(i -> (FeatureWithSlots) i);
+
+            //Validation of each single slot, independently
+            MaybeList<SlotDeclaration> slots =
+                inputWithSlots.__toList(FeatureWithSlots::getSlots);
+
+            TypeExpressionSemantics tes =
+                module.get(TypeExpressionSemantics.class);
+
+            for (Maybe<SlotDeclaration> slot : slots) {
+                boolean slotCheck = validateSlotDeclarationOnEdit(
+                    slot,
+                    tes,
+                    isPredicate,
+                    acceptor
+                );
+                allSlotsCheck = allSlotsCheck && slotCheck;
+            }
+
+            if (allSlotsCheck == VALID) {
+                //Validation of the set of declared slots
+                checkDuplicateDeclaredSlots(acceptor, inputWithSlots);
+            }
         }
 
         module.get(ContextManager.class).exit();
@@ -470,9 +515,33 @@ public class OntologyElementSemantics extends Semantics {
     }
 
 
-    public boolean validateSlotDeclaration(
+    public boolean validateSlotDeclarationOnSave(
         Maybe<SlotDeclaration> slotDeclaration,
         TypeExpressionSemantics tes,
+        ValidationMessageAcceptor acceptor
+    ) {
+
+        final Maybe<TypeExpression> slotTypeExpression =
+            slotDeclaration.__(SlotDeclaration::getType);
+        IJadescriptType slotType = tes.toJadescriptType(slotTypeExpression);
+
+        return module.get(ValidationHelper.class).asserting(
+            !slotType.category().isCollection() ||
+                slotType.typeArguments().stream()
+                    .map(TypeArgument::ignoreBound)
+                    .noneMatch(t -> t.category().isCollection()),
+            "InvalidSlotType",
+            "Collections of collections are not supported as slot types.",
+            slotTypeExpression,
+            acceptor
+        );
+    }
+
+
+    public boolean validateSlotDeclarationOnEdit(
+        Maybe<SlotDeclaration> slotDeclaration,
+        TypeExpressionSemantics tes,
+        boolean acceptsPropositions,
         ValidationMessageAcceptor acceptor
     ) {
 
@@ -501,19 +570,48 @@ public class OntologyElementSemantics extends Semantics {
             return INVALID;
         }
 
-        IJadescriptType slotType = tes.toJadescriptType(slotTypeExpression);
+        final IJadescriptType type = tes.toJadescriptType(slotTypeExpression);
 
-        return module.get(ValidationHelper.class).asserting(
-            !slotType.category().isCollection() ||
-                slotType.typeArguments().stream()
-                    .map(TypeArgument::ignoreBound)
-                    .noneMatch(t -> t.category().isCollection()),
-            "InvalidSlotType",
-            "Collections of collections are not supported as slot types.",
-            slotTypeExpression,
-            acceptor
-        );
+        boolean slotTypeCheck = type.validateType(slotTypeExpression, acceptor);
 
+        if (slotTypeCheck == INVALID) {
+            return INVALID;
+        }
+
+        if (!acceptsPropositions) {
+            return module.get(ValidationHelper.class).asserting(
+                !includesPropositions(type),
+                "InvalidSlotDeclaration",
+                "Cannot use propositions as terms here.",
+                slotTypeExpression,
+                acceptor
+            );
+        }
+
+        return VALID;
+    }
+
+
+    private boolean includesPropositions(IJadescriptType type) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
+        final TypeComparator comparator =
+            module.get(TypeComparator.class);
+
+        if(TypeRelationshipQuery.superTypeOrEqual().matches(
+            comparator.compare(builtins.proposition(), type)
+        )) {
+            return true;
+        }
+
+        if(type.category().isTuple() || type.category().isCollection()){
+            return type.typeArguments().stream()
+                .map(TypeArgument::ignoreBound)
+                .anyMatch(this::includesPropositions);
+        }
+
+        return false;
     }
 
 
