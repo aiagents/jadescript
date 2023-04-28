@@ -481,10 +481,34 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         return traversingSemanticsMap(
             input,
             (sem, i) -> sem.compile(i, state, acceptor),
-            () -> compileInternal(input, state, acceptor)
+            () -> prepareCompile(input, state, acceptor)
         );
     }
 
+    private String prepareCompile(
+        Maybe<T> input,
+        StaticState state,
+        BlockElementAcceptor acceptor
+    ) {
+        String compiled = compileInternal(input, state, acceptor);
+        final Maybe<IJadescriptType> narrowedType =
+            getNarrowedTypeInternal(input, state);
+
+        if(narrowedType.isNothing()){
+            return compiled;
+        }
+
+        final IJadescriptType narrowedSafe = narrowedType.toNullable();
+
+        if(module.get(TypeComparator.class)
+            .compare(narrowedSafe, inferTypeInternal(input, state))
+            .is(TypeRelationshipQuery.strictSubType())){
+            return "(" + narrowedSafe.compileAsJavaCast() +
+                " " + compiled + ")";
+        }
+        
+        return compiled;
+    }
 
     /**
      * @see ExpressionSemantics#compile(
@@ -508,6 +532,27 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     }
 
 
+    protected Maybe<IJadescriptType> getNarrowedTypeInternal(
+        Maybe<T> input,
+        StaticState state
+    ) {
+        final Maybe<ExpressionDescriptor> descriptorMaybe =
+            describeExpression(input, state);
+
+        if (descriptorMaybe.isNothing()) {
+            return Maybe.nothing();
+        }
+
+        final ExpressionDescriptor descriptor =
+            descriptorMaybe.toNullable();
+        StaticState after = advance(input, state);
+        final Optional<IJadescriptType> flowSensitiveInferredType =
+            after.inferUpperBound(descriptor).findFirst();
+
+        return Maybe.fromOpt(flowSensitiveInferredType);
+    }
+
+
     private IJadescriptType prepareInferType(
         Maybe<T> input,
         StaticState state
@@ -515,36 +560,25 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         final IJadescriptType inferredType =
             inferTypeInternal(input, state);
 
-        final Maybe<ExpressionDescriptor> descriptorMaybe =
-            describeExpression(input, state);
+        final Maybe<IJadescriptType> narrowedType =
+            getNarrowedTypeInternal(input, state);
 
-        if (descriptorMaybe.isPresent()) {
-            final ExpressionDescriptor descriptor =
-                descriptorMaybe.toNullable();
-            StaticState after = advance(input, state);
-            final Optional<IJadescriptType> flowSensitiveInferredType =
-                after.inferUpperBound(
-                    s -> s.equals(descriptor),
-                    null
-                ).findFirst();
-
-            if (flowSensitiveInferredType.isPresent()) {
-                final IJadescriptType narrowedType =
-                    flowSensitiveInferredType.get();
-                return module.get(TypeLatticeComputer.class)
-                    .getGLB(
-                        inferredType,
-                        narrowedType,
-                        "Could not narrow type of expression '"+
-                            descriptor+"': could not find common subtype of " +
-                            "inferred type '"+inferredType+"' and " +
-                            "type '"+narrowedType+"' based on flow-sensitive " +
-                            "information."
-                    );
-            }
+        if (narrowedType.isNothing()) {
+            return inferredType;
         }
 
-        return inferredType;
+
+        return module.get(TypeLatticeComputer.class)
+            .getGLB(
+                inferredType,
+                narrowedType.toNullable(),
+                "Could not narrow type of expression '" +
+                    describeExpression(input, state)
+                    + "': could not find common subtype of" +
+                    " inferred type '" + inferredType + "' and the " +
+                    "type '" + narrowedType + "' which based on " +
+                    "flow-sensitive information."
+            );
     }
 
 
@@ -1387,9 +1421,9 @@ public abstract class ExpressionSemantics<T> extends Semantics {
                 + providedInputType.getFullJadescriptName()
                 + " to a pattern which expects an input of type "
                 + solvedType.getFullJadescriptName() + "; here the latter is " +
-                "required to be "+requirement.getHumanReadableString() +
-                " the former, but it was found to be "+
-                actualRelationship.getHumanReadableString() +" the former.",
+                "required to be " + requirement.getHumanReadableString() +
+                " the former, but it was found to be " +
+                actualRelationship.getHumanReadableString() + " the former.",
             SemanticsUtils.extractEObject(pattern),
             acceptor
         );

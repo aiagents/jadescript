@@ -9,8 +9,7 @@ import java.util.stream.Stream;
 public interface FlowSensitiveInferrer {
 
     Stream<IJadescriptType> inferUpperBound(
-        @Nullable Predicate<ExpressionDescriptor> forExpression,
-        @Nullable Predicate<IJadescriptType> upperBound
+        ExpressionDescriptor forExpression
     );
 
 

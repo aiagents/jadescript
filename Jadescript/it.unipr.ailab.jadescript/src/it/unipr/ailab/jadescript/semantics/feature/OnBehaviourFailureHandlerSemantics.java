@@ -315,21 +315,13 @@ public class OnBehaviourFailureHandlerSemantics
             );
 
             wexpNarrowedContentType = afterWhenExprReturnedTrue.inferUpperBound(
-                    ed -> ed.equals(
-                        ExpressionDescriptor.failureReasonReference
-                    ),
-                    null
+                    ExpressionDescriptor.failureReasonReference
                 ).findFirst()
                 .orElse(propositionUpperBound);
 
             wexpNarrowedBehaviourType = afterWhenExprReturnedTrue
                 .inferUpperBound(
-                    ed -> ed.equals(
-                        new ExpressionDescriptor.PropertyChain(
-                            "behaviour"
-                        )
-                    ),
-                    null
+                    new ExpressionDescriptor.PropertyChain("behaviour")
                 ).findFirst()
                 .orElse(behaviourUpperBound);
 
@@ -416,9 +408,6 @@ public class OnBehaviourFailureHandlerSemantics
         scb.close("}");
 
     }
-
-
-
 
 
     @Override
@@ -536,21 +525,15 @@ public class OnBehaviourFailureHandlerSemantics
 
                 wexpNarrowedContentType = afterWhenExprReturnedTrue
                     .inferUpperBound(
-                        ed -> ed.equals(
-                            ExpressionDescriptor.failureReasonReference
-                        ),
-                        null
+                        ExpressionDescriptor.failureReasonReference
                     ).findFirst()
                     .orElse(propositionUpperBound);
 
                 wexpNarrowedBehaviourType = afterWhenExprReturnedTrue
                     .inferUpperBound(
-                        ed -> ed.equals(
-                            new ExpressionDescriptor.PropertyChain(
-                                "behaviour"
-                            )
-                        ),
-                        null
+                        new ExpressionDescriptor.PropertyChain(
+                            "behaviour"
+                        )
                     ).findFirst()
                     .orElse(behaviourUpperBound);
 

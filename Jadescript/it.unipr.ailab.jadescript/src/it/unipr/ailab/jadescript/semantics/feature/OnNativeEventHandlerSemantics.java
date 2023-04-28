@@ -315,8 +315,7 @@ public class OnNativeEventHandlerSemantics
             );
 
             wexpNarrowedContentType = afterWhenExprRetunedTrue.inferUpperBound(
-                    ed -> ed.equals(ExpressionDescriptor.nativeEventReference),
-                    null
+                    ExpressionDescriptor.nativeEventReference
                 ).findFirst()
                 .orElse(contentUpperBound);
 
@@ -548,7 +547,6 @@ public class OnNativeEventHandlerSemantics
     }
 
 
-
     @Override
     public void validateOnEdit(
         Maybe<OnNativeEventHandler> input,
@@ -666,10 +664,7 @@ public class OnNativeEventHandlerSemantics
 
                 wexpNarrowedContentType = afterWhenExprReturnedTrue
                     .inferUpperBound(
-                        ed -> ed.equals(
-                            ExpressionDescriptor.nativeEventReference
-                        ),
-                        null
+                        ExpressionDescriptor.nativeEventReference
                     ).findFirst()
                     .orElse(contentUpperBound);
 

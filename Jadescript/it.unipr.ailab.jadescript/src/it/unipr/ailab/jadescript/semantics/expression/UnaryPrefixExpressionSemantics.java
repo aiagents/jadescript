@@ -92,6 +92,8 @@ public class UnaryPrefixExpressionSemantics
             .orElse(false);
         final boolean isDebugType = input.__(UnaryPrefix::isDebugInferredType)
             .orElse(false);
+        final boolean isDebugDescribe =
+            input.__(UnaryPrefix::isDebugDescribeExpression).orElse(false);
         final boolean isDebugSearchName =
             input.__(UnaryPrefix::isDebugSearchName)
                 .orElse(false);
@@ -168,6 +170,11 @@ public class UnaryPrefixExpressionSemantics
                     "' " + CompilationHelper.sourceToLocationText(ofNotation) +
                     " is: " + type.getDebugPrint()
             );
+        }
+        if(isDebugDescribe){
+            final Maybe<ExpressionDescriptor> descriptorMaybe =
+                ones.describeExpression(ofNotation, state);
+            System.out.println("Expression descriptor: "+descriptorMaybe);
         }
         return afterOp;
 
@@ -342,7 +349,8 @@ public class UnaryPrefixExpressionSemantics
             && !input.__(UnaryPrefix::isDebugSearchName).orElse(false)
             && !input.__(UnaryPrefix::isDebugSearchCall).orElse(false)
             && !input.__(UnaryPrefix::isDebugScope).orElse(false)
-            && !input.__(UnaryPrefix::isDebugInferredType).orElse(false);
+            && !input.__(UnaryPrefix::isDebugInferredType).orElse(false)
+            && !input.__(UnaryPrefix::isDebugDescribeExpression).orElse(false);
     }
 
 
@@ -498,6 +506,16 @@ public class UnaryPrefixExpressionSemantics
             );
         }
 
+        if(input.__(UnaryPrefix::isDebugDescribeExpression).orElse(false)){
+            validationHelper.emitInfo(
+                "DEBUG_INFO",
+                "Expression descriptor: "
+                    + ones.describeExpression(ofNotation, state),
+                input,
+                acceptor
+            );
+        }
+
         if (input.__(UnaryPrefix::isDebugScope).orElse(false)) {
             SourceCodeBuilder scb = new SourceCodeBuilder("");
             state.debugDump(scb);
@@ -637,8 +655,7 @@ public class UnaryPrefixExpressionSemantics
 
 
     @Override
-    public PatternMatcher
-    compilePatternMatchInternal(
+    public PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<UnaryPrefix> input,
         StaticState state,
         BlockElementAcceptor acceptor

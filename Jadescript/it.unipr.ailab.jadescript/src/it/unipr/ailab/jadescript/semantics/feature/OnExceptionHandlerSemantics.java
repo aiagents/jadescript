@@ -317,8 +317,7 @@ public class OnExceptionHandlerSemantics
             );
 
             wexpNarrowedContentType = afterWhenExprReturnedTrue.inferUpperBound(
-                    ed -> ed.equals(ExpressionDescriptor.exceptionReference),
-                    null
+                    ExpressionDescriptor.exceptionReference
                 ).findFirst()
                 .orElse(propositionUpperBound);
 
@@ -411,8 +410,6 @@ public class OnExceptionHandlerSemantics
         scb.close("}");
 
     }
-
-
 
 
     @Override
@@ -525,12 +522,9 @@ public class OnExceptionHandlerSemantics
 
                 wexpNarrowedContentType = afterWhenExprReturnedTrue
                     .inferUpperBound(
-                        ed -> ed.equals(
-                            new ExpressionDescriptor.PropertyChain(
-                                "exception"
-                            )
-                        ),
-                        null
+                        new ExpressionDescriptor.PropertyChain(
+                            "exception"
+                        )
                     ).findFirst()
                     .orElse(contentUpperBound);
 

@@ -22,13 +22,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.equal;
-import static it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils.safeFilter;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
 
@@ -246,25 +244,31 @@ public final class StaticState
     @Override
     @Contract(pure = true)
     public Stream<IJadescriptType> inferUpperBound(
-        @Nullable Predicate<ExpressionDescriptor> forExpression,
-        @Nullable Predicate<IJadescriptType> upperBound
+        ExpressionDescriptor forExpression
     ) {
-        final ImmutableMap<ExpressionDescriptor, IJadescriptType> upperBounds =
+        final ImmutableMap<ExpressionDescriptor, IJadescriptType> localUBs =
             getLocalScopeFlowTypingUpperBounds();
 
-        Stream<ExpressionDescriptor> result = safeFilter(
-            upperBounds.streamKeys(),
-            forExpression
-        );
 
-        return safeFilter(
-            result.map(ed -> upperBounds.get(ed).orElseGet(
-                () -> module.get(BuiltinTypeProvider.class).any(
-                    "No upper bound proven for expression " +
-                        "descriptor " + ed + " in current static state."
-                )
-            )),
-            upperBound
+        final Stream<IJadescriptType> localResults =
+            localUBs.streamKeys()
+                .filter(ed -> ed.equals(forExpression))
+                .map(ed -> localUBs.get(ed).orElseGet(
+                    () -> module.get(BuiltinTypeProvider.class).any(
+                        "No upper bound proven for expression " +
+                            "descriptor " + ed + " in current static state."
+                    )
+                ));
+
+        if(!(outerContext() instanceof StaticState)){
+            return localResults;
+        }
+
+        StaticState outerScope = (StaticState) outerContext();
+
+        return Stream.concat(
+            localResults,
+            outerScope.inferUpperBound(forExpression)
         );
     }
 
@@ -323,7 +327,7 @@ public final class StaticState
         return "Could not infer type of expression '" +
             expressionDescriptor + "' using " +
             "flow-sensitive information: could not find common " +
-            (subtype?"subtype":"supertype")+
+            (subtype ? "subtype" : "supertype") +
             " of types '" + a + "' and '" + b + "'.";
     }
 
@@ -393,10 +397,7 @@ public final class StaticState
     public StaticState assertAssigned(
         ExpressionDescriptor ed
     ) {
-        if (inferUpperBound(
-            ed1 -> ed1.equals(ed),
-            null
-        ).findAny().isEmpty()) {
+        if (inferUpperBound(ed).findAny().isEmpty()) {
             return this;
         }
 

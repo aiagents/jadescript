@@ -311,18 +311,12 @@ public class OnMessageHandlerSemantics
             );
 
             wexpNarrowedContentType = afterWhenExprRetunedTrue.inferUpperBound(
-                    ed -> ed.equals(
-                        ExpressionDescriptor.contentOfMessageReference
-                    ),
-                    null
+                    ExpressionDescriptor.contentOfMessageReference
                 ).findFirst()
                 .orElse(contentUpperBound);
 
             wexpNarrowedMessageType = afterWhenExprRetunedTrue.inferUpperBound(
-                    ed -> ed.equals(
-                        ExpressionDescriptor.messageReference
-                    ),
-                    null
+                    ExpressionDescriptor.messageReference
                 ).findFirst()
                 .orElse(initialMsgType);
 
@@ -356,7 +350,7 @@ public class OnMessageHandlerSemantics
         if (wexpNarrowedMessageType instanceof BaseMessageType) {
             final IJadescriptType messageBasedContentType =
                 ((BaseMessageType) wexpNarrowedMessageType)
-                .getContentType();
+                    .getContentType();
             finalContentType = lattice.getGLB(
                 getNarrowedContentErrorMsg(
                     pattNarrowedContentType,
@@ -569,6 +563,7 @@ public class OnMessageHandlerSemantics
 
     }
 
+
     @NotNull
     private String getNarrowedContentErrorMsg(
         IJadescriptType pattNarrowedContentType,
@@ -580,7 +575,7 @@ public class OnMessageHandlerSemantics
             + pattNarrowedContentType + "', type (inferred from " +
             "when-expression) '" + wexpNarrowedBehaviourType + "', and" +
             " type (content type of the inferred message type in the " +
-            "when-expressions) '"+messageContentType+"'.";
+            "when-expressions) '" + messageContentType + "'.";
     }
 
 
@@ -786,19 +781,13 @@ public class OnMessageHandlerSemantics
 
                 wexpNarrowedContentType = afterWhenExprReturnedTrue
                     .inferUpperBound(
-                        ed -> ed.equals(
-                            ExpressionDescriptor.contentOfMessageReference
-                        ),
-                        null
+                        ExpressionDescriptor.contentOfMessageReference
                     ).findFirst()
                     .orElse(contentUpperBound);
 
                 wexpNarrowedMessageType = afterWhenExprReturnedTrue
                     .inferUpperBound(
-                        ed -> ed.equals(
-                            ExpressionDescriptor.messageReference
-                        ),
-                        null
+                        ExpressionDescriptor.messageReference
                     ).findFirst()
                     .orElse(initialMsgType);
 
@@ -817,7 +806,7 @@ public class OnMessageHandlerSemantics
         if (wexpNarrowedMessageType instanceof BaseMessageType) {
             final IJadescriptType messageBasedContentType =
                 ((BaseMessageType) wexpNarrowedMessageType)
-                .getContentType();
+                    .getContentType();
             finalContentType = lattice.getGLB(
                 getNarrowedContentErrorMsg(
                     pattNarrowedContentType,
@@ -869,10 +858,10 @@ public class OnMessageHandlerSemantics
         }
 
         MessageType finalMessageType = typeSolver.instantiateMessageType(
-                input.__(OnMessageHandler::getPerformative),
-                finalContentType,
-                /*normalizeToUpperBounds=*/ true
-            );
+            input.__(OnMessageHandler::getPerformative),
+            finalContentType,
+            /*normalizeToUpperBounds=*/ true
+        );
 
         final StaticState preparedState = prepareBodyState.apply(
             afterWhenExprReturnedTrue);

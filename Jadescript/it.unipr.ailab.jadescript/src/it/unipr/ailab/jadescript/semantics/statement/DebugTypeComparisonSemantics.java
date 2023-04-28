@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.TypeExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship;
 import it.unipr.ailab.maybe.Maybe;
@@ -32,13 +33,15 @@ public class DebugTypeComparisonSemantics
             input.__(DebugTypeComparison::getType1);
         final Maybe<TypeExpression> typEx2 =
             input.__(DebugTypeComparison::getType2);
+        final Maybe<String> op =
+            input.__(DebugTypeComparison::getOp);
         final IJadescriptType type1 =
             module.get(TypeExpressionSemantics.class).toJadescriptType(typEx1);
         final IJadescriptType type2 =
             module.get(TypeExpressionSemantics.class).toJadescriptType(typEx2);
 
         input.safeDo(inputSafe -> acceptor.acceptInfo(
-                getComparisonMessage(type1, type2),
+                produceMessage(type1, type2, op.orElse("?")),
                 inputSafe,
                 null,
                 ValidationMessageAcceptor.INSIGNIFICANT_INDEX,
@@ -50,10 +53,37 @@ public class DebugTypeComparisonSemantics
     }
 
 
+    private String produceMessage(
+        IJadescriptType type1,
+        IJadescriptType type2,
+        String op
+    ) {
+
+
+        switch (op){
+            case "?<":
+                return "LUB(\n\t" + type1 + ",\n\t" +
+                    type2 + "\n) = " +
+                    module.get(TypeLatticeComputer.class).getLUB(
+                        type1, type2, null
+                    ).getDebugPrint();
+            case "?>":
+                return "GLB(\n\t" + type1 + ",\n\t" +
+                    type2 + "\n) = " +
+                    module.get(TypeLatticeComputer.class).getGLB(
+                        type1, type2, null
+                    ).getDebugPrint();
+            default:
+            case "?":
+                return getComparisonMessage(type1, type2);
+        }
+    }
+
     private String getComparisonMessage(
         IJadescriptType type1,
         IJadescriptType type2
     ) {
+
         String result = "Comparison of types.\n" +
             "Type A: " + type1.getDebugPrint() + "\n" +
             "Type B: " + type2.getDebugPrint() + "\n" +
@@ -97,8 +127,9 @@ public class DebugTypeComparisonSemantics
             module.get(TypeExpressionSemantics.class).toJadescriptType(typEx1);
         final IJadescriptType type2 =
             module.get(TypeExpressionSemantics.class).toJadescriptType(typEx2);
+        final String op = input.__(DebugTypeComparison::getOp).orElse("?");
         acceptor.accept(
-            w.simpleStmt("/*" + getComparisonMessage(type1, type2) + "*/")
+            w.simpleStmt("/*" + produceMessage(type1, type2, op) + "*/")
         );
         return state;
     }

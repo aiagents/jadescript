@@ -10,6 +10,7 @@ import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.utils.LazyInit;
+import jade.core.AID;
 
 import java.util.List;
 
@@ -62,11 +63,17 @@ public class AIDType extends BasicType {
             final BuiltinTypeProvider builtinTypeProvider = module.get(
                 BuiltinTypeProvider.class);
             final TextType text = builtinTypeProvider.text();
+
             return List.of(Property.readonlyProperty(
                 "name",
                 text,
                 location,
                 Property.compileWithJVMGetter("name")
+            ), Property.readonlyProperty(
+                "localName",
+                text,
+                location,
+                Property.compileWithJVMGetter("localName")
             ), Property.readonlyProperty(
                 "platform",
                 text,

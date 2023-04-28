@@ -434,7 +434,7 @@ Statement:
 	| DebugTypeComparison;
 
 DebugTypeComparison:
-	'__d_comparetype__' type1=TypeExpression '?' type2=TypeExpression
+	'__d_comparetype__' type1=TypeExpression op=('?'|'?>'|'?<') type2=TypeExpression
 ;
 
 
@@ -685,6 +685,8 @@ UnaryPrefix:
 		(debugScope?='__ds__' ofNotation=OfNotation)
 		|
 		(debugInferredType?='__dt__' ofNotation=OfNotation)
+		|
+		(debugDescribeExpression?="__dd__" ofNotation=OfNotation)
 		|
 		(debugSearchName?='__dsn__' (searchName=VarIdentifier|underscore?='_'))
 		|
