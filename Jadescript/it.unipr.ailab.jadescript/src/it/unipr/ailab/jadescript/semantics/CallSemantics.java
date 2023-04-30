@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics;
 
 import com.google.common.collect.Streams;
 import com.google.inject.Singleton;
+import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.NamedArgumentList;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
@@ -27,6 +28,7 @@ import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils.Tuple2;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.maybe.utils.ImmutableList;
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -652,6 +654,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     ) {
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
+
         Maybe<String> name = input.__(Call::getName);
         boolean isProcedure =
             input.__(Call::isProcedure).orElse(true);
@@ -831,19 +834,18 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
 
         List<IJadescriptType> argTypes = new ArrayList<>(argNames.size());
 
-        List<Maybe<RValueExpression>> args = new ArrayList<>(
-            argNames.size()
-        );
+        List<Maybe<RValueExpression>> argsExprs =
+            new ArrayList<>(argNames.size());
 
         StaticState afterArgs = state;
         boolean allArgsCheck = VALID;
         for (String argName : argNames) {
-            final Maybe<RValueExpression> arg = argsByName.get(argName);
-            args.add(arg);
-            boolean argCheck = rves.validate(arg, afterArgs, acceptor);
-            argTypes.add(rves.inferType(arg, afterArgs));
+            final Maybe<RValueExpression> argExpr = argsByName.get(argName);
+            argsExprs.add(argExpr);
+            boolean argCheck = rves.validate(argExpr, afterArgs, acceptor);
+            argTypes.add(rves.inferType(argExpr, afterArgs));
             allArgsCheck = allArgsCheck && argCheck;
-            afterArgs = rves.advance(arg, afterArgs);
+            afterArgs = rves.advance(argExpr, afterArgs);
         }
 
         if (allArgsCheck == INVALID) {
@@ -863,6 +865,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             argTypes,
             argNames
         );
+
         if (methodsFound.isEmpty()) {
             return emitUnresolvedError(
                 input,
@@ -883,8 +886,10 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         } else {
             CompilableCallable match = methodsFound.get(0);
 
+            final ValidationHelper validationHelper = module.get(
+                ValidationHelper.class);
             boolean isCorrectOperationKind =
-                module.get(ValidationHelper.class).asserting(
+                validationHelper.asserting(
                     isProcedure == match.returnType()
                         .category().isJavaVoid(),
                     errorCode,
@@ -893,14 +898,46 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                     acceptor
                 );
 
-            if (isCorrectOperationKind == INVALID) {
+            boolean allNamesAreThere = VALID;
+
+            final Maybe<EList<String>> paramNamesMaybe =
+                namedArgs.__(NamedArgumentList::getParameterNames);
+
+            if (paramNamesMaybe.isPresent()) {
+                final EList<String> names = paramNamesMaybe.toNullable();
+
+                for (int i = 0; i < names.size(); i++) {
+                    final String n = names.get(i);
+
+                    if (n == null || n.isBlank()) {
+                        continue;
+                    }
+
+                    boolean nameIsThere = validationHelper.asserting(
+                        match.parameterNames().contains(n),
+                        errorCode,
+                        "parameter with name '" + n + "' not found in " +
+                            "resolved '" + match.getSignature() + "'",
+                        namedArgs,
+                        JadescriptPackage.eINSTANCE
+                            .getNamedArgumentList_ParameterNames(),
+                        i,
+                        acceptor
+                    );
+
+                    allNamesAreThere = allNamesAreThere && nameIsThere;
+                }
+            }
+
+            if (isCorrectOperationKind == INVALID
+                || allNamesAreThere == INVALID) {
                 return INVALID;
             }
 
 
             final List<Maybe<RValueExpression>> argsSorted =
                 sortToMatchParamNames(
-                    args,
+                    argsExprs,
                     argNames,
                     match.parameterNames()
                 );
@@ -920,7 +957,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                 IJadescriptType paramType = match.parameterTypes().get(i);
 
                 final boolean argCheck =
-                    module.get(ValidationHelper.class).assertExpectedType(
+                    validationHelper.assertExpectedType(
                         paramType,
                         argType,
                         "InvalidArgumentType",
@@ -1315,6 +1352,8 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         StaticState state,
         boolean advanceStateOnArguments
     ) {
+
+        //TODO check wrong named args
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
         Maybe<String> name = input.__(Call::getName);

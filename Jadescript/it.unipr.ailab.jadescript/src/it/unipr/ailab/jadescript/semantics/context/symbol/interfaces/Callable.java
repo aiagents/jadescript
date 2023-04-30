@@ -4,7 +4,6 @@ import com.google.common.collect.Streams;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 import java.util.List;
@@ -30,11 +29,12 @@ public interface Callable extends Located {
         return Math.min(parameterNames().size(), parameterTypesByName().size());
     }
 
-    default Signature getSignature(){
+    default Signature getSignature() {
         return new Signature(
             name(),
             returnType(),
-            parameterTypes()
+            parameterTypes(),
+            parameterNames()
         );
     }
 
@@ -54,21 +54,26 @@ public interface Callable extends Located {
         scb.close("}");
     }
 
-    public static class Signature implements BaseSignature{
+    public static class Signature implements BaseSignature {
 
         protected final String name;
         protected final IJadescriptType returnType;
         protected final List<IJadescriptType> parameterTypes;
 
+        //Parameter names are not relevant for equality and hashCode
+        protected final List<String> parameterNames;
+
 
         public Signature(
             String name,
             IJadescriptType returnType,
-            List<IJadescriptType> parameterTypes
+            List<IJadescriptType> parameterTypes,
+            List<String> parameterNames
         ) {
             this.name = name;
             this.returnType = returnType;
             this.parameterTypes = parameterTypes;
+            this.parameterNames = parameterNames;
         }
 
 
@@ -101,7 +106,7 @@ public interface Callable extends Located {
             }
 
             if (getReturnType() != null) {
-                if(!TypeComparator.rawEquals(
+                if (!TypeComparator.rawEquals(
                     this.getReturnType(),
                     that.getReturnType()
                 )) {
@@ -125,15 +130,23 @@ public interface Callable extends Located {
 
         @Override
         public String toString() {
-            final String parametersPrint = getParameterTypes().stream()
-                .map(Object::toString)
-                .collect(Collectors.joining(", "));
+            final String parametersPrint =
+                Streams.zip(
+                    getParameterNames().stream(),
+                    getParameterTypes().stream(),
+                    (n, t) -> n + " as " + t
+                ).collect(Collectors.joining(", "));
             if (getReturnType().getID().equals(TypeHelper.VOID_TYPEID)) {
                 return "procedure " + getName() + " with " + parametersPrint;
             } else {
                 return "function " + getName() + "(" + parametersPrint +
                     ") as " + getReturnType();
             }
+        }
+
+
+        public List<String> getParameterNames() {
+            return parameterNames;
         }
 
 
