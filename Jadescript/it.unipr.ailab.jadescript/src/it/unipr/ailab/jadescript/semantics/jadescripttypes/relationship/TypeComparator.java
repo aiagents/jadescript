@@ -65,7 +65,7 @@ public class TypeComparator {
         }
 
         return subject == target
-            || Objects.equals(subject.getID(), target.getID());
+            || Objects.equals(subject.getRawID(), target.getRawID());
     }
 
 
@@ -388,20 +388,22 @@ public class TypeComparator {
                 || membership.test(target);
         }
 
-        if (subjectIsMember!=targetIsMember) {
+        if (subjectIsMember != targetIsMember) {
             return some(notRelated());
         }
 
-        if(!subjectIsMember/* || !targetIsMember <- assumed*/){
+        if (!subjectIsMember/* || !targetIsMember <- assumed*/) {
             return Maybe.nothing();
         }
 
-        // Assuming both members & distinct
-        if(subjectIsTop || targetIsBottom){
+        //TODO review the 'distinct' assumption:
+
+        // Assuming members & distinct
+        if (subjectIsTop || targetIsBottom) {
             return some(superType());
         }
 
-        if(subjectIsBottom || targetIsTop){
+        if (subjectIsBottom || targetIsTop) {
             return some(subType());
         }
 
@@ -549,7 +551,6 @@ public class TypeComparator {
     ) {
         final TypeRelationship rawRelationship = compareRaw(subject, target);
 
-
         if (TypeRelationshipQuery.equal().matches(rawRelationship)) {
             return parametricCompareWhenRawEqual(subject, target);
         }
@@ -579,12 +580,13 @@ public class TypeComparator {
         // supertypes the one type that is raw-equal to sup, and then compare
         // the type arguments to ensure that target is an applicable subtype
         // also according to the type arguments and their variance.
-        // If, in sub's set of supertypes ther is no type that can be evaluated
+        // If, in sub's set of supertypes there is no type that can be evaluated
         // as raw-equal to sup, then this returns notRelated.
 
         final Optional<IJadescriptType> subSup = sub.allSupertypesBFS().filter(
             ss -> rawEquals(ss.ignoreBound(), sup)
         ).findFirst();
+
 
         if (subSup.isPresent()) {
             final TypeRelationship subSupRaw =
@@ -762,7 +764,6 @@ public class TypeComparator {
     }
 
 
-
     /**
      * @return the type relationship between subject and target, i.e., what is
      * subject w.r.t. to target.
@@ -776,6 +777,15 @@ public class TypeComparator {
             target,
             false
         );
+    }
+
+
+    public boolean checkIs(
+        TypeRelationshipQuery query,
+        IJadescriptType subject,
+        IJadescriptType target
+    ) {
+        return compare(subject, target).is(query);
     }
 
 
@@ -886,7 +896,7 @@ public class TypeComparator {
                 x -> x.category().isSideEffectFlag()
             );
 
-        if(seModeFlagSublattice.isPresent()){
+        if (seModeFlagSublattice.isPresent()) {
             return seModeFlagSublattice.toNullable();
         }
 
@@ -946,6 +956,7 @@ public class TypeComparator {
             return parametricCheck(subject, target);
         }
 
+        // Raw checks now
 
         if (rawEquals(subject, target)) {
             return equal();
@@ -953,15 +964,13 @@ public class TypeComparator {
 
         IJadescriptType finalSubject = subject;
         if (target.allSupertypesBFS()
-            .map(IJadescriptType::getID)
-            .anyMatch(id -> Objects.equals(id, finalSubject.getID()))) {
+            .anyMatch(t -> rawEquals(finalSubject, t))) {
             return TypeRelationship.superType();
         }
 
         IJadescriptType finalTarget = target;
         if (subject.allSupertypesBFS()
-            .map(IJadescriptType::getID)
-            .anyMatch(id -> Objects.equals(id, finalTarget.getID()))) {
+            .anyMatch(t -> rawEquals(finalTarget, t))) {
             return TypeRelationship.subType();
         }
 

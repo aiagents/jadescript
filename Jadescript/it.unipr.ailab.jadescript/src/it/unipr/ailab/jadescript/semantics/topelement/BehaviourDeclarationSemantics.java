@@ -13,13 +13,17 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.SEMode;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.proxyeobjects.BehaviourDeclaration;
 import it.unipr.ailab.maybe.Maybe;
+import jadescript.core.Agent;
 import jadescript.core.behaviours.CyclicBehaviour;
 import jadescript.core.behaviours.OneShotBehaviour;
+import jadescript.java.AgentEnv;
+import jadescript.java.SideEffectsFlag;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.eclipse.xtext.common.types.JvmMember;
@@ -30,7 +34,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -115,40 +118,53 @@ public class BehaviourDeclarationSemantics
     public List<IJadescriptType> allowedIndirectSupertypes(
         Maybe<BehaviourDeclaration> input
     ) {
-        final Maybe<JvmTypeReference> typeArg =
-            input.__(BehaviourDeclaration::getForAgent)
-                .extract(Maybe::flatten);
 
-        List<TypeArgument> typeArgs = new ArrayList<>();
-
-        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final TypeHelper typeHelper = module.get(TypeHelper.class);
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
 
-        if (typeArg.isPresent()) {
-            typeArgs.add(typeSolver.fromJvmTypeReference(typeArg.toNullable()));
-        } else {
-            typeArgs.add(builtins.agent());
+        if (input.isNothing()) {
+            return List.of(
+                builtins.behaviour(
+                    typeHelper.covariant(builtins.agent())
+                )
+            );
         }
 
-        if (input
-            .__(BehaviourDeclaration::getType)
-            .__partial2(String::equals, "cyclic")
-            .orElse(false)) {
+        final BehaviourDeclaration inputSafe = input.toNullable();
+        final Maybe<JvmTypeReference> forAgent = inputSafe.getForAgent();
 
-            return Collections.singletonList(typeSolver.fromClass(
-                jadescript.core.behaviours.CyclicBehaviour.class,
-                typeArgs
-            ));
-
-        } else {//it's one shot
-
-            return Collections.singletonList(typeSolver.fromClass(
-                jadescript.core.behaviours.OneShotBehaviour.class,
-                typeArgs
-            ));
-
+        final TypeArgument agentTypeArgument;
+        if(forAgent.isNothing()){
+            agentTypeArgument = typeHelper.covariant(builtins.agent());
+        }else{
+            final TypeSolver typeSolver = module.get(TypeSolver.class);
+            agentTypeArgument = typeHelper.contravariant(
+                typeSolver.fromJvmTypeReference(
+                    forAgent.toNullable(),
+                    true
+                ).ignoreBound()
+            );
         }
+
+        final BehaviourType.Kind kind = inputSafe.getKind();
+        switch (kind) {
+
+            case Cyclic:
+                return List.of(
+                    builtins.cyclicBehaviour(agentTypeArgument)
+                );
+            case OneShot:
+                return List.of(
+                    builtins.oneshotBehaviour(agentTypeArgument)
+                );
+            default:
+            case Base:
+                return List.of(
+                    builtins.behaviour(agentTypeArgument)
+                );
+        }
+
     }
 
 
@@ -156,32 +172,37 @@ public class BehaviourDeclarationSemantics
     public Optional<IJadescriptType> defaultSuperType(
         Maybe<BehaviourDeclaration> input
     ) {
-        final Maybe<JvmTypeReference> typeArg =
-            input.__(BehaviourDeclaration::getForAgent)
-                .extract(Maybe::flatten);
 
-        List<TypeArgument> typeArgs = new ArrayList<>(1);
-        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
 
-        if (typeArg.isPresent()) {
-            typeArgs.add(typeSolver.fromJvmTypeReference(typeArg.toNullable()));
+        if (input.isNothing()) {
+            return Optional.of(builtins.behaviour(builtins.agent()));
         }
-        if (input.__(BehaviourDeclaration::getType).wrappedEquals("cyclic")) {
-            final IJadescriptType value = typeSolver.fromClass(
-                CyclicBehaviour.class,
-                typeArgs
+
+        final BehaviourDeclaration inputSafe = input.toNullable();
+        final Maybe<JvmTypeReference> forAgent = inputSafe.getForAgent();
+
+        final TypeArgument agentArgument;
+        if(forAgent.isNothing()){
+            agentArgument = builtins.agent();
+        }else{
+            final TypeSolver typeSolver = module.get(TypeSolver.class);
+            agentArgument = typeSolver.fromJvmTypeReference(
+                forAgent.toNullable(),
+                true
             );
-            return Optional.of(value);
+        }
 
-        } else { //it's one shot
-
-            final IJadescriptType value = typeSolver.fromClass(
-                OneShotBehaviour.class,
-                typeArgs
-            );
-
-            return Optional.of(value);
-
+        final BehaviourType.Kind kind = inputSafe.getKind();
+        switch (kind) {
+            case Cyclic:
+                return Optional.of(builtins.cyclicBehaviour(agentArgument));
+            case OneShot:
+                return Optional.of(builtins.oneshotBehaviour(agentArgument));
+            default:
+            case Base:
+                return Optional.of(builtins.behaviour(agentArgument));
         }
     }
 

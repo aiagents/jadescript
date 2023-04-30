@@ -43,8 +43,8 @@ public abstract class JvmBasedType extends JadescriptType {
         if (referenceToType instanceof JvmParameterizedTypeReference
             && type instanceof JvmGenericType) {
             return applyArguments(
-                ((JvmGenericType) type),
-                ((JvmParameterizedTypeReference) referenceToType)
+                (JvmGenericType) type,
+                (JvmParameterizedTypeReference) referenceToType
             );
         }
 
@@ -56,8 +56,6 @@ public abstract class JvmBasedType extends JadescriptType {
         JvmGenericType genericType,
         JvmParameterizedTypeReference parameterizedRef
     ) {
-
-
         final MaybeList<JvmTypeParameter> parameters =
             MaybeList.someListNullsRemoved(
                 genericType.getTypeParameters()
@@ -158,10 +156,8 @@ public abstract class JvmBasedType extends JadescriptType {
             JvmDeclaredType type =
                 (JvmDeclaredType) this.jvmTypeReference.getType();
 
-
             Map<String, JvmTypeReference> appliedArguments =
                 applyArguments(type, this.jvmTypeReference);
-
 
             final TypeSolver typeSolver = module.get(TypeSolver.class);
             return Maybe.someStream(type.getSuperTypes())

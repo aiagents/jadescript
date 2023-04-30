@@ -3,11 +3,10 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
+import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.AgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
@@ -26,12 +25,10 @@ import static it.unipr.ailab.maybe.utils.LazyInit.lazyInit;
 
 public class BaseBehaviourType
     extends JadescriptType
-    implements EmptyCreatable, BehaviourType {
+    implements BehaviourType {
 
     private final Kind kind;
     private final TypeArgument forAgentType;
-    private final LazyInit<IJadescriptType> baseAgentType
-        = lazyInit(() -> module.get(BuiltinTypeProvider.class).agent());
 
 
     public BaseBehaviourType(
@@ -54,10 +51,8 @@ public class BaseBehaviourType
 
     @Override
     public String compileNewEmptyInstance() {
-        return "((" + compileToJavaTypeReference() + ") " +
-            "jadescript.core.behaviours." +
-            BehaviourType.getTypeName(getBehaviourKind()) +
-            ".__createEmpty())";
+        return JvmTypeHelper.noGenericsTypeName(compileToJavaTypeReference()) +
+            ".__createEmptyWithEnv(" + SemanticsConsts.AGENT_ENV + ")";
     }
 
 
@@ -68,14 +63,8 @@ public class BaseBehaviourType
 
 
     @Override
-    public boolean requiresAgentEnvParameter() {
-        return true;
-    }
-
-
-    @Override
-    public IJadescriptType getForAgentType() {
-        return forAgentType.ignoreBound();
+    public TypeArgument getForAgentType() {
+        return forAgentType;
     }
 
 
@@ -144,7 +133,7 @@ public class BaseBehaviourType
                 ),
                 Property.readonlyProperty(
                     "agent",
-                    BaseBehaviourType.this.getForAgentType(),
+                    BaseBehaviourType.this.getForAgentType().ignoreBound(),
                     getLocation(),
                     Property.compileGetWithCustomMethod("getJadescriptAgent")
                 ),
@@ -173,7 +162,7 @@ public class BaseBehaviourType
 
     @Override
     public List<TypeArgument> typeArguments() {
-        return List.of();
+        return List.of(forAgentType);
     }
 
 

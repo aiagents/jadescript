@@ -44,6 +44,14 @@ public class OneShotBehaviour<A extends jadescript.core.Agent>
         return new EmptyOneShotBehaviour();
     }
 
+    public static <T extends jadescript.core.Agent> OneShotBehaviour<T>
+    __createEmptyWithEnv(
+        AgentEnv<? extends T, ? extends SideEffectsFlag.WithSideEffects>
+            _agentEnv
+    ){
+        return new OneShotBehaviour<>(_agentEnv);
+    }
+
     @SuppressWarnings({ "rawtypes", "serial" })
     public static class EmptyOneShotBehaviour extends OneShotBehaviour {
         public EmptyOneShotBehaviour() {

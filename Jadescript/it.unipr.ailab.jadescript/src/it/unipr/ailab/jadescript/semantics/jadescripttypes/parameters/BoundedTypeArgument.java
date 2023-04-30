@@ -37,6 +37,12 @@ public class BoundedTypeArgument implements TypeArgument {
 
 
     @Override
+    public String toString() {
+        return getFullJadescriptName();
+    }
+
+
+    @Override
     public String getFullJadescriptName() {
         switch (variance) {
             case EXTENDS:

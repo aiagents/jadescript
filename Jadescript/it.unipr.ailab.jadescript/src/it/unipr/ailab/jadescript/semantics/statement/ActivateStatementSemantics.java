@@ -13,13 +13,18 @@ import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.UserDefinedBehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import jade.core.behaviours.Behaviour;
+import jadescript.core.Agent;
+import jadescript.core.behaviours.CyclicBehaviour;
 import jadescript.core.behaviours.OneShot;
+import jadescript.java.AgentEnv;
+import jadescript.java.SideEffectsFlag;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
@@ -168,14 +173,15 @@ public class ActivateStatementSemantics
             module.get(BuiltinTypeProvider.class);
         final TypeComparator comparator = module.get(TypeComparator.class);
 
+
         if (agentType.isPresent()
-            && exprType instanceof UserDefinedBehaviourType
+            && exprType instanceof BehaviourType
             && behaviourCheck == VALID) {
             final IJadescriptType forAgentType =
-                ((UserDefinedBehaviourType) exprType).getForAgentType();
+                ((BehaviourType) exprType).getForAgentType().ignoreBound();
             validationHelper.asserting(
-                comparator.compare(forAgentType, agentType.get())
-                    .is(superTypeOrEqual()),
+                comparator
+                    .checkIs(superTypeOrEqual(), forAgentType, agentType.get()),
                 "InvalidBehaviourActivation",
                 "An agent of type '" + agentType.get().getFullJadescriptName() +
                     "' can not activate a behaviour " +

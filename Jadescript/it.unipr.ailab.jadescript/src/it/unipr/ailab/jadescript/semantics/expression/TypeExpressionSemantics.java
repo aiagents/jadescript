@@ -29,7 +29,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.equal;
@@ -231,21 +230,26 @@ public final class TypeExpressionSemantics extends Semantics {
         Maybe<BuiltinHierarchicType> builtinHierarchicType,
         ValidationMessageAcceptor acceptor
     ) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final ValidationHelper validationHelper = module.get(
+            ValidationHelper.class);
 
 
-        Function<TypeArgument, BaseBehaviourType> behaviourTypeFunction =
-            getBaseBehaviourTypeFunction(builtinHierarchicType);
-
-        if (behaviourTypeFunction != null) {
-            final BuiltinTypeProvider builtins =
-                module.get(BuiltinTypeProvider.class);
-            final ValidationHelper validationHelper = module.get(
-                ValidationHelper.class);
-
+        if (builtinHierarchicType
+            .__(BuiltinHierarchicType::isBaseBehaviour).orElse(false)
+            || builtinHierarchicType
+            .__(BuiltinHierarchicType::isCyclicBehaviour).orElse(false)
+            || builtinHierarchicType
+            .__(BuiltinHierarchicType::isOneshotBehaviour).orElse(false)
+        ) {
             TypeArgument agentType =
                 getAgentArgumentType(builtinHierarchicType);
-            final boolean expectedTypeValidation =
-                validationHelper.assertExpectedType(
+            final boolean expectedTypeValidation;
+            if (agentType == null) {
+                expectedTypeValidation = VALID;
+            } else {
+                expectedTypeValidation = validationHelper.assertExpectedType(
                     builtins.agent(),
                     agentType,
                     "InvalidBehaviourTypeArgument",
@@ -253,10 +257,36 @@ public final class TypeExpressionSemantics extends Semantics {
                         .__(BuiltinHierarchicType::getArgumentAgentRef),
                     acceptor
                 );
-            final boolean agentTypeValidation = behaviourTypeFunction
-                .apply(agentType)
+            }
+            final BaseBehaviourType type;
+            if (builtinHierarchicType
+                .__(BuiltinHierarchicType::isCyclicBehaviour)
+                .orElse(false)) {
+                if(agentType == null){
+                    type = builtins.cyclicBehaviour();
+                }else{
+                    type = builtins.cyclicBehaviour(agentType);
+                }
+            }else if(builtinHierarchicType
+            .__(BuiltinHierarchicType::isOneshotBehaviour)
+                .orElse(false)){
+                if(agentType == null){
+                    type = builtins.oneshotBehaviour();
+                }else{
+                    type = builtins.oneshotBehaviour(agentType);
+                }
+            }else{
+                if(agentType == null){
+                    type = builtins.behaviour();
+                }else{
+                    type = builtins.behaviour(agentType);
+                }
+            }
+
+            final boolean validation = type
                 .validateType(builtinHierarchicType, acceptor);
-            return expectedTypeValidation && agentTypeValidation;
+
+            return expectedTypeValidation && validation;
         } else {
             final Maybe<MessageType> messageTypeMaybe =
                 builtinHierarchicType.__(
@@ -311,13 +341,12 @@ public final class TypeExpressionSemantics extends Semantics {
     }
 
 
-    private TypeArgument getAgentArgumentType(
+    private @Nullable TypeArgument getAgentArgumentType(
         @NotNull Maybe<BuiltinHierarchicType> bhType
     ) {
         final TypeSolver typeSolver = module.get(TypeSolver.class);
-        final BuiltinTypeProvider builtins =
-            module.get(BuiltinTypeProvider.class);
-        TypeArgument agentType = builtins.agent();
+        TypeArgument agentType = null;
+
         if (bhType.__(BuiltinHierarchicType::isFor).orElse(false)) {
             final Maybe<JvmTypeReference> agentArgumentRef =
                 bhType.__(BuiltinHierarchicType::getArgumentAgentRef);
@@ -328,34 +357,6 @@ public final class TypeExpressionSemantics extends Semantics {
             }
         }
         return agentType;
-    }
-
-
-    @Nullable
-    private Function<TypeArgument, BaseBehaviourType>
-    getBaseBehaviourTypeFunction(
-        Maybe<BuiltinHierarchicType> bhType
-    ) {
-        final BuiltinTypeProvider builtins =
-            module.get(BuiltinTypeProvider.class);
-        Function<TypeArgument, BaseBehaviourType> behaviourTypeFunction = null;
-        if (
-            bhType.__(BuiltinHierarchicType::isBaseBehaviour)
-                .orElse(false)
-        ) {
-            behaviourTypeFunction = builtins::behaviour;
-        } else if (
-            bhType.__(BuiltinHierarchicType::isCyclicBehaviour)
-                .orElse(false)
-        ) {
-            behaviourTypeFunction = builtins::cyclicBehaviour;
-        } else if (
-            bhType.__(BuiltinHierarchicType::isOneshotBehaviour)
-                .orElse(false)
-        ) {
-            behaviourTypeFunction = builtins::oneshotBehaviour;
-        }
-        return behaviourTypeFunction;
     }
 
 
@@ -419,14 +420,42 @@ public final class TypeExpressionSemantics extends Semantics {
         }
 
 
-        final Function<TypeArgument, BaseBehaviourType>
-            baseBehaviourTypeFunction =
-            getBaseBehaviourTypeFunction(hierarchicType);
-        if (baseBehaviourTypeFunction != null) {
-            return baseBehaviourTypeFunction.apply(
-                getAgentArgumentType(hierarchicType)
-            );
+        if (
+            hierarchicType.__(BuiltinHierarchicType::isBaseBehaviour)
+                .orElse(false)
+        ) {
+            final @Nullable TypeArgument agentArgumentType =
+                getAgentArgumentType(hierarchicType);
+            if (agentArgumentType == null) {
+                return builtins.behaviour();
+            } else {
+                return builtins.behaviour(agentArgumentType);
+            }
+        } else if (
+            hierarchicType.__(BuiltinHierarchicType::isCyclicBehaviour)
+                .orElse(false)
+        ) {
+            final @Nullable TypeArgument agentArgumentType =
+                getAgentArgumentType(hierarchicType);
+            if (agentArgumentType == null) {
+                return builtins.cyclicBehaviour();
+            } else {
+                return builtins.cyclicBehaviour(agentArgumentType);
+            }
+        } else if (
+            hierarchicType.__(BuiltinHierarchicType::isOneshotBehaviour)
+                .orElse(false)
+        ) {
+            final @Nullable TypeArgument agentArgumentType =
+                getAgentArgumentType(hierarchicType);
+            if (agentArgumentType == null) {
+                return builtins.oneshotBehaviour();
+            } else {
+                return builtins.oneshotBehaviour(agentArgumentType);
+            }
         }
+
+
         if (hierarchicType.__(BuiltinHierarchicType::isConcept)
             .orElse(false)) {
             return builtins.concept();

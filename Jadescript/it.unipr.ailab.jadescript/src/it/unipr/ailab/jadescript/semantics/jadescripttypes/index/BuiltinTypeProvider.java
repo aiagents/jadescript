@@ -705,7 +705,8 @@ public class BuiltinTypeProvider {
     /*package-private*/ final LazyInit<ParametricTypeSchema<BaseBehaviourType>>
         ptBehaviour = lazyInit(() -> {
         FormalTypeParameter ftpAnyAgent =
-            ftpFactory.get().boundedTypeParameterWithDefault(agent(), agent());
+            ftpFactory.get()
+                .boundedTypeParameterWithDefault(agent(), covariant(agent()));
 
         return ptFactory.get().<BaseBehaviourType>parametricType()
             .add(ftpAnyAgent)
@@ -747,7 +748,9 @@ public class BuiltinTypeProvider {
     /*package-private*/ final LazyInit<ParametricTypeSchema<BaseBehaviourType>>
         ptCyclicBehaviour = lazyInit(() -> {
         FormalTypeParameter ftpAnyAgent =
-            ftpFactory.get().boundedTypeParameterWithDefault(agent(), agent());
+            ftpFactory.get().boundedTypeParameterWithDefault(
+                agent(), covariant(agent())
+            );
 
         return ptFactory.get().<BaseBehaviourType>parametricType()
             .add(ftpAnyAgent)
@@ -785,7 +788,9 @@ public class BuiltinTypeProvider {
     /*package-private*/ final LazyInit<ParametricTypeSchema<BaseBehaviourType>>
         ptOneshotBehaviour = lazyInit(() -> {
         FormalTypeParameter ftpAnyAgent =
-            ftpFactory.get().boundedTypeParameterWithDefault(agent(), agent());
+            ftpFactory.get().boundedTypeParameterWithDefault(
+                agent(), covariant(agent())
+            );
 
         return ptFactory.get().<BaseBehaviourType>parametricType()
             .add(ftpAnyAgent)

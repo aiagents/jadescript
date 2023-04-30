@@ -21,6 +21,7 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.implicit.ImplicitConversionsHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
@@ -227,25 +228,25 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
 
         StaticState beforeInit = StaticState.beginningOfOperation(module);
 
+        final ImplicitConversionsHelper implicits =
+            module.get(ImplicitConversionsHelper.class);
 
-        final CompilationHelper compilationHelper =
-            module.get(CompilationHelper.class);
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
 
 
         final String initExpr;
-        if (isExplicitType) {
-            initExpr = compilationHelper.compileRValueAsLambdaSupplier(
-                right,
-                beforeInit,
-                type,
+        if(isExplicitType){
+            initExpr = implicits.compileWithEventualImplicitConversions(
+                rves.compile(right, beforeInit, fieldInitializationAcceptor),
+                rves.inferType(right, beforeInit),
                 type
             );
-        } else {
-            initExpr = compilationHelper.compileRValueAsLambdaSupplier(
+        }else{
+            initExpr = rves.compile(
                 right,
                 beforeInit,
-                type,
-                null
+                fieldInitializationAcceptor
             );
         }
 

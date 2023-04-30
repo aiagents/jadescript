@@ -278,6 +278,7 @@ public class CompilationHelper implements IQualifiedNameProvider {
     }
 
 
+
     /**
      * Compiles the expression into a Supplier lambda, which contains all the
      * expression's generated auxiliary statements, and it returns with the

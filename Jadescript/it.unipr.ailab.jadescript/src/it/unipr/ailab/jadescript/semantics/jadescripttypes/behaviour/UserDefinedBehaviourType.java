@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.UserDefinedType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.namespace.BehaviourTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
@@ -17,7 +18,7 @@ import java.util.Collections;
 
 public class UserDefinedBehaviourType
     extends UserDefinedType<BaseBehaviourType>
-    implements EmptyCreatable, BehaviourType {
+    implements BehaviourType {
 
     private final Maybe<IJadescriptType> superType;
 
@@ -34,7 +35,7 @@ public class UserDefinedBehaviourType
 
 
     @Override
-    public IJadescriptType getForAgentType() {
+    public TypeArgument getForAgentType() {
         return getRootCategoryType().getForAgentType();
     }
 
@@ -44,17 +45,6 @@ public class UserDefinedBehaviourType
     }
 
 
-    @Override
-    public String compileNewEmptyInstance() {
-        return compileToJavaTypeReference() +
-            ".__createEmpty(" + AGENT_ENV + ")";
-    }
-
-
-    @Override
-    public boolean requiresAgentEnvParameter() {
-        return true;
-    }
 
 
     @Override

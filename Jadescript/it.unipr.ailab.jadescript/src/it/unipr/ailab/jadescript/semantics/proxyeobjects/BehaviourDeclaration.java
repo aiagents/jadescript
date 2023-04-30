@@ -3,12 +3,17 @@ package it.unipr.ailab.jadescript.semantics.proxyeobjects;
 import it.unipr.ailab.jadescript.jadescript.Behaviour;
 import it.unipr.ailab.jadescript.jadescript.Feature;
 import it.unipr.ailab.jadescript.jadescript.MemberBehaviour;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BehaviourType;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.xtext.common.types.JvmParameterizedTypeReference;
 import org.eclipse.xtext.common.types.JvmTypeReference;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Locale;
+import java.util.Objects;
 
 import static it.unipr.ailab.maybe.Maybe.some;
 
@@ -87,6 +92,26 @@ public class BehaviourDeclaration extends ProxyEObject
         ));
     }
 
+    public BehaviourType.Kind getKind(){
+        String type = this.getType();
+        if(type == null || type.isBlank()){
+            return BehaviourType.Kind.Base;
+        }
+
+        type = type.toLowerCase();
+
+        if(Objects.equals(type, "cyclic")){
+            return BehaviourType.Kind.Cyclic;
+        }
+
+        if(Objects.equals(type, "one shot")
+        || Objects.equals(type, "oneshot")){
+            return BehaviourType.Kind.OneShot;
+        }
+
+        return BehaviourType.Kind.Base;
+    }
+
 
     public boolean isMemberBehaviour() {
         return isMemberBehaviour;
@@ -128,7 +153,7 @@ public class BehaviourDeclaration extends ProxyEObject
 
 
     @Override
-    public JvmTypeReference getAgent() {
+    public @Nullable JvmTypeReference getAgent() {
         return forAgent.toNullable();
     }
 

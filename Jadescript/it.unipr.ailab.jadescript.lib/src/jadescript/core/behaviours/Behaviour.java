@@ -43,12 +43,10 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
     private Waiting __ensureWait = Waiting.doNotWait();
 
 
-
-
     public Behaviour(
         AgentEnv<? extends A, ? extends SideEffectsFlag.WithSideEffects> _agentEnv
     ) {
-        super(_agentEnv.getAgent());
+        super(_agentEnv == null ? null : _agentEnv.getAgent());
         this.macroState = MacroState.NOT_ACTIVE;
 
     }
@@ -59,9 +57,42 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         return new EmptyBehaviour();
     }
 
+    public static <T extends jadescript.core.Agent> Behaviour<T>
+    __createEmptyWithEnv(
+        AgentEnv<? extends T, ? extends SideEffectsFlag.WithSideEffects>
+            _agentEnv
+    ){
+        return new Behaviour<T>(_agentEnv) {
+            @Override
+            protected ExecutionType __executionType() {
+                return ExecutionType.OneShot;
+            }
 
 
+            @Override
+            public void doAction(int _tickCount) {
 
+            }
+
+
+            @Override
+            public void doOnActivate() {
+
+            }
+
+
+            @Override
+            public void doOnDeactivate() {
+
+            }
+
+
+            @Override
+            public void doOnDestroy() {
+
+            }
+        };
+    }
 
     protected abstract ExecutionType __executionType();
 
@@ -890,6 +921,7 @@ public abstract class Behaviour<A extends jadescript.core.Agent>
         public EmptyBehaviour() {
             super(null);
         }
+
 
 
         @Override

@@ -128,9 +128,8 @@ public class BehaviourTopLevelDeclarationSemantics
 
     @Override
     public Maybe<IJadescriptType> getExtendedType(Maybe<Behaviour> input) {
-        return module.get(BehaviourDeclarationSemantics.class).getExtendedType(
-            BehaviourDeclaration.topLevelBehaviour(input)
-        );
+        return module.get(BehaviourDeclarationSemantics.class)
+            .getExtendedType(BehaviourDeclaration.topLevelBehaviour(input));
     }
 
 
