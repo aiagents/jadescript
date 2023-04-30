@@ -1,5 +1,7 @@
 package it.unipr.ailab.jadescript.semantics;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Streams;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
@@ -28,9 +30,12 @@ import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils.Tuple2;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.maybe.utils.ImmutableList;
+import jdk.jshell.execution.Util;
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -51,6 +56,9 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         super(semanticsModule);
     }
 
+
+    private final Cache<EObject, CompilableCallable> resolutionCache
+        = CacheBuilder.newBuilder().maximumSize(100).build();
 
     public static <T> List<T> sortToMatchParamNames(
         List<T> args,
@@ -1352,8 +1360,6 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         StaticState state,
         boolean advanceStateOnArguments
     ) {
-
-        //TODO check wrong named args
         Maybe<SimpleArgumentList> simpleArgs = extractSimpleArgs(input);
         Maybe<NamedArgumentList> namedArgs = extractNamedArgs(input);
         Maybe<String> name = input.__(Call::getName);
@@ -1424,12 +1430,41 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         }
     }
 
+    private boolean isCachable(
+        boolean isProcedure,
+        CompilableCallable callable
+    ){
+        if(callable == null){
+            return false;
+        }
+
+        if(isProcedure != callable.returnType().category().isJavaVoid()){
+            return false;
+        }
+
+        for (IJadescriptType parameterType : callable.parameterTypes()) {
+            if(parameterType.isErroneous()){
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     public Maybe<? extends CompilableCallable> resolve(
         Maybe<Call> input,
         StaticState state,
         boolean advanceStateOnArguments
     ) {
+        final Maybe<? extends EObject> extracted
+            = SemanticsUtils.extractEObject(input);
+        if(extracted.isPresent()){
+            final @Nullable CompilableCallable cached =
+                this.resolutionCache.getIfPresent(extracted.toNullable());
+            if(cached != null){
+                return some(cached);
+            }
+        }
         final List<? extends CompilableCallable> callableSymbols =
             resolveCandidates(
                 input,
@@ -1437,7 +1472,14 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
                 advanceStateOnArguments
             );
         if (callableSymbols.size() == 1) {
-            return Maybe.some(callableSymbols.get(0));
+            final CompilableCallable result = callableSymbols.get(0);
+            if(extracted.isPresent() && isCachable(
+                input.__(Call::isProcedure).orElse(false),
+                result
+            )){
+                this.resolutionCache.put(extracted.toNullable(), result);
+            }
+            return Maybe.some(result);
         } else {
             return Maybe.nothing();
         }

@@ -1,5 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.inject.Singleton;
 import it.unipr.ailab.jadescript.jadescript.JadescriptPackage;
 import it.unipr.ailab.jadescript.jadescript.RValueExpression;
@@ -30,6 +32,7 @@ import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Either;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.eclipse.xtext.xbase.lib.Pair;
 
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -50,6 +53,10 @@ public class SingleIdentifierExpressionSemantics
     ) {
         super(semanticsModule);
     }
+
+
+    private final Cache<Pair<StaticState, String>, CompilableName>
+        resolutionCache = CacheBuilder.newBuilder().maximumSize(100).build();
 
 
     @Override
@@ -102,17 +109,45 @@ public class SingleIdentifierExpressionSemantics
     }
 
 
+    public boolean isCacheable(CompilableName compilableName) {
+        return !compilableName.readingType().isErroneous();
+    }
+
+
     public Maybe<CompilableName> resolveAsNamedSymbol(
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
-        return input.__(SingleIdentifier::getIdent).__(
-            identSafe -> state.searchAs(
+        final Maybe<String> ident = input.__(SingleIdentifier::getIdent);
+        if (ident.isPresent()) {
+            final CompilableName cached =
+                this.resolutionCache.getIfPresent(
+                    Pair.of(state, ident.toNullable())
+                );
+            if (cached != null) {
+                return some(cached);
+            }
+        }
+
+        final Maybe<CompilableName> result = ident.__(identSafe ->
+            state.searchAs(
                     CompilableName.Namespace.class,
                     s -> s.compilableNames(identSafe)
                 ).findAny()
                 .orElse(null)//<- wrapped in Maybe
         );
+
+        if (ident.isPresent() && result.isPresent()) {
+            final CompilableName trueResult = result.toNullable();
+            if (isCacheable(trueResult)) {
+                this.resolutionCache.put(
+                    Pair.of(state, ident.toNullable()),
+                    trueResult
+                );
+            }
+        }
+
+        return result;
     }
 
 
