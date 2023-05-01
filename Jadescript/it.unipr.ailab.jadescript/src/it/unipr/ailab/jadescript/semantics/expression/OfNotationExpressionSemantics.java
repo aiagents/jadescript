@@ -27,11 +27,13 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery.superTypeOrEqual;
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.some;
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 
 /**
@@ -186,7 +188,11 @@ public class OfNotationExpressionSemantics
                 )).append("()");
             }
 
-            prev = inferTypeProperty(some(propName), prev);
+            prev = inferTypeProperty(
+                some(propName),
+                prev,
+                MemberName::readingType
+            );
         }
         return r.toString();
     }
@@ -233,7 +239,9 @@ public class OfNotationExpressionSemantics
         for (int i = properties.size() - 1; i >= 0; i--) {
             String propName = properties.get(i).orElse("");
             IJadescriptType currentPropType =
-                inferTypeProperty(some(propName), prevType);
+                inferTypeProperty(some(propName), prevType,
+                    MemberName::readingType
+                );
 
             Optional<? extends MemberName> property =
                 prevType.namespace().searchAs(
@@ -280,9 +288,51 @@ public class OfNotationExpressionSemantics
             }
 
 
-            prevType = inferTypeProperty(some(propName), prevType);
+            prevType = inferTypeProperty(
+                some(propName),
+                prevType,
+                MemberName::readingType
+            );
         }
 
+    }
+
+
+    @Override
+    protected IJadescriptType assignableTypeInternal(
+        Maybe<OfNotation> input,
+        StaticState state
+    ) {
+        if (input == null) {
+            return module.get(BuiltinTypeProvider.class).nothing("");
+        }
+
+        final MaybeList<String> properties =
+            input.__toList(OfNotation::getProperties);
+        final Maybe<AidLiteral> aidLiteral =
+            input.__(OfNotation::getAidLiteral);
+
+
+        List<Maybe<String>> props = properties.toListOfMaybes();
+
+        final AidLiteralExpressionSemantics ales =
+            module.get(AidLiteralExpressionSemantics.class);
+
+
+        IJadescriptType prevType = ales.inferType(aidLiteral, state);
+        //NOT NEEDED:
+//        StaticState afterSubExpr = ales.advance(aidLiteral, state);
+
+        for (int i = props.size() - 1; i >= 0; i--) {
+            Maybe<String> prop = props.get(i);
+            prevType = inferTypeProperty(
+                prop,
+                prevType,
+                i == 0 ? MemberName::writingType : MemberName::readingType
+            );
+        }
+
+        return prevType;
     }
 
 
@@ -325,7 +375,11 @@ public class OfNotationExpressionSemantics
 //        StaticState afterSubExpr = ales.advance(aidLiteral, state);
         for (int i = props.size() - 1; i >= 0; i--) {
             Maybe<String> prop = props.get(i);
-            prevType = inferTypeProperty(prop, prevType);
+            prevType = inferTypeProperty(
+                prop,
+                prevType,
+                MemberName::readingType
+            );
         }
         return prevType;
     }
@@ -354,14 +408,15 @@ public class OfNotationExpressionSemantics
 
     public IJadescriptType inferTypeProperty(
         Maybe<String> prop,
-        IJadescriptType prevType
+        IJadescriptType prevType,
+        Function<MemberName, IJadescriptType> typeSelector
     ) {
         String propSafe = prop.orElse("");
         return prevType.namespace().searchAs(
                 MemberName.Namespace.class,
                 s -> s.memberNames(propSafe)
             ).findFirst()
-            .map(MemberName::readingType)
+            .map(typeSelector)
             .orElseGet(() ->
                 module.get(BuiltinTypeProvider.class).nothing(
                     "Could not resolve property '" + propSafe + "' of value " +
@@ -447,7 +502,11 @@ public class OfNotationExpressionSemantics
                 result = result && propertyCheck;
             }
             if (result == VALID) {
-                prevType = inferTypeProperty(prop, prevType);
+                prevType = inferTypeProperty(
+                    prop,
+                    prevType,
+                    MemberName::readingType
+                );
             } else {
                 return INVALID;
             }
@@ -676,7 +735,11 @@ public class OfNotationExpressionSemantics
                 return result;
             }
 
-            prevType = inferTypeProperty(prop, prevType);
+            prevType = inferTypeProperty(
+                prop,
+                prevType,
+                MemberName::readingType
+            );
         }
 
         return VALID;

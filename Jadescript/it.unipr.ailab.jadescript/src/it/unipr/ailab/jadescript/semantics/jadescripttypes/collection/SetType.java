@@ -106,7 +106,7 @@ public class SetType
 
 
     @Override
-    public boolean isSlottable() {//TODO
+    public boolean isSlottable() {
         return this.getElementType().isSlottable();
     }
 

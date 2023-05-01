@@ -144,6 +144,15 @@ public class TupleExpressionSemantics
 
 
     @Override
+    protected IJadescriptType assignableTypeInternal(
+        Maybe<TupledExpressions> input,
+        StaticState state
+    ) {
+        return module.get(BuiltinTypeProvider.class).nothing("");
+    }
+
+
+    @Override
     protected StaticState advanceAssignmentInternal(
         Maybe<TupledExpressions> input,
         IJadescriptType rightType,

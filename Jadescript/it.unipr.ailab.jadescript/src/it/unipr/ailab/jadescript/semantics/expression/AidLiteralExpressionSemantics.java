@@ -7,6 +7,7 @@ import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.TypeInterval;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
@@ -167,6 +168,15 @@ public class AidLiteralExpressionSemantics
 
 
     @Override
+    protected IJadescriptType assignableTypeInternal(
+        Maybe<AidLiteral> input,
+        StaticState state
+    ) {
+        return module.get(BuiltinTypeProvider.class).any("");
+    }
+
+
+    @Override
     protected StaticState advanceAssignmentInternal(
         Maybe<AidLiteral> input,
         IJadescriptType rightType,
@@ -175,6 +185,7 @@ public class AidLiteralExpressionSemantics
         // CANNOT BE L-EXPRESSION
         return state;
     }
+
 
 
     @Override

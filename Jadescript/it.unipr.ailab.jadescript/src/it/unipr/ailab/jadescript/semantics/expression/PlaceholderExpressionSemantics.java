@@ -144,6 +144,15 @@ public class PlaceholderExpressionSemantics
 
 
     @Override
+    protected IJadescriptType assignableTypeInternal(
+        Maybe<Primary> input,
+        StaticState state
+    ) {
+        return module.get(BuiltinTypeProvider.class).nothing("");
+    }
+
+
+    @Override
     protected StaticState advanceAssignmentInternal(
         Maybe<Primary> input,
         IJadescriptType rightType,

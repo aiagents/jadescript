@@ -38,16 +38,9 @@ public class AtomWithTrailersExpressionSemantics
     traverseInternal(
         Maybe<AtomExpr> input
     ) {
-        return resolveChainSemantics(input).toOpt();
+        return buildChain(input).resolveChain().toOpt();
     }
 
-
-    private Maybe<SemanticsBoundToAssignableExpression<?>>
-    resolveChainSemantics(
-        Maybe<AtomExpr> input
-    ) {
-        return buildChain(input).resolveChain();
-    }
 
     private ReversedTrailerChain buildChain(Maybe<AtomExpr> input) {
         ReversedTrailerChain chain = new ReversedTrailerChain(module);

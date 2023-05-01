@@ -6,11 +6,11 @@ import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.TypeInterval;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.utils.LazyInit;
@@ -132,6 +132,29 @@ public abstract class AssignableExpressionSemantics<T>
         IJadescriptType exprType,
         StaticState state,
         BlockElementAcceptor acceptor
+    );
+
+
+    public final IJadescriptType assignableType(
+        Maybe<T> input,
+        StaticState state
+    ){
+        return this.traversingAssignableSemanticsMap(
+            input,
+            (s, i) -> s.assignableType(
+                i,
+                state
+            ), () -> assignableTypeInternal(
+                input,
+                state
+            )
+        );
+    }
+
+
+    protected abstract IJadescriptType assignableTypeInternal(
+        Maybe<T> input,
+        StaticState state
     );
 
 
@@ -525,6 +548,15 @@ public abstract class AssignableExpressionSemantics<T>
 
 
         @Override
+        protected IJadescriptType assignableTypeInternal(
+            Maybe<X> input,
+            StaticState state
+        ) {
+            return module.get(BuiltinTypeProvider.class).any("");
+        }
+
+
+        @Override
         protected StaticState advanceAssignmentInternal(
             Maybe<X> input,
             IJadescriptType rightType,
@@ -532,6 +564,7 @@ public abstract class AssignableExpressionSemantics<T>
         ) {
             return state;
         }
+
 
 
         @Override

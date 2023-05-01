@@ -97,7 +97,7 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
                 ));
 
                 acceptor.accept(w.simpleStmt(
-                    patternMatcher.rootInvocationText(
+                    patternMatcher.compilePatternMatchExpression(
                         rightCompiled
                     )
                 ));

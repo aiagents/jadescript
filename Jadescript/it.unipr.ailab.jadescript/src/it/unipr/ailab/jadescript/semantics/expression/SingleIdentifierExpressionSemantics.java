@@ -295,6 +295,25 @@ public class SingleIdentifierExpressionSemantics
 
 
     @Override
+    protected IJadescriptType assignableTypeInternal(
+        Maybe<SingleIdentifier> input,
+        StaticState state
+    ) {
+        if(input == null){
+            return module.get(BuiltinTypeProvider.class).nothing("");
+        }
+
+        final Maybe<CompilableName> resolved =
+            resolveAsNamedSymbol(input, state);
+        if(resolved.isPresent()){
+            return resolved.toNullable().writingType();
+        }
+
+        return module.get(BuiltinTypeProvider.class).any("");
+    }
+
+
+    @Override
     protected StaticState advanceAssignmentInternal(
         Maybe<SingleIdentifier> input,
         IJadescriptType exprType,
@@ -434,40 +453,70 @@ public class SingleIdentifierExpressionSemantics
     ) {
         final String identifier = input.getPattern()
             .__(SingleIdentifier::getIdent).orElse("");
+
         if (isUnbound(input, state)) {
-            if (input.getMode().getUnification()
-                == PatternMatchMode.Unification.WITH_VAR_DECLARATION) {
-                IJadescriptType solvedPatternType =
-                    inferPatternType(input, state)
-                        .solve(input.getProvidedInputType());
+            return compilePatternMatchWhenUnbound(input, state, identifier);
+        }
 
-                //update of state is omitted on purpose
-                return input.createFieldAssigningMethodOutput(
-                    solvedPatternType,
-                    identifier
-                );
-            } else {
-                return input.createEmptyCompileOutput();
-            }
+        return compilePatternMatchWhenBound(
+            input,
+            state,
+            acceptor,
+            identifier
+        );
+    }
+
+
+    private PatternMatcher compilePatternMatchWhenBound(
+        PatternMatchInput<SingleIdentifier> input,
+        StaticState state,
+        BlockElementAcceptor acceptor,
+        String identifier
+    ) {
+        IJadescriptType solvedPatternType = inferPatternType(input, state)
+            .solve(input.getProvidedInputType());
+
+
+        String tempCompile = compile(
+            input.getPattern(),
+            state,
+            acceptor
+        );
+
+        String compiledFinal;
+        if (tempCompile.startsWith(
+            input.getRootPatternMatchVariableName()
+        )) {
+            compiledFinal = identifier;
         } else {
-            IJadescriptType solvedPatternType = inferPatternType(input, state)
-                .solve(input.getProvidedInputType());
+            compiledFinal = tempCompile;
+        }
 
-            String tempCompile = compile(input.getPattern(), state, acceptor);
+        return input.createSingleConditionMethodOutput(
+            solvedPatternType,
+            "java.util.Objects.equals(__x," + compiledFinal + ")"
+        );
+    }
 
-            String compiledFinal;
-            if (
-                tempCompile.startsWith(input.getRootPatternMatchVariableName())
-            ) {
-                compiledFinal = identifier;
-            } else {
-                compiledFinal = tempCompile;
-            }
 
-            return input.createSingleConditionMethodOutput(
+    private PatternMatcher compilePatternMatchWhenUnbound(
+        PatternMatchInput<SingleIdentifier> input,
+        StaticState state,
+        String identifier
+    ) {
+        if (input.getMode().getUnification()
+            == PatternMatchMode.Unification.WITH_VAR_DECLARATION) {
+            IJadescriptType solvedPatternType =
+                inferPatternType(input, state)
+                    .solve(input.getProvidedInputType());
+
+            //update of state is omitted on purpose
+            return input.createFieldAssigningMethodOutput(
                 solvedPatternType,
-                "java.util.Objects.equals(__x," + compiledFinal + ")"
+                identifier
             );
+        } else {
+            return input.createEmptyCompileOutput();
         }
     }
 
@@ -489,38 +538,27 @@ public class SingleIdentifierExpressionSemantics
         final String identifier = input.getPattern()
             .__(SingleIdentifier::getIdent).orElse("");
 
-        if (isUnbound(input, state)) {
-            if (input.getMode().getUnification()
-                == PatternMatchMode.Unification.WITH_VAR_DECLARATION) {
-                IJadescriptType solvedPatternType =
-                    inferPatternType(input, state)
-                        .solve(input.getProvidedInputType());
+        if (isUnbound(input, state)
+            && input.getMode().getUnification()
+            == PatternMatchMode.Unification.WITH_VAR_DECLARATION) {
+            IJadescriptType solvedPatternType =
+                inferPatternType(input, state)
+                    .solve(input.getProvidedInputType());
 
-                final PatternMatchUnifiedVariable deconstructedVariable
-                    = new PatternMatchUnifiedVariable(
-                    identifier,
-                    solvedPatternType,
-                    input.getRootPatternMatchVariableName(),
-                    input.getInputDescriptor().orElseGet(
-                        () -> new ExpressionDescriptor.PropertyChain(identifier)
-                    )
-                );
+            final PatternMatchUnifiedVariable deconstructedVariable
+                = new PatternMatchUnifiedVariable(
+                identifier,
+                solvedPatternType,
+                input.getRootPatternMatchVariableName(),
+                input.getInputDescriptor().orElseGet(
+                    () -> new ExpressionDescriptor.PropertyChain(identifier)
+                )
+            );
 
-                return state.declareName(deconstructedVariable);
-            } else {
-                return state;
-            }
-        } else {
-            if (input.getMode().getReassignment()
-                == PatternMatchMode.Reassignment.REQUIRE_REASSIGN) {
-                final Maybe<ExpressionDescriptor> described =
-                    describeExpression(input.getPattern(), state);
-
-                return state.assertAssigned(described);
-            } else {
-                return state;
-            }
+            return state.declareName(deconstructedVariable);
         }
+
+        return state;
     }
 
 
@@ -547,6 +585,8 @@ public class SingleIdentifierExpressionSemantics
         PatternMatchInput<SingleIdentifier> input,
         StaticState state
     ) {
+
+
         if (isTypelyHoled(input, state)) {
             return PatternType.holed(inputType -> inputType);
         } else {

@@ -146,7 +146,7 @@ public class MapType
 
 
     @Override
-    public boolean isSlottable() { //TODO
+    public boolean isSlottable() {
         return getKeyType().ignoreBound().isSlottable()
             && getValueType().ignoreBound().isSlottable();
     }

@@ -68,6 +68,15 @@ public class NativeCallSemantics
 
 
     @Override
+    protected IJadescriptType assignableTypeInternal(
+        Maybe<NativeCall> input,
+        StaticState state
+    ) {
+        return module.get(BuiltinTypeProvider.class).nothing("");
+    }
+
+
+    @Override
     protected StaticState advanceAssignmentInternal(
         Maybe<NativeCall> input,
         IJadescriptType rightType,

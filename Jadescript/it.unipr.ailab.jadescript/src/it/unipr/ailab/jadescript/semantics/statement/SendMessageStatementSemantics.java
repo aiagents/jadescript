@@ -20,7 +20,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
-import it.unipr.ailab.maybe.Functional;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import jade.content.ContentElement;
@@ -31,6 +30,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.EcoreUtil2;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.eclipse.xtext.xbase.typesystem.references.LightweightTypeReference;
 
 import java.io.Serializable;
 import java.util.List;
@@ -355,7 +355,10 @@ public class SendMessageStatementSemantics
         final Maybe<RValueExpression> contentExpr =
             input.__(SendMessageStatement::getContent);
 
-        acceptor.accept(w.callStmnt(
+
+        final BlockWriter tryBlock = w.block();
+
+        tryBlock.add(w.callStmnt(
             "jadescript.util.SendMessageUtils.validatePerformative",
             w.expr("\"" + performative.orElse("null") + "\"")
         ));
@@ -367,21 +370,22 @@ public class SendMessageStatementSemantics
         );
 
 
-        final RValueExpressionSemantics rves = module.get(
-            RValueExpressionSemantics.class);
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
 
 
-        final IJadescriptType inputContentType = rves.inferType(
-            contentExpr,
-            state
-        );
+        final IJadescriptType inputContentType =
+            rves.inferType(contentExpr, state);
+
         final IJadescriptType adaptedContentType =
-            module.get(TypeSolver.class).adaptMessageContentDefaultTypes(
+            typeSolver.adaptMessageContentDefaultTypes(
                 performative,
                 inputContentType
             );
+
         final String adaptedCompiledContent =
-            module.get(TypeSolver.class).adaptMessageContentDefaultCompile(
+            typeSolver.adaptMessageContentDefaultCompile(
                 performative,
                 inputContentType,
                 rves.compile(contentExpr, state, acceptor)
@@ -389,13 +393,13 @@ public class SendMessageStatementSemantics
 
         final StaticState afterContent = rves.advance(contentExpr, state);
 
-        acceptor.accept(w.variable(
+        tryBlock.add(w.variable(
             "java.lang.Object",
             contentVarName,
             w.expr(adaptedCompiledContent)
         ));
 
-        acceptor.accept(w.variable(
+        tryBlock.add(w.variable(
             "jadescript.core.message.Message",
             messageName,
             w.callExpr(
@@ -408,7 +412,7 @@ public class SendMessageStatementSemantics
 
 
 //generating => _msg1.setOntology(Onto.getInstance().getName());
-        acceptor.accept(w.simpleStmt(setOntology(
+        tryBlock.add(w.simpleStmt(setOntology(
             input,
             contentVarName,
             adaptedContentType,
@@ -416,7 +420,7 @@ public class SendMessageStatementSemantics
         )));
 
 //generating => _msg1.setLanguage(_codec1);
-        acceptor.accept(w.simpleStmt(setLanguage(messageName)));
+        tryBlock.add(w.simpleStmt(setLanguage(messageName)));
 
 //generating => _receiversList = ...
 //generating => for (AID r : _receiversList) _msg1.addReceiver(r);
@@ -425,7 +429,7 @@ public class SendMessageStatementSemantics
             receivers,
             messageName,
             afterContent,
-            acceptor
+            tryBlock
         );
 
 
@@ -437,15 +441,30 @@ public class SendMessageStatementSemantics
             contentVarName,
             messageName,
             performative,
-            acceptor
+            tryBlock
         );
 
 
 //generating => this.myAgent.send(_msg1);
-        acceptor.accept(w.callStmnt(
+        tryBlock.add(w.callStmnt(
             CompilationHelper.compileAgentReference() + ".send",
             w.expr(messageName)
         ));
+
+
+        acceptor.accept(w.tryCatch(tryBlock)
+            .addCatchBranch("java.lang.Throwable", "_t",
+                w.block().addStatement(
+                    w.throwStmt(
+                        w.callExpr(
+                            "jadescript.core.exception.JadescriptException" +
+                                ".wrap",
+                            w.expr("_t")
+                        )
+                    )
+                )
+            )
+        );
 
         return afterReceivers;
     }
@@ -456,7 +475,7 @@ public class SendMessageStatementSemantics
         Maybe<CommaSeparatedListOfRExpressions> receivers,
         String messageName,
         StaticState afterContent,
-        BlockElementAcceptor acceptor
+        BlockWriter tryBlock
     ) {
         Maybe<EList<RValueExpression>> rexprs = receivers
             .__(CommaSeparatedListOfRExpressions::getExpressions);
@@ -489,12 +508,12 @@ public class SendMessageStatementSemantics
                     receiversComponentType.compileToJavaTypeReference(),
                     receiversTypeName,
                     runningState,
-                    acceptor
+                    tryBlock
                 );
 
             } else if (comparator.compare(builtins.aid(), receiversType)
                 .is(superTypeOrEqual())) {
-                setReceiver(receiver, messageName, runningState, acceptor);
+                setReceiver(receiver, messageName, runningState, tryBlock);
             }
             runningState = rves.advance(receiver, runningState);
         }
@@ -510,51 +529,56 @@ public class SendMessageStatementSemantics
         String componentType,
         String receiversTypeName,
         StaticState state,
-        BlockElementAcceptor acceptor
+        BlockWriter tryBlock
     ) {
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
-        input.safeDo(inputSafe -> {
-            String receiversListName = synthesizeReceiverListName(inputSafe);
-            String receiverName = "__receiver";
-            boolean doAIDConversion = !Objects.equals(
-                componentType,
-                "jade.core.AID"
-            );
 
-            if (receiversExpr != null) {
-                acceptor.accept(w.variable(
-                    receiversTypeName,
-                    receiversListName,
-                    w.expr(rves.compile(receiversExpr, state, acceptor))
+        if (input.isNothing()) {
+            return;
+        }
+
+        final SendMessageStatement inputSafe = input.toNullable();
+
+        String receiversListName = synthesizeReceiverListName(inputSafe);
+        String receiverName = "__receiver";
+        boolean doAIDConversion = !Objects.equals(
+            componentType,
+            "jade.core.AID"
+        );
+
+        if (receiversExpr != null) {
+            tryBlock.add(w.variable(
+                receiversTypeName,
+                receiversListName,
+                w.expr(rves.compile(receiversExpr, state, tryBlock::add))
+            ));
+            if (doAIDConversion) {
+                tryBlock.add(w.foreach(
+                    componentType,
+                    receiverName,
+                    w.expr(receiversListName),
+                    w.block().addStatement(w.callStmnt(
+                        messageName + ".addReceiver",
+                        w.callExpr(
+                            "new jade.core.AID",
+                            w.callExpr(receiverName + ".toString"),
+                            w.expr("false")
+                        )
+                    ))
                 ));
-                if (doAIDConversion) {
-                    acceptor.accept(w.foreach(
-                        componentType,
-                        receiverName,
-                        w.expr(receiversListName),
-                        w.block().addStatement(w.callStmnt(
-                            messageName + ".addReceiver",
-                            w.callExpr(
-                                "new jade.core.AID",
-                                w.callExpr(receiverName + ".toString"),
-                                w.expr("false")
-                            )
-                        ))
-                    ));
-                } else {
-                    acceptor.accept(w.foreach(
-                        componentType,
-                        receiverName,
-                        w.expr(receiversListName),
-                        w.block().addStatement(w.callStmnt(
-                            messageName + ".addReceiver",
-                            w.expr(receiverName)
-                        ))
-                    ));
-                }
+            } else {
+                tryBlock.add(w.foreach(
+                    componentType,
+                    receiverName,
+                    w.expr(receiversListName),
+                    w.block().addStatement(w.callStmnt(
+                        messageName + ".addReceiver",
+                        w.expr(receiverName)
+                    ))
+                ));
             }
-        });
+        }
 
     }
 
@@ -563,25 +587,22 @@ public class SendMessageStatementSemantics
         Maybe<RValueExpression> re,
         String messageName,
         StaticState state,
-        BlockElementAcceptor acceptor
+        BlockWriter tryBlock
     ) {
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        IJadescriptType componentType = rves.inferType(re, state);
-        String argOfAddReceiver = rves.compile(re, state, acceptor);
-
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
+
         final TypeComparator comparator = module.get(TypeComparator.class);
 
-        boolean doAIDConversion = !comparator.compare(
-            builtins.aid(),
-            componentType
-        ).is(equal());
+        IJadescriptType componentType = rves.inferType(re, state);
+        String argOfAddReceiver = rves.compile(re, state, tryBlock::add);
 
-        acceptor.accept(doAIDConversion ?
-                w.callStmnt(
+
+        if (!comparator.compare(builtins.aid(), componentType).is(equal())) {
+            tryBlock.add(w.callStmnt(
                     messageName + ".addReceiver",
                     w.callExpr(
                         "new jade.core.AID",
@@ -589,11 +610,14 @@ public class SendMessageStatementSemantics
                         w.expr("false")
                     )
                 )
-                : w.callStmnt(
-                messageName + ".addReceiver",
-                w.expr(argOfAddReceiver)
-            )
-        );
+            );
+        } else {
+            tryBlock.add(w.callStmnt(
+                    messageName + ".addReceiver",
+                    w.expr(argOfAddReceiver)
+                )
+            );
+        }
     }
 
 
@@ -622,7 +646,8 @@ public class SendMessageStatementSemantics
                         OntologyAssociationComputer.class,
                         OntologyAssociationComputer
                             ::computeAllOntologyAssociations
-                    ).sorted().findFirst()//TODO multiple ontologies
+                    ).sorted().findFirst()
+                    //XXX: Change this^^^ for ontology Multi-inheritance
                     .map(oa -> oa.getOntology().compileToJavaTypeReference())
                     .map(s -> s + ".getInstance()")
                     .orElse("null") +
@@ -643,7 +668,7 @@ public class SendMessageStatementSemantics
         String contentVarName,
         String messageName,
         Maybe<String> performative,
-        BlockElementAcceptor acceptor
+        BlockWriter tryBlock
     ) {
 
         Maybe<UsesOntologyElement> container = input.__partial2(
@@ -655,65 +680,59 @@ public class SendMessageStatementSemantics
         //this one down here is the functional equivalent, by applying the
         // maybe monad on container, of:
         //    typeSafe = toLightWeightTypeReference(contentType, container)
-        container.__(
-            Functional.partial1(
-                module.get(CompilationHelper.class)::toLightweightTypeReference,
-                contentType
-            )
-        ).safeDo(typeSafe -> {
 
-            if (typeSafe.isType(String.class)) {
-                acceptor.accept(w.callStmnt(
-                    messageName + ".setContent",
-                    w.expr(contentVarName)
-                ));
+        if (container.isNothing()) {
+            return;
+        }
 
-            } else if (typeSafe.isSubtypeOf(Serializable.class)
-                || typeSafe.isSubtypeOf(ContentElement.class)
-                || typeSafe.isSubtypeOf(AbsContentElement.class)) {
-                BlockWriter tryBranch;
+        final UsesOntologyElement containerSafe = container.toNullable();
 
-                if (performative.isPresent() && (typeSafe.isSubtypeOf(
-                    ContentElement.class)
-                    || typeSafe.isSubtypeOf(AbsContentElement.class))) {
-                    tryBranch = w.block().addStatement(w.callStmnt(
-                        CompilationHelper.compileAgentReference() +
-                            ".getContentManager().fillContent",
-                        w.expr(messageName),
-                        w.callExpr(
-                            "jadescript.content.onto.MessageContent" +
-                                ".prepareContent",
-                            w.expr("(jade.content.ContentElement) " +
-                                contentVarName),
-                            w.expr("\"" + performative.toNullable() + "\"")
-                        )
-                    ));
-                } else if (typeSafe.isSubtypeOf(Serializable.class)
-                    || performative.isNothing()) {
-                    tryBranch = w.block().addStatement(w.callStmnt(
-                        messageName + ".setContentObject",
-                        w.expr("(java.io.Serializable) " + contentVarName)
-                    ));
-                } else {
-                    tryBranch = w.block();
-                }
+        final LightweightTypeReference typeSafe = module.get(
+            CompilationHelper.class).toLightweightTypeReference(
+            contentType,
+            containerSafe
+        );
 
-                //TODO let it throw a jadescript exception
-                // and maybe put the subsequent [agent].send into the try block
-                acceptor.accept(w.tryCatch(tryBranch)
-                    .addCatchBranch("java.lang.Throwable", "_t",
-                        w.block().addStatement(w.callStmnt("_t" +
-                            ".printStackTrace"))
-                    )
-                );
+        if (typeSafe.isType(String.class)) {
+            tryBlock.add(w.callStmnt(
+                messageName + ".setContent",
+                w.expr(contentVarName)
+            ));
+            return;
+        }
 
-            } else {
-                acceptor.accept(w.callStmnt(
-                    messageName + ".setByteSequenceContent",
-                    w.expr(contentVarName)
-                ));
-            }
-        });
+        if (performative.isPresent() &&
+            (typeSafe.isSubtypeOf(ContentElement.class)
+                || typeSafe.isSubtypeOf(AbsContentElement.class))) {
+            tryBlock.add(w.callStmnt(
+                CompilationHelper.compileAgentReference() +
+                    ".getContentManager().fillContent",
+                w.expr(messageName),
+                w.callExpr(
+                    "jadescript.content.onto.MessageContent" +
+                        ".prepareContent",
+                    w.expr("(jade.content.ContentElement) " + contentVarName),
+                    w.expr("\"" + performative.toNullable() + "\"")
+                )
+            ));
+            return;
+        }
+
+        if (typeSafe.isSubtypeOf(Serializable.class)
+            || performative.isNothing()) {
+            tryBlock.add(w.callStmnt(
+                messageName + ".setContentObject",
+                w.expr("(java.io.Serializable) " + contentVarName)
+            ));
+            return;
+        }
+
+
+        tryBlock.add(w.callStmnt(
+            messageName + ".setByteSequenceContent",
+            w.expr(contentVarName)
+        ));
+
     }
 
 

@@ -32,7 +32,6 @@ public class SetLiteralExpressionSemantics
     extends AssignableExpressionSemantics<MapOrSetLiteral> {
 
 
-    //TODO pipe operator
     private static final String PROVIDED_TYPE_TO_PATTERN_IS_NOT_SET_MESSAGE
         = "Cannot infer the type of the elements in the pattern - the set " +
         "pattern has no explicit element type specification, the pattern " +
@@ -871,6 +870,15 @@ public class SetLiteralExpressionSemantics
         BlockElementAcceptor acceptor
     ) {
 
+    }
+
+
+    @Override
+    protected IJadescriptType assignableTypeInternal(
+        Maybe<MapOrSetLiteral> input,
+        StaticState state
+    ) {
+        return module.get(BuiltinTypeProvider.class).nothing("");
     }
 
 

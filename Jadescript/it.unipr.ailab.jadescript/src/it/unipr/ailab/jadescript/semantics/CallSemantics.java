@@ -10,6 +10,7 @@ import it.unipr.ailab.jadescript.jadescript.RValueExpression;
 import it.unipr.ailab.jadescript.jadescript.SimpleArgumentList;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
+import it.unipr.ailab.jadescript.semantics.context.staticstate.TypeInterval;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Located;
@@ -146,6 +147,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     }
 
 
+
     @Override
     protected void compileAssignmentInternal(
         Maybe<Call> input,
@@ -166,6 +168,16 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     ) {
         // NOT USABLE AS L-EXPRESSION
         return state;
+    }
+
+
+    @Override
+    protected IJadescriptType assignableTypeInternal(
+        Maybe<Call> input,
+        StaticState state
+    ) {
+        // NOT USABLE AS L-EXPRESSION
+        return module.get(BuiltinTypeProvider.class).nothing("");
     }
 
 
@@ -1213,8 +1225,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         final Maybe<? extends GlobalPattern> resolve =
             resolvePattern(input.getPattern(), state);
 
-        return resolve.__(GlobalPattern::isWithoutSideEffects)
-            .orElse(true)
+        return resolve.__(GlobalPattern::isWithoutSideEffects).orElse(true)
             && subPatternEvaluationsAllPure(input, state);
     }
 

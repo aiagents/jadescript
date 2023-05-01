@@ -283,7 +283,7 @@ public class OnBehaviourFailureHandlerSemantics
                 s
             );
 
-            part1 = matcher.rootInvocationText(
+            part1 = matcher.compilePatternMatchExpression(
                 FAILURE_REASON_VAR_NAME
             );
         } else {

@@ -55,7 +55,7 @@ public class TypeLatticeComputer {
         Maybe<OntologyType> mt2,
         List<Maybe<OntologyType>> mts
     ) {
-        //TODO multiple ontologies
+        //XXX: Change this for ontology Multi-inheritance
         Maybe<OntologyType> result = getOntologyGLB(mt1, mt2);
         for (Maybe<OntologyType> mt : mts) {
             if (result.isNothing()) {
@@ -71,7 +71,7 @@ public class TypeLatticeComputer {
         Maybe<OntologyType> mt1,
         Maybe<OntologyType> mt2
     ) {
-        //TODO multiple ontologies
+        //XXX: Change this for ontology Multi-inheritance
         if (mt1.isNothing()) {
             return nothing();
         }

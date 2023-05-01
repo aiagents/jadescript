@@ -9,11 +9,10 @@ public class PatternMatchMode {
     private final TypeRelationshipQuery typeRelationshipRequirement;
     private final RequiresSuccessfulMatch requiresSuccessfulMatch;
     private final PatternApplicationSideEffects patternApplicationSideEffects;
-    private final Reassignment reassignment;
-    /* Expectations on the pattern match evaluation results: */
+    /* Expectations on the pattern match results: */
     private final Unification unification;
     private final NarrowsTypeOfInput narrowsTypeOfInput;
-    /* Additional input information: */
+    /* Additional information on the input: */
     private final PatternLocation patternLocation;
 
 
@@ -22,7 +21,6 @@ public class PatternMatchMode {
         TypeRelationshipQuery typeRelationshipRequirement,
         RequiresSuccessfulMatch requiresSuccessfulMatch,
         PatternApplicationSideEffects patternApplicationSideEffects,
-        Reassignment reassignment,
         Unification unification,
         NarrowsTypeOfInput narrowsTypeOfInput,
         PatternLocation patternLocation
@@ -31,7 +29,6 @@ public class PatternMatchMode {
         this.typeRelationshipRequirement = typeRelationshipRequirement;
         this.requiresSuccessfulMatch = requiresSuccessfulMatch;
         this.patternApplicationSideEffects = patternApplicationSideEffects;
-        this.reassignment = reassignment;
         this.unification = unification;
         this.narrowsTypeOfInput = narrowsTypeOfInput;
         this.patternLocation = patternLocation;
@@ -73,9 +70,6 @@ public class PatternMatchMode {
     }
 
 
-    public Reassignment getReassignment() {
-        return reassignment;
-    }
 
 
     public RequiresSuccessfulMatch getRequiresSuccessfulMatch() {
@@ -101,19 +95,11 @@ public class PatternMatchMode {
         DOES_NOT_ACCEPT_HOLES,
         /**
          * The pattern is required to have at least one unbound variable.
-         * For example, a for-destructuring to a completely bound pattern is
-         * a useless operation and should be marked as error
-         * (for-destructuring cannot reassign values in the outer scope).
+         * For example, an destructuring operation to a completely bound pattern
+         * is a useless operation and should be marked as error.
+         * The pattern can include other types of holes.
          */
-        REQUIRES_FREE_VARS,
-        /**
-         * The pattern is required to have at least one unbound or assignable
-         * variable.
-         * For example, a destructuring assignment to a pattern which does
-         * not declare any variable or does not reassign any L-Expression, is a
-         * useless operation and should be marked as error.
-         */
-        REQUIRES_FREE_OR_ASSIGNABLE_VARS
+        REQUIRES_FREE_VARS
     }
 
 
@@ -151,8 +137,8 @@ public class PatternMatchMode {
      * Determines if the pattern can be a failing pattern (i.e., it can
      * contain run-time conditions that cannot be predicted to match at
      * compile-time) or if it is required to be guaranteed, at compile time,
-     * to always match if the type - which should be also checked at compile
-     * time - is compatible.
+     * to always match as long as the type (which should be also checked at
+     * compile time) is compatible.
      * In the REQUIRES_SUCCESSFUL_MATCH mode, patterns which match with
      * runtime-only conditions cannot be used as pattern, and the validator
      * should check this.
@@ -170,24 +156,6 @@ public class PatternMatchMode {
         CAN_FAIL
     }
 
-
-    /**
-     * Determines how to interpret not-holed expressions.
-     * Pattern-matching of holed expressions are not influenced by this.
-     */
-    public enum Reassignment {
-        /**
-         * If this not-holed-expression is a valid L-Expression, just perform
-         * an assignment, otherwise, mark as error at compile time.
-         */
-        REQUIRE_REASSIGN,
-        /**
-         * This not-holed-expression is always considered an R-Expression,
-         * whose resulting value is checked for equality against the
-         * corresponding input.
-         */
-        CHECK_EQUALITY
-    }
 
 
     public enum PatternApplicationSideEffects {
@@ -216,15 +184,13 @@ public class PatternMatchMode {
          * This pattern matching is part of a statement guard (i.e.,
          * when-matches statement).
          */
-        StatementGuard STATEMENT_GUARD =
-            new StatementGuard() {
-            };
+        StatementGuard STATEMENT_GUARD = new StatementGuard() {
+        };
         /**
          * This pattern matching is a generic boolean expression.
          */
-        BooleanExpression BOOLEAN_EXPRESSION =
-            new BooleanExpression() {
-            };
+        BooleanExpression BOOLEAN_EXPRESSION = new BooleanExpression() {
+        };
         /**
          * This pattern is the root of an assigned expression e.g., the
          * expression at the left of the '=' operator in a

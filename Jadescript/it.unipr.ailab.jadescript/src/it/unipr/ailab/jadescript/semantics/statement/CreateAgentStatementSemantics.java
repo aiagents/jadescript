@@ -259,10 +259,7 @@ public class CreateAgentStatementSemantics
                     2,
                     expectedMethodTypes.size()
                 ),
-                namedArgsKeys.stream()
-                    .filter(Maybe::isPresent)
-                    .map(Maybe::toNullable)
-                    .collect(Collectors.toList()),
+                namedArgsKeys.excludeNulls(),
                 namedArgsValues,
                 argumentTypes,
                 input,
@@ -593,9 +590,7 @@ public class CreateAgentStatementSemantics
         final String compiledNickName = rves.compile(nickName, state, acceptor);
         final StaticState afterNickName = rves.advance(nickName, state);
 
-        final String comma = (args.isEmpty()
-            || args.stream().allMatch(Maybe::isNothing))
-            ? "" : ", ";
+        final String comma = args.isBlank() ? "" : ", ";
 
         StringJoiner joiner = new StringJoiner(", ");
         StaticState runningState = afterNickName;

@@ -142,7 +142,7 @@ public class WhenMatchesStatementSemantics
             StaticState inBranch = lves.assertDidMatch(pmi, runningState);
 
             String condition =
-                output.rootInvocationText(compiledInputExpr);
+                output.compilePatternMatchExpression(compiledInputExpr);
 
             inBranch = inBranch.enterScope();
 

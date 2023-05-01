@@ -158,7 +158,7 @@ public class TupleType
 
 
     @Override
-    public boolean isSlottable() { //TODO
+    public boolean isSlottable() {
         return elementTypes.stream()
             .map(TypeArgument::ignoreBound)
             .allMatch(IJadescriptType::isSlottable);
@@ -182,7 +182,7 @@ public class TupleType
 
 
     @Override
-    public boolean hasProperties() { //TODO
+    public boolean hasProperties() {
         return elementTypes.stream()
             .map(TypeArgument::ignoreBound)
             .allMatch(IJadescriptType::hasProperties);

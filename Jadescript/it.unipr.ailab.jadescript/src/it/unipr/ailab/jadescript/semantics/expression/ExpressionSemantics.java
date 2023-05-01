@@ -39,9 +39,6 @@ import java.util.stream.Stream;
  */
 @Singleton
 public abstract class ExpressionSemantics<T> extends Semantics {
-    //TODO improvements: add upperbound expression type in evaluation semantics
-    //TODO improvements: infertype returns additional
-    // explanations on the resolved type
 
 
     private final LazyInit<ExpressionSemantics<?>> EMPTY_EXPRESSION_SEMANTICS =
@@ -121,7 +118,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     }
 
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "unused"})
     public final <X> ExpressionSemantics<X> emptySemantics() {
         return (ExpressionSemantics<X>) EMPTY_EXPRESSION_SEMANTICS.get();
     }
@@ -277,7 +274,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     }
 
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "unused"})
     public final <TT> boolean subExpressionsAnyMatch(
         Maybe<T> input,
         BiPredicate<ExpressionSemantics<TT>, Maybe<TT>> predicate
@@ -290,7 +287,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     }
 
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "unused"})
     public final <TT> boolean subExpressionsNoneMatch(
         Maybe<T> input,
         BiPredicate<ExpressionSemantics<TT>, Maybe<TT>> predicate
@@ -303,7 +300,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     }
 
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked", "rawtypes", "unused"})
     public final <TT, R> Stream<R> mapSubExpressions(
         Maybe<T> input,
         BiFunction<ExpressionSemantics<TT>, Maybe<TT>, R> function
@@ -485,6 +482,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         );
     }
 
+
     private String prepareCompile(
         Maybe<T> input,
         StaticState state,
@@ -494,21 +492,22 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         final Maybe<IJadescriptType> narrowedType =
             getNarrowedTypeInternal(input, state);
 
-        if(narrowedType.isNothing()){
+        if (narrowedType.isNothing()) {
             return compiled;
         }
 
         final IJadescriptType narrowedSafe = narrowedType.toNullable();
 
-        if(module.get(TypeComparator.class)
+        if (module.get(TypeComparator.class)
             .compare(narrowedSafe, inferTypeInternal(input, state))
-            .is(TypeRelationshipQuery.strictSubType())){
+            .is(TypeRelationshipQuery.strictSubType())) {
             return "(" + narrowedSafe.compileAsJavaCast() +
                 " " + compiled + ")";
         }
-        
+
         return compiled;
     }
+
 
     /**
      * @see ExpressionSemantics#compile(
@@ -975,30 +974,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     protected abstract boolean canBeHoledInternal(Maybe<T> input);
 
 
-    /**
-     * Returns true if this kind of expression contains assignable parts (i.e.,
-     * parts that are bound/resolved/not-holed but, at the same time, can be at
-     * the left of the assignment since they represent a writeable cell).
-     * <p></p>
-     */
-    public final boolean containsNotHoledAssignableParts(
-        PatternMatchInput<T> input,
-        StaticState state
-    ) {
-        return traversingSemanticsMap(
-            input,
-            (s, i) -> s.containsNotHoledAssignableParts(i, state),
-            () -> isLExpreable(input.getPattern())
-                ? (!canBeHoled(input.getPattern()) || !isHoled(input, state))
-                : mapSubPatternsWithState(
-                input,
-                state,
-                ExpressionSemantics::containsNotHoledAssignableParts,
-                (sem, pmi, __, st2) -> sem.assertDidMatch(pmi, st2)
-            ).anyMatch(b -> b)
-        );
-    }
-
 
     /**
      * It answers the question: if the provided input type is compatible, and
@@ -1031,7 +1006,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     );
 
 
-    private boolean isSubPatternGroundForEquality(
+    private boolean isSubPatternWholeForEquality(
         PatternMatchInput<T> patternMatchInput,
         StaticState state
     ) {
@@ -1044,15 +1019,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     }
 
 
-    private boolean isSubPatternGroundForAssignment(
-        PatternMatchInput<T> patternMatchInput,
-        StaticState state
-    ) {
-        return patternMatchInput.getMode().getPatternLocation()
-            == PatternMatchMode.PatternLocation.SUB_PATTERN
-            && !isHoled(patternMatchInput, state)
-            && isLExpreable(patternMatchInput.getPattern());
-    }
 
 
     public final PatternMatcher compilePatternMatch(
@@ -1081,16 +1047,17 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         StaticState state,
         BlockElementAcceptor acceptor
     ) {
-        if (isSubPatternGroundForEquality(input, state)) {
+        if (isSubPatternWholeForEquality(input, state)) {
             return compileExpressionEqualityPatternMatch(
                 input,
                 state,
                 acceptor
             );
-        } else {
-            return compilePatternMatchInternal(input, state, acceptor);
         }
+
+        return compilePatternMatchInternal(input, state, acceptor);
     }
+
 
 
     public abstract PatternMatcher compilePatternMatchInternal(
@@ -1122,39 +1089,13 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         PatternMatchInput<T> input,
         StaticState state
     ) {
-        if (isSubPatternGroundForEquality(input, state)) {
+        if (isSubPatternWholeForEquality(input, state)) {
             return PatternType.simple(inferType(input.getPattern(), state));
-        } else {
-            return inferPatternTypeInternal(input, state);
         }
+        return inferPatternTypeInternal(input, state);
     }
 
 
-    public final PatternType inferSubPatternType(
-        PatternMatchInput<T> input,
-        StaticState state
-    ) {
-        return traversingSemanticsMap(
-            input.getPattern(),
-            (s, i) -> s.inferSubPatternType(
-                input.replacePattern(i),
-                state
-            ),
-            () -> prepareInferSubPatternType(input, state)
-        );
-    }
-
-
-    private PatternType prepareInferSubPatternType(
-        PatternMatchInput<T> input,
-        StaticState state
-    ) {
-        if (isSubPatternGroundForEquality(input, state)) {
-            return PatternType.simple(inferType(input.getPattern(), state));
-        } else {
-            return inferPatternTypeInternal(input, state);
-        }
-    }
 
 
     public abstract PatternType inferPatternTypeInternal(
@@ -1188,22 +1129,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        PatternMatchMode.HolesAndGroundness holesAndGroundnessRequirement =
-            input.getMode().getHolesAndGroundness();
-        PatternMatchMode.RequiresSuccessfulMatch successfulMatchRequirement
-            = input.getMode().getRequiresSuccessfulMatch();
-        PatternMatchMode.PatternApplicationSideEffects sideEffectsRequirement =
-            input.getMode().getPatternApplicationPurity();
-        PatternMatchMode.Reassignment reassignmentRequirement =
-            input.getMode().getReassignment();
-
-        final boolean patternGroundForEquality =
-            isSubPatternGroundForEquality(input, state);
-        final boolean isHoled = isHoled(input, state);
-        final boolean isUnbound = isUnbound(input, state);
-        final boolean containsNotHoledAssignableParts =
-            containsNotHoledAssignableParts(input, state);
-
         String describedLocation =
             PatternMatchMode.PatternLocation.describeLocation(input);
 
@@ -1213,64 +1138,198 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
         final Maybe<? extends EObject> eObject =
             SemanticsUtils.extractEObject(input.getPattern());
-        boolean holesCheck;
+
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
-        switch (holesAndGroundnessRequirement) {
-            case DOES_NOT_ACCEPT_HOLES:
-                holesCheck = validationHelper.asserting(
-                    !isHoled,
-                    "InvalidPattern",
-                    "A pattern in this location " + describedLocation +
-                        "cannot contain holes.",
-                    eObject,
-                    acceptor
-                );
 
-                break;
-            case ACCEPTS_NONVAR_HOLES_ONLY:
-                holesCheck = validationHelper.asserting(
-                    !isUnbound,
-                    "InvalidPattern",
-                    "A pattern in this location " + describedLocation + "can " +
-                        "only include holes " +
-                        "that are not free variables.",
-                    eObject,
-                    acceptor
-                );
-                break;
-            case REQUIRES_FREE_VARS:
-                holesCheck = validationHelper.asserting(
-                    isUnbound,
-                    "InvalidPattern",
-                    "A pattern in this location " + describedLocation +
-                        "requires at least one free variable in it.",
-                    eObject,
-                    acceptor
-                );
-
-                break;
-
-            case REQUIRES_FREE_OR_ASSIGNABLE_VARS:
-                holesCheck = validationHelper.asserting(
-                    isUnbound || containsNotHoledAssignableParts,
-                    "InvalidPattern",
-                    "A pattern in this location " + describedLocation +
-                        "requires at least one free variable or " +
-                        "assignable expression in it.",
-                    eObject,
-                    acceptor
-                );
-                break;
-
-            default:
-            case ACCEPTS_ANY_HOLE:
-                holesCheck = VALID;
-                break;
+        boolean allowedHolednessCheck = VALID;
+        if (!canBeHoled(input.getPattern())) {
+            allowedHolednessCheck = validationHelper.asserting(
+                !isHoled(input, state),
+                "InvalidPattern",
+                "This kind of expression cannot contain holes to produce " +
+                    "a pattern.",
+                eObject,
+                acceptor
+            );
         }
 
+        if (allowedHolednessCheck == INVALID) {
+            return INVALID;
+        }
+
+        boolean holesCheck = holesAndBoundnessCheck(
+            input,
+            state,
+            acceptor,
+            describedLocation,
+            eObject
+        );
+
+        if (holesCheck == INVALID) {
+            return INVALID;
+        }
+
+
+        boolean successfulMatchCheck = patternSuccessfulMatchCheck(
+            input,
+            state,
+            acceptor,
+            describedLocation,
+            eObject
+        );
+
+        if (successfulMatchCheck == INVALID) {
+            return INVALID;
+        }
+
+        if (isSubPatternWholeForEquality(input, state)) {
+            return validateAsWholeSubpattern(
+                input,
+                state,
+                acceptor,
+                describedLocation,
+                eObject
+            );
+        }
+
+        // This is now either a root pattern or a holed sub-pattern
+        boolean asPatternCheck = patternPurityCheck(
+            input,
+            state,
+            acceptor,
+            describedLocation,
+            eObject
+        );
+
+
+        if (asPatternCheck == INVALID) {
+            return INVALID;
+        }
+
+
+        asPatternCheck = validatePatternMatchInternal(input, state, acceptor);
+
+        if (asPatternCheck == INVALID) {
+            return INVALID;
+        }
+
+        final PatternType patternType = inferPatternType(
+            input,
+            state
+        );
+
+        final IJadescriptType solvedPattType = patternType
+            .solve(input.getProvidedInputType());
+
+
+        boolean patternTypeCheck =
+            solvedPattType.validateType(eObject, acceptor);
+
+        asPatternCheck = patternTypeCheck
+            // Exploiting short-circuit semantics:
+            && validatePatternTypeRelationshipRequirement(
+            input,
+            solvedPattType,
+            acceptor
+        );
+
+        return asPatternCheck;
+    }
+
+
+
+
+    private boolean validateAsWholeSubpattern(
+        PatternMatchInput<T> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor,
+        String describedLocation,
+        Maybe<? extends EObject> eObject
+    ) {
+
+        // This is a non-holed sub pattern: validate it as expression.
+        boolean asRExpressionCheck = wholeSubpatternPurityCheck(
+            input,
+            state,
+            acceptor,
+            describedLocation,
+            eObject
+        );
+
+        asRExpressionCheck = validateExpressionEqualityPatternMatch(
+            input,
+            state,
+            acceptor
+        ) && asRExpressionCheck;
+
+        if (asRExpressionCheck == INVALID) {
+            return INVALID;
+        }
+
+        // Infer its type as expression, then validate the result type
+        final IJadescriptType patternType =
+            inferType(input.getPattern(), state);
+        boolean patternTypeCheck = patternType.validateType(
+            eObject,
+            acceptor
+        );
+        if (patternTypeCheck == VALID) {
+            // Check that the type relationship requirement is met
+            asRExpressionCheck = validatePatternTypeRelationshipRequirement(
+                input,
+                patternType,
+                acceptor
+            );
+        } else {
+            asRExpressionCheck = INVALID;
+        }
+        return asRExpressionCheck;
+    }
+
+
+    private boolean patternSuccessfulMatchCheck(
+        PatternMatchInput<T> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor,
+        String describedLocation,
+        Maybe<? extends EObject> eObject
+    ) {
+        boolean successfulMatchCheck;
+        switch (input.getMode().getRequiresSuccessfulMatch()) {
+            case REQUIRES_SUCCESSFUL_MATCH:
+                final ValidationHelper validationHelper =
+                    module.get(ValidationHelper.class);
+                successfulMatchCheck = validationHelper.asserting(
+                    isPredictablePatternMatchSuccess(input, state),
+                    "InvalidPattern",
+                    "A pattern in this location " + describedLocation +
+                        " is required to ensure a match as long as " +
+                        "the type is compatible.",
+                    eObject,
+                    acceptor
+                );
+                break;
+            default:
+            case CAN_FAIL:
+                successfulMatchCheck = VALID;
+                break;
+        }
+        return successfulMatchCheck;
+    }
+
+
+    private boolean patternPurityCheck(
+        PatternMatchInput<T> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor,
+        String describedLocation,
+        Maybe<? extends EObject> eObject
+    ) {
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
         boolean purityCheck;
-        switch (sideEffectsRequirement) {
+        switch (input.getMode().getPatternApplicationPurity()) {
             case HAS_TO_BE_WITHOUT_SIDE_EFFECTS:
                 purityCheck = validationHelper.asserting(
                     isPatternEvaluationWithoutSideEffects(input, state),
@@ -1288,106 +1347,93 @@ public abstract class ExpressionSemantics<T> extends Semantics {
                 purityCheck = VALID;
                 break;
         }
+        return purityCheck;
+    }
 
 
-        boolean successfulMatchCheck;
-        switch (successfulMatchRequirement) {
-            case REQUIRES_SUCCESSFUL_MATCH:
-                successfulMatchCheck = validationHelper.asserting(
-                    isPredictablePatternMatchSuccess(input, state),
+    private boolean wholeSubpatternPurityCheck(
+        PatternMatchInput<T> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor,
+        String describedLocation,
+        Maybe<? extends EObject> eObject
+    ) {
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+        boolean purityCheck;
+        switch (input.getMode().getPatternApplicationPurity()) {
+            case HAS_TO_BE_WITHOUT_SIDE_EFFECTS:
+                purityCheck = validationHelper.asserting(
+                    isWithoutSideEffects(input.getPattern(), state),
                     "InvalidPattern",
                     "A pattern in this location " + describedLocation +
-                        " is required to ensure a match if the type is " +
-                        "compatible.",
+                        "cannot produce side-effects during its " +
+                        "evaluation.",
                     eObject,
                     acceptor
                 );
                 break;
-            case CAN_FAIL:
-                successfulMatchCheck = VALID;
+
+            default:
+            case CAN_HAVE_SIDE_EFFECTS:
+                purityCheck = VALID;
                 break;
         }
+        return purityCheck;
+    }
 
 
-        if (patternGroundForEquality) {
-
-            // This is a non-holed sub pattern: validate it as expression.
-            boolean asRExpressionCheck = validate(
-                input.getPattern(),
-                state,
-                acceptor
-            );
-            if (asRExpressionCheck == INVALID) {
-                return INVALID;
-            }
-            // Infer its type as expression, then validate the result
-            // type
-            final IJadescriptType patternType =
-                inferType(input.getPattern(), state);
-            boolean patternTypeCheck = patternType.validateType(
-                eObject,
-                acceptor
-            );
-            if (patternTypeCheck == VALID) {
-                // Check that the type relationship requirement is met
-                asRExpressionCheck =
-                    validatePatternTypeRelationshipRequirement(
-                        input,
-                        patternType,
-                        acceptor
-                    );
-            } else {
-                asRExpressionCheck = INVALID;
-            }
-            return asRExpressionCheck;
-
-
-        } else {
-            boolean asPatternCheck = VALID;
-            if (!canBeHoled(input.getPattern())) {
-                asPatternCheck = validationHelper.asserting(
+    private boolean holesAndBoundnessCheck(
+        PatternMatchInput<T> input,
+        StaticState state,
+        ValidationMessageAcceptor acceptor,
+        String describedLocation,
+        Maybe<? extends EObject> eObject
+    ) {
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+        boolean holesCheck;
+        switch (input.getMode().getHolesAndGroundness()) {
+            case DOES_NOT_ACCEPT_HOLES:
+                holesCheck = validationHelper.asserting(
                     !isHoled(input, state),
                     "InvalidPattern",
-                    "This kind of expression cannot contain holes to produce " +
-                        "a pattern.",
+                    "A pattern in this location " + describedLocation +
+                        "cannot contain holes.",
                     eObject,
                     acceptor
                 );
-            }
 
-            if (asPatternCheck == VALID) {
-
-                final PatternType patternType = inferPatternType(
-                    input,
-                    state
-                );
-                final IJadescriptType solvedPattType = patternType
-                    .solve(input.getProvidedInputType());
-
-
-                //TODO change order of validation for better explanation: an
-                // unresolved pattern might be inferred to an invalid type
-                boolean patternTypeCheck = solvedPattType.validateType(
+                break;
+            case ACCEPTS_NONVAR_HOLES_ONLY:
+                holesCheck = validationHelper.asserting(
+                    !isUnbound(input, state),
+                    "InvalidPattern",
+                    "A pattern in this location " + describedLocation + "can " +
+                        "only include holes " +
+                        "that are not free variables.",
                     eObject,
                     acceptor
                 );
-                if (patternTypeCheck == VALID) {
-                    asPatternCheck = validatePatternTypeRelationshipRequirement(
-                        input,
-                        solvedPattType,
-                        acceptor
-                    );
-                } else {
-                    asPatternCheck = INVALID;
-                }
-            }
+                break;
+            case REQUIRES_FREE_VARS:
+                holesCheck = validationHelper.asserting(
+                    isUnbound(input, state),
+                    "InvalidPattern",
+                    "A pattern in this location " + describedLocation +
+                        "requires at least one free variable in it.",
+                    eObject,
+                    acceptor
+                );
 
-            if (asPatternCheck == INVALID) {
-                return INVALID;
-            }
+                break;
 
-            return validatePatternMatchInternal(input, state, acceptor);
+            default:
+            case ACCEPTS_ANY_HOLE:
+                holesCheck = VALID;
+                break;
         }
+        return holesCheck;
     }
 
 
@@ -1427,15 +1473,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
             SemanticsUtils.extractEObject(pattern),
             acceptor
         );
-    }
-
-
-    protected final boolean validateExpressionEqualityPatternMatch(
-        PatternMatchInput.SubPattern<T, ?> input,
-        StaticState state,
-        ValidationMessageAcceptor acceptor
-    ) {
-        return validate(input.getPattern(), state, acceptor);
     }
 
 
@@ -1480,7 +1517,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        //TODO check type relationship?
         return validate(input.getPattern(), state, acceptor);
     }
 

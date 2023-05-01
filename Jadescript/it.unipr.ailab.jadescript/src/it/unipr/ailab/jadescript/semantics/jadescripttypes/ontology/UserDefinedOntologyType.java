@@ -52,7 +52,8 @@ public class UserDefinedOntologyType
     }
 
 
-    public OntologyType getSuperOntologyType() { //TODO multiple ontologies
+    //XXX: Change this for ontology multi-inheritance
+    public OntologyType getSuperOntologyType() {
         JvmTypeNamespace jvmNamespace = jvmNamespace();
 
         final BaseOntologyType baseOntology =
@@ -74,7 +75,7 @@ public class UserDefinedOntologyType
 
     @Override
     public boolean isSuperOrEqualOntology(OntologyType other) {
-        //TODO multiple ontologies
+        //XXX: Change this for ontology Multi-inheritance
         if (TypeComparator.rawEquals(this, other)) {
             return true;
         }

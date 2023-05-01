@@ -2,10 +2,7 @@ package it.unipr.ailab.jadescript.semantics.expression;
 
 
 import com.google.inject.Singleton;
-import it.unipr.ailab.jadescript.jadescript.AtomExpr;
-import it.unipr.ailab.jadescript.jadescript.RValueExpression;
-import it.unipr.ailab.jadescript.jadescript.TypeCast;
-import it.unipr.ailab.jadescript.jadescript.TypeExpression;
+import it.unipr.ailab.jadescript.jadescript.*;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
@@ -13,6 +10,7 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchInput;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
+import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
@@ -65,6 +63,15 @@ public class TypeCastExpressionSemantics
         StaticState state, BlockElementAcceptor acceptor
     ) {
         //IDEA typed declarations?
+    }
+
+
+    @Override
+    protected IJadescriptType assignableTypeInternal(
+        Maybe<TypeCast> input,
+        StaticState state
+    ) {
+        return module.get(BuiltinTypeProvider.class).nothing("");
     }
 
 
@@ -568,20 +575,16 @@ public class TypeCastExpressionSemantics
             IJadescriptType typeOfCast0 = tes.toJadescriptType(cast0);
             boolean result = tes.validate(cast0, acceptor);
 
-            //TODO fix to include conversion semantics and re-enable
-//            module.get(ValidationHelper.class).advice(
-//                isNumberToNumberCast(
-//                    typeOfExpression,
-//                    typeOfCast0
-//                ) || isCastable(typeOfExpression, typeOfCast0),
-//                "InvalidCast",
-//                typeOfExpression + " seems not to be convertible to "
-//                    + typeOfCast0,
-//                input,
-//                JadescriptPackage.eINSTANCE.getTypeCast_TypeCasts(),
-//                0,
-//                acceptor
-//            );
+            module.get(ValidationHelper.class).advice(
+                isConvertible(typeOfExpression, typeOfCast0),
+                "InvalidCast",
+                typeOfExpression + " seems not to be convertible to "
+                    + typeOfCast0,
+                input,
+                JadescriptPackage.eINSTANCE.getTypeCast_TypeCasts(),
+                0,
+                acceptor
+            );
 
             for (int i = 1; i < typeCasts.size(); i++) {
                 final Maybe<TypeExpression> casti = typeCasts.get(i - 1);
@@ -595,22 +598,28 @@ public class TypeCastExpressionSemantics
                 result = result && typeExpressionValidationNext;
                 IJadescriptType typeAfter =
                     tes.toJadescriptType(typeCasts.get(i));
-                //TODO fix to include conversion semantics and re-enable
-//                module.get(ValidationHelper.class).advice(
-//                    isNumberToNumberCast(typeBefore, typeAfter)
-//                        || isCastable(typeBefore, typeAfter),
-//                    "InvalidCast",
-//                    typeBefore + " seems not to be castable to " + typeAfter,
-//                    input,
-//                    JadescriptPackage.eINSTANCE.getTypeCast_TypeCasts(),
-//                    i,
-//                    acceptor
-//                );
+                module.get(ValidationHelper.class).advice(
+                    isConvertible(typeBefore, typeAfter),
+                    "InvalidCast",
+                    typeBefore + " seems not to be castable to " + typeAfter,
+                    input,
+                    JadescriptPackage.eINSTANCE.getTypeCast_TypeCasts(),
+                    i,
+                    acceptor
+                );
             }
 
             return result;
         }
         return VALID;
+    }
+
+
+    private boolean isConvertible(
+        IJadescriptType typeBefore,
+        IJadescriptType typeAfter
+    ) {
+        return true;
     }
 
 
@@ -650,7 +659,7 @@ public class TypeCastExpressionSemantics
     private boolean isCastable(IJadescriptType x1, IJadescriptType x2) {
         final TypeComparator comparator = module.get(TypeComparator.class);
 
-        return comparator.compare(x1, x2).is(related());
+        return comparator.compareRaw(x1, x2).is(related());
     }
 
 

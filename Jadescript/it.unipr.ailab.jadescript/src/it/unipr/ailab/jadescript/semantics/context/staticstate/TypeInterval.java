@@ -2,6 +2,7 @@ package it.unipr.ailab.jadescript.semantics.context.staticstate;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
 import org.jetbrains.annotations.Contract;
@@ -20,8 +21,8 @@ import static it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.T
  * For this reason, while the type A can be obtained with
  * {@link TypeInterval#getUpperBound()}, the accessor for B is named
  * {@link TypeInterval#getNegatedUpperBound()}.
- * If it occurs that A <= B the interval is empty, and this is determined by
- * {@link TypeInterval#isEmpty()}.
+ * If it occurs that A <= B then the interval is empty, and this is determined
+ * by {@link TypeInterval#isEmpty()}.
  */
 public class TypeInterval {
 
@@ -40,6 +41,25 @@ public class TypeInterval {
         this.negatedUpperBound = negatedUpperBound;
     }
 
+    public static TypeInterval allTypes(SemanticsModule module){
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        return new TypeInterval(
+            module,
+            builtins.any(""),
+            builtins.nothing("")
+        );
+    }
+
+    public static TypeInterval empty(SemanticsModule module){
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        return new TypeInterval(
+            module,
+            builtins.nothing(""),
+            builtins.any("")
+        );
+    }
 
     public IJadescriptType getUpperBound() {
         return upperBound;

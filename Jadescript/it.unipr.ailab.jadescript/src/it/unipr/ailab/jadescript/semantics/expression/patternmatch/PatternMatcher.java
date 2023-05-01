@@ -1,5 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
@@ -9,6 +10,7 @@ import it.unipr.ailab.sonneteer.classmember.ClassMemberWriter;
 import it.unipr.ailab.sonneteer.classmember.FieldWriter;
 import it.unipr.ailab.sonneteer.classmember.MethodWriter;
 import it.unipr.ailab.sonneteer.qualifiers.Visibility;
+import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import it.unipr.ailab.sonneteer.statement.ReturnStatementWriter;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import it.unipr.ailab.sonneteer.statement.VariableDeclarationWriter;
@@ -17,6 +19,7 @@ import it.unipr.ailab.sonneteer.statement.controlflow.TryCatchWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -83,6 +86,7 @@ public abstract class PatternMatcher {
 
     public abstract Stream<? extends ClassMemberWriter> getDirectWriters();
 
+
     public final Stream<? extends ClassMemberWriter> getAllWriters() {
         return Stream.concat(
             getAllSubwriters(),
@@ -91,7 +95,7 @@ public abstract class PatternMatcher {
     }
 
 
-    public String rootInvocationText(String input) {
+    public String compilePatternMatchExpression(String input) {
         return patternMatchInput.getRootPatternMatchVariableName() +
             "." + operationInvocationText(input);
     }
@@ -346,6 +350,50 @@ public abstract class PatternMatcher {
         }
 
 
+    }
+
+    public static class AsReassigningMethod extends AsMethod {
+
+        private final BiConsumer<String, BlockElementAcceptor> write;
+
+
+        public AsReassigningMethod(
+            PatternMatchInput<?> patternMatchInput,
+            IJadescriptType solvedPatternType,
+            BiConsumer<String, BlockElementAcceptor> write
+        ) {
+            super(patternMatchInput, solvedPatternType);
+            this.write = write;
+        }
+
+
+        private MethodWriter generateMethod() {
+            MethodWriter m = w.method(
+                    Visibility.PUBLIC,
+                    false,
+                    false,
+                    "boolean",
+                    patternMatchInput.getTermID()
+                )
+                .addParameter(w.param("java.lang.Object", "__objx"));
+            final BlockWriter body = m.getBody();
+            body.addStatements(
+                compiledAdaptType
+            );
+
+            this.write.accept("__x", body::add);
+
+            body.addStatement(
+                w.returnStmnt(w.expr("true"))
+            );
+            return m;
+        }
+
+
+        @Override
+        public Stream<? extends ClassMemberWriter> getDirectWriters() {
+            return Stream.of(generateMethod());
+        }
 
     }
 

@@ -54,15 +54,6 @@
     <orderEntry type="module-library">
       <library>
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/libs/jadescriptjavaapi.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
           <root url="file://$USER_HOME$/JadescriptWorkspace/idealib/org.eclipse.xtext.idea/lib" />
         </CLASSES>
         <JAVADOC />

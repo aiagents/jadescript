@@ -369,6 +369,15 @@ public class StringLiteralSemantics
 
 
     @Override
+    protected IJadescriptType assignableTypeInternal(
+        Maybe<StringLiteralSimple> input,
+        StaticState state
+    ) {
+        return module.get(BuiltinTypeProvider.class).nothing("");
+    }
+
+
+    @Override
     protected StaticState advanceAssignmentInternal(
         Maybe<StringLiteralSimple> input,
         IJadescriptType rightType,

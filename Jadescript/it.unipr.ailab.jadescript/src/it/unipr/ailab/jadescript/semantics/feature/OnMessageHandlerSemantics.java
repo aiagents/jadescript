@@ -276,7 +276,7 @@ public class OnMessageHandlerSemantics
                 s
             );
 
-            part1 = matcher.rootInvocationText(
+            part1 = matcher.compilePatternMatchExpression(
                 initialMsgType.namespace().getContentProperty()
                     .dereference((__) -> MESSAGE_VAR_NAME)
                     .compileRead((member) -> member.writeSonnet(scb))

@@ -262,7 +262,7 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
         ));
 
 
-        return matcher.rootInvocationText(compiledInputExpr);
+        return matcher.compilePatternMatchExpression(compiledInputExpr);
     }
 
 

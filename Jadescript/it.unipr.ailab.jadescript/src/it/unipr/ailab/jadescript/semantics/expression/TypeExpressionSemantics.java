@@ -316,13 +316,14 @@ public final class TypeExpressionSemantics extends Semantics {
             messageTypeMaybe.__(MessageType::getContentType)
                 .extract(this::toJadescriptType);
         boolean isExplicitContentType =
-            messageTypeMaybe.__(MessageType::isWithOf).orElse(false);
+            messageTypeMaybe.__(MessageType::isWithOf)
+                .orElse(false);
 
         final List<? extends TypeArgument> contentTypes;
 
         if (!isExplicitContentType) {
 
-            if (baseTypeName.wrappedEquals("Message")) { //TODO
+            if (baseTypeName.wrappedEquals("Message")) {
                 return builtins.anyMessage();
             }
 

@@ -392,13 +392,16 @@ public class TypeComparator {
             return some(notRelated());
         }
 
-        if (!subjectIsMember/* || !targetIsMember <- assumed*/) {
+        if (!subjectIsMember/* || !targetIsMember <- assumed */) {
             return Maybe.nothing();
         }
 
-        //TODO review the 'distinct' assumption:
+        // Assuming both members
+        if(rawEquals(subject, target)){
+            return some(equal());
+        }
 
-        // Assuming members & distinct
+        // Assuming both members & distinct
         if (subjectIsTop || targetIsBottom) {
             return some(superType());
         }

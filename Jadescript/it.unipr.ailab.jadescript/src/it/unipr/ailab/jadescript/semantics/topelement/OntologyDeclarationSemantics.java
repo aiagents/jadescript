@@ -129,7 +129,7 @@ public class OntologyDeclarationSemantics extends
     ) {
         super.validateOnSave(input, acceptor);
         Maybe<EList<JvmParameterizedTypeReference>> superTypes =
-            input.__(FeatureContainer::getSuperTypes);//TODO multiple ontologies
+            input.__(FeatureContainer::getSuperTypes);
 
         if (!superTypes.__(List::isEmpty).orElse(true)) {
             final ValidationHelper validationHelper =
@@ -138,7 +138,8 @@ public class OntologyDeclarationSemantics extends
                 BuiltinTypeProvider.class);
             validationHelper.assertExpectedType(
                 builtins.ontology(),
-                superTypes//TODO multiple ontologies
+                superTypes
+                    //XXX: Change this for ontology Multi-inheritance
                     .__partial2(EList::get, 0)
                     .__(st -> module.get(TypeSolver.class)
                         .fromJvmTypeReference(st))
@@ -164,9 +165,10 @@ public class OntologyDeclarationSemantics extends
     ) {
         super.populateMainMembers(input, members, itClass);
         final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
-        JvmTypeReference superOntologyType = input//TODO multiple ontologies
+        JvmTypeReference superOntologyType = input
             .__(FeatureContainer::getSuperTypes)
             .nullIf(List::isEmpty)
+            //XXX: Change this for ontology Multi-inheritance
             .__partial2(List::get, 0)
             .__(t -> (JvmTypeReference) t)
             .orElse(jvm.typeRef(jadescript.content.onto.Ontology.class));
@@ -185,7 +187,7 @@ public class OntologyDeclarationSemantics extends
         members.add(jvmTB.toField(
             inputsafe,
             SUPER_ONTOLOGY_VAR,
-            //TODO multiple ontologies
+            //XXX: Change this for ontology Multi-inheritance
             superOntologyType,
             itField -> {
                 itField.setVisibility(JvmVisibility.PRIVATE);

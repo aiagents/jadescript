@@ -1,16 +1,17 @@
 package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import static it.unipr.ailab.maybe.Maybe.some;
@@ -23,6 +24,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
     private final String termID;
     private final String rootPatternMatchVariableName;
     private final Maybe<ExpressionDescriptor> descriptorMaybe;
+
 
 
     public PatternMatchInput(
@@ -227,6 +229,18 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
         );
     }
 
+    public PatternMatcher.AsReassigningMethod
+    createReassigningMethodOutput(
+        IJadescriptType solvedPatternType,
+        BiConsumer<String, BlockElementAcceptor> write
+    ) {
+        return new PatternMatcher.AsReassigningMethod(
+            this,
+            solvedPatternType,
+            write
+        );
+    }
+
 
     public static class WhenMatchesStatement<T> extends PatternMatchInput<T> {
 
@@ -236,7 +250,6 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
             PatternMatchMode.PatternApplicationSideEffects
                 .CAN_HAVE_SIDE_EFFECTS,
-            PatternMatchMode.Reassignment.CHECK_EQUALITY,
             PatternMatchMode.Unification.WITH_VAR_DECLARATION,
             PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
             PatternMatchMode.PatternLocation.STATEMENT_GUARD
@@ -293,7 +306,6 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
             PatternMatchMode.PatternApplicationSideEffects
                 .HAS_TO_BE_WITHOUT_SIDE_EFFECTS,
-            PatternMatchMode.Reassignment.CHECK_EQUALITY,
             PatternMatchMode.Unification.WITH_VAR_DECLARATION,
             PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
             PatternMatchMode.PatternLocation.FEATURE_HEADER
@@ -342,6 +354,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
     }
 
+
     public static class MatchesExpression<T> extends PatternMatchInput<T> {
 
         public static final PatternMatchMode MODE = new PatternMatchMode(
@@ -350,7 +363,6 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
             PatternMatchMode.PatternApplicationSideEffects
                 .CAN_HAVE_SIDE_EFFECTS,
-            PatternMatchMode.Reassignment.CHECK_EQUALITY,
             PatternMatchMode.Unification.WITHOUT_VAR_DECLARATION,
             PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
             PatternMatchMode.PatternLocation.BOOLEAN_EXPRESSION
@@ -404,12 +416,11 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
 
         public static final PatternMatchMode MODE = new PatternMatchMode(
             PatternMatchMode.HolesAndGroundness
-                .REQUIRES_FREE_OR_ASSIGNABLE_VARS,
+                .REQUIRES_FREE_VARS,
             TypeRelationshipQuery.superTypeOrEqual(),
             PatternMatchMode.RequiresSuccessfulMatch.REQUIRES_SUCCESSFUL_MATCH,
             PatternMatchMode.PatternApplicationSideEffects
                 .CAN_HAVE_SIDE_EFFECTS,
-            PatternMatchMode.Reassignment.REQUIRE_REASSIGN,
             PatternMatchMode.Unification.WITH_VAR_DECLARATION,
             PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
             PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
@@ -481,7 +492,6 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                         .REQUIRES_SUCCESSFUL_MATCH,
                     PatternMatchMode.PatternApplicationSideEffects
                         .CAN_HAVE_SIDE_EFFECTS,
-                    PatternMatchMode.Reassignment.REQUIRE_REASSIGN,
                     PatternMatchMode.Unification.WITH_VAR_DECLARATION,
                     PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
                     PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
@@ -598,7 +608,6 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
                     : TypeRelationshipQuery.related(),
                 rootInput.getMode().getRequiresSuccessfulMatch(),
                 rootInput.getMode().getPatternApplicationPurity(),
-                rootInput.getMode().getReassignment(),
                 rootInput.getMode().getUnification(),
                 rootInput.getMode().getNarrowsTypeOfInput(),
                 PatternMatchMode.PatternLocation.SUB_PATTERN

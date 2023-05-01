@@ -140,6 +140,60 @@ public class SubscriptExpressionSemantics
 
 
     @Override
+    protected IJadescriptType assignableTypeInternal(
+        Maybe<Subscript> input,
+        StaticState state
+    ) {
+        if (noRest(input)) {
+            return module.get(BuiltinTypeProvider.class).nothing("");
+        }
+
+        IJadescriptType restType = doOnRest(
+            input,
+            (s, i) -> s.inferType(i, state)
+        );
+
+        if (restType.category().isList()
+            || restType.category().isMap()) {
+            final TypeComparator comparator = module.get(TypeComparator.class);
+
+            String methodName;
+
+            if (restType.category().isList()) {
+                methodName = "set";
+            } else {
+                methodName = "put";
+            }
+
+            Maybe<RValueExpression> key = input.__(Subscript::getKey);
+            final RValueExpressionSemantics rves =
+                module.get(RValueExpressionSemantics.class);
+
+            IJadescriptType keyType = rves.inferType(key, state);
+
+            final List<? extends MemberCallable> matchesFound =
+                restType.namespace().searchAs(
+                    MemberCallable.Namespace.class,
+                    searcher -> searcher.memberCallables(methodName)
+                        .filter(mc -> mc.arity() == 2)
+                        .filter(mc -> comparator.compare(
+                            mc.parameterTypes().get(0),
+                            keyType
+                        ).is(superTypeOrEqual()))
+
+                ).collect(Collectors.toList());
+
+            if (matchesFound.size() != 1) {
+                return module.get(BuiltinTypeProvider.class).nothing("");
+            } else {
+                return matchesFound.get(0).parameterTypes().get(1);
+            }
+        }
+        return module.get(BuiltinTypeProvider.class).nothing("");
+    }
+
+
+    @Override
     protected StaticState advanceAssignmentInternal(
         Maybe<Subscript> input,
         IJadescriptType rightType,

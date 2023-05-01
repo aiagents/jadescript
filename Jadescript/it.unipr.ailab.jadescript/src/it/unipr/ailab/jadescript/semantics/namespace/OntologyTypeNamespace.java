@@ -85,7 +85,7 @@ public class OntologyTypeNamespace
         if (ontologyType instanceof UserDefinedOntologyType) {
             return some(((UserDefinedOntologyType) ontologyType)
                 .getSuperOntologyType().namespace());
-            //TODO multiple ontologies
+            //XXX: Change this for ontology Multi-inheritance
         }
         return nothing();
     }

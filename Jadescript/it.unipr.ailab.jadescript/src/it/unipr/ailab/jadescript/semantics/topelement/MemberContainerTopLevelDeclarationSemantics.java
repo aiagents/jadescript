@@ -188,9 +188,7 @@ public abstract class MemberContainerTopLevelDeclarationSemantics
         HashSet<String> previousFields = new HashSet<>();
 
 
-        Set<String> allFields = features.stream()
-            .filter(Maybe::isPresent)
-            .map(Maybe::toNullable)
+        Set<String> allFields = features.streamNonNulls()
             .flatMap(Functional.filterAndCast(Field.class))
             .map(Field::getName)
             .filter(Objects::nonNull)

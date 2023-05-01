@@ -285,7 +285,7 @@ public class OnExceptionHandlerSemantics
                 s
             );
 
-            part1 = matcher.rootInvocationText(
+            part1 = matcher.compilePatternMatchExpression(
                 EXCEPTION_REASON_VAR_NAME
             );
         } else {

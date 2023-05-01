@@ -82,11 +82,8 @@ public class FileContext
 
 
     public Stream<JvmDeclaredType> getImportedJvmTypeDeclarations() {
-        return getImportDeclarations().stream()
-            .filter(j -> j.__(id -> !id.isWildcard()
-                && !id.isStatic()).orElse(false))
-            .filter(Maybe::isPresent)
-            .map(Maybe::toNullable)
+        return getImportDeclarations().streamNonNulls()
+            .filter(id -> !id.isWildcard() && !id.isStatic())
             .flatMap(it -> it.getImportedType() != null
                 ? Stream.of(it.getImportedType())
                 : Stream.empty()
@@ -134,9 +131,7 @@ public class FileContext
         String typeRefIdentifier
     ) {
         //it firstly tries to solve it by finding in import declarations
-        return getImportDeclarations().stream()
-            .filter(Maybe::isPresent)
-            .map(Maybe::toNullable)
+        return getImportDeclarations().streamNonNulls()
             .filter(xi -> !xi.isWildcard() && !xi.isExtension())
             .filter(xi -> {
                 String importedName = xi.getImportedName().trim();

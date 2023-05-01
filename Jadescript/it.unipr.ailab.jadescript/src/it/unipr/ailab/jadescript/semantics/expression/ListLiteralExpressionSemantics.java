@@ -40,7 +40,6 @@ import static it.unipr.ailab.maybe.MaybeList.fromMaybeAList;
 public class ListLiteralExpressionSemantics
     extends AssignableExpressionSemantics<ListLiteral> {
 
-    //TODO pipe-literal
     private static final String PROVIDED_TYPE_TO_PATTERN_IS_NOT_LIST_MESSAGE =
         "Cannot infer the type of the elements in the pattern - the list " +
             "pattern has no explicit element type specification, the pattern " +
@@ -962,6 +961,15 @@ public class ListLiteralExpressionSemantics
         BlockElementAcceptor acceptor
     ) {
 
+    }
+
+
+    @Override
+    protected IJadescriptType assignableTypeInternal(
+        Maybe<ListLiteral> input,
+        StaticState state
+    ) {
+        return module.get(BuiltinTypeProvider.class).nothing("");
     }
 
 

@@ -35,7 +35,6 @@ import static it.unipr.ailab.maybe.Maybe.someStream;
 public class MapLiteralExpressionSemantics
     extends AssignableExpressionSemantics<MapOrSetLiteral> {
 
-    //TODO pipe operator
     public MapLiteralExpressionSemantics(SemanticsModule module) {
         super(module);
     }
@@ -93,10 +92,7 @@ public class MapLiteralExpressionSemantics
         final Maybe<TypeExpression> valuesTypeParameter =
             input.__(MapOrSetLiteral::getValueTypeParameter);
 
-        if (values.isEmpty() || keys.isEmpty()
-            || values.stream().allMatch(Maybe::isNothing)
-            || keys.stream().allMatch(Maybe::isNothing)) {
-
+        if (values.isBlank() || keys.isBlank()) {
             return module.get(BuiltinTypeProvider.class).map(
                 module.get(TypeExpressionSemantics.class)
                     .toJadescriptType(keysTypeParameter),
@@ -288,9 +284,7 @@ public class MapLiteralExpressionSemantics
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
         stage1 = stage1 && validationHelper.asserting(
-            !values.isEmpty() && !values.stream().allMatch(Maybe::isNothing)
-                && !keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing)
-                || hasTypeSpecifiers,
+            (!values.isBlank() && !keys.isBlank()) || hasTypeSpecifiers,
             "MapLiteralCannotComputeTypes",
             "Missing type specifications for empty map literal",
             input,
@@ -312,9 +306,7 @@ public class MapLiteralExpressionSemantics
         }
 
 
-        if (!values.isEmpty() && !values.stream().allMatch(Maybe::isNothing)
-            && !keys.isEmpty() && !keys.stream().allMatch(Maybe::isNothing)) {
-
+        if (!values.isBlank() && !keys.isBlank()) {
 
             boolean keysValidation = hasTypeSpecifiers
                 || keysLub.validateType(input, acceptor);
@@ -1256,6 +1248,15 @@ public class MapLiteralExpressionSemantics
         BlockElementAcceptor acceptor
     ) {
 
+    }
+
+
+    @Override
+    protected IJadescriptType assignableTypeInternal(
+        Maybe<MapOrSetLiteral> input,
+        StaticState state
+    ) {
+        return module.get(BuiltinTypeProvider.class).nothing("");
     }
 
 

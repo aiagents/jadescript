@@ -71,8 +71,8 @@ public class MaybeList<OfType> implements Iterable<Maybe<OfType>> {
 
     public static <T> MaybeList<T> someListNullsRemoved(
         @Nullable Collection<T> c
-    ){
-        if(c == null){
+    ) {
+        if (c == null) {
             return empty();
         }
 
@@ -80,6 +80,7 @@ public class MaybeList<OfType> implements Iterable<Maybe<OfType>> {
         result.removeNulls();
         return result;
     }
+
 
     /**
      * Produces a maybe-list by pushing down to the elements the maybe-ness of
@@ -101,8 +102,8 @@ public class MaybeList<OfType> implements Iterable<Maybe<OfType>> {
     public static <T> MaybeList<T> fromMaybeListNullsRemoved(
         @NotNull
         Maybe<? extends List<T>> maybeAList
-    ){
-        if(maybeAList.isNothing()){
+    ) {
+        if (maybeAList.isNothing()) {
             return empty();
         }
 
@@ -200,7 +201,8 @@ public class MaybeList<OfType> implements Iterable<Maybe<OfType>> {
         };
     }
 
-    private void removeNulls(){
+
+    private void removeNulls() {
         this.wrappedList.removeIf(Objects::isNull);
     }
 
@@ -257,6 +259,15 @@ public class MaybeList<OfType> implements Iterable<Maybe<OfType>> {
 
     public boolean isEmpty() {
         return wrappedList.isEmpty();
+    }
+
+
+    public boolean isBlank() {
+        if (this.isEmpty()) {
+            return true;
+        }
+
+        return this.stream().allMatch(Maybe::isNothing);
     }
 
 
@@ -429,11 +440,27 @@ public class MaybeList<OfType> implements Iterable<Maybe<OfType>> {
     }
 
 
-
-    // TODO analyze usages
     public Stream<Maybe<OfType>> stream() {
         return IntStream.range(0, wrappedList.size())
             .mapToObj(this::wrapGet);
+    }
+
+    public Stream<OfType> streamNonNulls(){
+        return stream().filter(Maybe::isPresent).map(Maybe::toNullable);
+    }
+
+
+    public List<OfType> excludeNulls(
+        Function<Integer, ? extends List<OfType>> builder
+    ) {
+        final List<OfType> result = builder.apply(size());
+        nonNullIterator().forEachRemaining(result::add);
+        return result;
+    }
+
+
+    public List<OfType> excludeNulls() {
+        return excludeNulls(ArrayList::new);
     }
 
 

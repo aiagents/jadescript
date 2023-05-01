@@ -24,7 +24,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -210,10 +209,7 @@ public abstract class UsesOntologyTopLevelDeclarationSemantics
         MaybeList<JvmTypeReference> ontologies =
             input.__toList(UsesOntologyElement::getOntologies);
 
-        List<JvmTypeReference> ontologyTypes = ontologies.stream()
-            .filter(Maybe::isPresent)
-            .map(Maybe::toNullable)
-            .collect(Collectors.toCollection(ArrayList::new));
+        List<JvmTypeReference> ontologyTypes = ontologies.excludeNulls();
         if (ontologyTypes.isEmpty()) {
             final JvmTypeHelper jvm = module.get(JvmTypeHelper.class);
             ontologyTypes.add(jvm.typeRef(
