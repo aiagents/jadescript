@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.resource.Resource;
-import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.generator.GeneratorContext;
 import org.eclipse.xtext.generator.GeneratorDelegate;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;

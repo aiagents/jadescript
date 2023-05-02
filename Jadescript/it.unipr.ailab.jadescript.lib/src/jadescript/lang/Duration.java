@@ -2,11 +2,6 @@ package jadescript.lang;
 
 import jadescript.content.JadescriptConcept;
 
-import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Scanner;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 

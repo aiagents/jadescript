@@ -1,12 +1,10 @@
 package it.unipr.ailab.jadescript.stdlibgen;
 
-import java.util.Random;
 import java.util.stream.Stream;
 
 import org.eclipse.emf.ecore.resource.Resource;
 
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
-import it.unipr.ailab.sonneteer.file.FileWriter;
 
 public class ReflectiveClassToNativeConceptGenerator extends StandardLibraryGenerator{
 

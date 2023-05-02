@@ -1,7 +1,6 @@
 package jadescript.lang.acl;
 
 import jade.content.ContentElement;
-import jade.content.ContentManager;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jadescript.core.message.Message;

@@ -3,10 +3,8 @@
  */
 package it.unipr.ailab.jadescript.ide.contentassist.antlr;
 
-import it.unipr.ailab.jadescript.ide.contentassist.antlr.internal.InternalJadescriptParser;
 import org.antlr.runtime.Token;
 import org.antlr.runtime.TokenSource;
-import org.eclipse.xtext.parser.antlr.AbstractIndentationTokenSource;
 
 public class JadescriptTokenSource implements TokenSource {
 
