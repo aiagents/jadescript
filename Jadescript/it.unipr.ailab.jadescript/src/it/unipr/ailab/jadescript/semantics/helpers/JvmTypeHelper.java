@@ -10,6 +10,7 @@ import org.eclipse.emf.common.util.EList;
 import org.eclipse.xtext.common.types.*;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypeReferenceBuilder;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -364,6 +365,7 @@ public class JvmTypeHelper {
     }
 
 
+
     public boolean isAssignableGeneric(
         JvmTypeReference toType,
         JvmTypeReference fromType
@@ -558,14 +560,14 @@ public class JvmTypeHelper {
     public JvmTypeReference attemptResolveTypeRef(
         JvmTypeReference typeReference
     ) {
-        final JvmTypeQualifiedNameParser.GenericType type =
+        final @Nullable JvmTypeQualifiedNameParser.GenericType type =
             JvmTypeQualifiedNameParser
                 .parseJvmGenerics(typeReference.getIdentifier());
         if (type == null) {
             return typeReference;
         }
-        final JvmTypeReferenceBuilder jvmtrb = module.get(
-            JvmTypeReferenceBuilder.class);
+        final JvmTypeReferenceBuilder jvmtrb =
+            module.get(JvmTypeReferenceBuilder.class);
         return type.convertToTypeRef(
             jvmtrb::typeRef,
             jvmtrb::typeRef

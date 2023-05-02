@@ -20,7 +20,8 @@ public class StandaloneMain {
 
     public static void usage(){
         System.out.println("Jadescript Compiler");
-        System.out.println("Usage: java -jar jadescriptc.jar <...source files...>");
+        System.out.println("Usage: java -jar jadescriptc.jar " +
+            "<...source files...>");
     }
 
     public static void main(String[] args) {
@@ -29,7 +30,8 @@ public class StandaloneMain {
             usage();
             System.exit(1);
         }
-        Injector injector = new JadescriptStandaloneSetupGenerated().createInjectorAndDoEMFRegistration();
+        Injector injector = new JadescriptStandaloneSetupGenerated()
+            .createInjectorAndDoEMFRegistration();
         StandaloneMain main = injector.getInstance(StandaloneMain.class);
         for (String arg : args) {
             main.runGenerator(arg);
@@ -55,7 +57,11 @@ public class StandaloneMain {
 
         // Validate the resource
 
-        List<Issue> list = validator.validate(resource, CheckMode.ALL, CancelIndicator.NullImpl);
+        List<Issue> list = validator.validate(
+            resource,
+            CheckMode.ALL,
+            CancelIndicator.NullImpl
+        );
         if (!list.isEmpty()) {
             for (Issue issue : list) {
                 System.err.println(issue);

@@ -70,8 +70,12 @@ public class ImmutableList<E> implements Iterable<E> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ImmutableList)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ImmutableList)) {
+            return false;
+        }
 
         ImmutableList<?> that = (ImmutableList<?>) o;
 

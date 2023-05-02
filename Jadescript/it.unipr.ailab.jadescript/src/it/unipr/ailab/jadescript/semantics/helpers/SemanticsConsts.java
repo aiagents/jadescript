@@ -164,7 +164,9 @@ public interface SemanticsConsts {
 
 
     default String numberedName(String n, EObject e) {
-        if (e == null) return n + "0";
+        if (e == null) {
+            return n + "0";
+        }
         if (((e.eContainer() == null)
             || (e.eContainer().eContents() == null))) {
             return n + "0";
@@ -173,8 +175,11 @@ public interface SemanticsConsts {
     }
 
     default String hashBasedName(String prefix, EObject e) {
-        if (e == null) return prefix + 0;
-        else return prefix + e.hashCode();
+        if (e == null) {
+            return prefix + 0;
+        } else {
+            return prefix + e.hashCode();
+        }
     }
 
     default String uniqueName(String prefix) {

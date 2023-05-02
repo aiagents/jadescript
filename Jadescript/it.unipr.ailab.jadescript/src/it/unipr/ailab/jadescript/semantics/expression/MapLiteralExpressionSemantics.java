@@ -306,62 +306,65 @@ public class MapLiteralExpressionSemantics
         }
 
 
-        if (!values.isBlank() && !keys.isBlank()) {
+        if (values.isBlank() || keys.isBlank()) {
+            return VALID;
+        }
 
-            boolean keysValidation = hasTypeSpecifiers
-                || keysLub.validateType(input, acceptor);
+        boolean keysValidation = hasTypeSpecifiers
+            || keysLub.validateType(input, acceptor);
 
-            final TypeExpressionSemantics tes =
-                module.get(TypeExpressionSemantics.class);
-            keysValidation = keysValidation
-                && tes.validate(keysTypeParameter, acceptor);
+        final TypeExpressionSemantics tes =
+            module.get(TypeExpressionSemantics.class);
+        keysValidation = keysValidation
+            && tes.validate(keysTypeParameter, acceptor);
 
 
-            boolean valsValidation = hasTypeSpecifiers
-                || valuesLub.validateType(input, acceptor);
+        boolean valsValidation = hasTypeSpecifiers
+            || valuesLub.validateType(input, acceptor);
 
-            valsValidation = valsValidation
-                && tes.validate(valuesTypeParameter, acceptor);
+        valsValidation = valsValidation
+            && tes.validate(valuesTypeParameter, acceptor);
 
-            if (valsValidation == VALID && keysValidation == VALID
-                && hasTypeSpecifiers) {
-                newState = state;
-                final IJadescriptType explicitKeyType =
-                    tes.toJadescriptType(keysTypeParameter);
-                final IJadescriptType explicitValueType =
-                    tes.toJadescriptType(valuesTypeParameter);
-
-                for (int i = 0; i < assumedSize; i++) {
-                    Maybe<RValueExpression> key = keys.get(i);
-                    Maybe<RValueExpression> value = values.get(i);
-
-                    boolean keyConf = validationHelper.assertExpectedType(
-                        explicitKeyType,
-                        rves.inferType(key, newState),
-                        "InvalidMapKey",
-                        key,
-                        acceptor
-                    );
-                    newState = rves.advance(key, newState);
-
-                    boolean valConf = validationHelper.assertExpectedType(
-                        explicitValueType,
-                        rves.inferType(value, newState),
-                        "InvalidMapValue",
-                        value,
-                        acceptor
-                    );
-                    newState = rves.advance(value, newState);
-
-                    keysValidation = keysValidation && keyConf;
-                    valsValidation = valsValidation && valConf;
-                }
-            }
+        if (valsValidation == INVALID || keysValidation == INVALID
+            || !hasTypeSpecifiers) {
 
             return keysValidation && valsValidation;
         }
 
-        return VALID;
+        newState = state;
+        final IJadescriptType explicitKeyType =
+            tes.toJadescriptType(keysTypeParameter);
+        final IJadescriptType explicitValueType =
+            tes.toJadescriptType(valuesTypeParameter);
+
+        for (int i = 0; i < assumedSize; i++) {
+            Maybe<RValueExpression> key = keys.get(i);
+            Maybe<RValueExpression> value = values.get(i);
+
+            boolean keyConf = validationHelper.assertExpectedType(
+                explicitKeyType,
+                rves.inferType(key, newState),
+                "InvalidMapKey",
+                key,
+                acceptor
+            );
+            newState = rves.advance(key, newState);
+
+            boolean valConf = validationHelper.assertExpectedType(
+                explicitValueType,
+                rves.inferType(value, newState),
+                "InvalidMapValue",
+                value,
+                acceptor
+            );
+            newState = rves.advance(value, newState);
+
+            keysValidation = keysValidation && keyConf;
+            valsValidation = valsValidation && valConf;
+        }
+
+        return keysValidation && valsValidation;
+
     }
 
 

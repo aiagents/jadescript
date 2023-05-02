@@ -6,7 +6,6 @@ import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;

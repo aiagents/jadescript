@@ -14,15 +14,24 @@ public class SingleIdentifier extends ProxyEObject {
         this.ident = ident;
     }
 
-    public static Maybe<SingleIdentifier> singleIdentifier(Maybe<String> ident, Maybe<? extends EObject> eObject){
+    public static Maybe<SingleIdentifier> singleIdentifier(
+        Maybe<String> ident,
+        Maybe<? extends EObject> eObject
+    ){
         if(ident.isPresent() && eObject.isPresent()){
-            return some(new SingleIdentifier(ident.toNullable(), eObject.toNullable()));
+            return some(new SingleIdentifier(
+                ident.toNullable(),
+                eObject.toNullable()
+            ));
         }else{
             return nothing();
         }
     }
 
-    public static Maybe<SingleIdentifier> singleIdentifier(String ident, Maybe<? extends EObject> eObject){
+    public static Maybe<SingleIdentifier> singleIdentifier(
+        String ident,
+        Maybe<? extends EObject> eObject
+    ){
         if(eObject.isPresent()){
             return some(new SingleIdentifier(ident, eObject.toNullable()));
         }else{
@@ -30,7 +39,10 @@ public class SingleIdentifier extends ProxyEObject {
         }
     }
 
-    public static Maybe<SingleIdentifier> singleIdentifier(Maybe<String> ident, EObject eObject) {
+    public static Maybe<SingleIdentifier> singleIdentifier(
+        Maybe<String> ident,
+        EObject eObject
+    ) {
         if(ident.isPresent() ){
             return some(new SingleIdentifier(ident.toNullable(), eObject));
         }else{

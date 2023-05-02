@@ -3,6 +3,8 @@
   <component name="EntryPointsManager">
     <pattern value="it.unipr.ailab.jadescript.semantics.expression.AidLiteralExpressionSemantics" method="validateAssignmentInternal" />
     <pattern value="it.unipr.ailab.jadescript.semantics.expression.AidLiteralExpressionSemantics" method="syntacticValidateLValueInternal" />
+    <pattern value="it.unipr.ailab.jadescript.semantics.expression.AidLiteralExpressionSemantics" method="AidLiteralExpressionSemantics" />
+    <pattern value="it.unipr.ailab.jadescript.semantics.jadescripttypes.basic.AIDType" method="AIDType" />
     <writeAnnotations>
       <writeAnnotation name="com.google.inject.Inject" />
     </writeAnnotations>

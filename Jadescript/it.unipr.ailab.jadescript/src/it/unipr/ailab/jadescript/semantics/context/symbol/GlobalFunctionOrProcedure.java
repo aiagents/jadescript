@@ -165,7 +165,9 @@ public class GlobalFunctionOrProcedure implements GlobalCallable {
 
 
     @NotNull
-    private static Function<List<String>, String> invokeGlobalByArity(String fullyQualifiedName) {
+    private static Function<List<String>, String> invokeGlobalByArity(
+        String fullyQualifiedName
+    ) {
         return (args) -> fullyQualifiedName + "(" +
             String.join(" ,", args) +
             ")";

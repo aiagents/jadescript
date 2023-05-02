@@ -14,10 +14,6 @@ public interface MemberName extends Dereferenceable, Name {
         Function<BlockElementAcceptor, String> ownerCompiler
     );
 
-    @Override
-    default Signature getSignature() {
-        return Name.super.getSignature();
-    }
 
     default void debugDumpMemberName(SourceCodeBuilder scb) {
         dereference((__) -> "<owner>").debugDumpDereferencedName(scb);

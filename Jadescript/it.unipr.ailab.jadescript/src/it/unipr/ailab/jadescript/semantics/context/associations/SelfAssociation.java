@@ -38,7 +38,8 @@ public class SelfAssociation
     ) {
         return ImportedMembersNamespace.importMembersNamespace(
             module,
-            acceptor -> SemanticsUtils.getOuterClassThisReference(eObject).orElse(THIS),
+            acceptor -> SemanticsUtils.getOuterClassThisReference(eObject)
+                .orElse(THIS),
             ExpressionDescriptor.thisReference,
             getAssociatedType().namespace()
         );
@@ -95,6 +96,13 @@ ST
     @Override
     public IJadescriptType getAssociatedType() {
         return getSelf();
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof SelfAssociation
+            && compareTo((SelfAssociation) o) == 0;
     }
 
 

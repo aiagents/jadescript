@@ -4,11 +4,15 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 public interface ReturnExpectedContext {
+
     IJadescriptType expectedReturnType();
 
-    default void debugDumpReturnExpectation(SourceCodeBuilder scb){
+    default void debugDumpReturnExpectation(SourceCodeBuilder scb) {
         scb.open("--> is ReturnExpectedContext {");
-        scb.line("expectedReturnType = " + expectedReturnType().getDebugPrint());
+        scb.line("expectedReturnType = " + expectedReturnType()
+            .getDebugPrint()
+        );
         scb.close("}");
     }
+
 }

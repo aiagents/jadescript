@@ -36,15 +36,23 @@ public final class Functional {
     }
 
 
-    public static <T1,T2,R> Function<T2, R> partial1(BiFunction<T1, T2, R> function, T1 arg){
+    public static <T1,T2,R> Function<T2, R> partial1(
+        BiFunction<T1, T2, R> function,
+        T1 arg
+    ){
         return (t2 -> function.apply(arg, t2));
     }
 
-    public static <T1,T2,R> Function<T1, R> partial2(BiFunction<T1, T2, R> function, T2 arg){
+    public static <T1,T2,R> Function<T1, R> partial2(
+        BiFunction<T1, T2, R> function,
+        T2 arg
+    ){
         return (t1 -> function.apply(t1, arg));
     }
 
-    public static <T1, T2> Function<T1, Stream<T2>> filterAndCast(Class<T2> clazz){
+    public static <T1, T2> Function<T1, Stream<T2>> filterAndCast(
+        Class<T2> clazz
+    ){
         return x -> Stream.of(x).filter(clazz::isInstance).map(clazz::cast);
     }
 

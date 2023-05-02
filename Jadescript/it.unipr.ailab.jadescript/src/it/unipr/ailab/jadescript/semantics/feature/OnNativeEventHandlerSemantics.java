@@ -285,7 +285,9 @@ public class OnNativeEventHandlerSemantics
                 s
             );
 
-            part1 = matcher.compilePatternMatchExpression(NATIVE_EVENT_CONTENT_VAR_NAME);
+            part1 = matcher.compilePatternMatchExpression(
+                NATIVE_EVENT_CONTENT_VAR_NAME
+            );
         } else {
             prepareBodyState = Function.identity();
             afterPatternDidMatch = beforePattern;

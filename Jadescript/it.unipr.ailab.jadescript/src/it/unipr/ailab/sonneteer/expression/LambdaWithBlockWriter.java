@@ -45,7 +45,9 @@ public class LambdaWithBlockWriter extends ExpressionWriter{
         return parameters;
     }
 
-    public LambdaWithBlockWriter setParameters(Iterable<ParameterWriter> parameters){
+    public LambdaWithBlockWriter setParameters(
+        Iterable<ParameterWriter> parameters
+    ){
         this.parameters.clear();
         for (ParameterWriter parameter : parameters) {
             this.parameters.add(parameter);

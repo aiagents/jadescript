@@ -12,7 +12,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agentenv.AgentEnvType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.JavaVoidType;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;

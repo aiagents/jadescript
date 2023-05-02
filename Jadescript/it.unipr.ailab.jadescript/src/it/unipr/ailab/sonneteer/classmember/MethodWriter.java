@@ -20,8 +20,13 @@ public class MethodWriter extends ClassMemberWriter {
     private final List<String> throwsDeclarations = new ArrayList<>();
 
 
-    public MethodWriter(Visibility visibility, boolean isFinal, boolean isStatic,
-                        String returnType, String name) {
+    public MethodWriter(
+        Visibility visibility,
+        boolean isFinal,
+        boolean isStatic,
+        String returnType,
+        String name
+    ) {
         super(visibility, isFinal, isStatic);
         this.returnType = returnType;
         this.name = name;

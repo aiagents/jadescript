@@ -16,11 +16,21 @@ public interface IClassDeclarationWriter extends ITypeDeclarationWriter {
 
     IClassDeclarationWriter addPSFS(String constName, String value);
 
-    IClassDeclarationWriter addPSFS(String constName, String value, CommentWriter comment);
+    IClassDeclarationWriter addPSFS(
+        String constName,
+        String value,
+        CommentWriter comment
+    );
 
-    ClassDeclarationWriter addProperty(String type, String name, boolean readOnly);
+    ClassDeclarationWriter addProperty(
+        String type,
+        String name,
+        boolean readOnly
+    );
 
-    ClassDeclarationWriter.ConstructorWriter addConstructor(Visibility visibility);
+    ClassDeclarationWriter.ConstructorWriter addConstructor(
+        Visibility visibility
+    );
 
     void addAnnotation(String annotation);
 

@@ -164,13 +164,12 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         StaticState afterCollection
     ) {
         IJadescriptType firstVarType;
-        final MapType mapType = collectionType;
-        firstVarType = mapType.getKeyType();
-        IJadescriptType secondVarType = mapType.getValueType();
+        firstVarType = collectionType.getKeyType();
+        IJadescriptType secondVarType = collectionType.getValueType();
 
         String collectionAuxVar = acceptor.auxiliaryVariable(
             collection,
-            mapType.compileToJavaTypeReference(),
+            collectionType.compileToJavaTypeReference(),
             "collection",
             compiledCollection
         );

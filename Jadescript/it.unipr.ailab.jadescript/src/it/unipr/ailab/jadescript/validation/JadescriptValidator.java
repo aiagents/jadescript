@@ -15,7 +15,6 @@ import it.unipr.ailab.jadescript.semantics.topelement.BehaviourTopLevelDeclarati
 import it.unipr.ailab.jadescript.semantics.topelement.GlobalOperationDeclarationSemantics;
 import it.unipr.ailab.jadescript.semantics.topelement.OntologyDeclarationSemantics;
 import it.unipr.ailab.maybe.Maybe;
-import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.EcoreUtil2;

@@ -11,7 +11,9 @@ public class AnyAssociationComputer {
     }
 
 
-    public static Stream<Association> computeAllAssociations(Associated target) {
+    public static Stream<Association> computeAllAssociations(
+        Associated target
+    ) {
         Stream<Association> result = Stream.empty();
         if (target instanceof SelfAssociated) {
             result = Streams.concat(
@@ -39,16 +41,20 @@ public class AnyAssociationComputer {
         }
         return result.sorted(Comparator.comparingInt(a -> {
             if (a instanceof SelfAssociation) {
-                return ((SelfAssociation) a).getAssociationKind().distanceOrdinal() * 4;
+                return ((SelfAssociation) a).getAssociationKind()
+                    .distanceOrdinal() * 4;
             }
             if (a instanceof BehaviourAssociation) {
-                return ((BehaviourAssociation) a).getAssociationKind().distanceOrdinal() * 4 + 1;
+                return ((BehaviourAssociation) a).getAssociationKind()
+                    .distanceOrdinal() * 4 + 1;
             }
             if (a instanceof AgentAssociation) {
-                return ((AgentAssociation) a).getAssociationKind().distanceOrdinal() * 4 + 2;
+                return ((AgentAssociation) a).getAssociationKind()
+                    .distanceOrdinal() * 4 + 2;
             }
             if (a instanceof OntologyAssociation) {
-                return ((OntologyAssociation) a).getAssociationKind().distanceOrdinal() * 4 + 3;
+                return ((OntologyAssociation) a).getAssociationKind()
+                    .distanceOrdinal() * 4 + 3;
             }
             return 0;
         }));

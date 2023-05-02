@@ -1,7 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.namespace;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.maybe.Maybe;

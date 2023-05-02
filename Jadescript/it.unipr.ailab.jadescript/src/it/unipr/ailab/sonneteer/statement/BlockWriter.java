@@ -5,17 +5,10 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
 
 public class BlockWriter extends StatementWriter {
 
     private final List<BlockWriterElement> elements = new ArrayList<>();
-
-
-    public BlockWriter inside(Consumer<SourceCodeBuilder> useSCB){
-        elements.add(useSCB::accept);
-        return this;
-    }
 
 
     public BlockWriter addStatement(StatementWriter statement) {
@@ -58,7 +51,9 @@ public class BlockWriter extends StatementWriter {
         {
             for (int i = 0; i < elements.size(); i++) {
                 elements.get(i).writeSonnet(s);
-                if (i != elements.size() - 1) s.line();
+                if (i != elements.size() - 1) {
+                    s.line();
+                }
             }
         }
         s.dedent().line("}");

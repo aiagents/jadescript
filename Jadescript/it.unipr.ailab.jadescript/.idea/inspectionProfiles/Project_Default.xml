@@ -725,7 +725,7 @@
     <inspection_tool class="ClassNamePrefixedWithPackageName" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="ClassNameSameAsAncestorName" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="ClassNestingDepth" enabled="true" level="WARNING" enabled_by_default="true">
-      <option name="m_limit" value="1" />
+      <option name="m_limit" value="2" />
     </inspection_tool>
     <inspection_tool class="ClassNewInstance" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="ClassOnlyUsedInOneModule" enabled="false" level="WARNING" enabled_by_default="false" />
@@ -921,7 +921,7 @@
     <inspection_tool class="CyclicClassDependency" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="CyclicPackageDependency" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="CyclomaticComplexity" enabled="true" level="WARNING" enabled_by_default="true">
-      <option name="m_limit" value="20" />
+      <option name="m_limit" value="25" />
     </inspection_tool>
     <inspection_tool class="CyclomaticComplexityJS" enabled="false" level="WARNING" enabled_by_default="false">
       <option name="m_limit" value="10" />
@@ -1897,7 +1897,7 @@
     <inspection_tool class="LatexDuplicateLabel" enabled="false" level="ERROR" enabled_by_default="false" />
     <inspection_tool class="LatexEllipsis" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="LatexEnDash" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
-    <inspection_tool class="LatexEncloseWithLeftRight" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
+    <inspection_tool class="LatexEncloseWithLeftRight" enabled="false" level="WEAK WARNING" enabled_by_default="false" texify.inspection.latex.Latexnull.textArea="" />
     <inspection_tool class="LatexEquationReference" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
     <inspection_tool class="LatexEscapeAmpersand" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="LatexEscapeHashOutsideCommand" enabled="false" level="WEAK WARNING" enabled_by_default="false" />

@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.utils;
 
 import org.eclipse.xtext.common.types.JvmTypeReference;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,11 +36,15 @@ public class JvmTypeQualifiedNameParser {
 
         public JvmTypeReference convertToTypeRef(
                 Function<String, JvmTypeReference> typeRefFactory,
-                BiFunction<String, JvmTypeReference[], JvmTypeReference> genericTypeRefFactory
+                BiFunction<String, JvmTypeReference[], JvmTypeReference>
+                    genericTypeRefFactory
         ){
             if(isGeneric){
                 final JvmTypeReference[] args = arguments.stream()
-                        .map(gt -> gt.convertToTypeRef(typeRefFactory, genericTypeRefFactory))
+                        .map(gt -> gt.convertToTypeRef(
+                            typeRefFactory,
+                            genericTypeRefFactory
+                        ))
                         .toArray(JvmTypeReference[]::new);
                 return genericTypeRefFactory.apply(type, args);
             }else{
@@ -111,15 +116,21 @@ public class JvmTypeQualifiedNameParser {
         }
 
         private boolean match(char expected) {
-            if (isAtEnd()) return false;
-            if (source.charAt(current) != expected) return false;
+            if (isAtEnd()) {
+                return false;
+            }
+            if (source.charAt(current) != expected) {
+                return false;
+            }
 
             current++;
             return true;
         }
 
         private void other() {
-            while (!isAtEnd() && isOther(peek())) advance();
+            while (!isAtEnd() && isOther(peek())) {
+                advance();
+            }
 
             addToken(JvmGenericTokenType.OTHER);
         }
@@ -137,7 +148,9 @@ public class JvmTypeQualifiedNameParser {
         }
 
         private char peek() {
-            if (isAtEnd()) return '\0';
+            if (isAtEnd()) {
+                return '\0';
+            }
             return source.charAt(current);
         }
 
@@ -174,7 +187,10 @@ public class JvmTypeQualifiedNameParser {
         }
 
         public GenericType type() {
-            Token other = consume(JvmGenericTokenType.OTHER, "Expecting Type Name");
+            Token other = consume(
+                JvmGenericTokenType.OTHER,
+                "Expecting Type Name"
+            );
             boolean isGeneric = false;
             List<GenericType> arguments = new ArrayList<>();
             if (match(JvmGenericTokenType.OPEN)) {
@@ -186,7 +202,10 @@ public class JvmTypeQualifiedNameParser {
                 }
                 consume(JvmGenericTokenType.CLOSE, "Missing closing '>'");
             }
-            final GenericType genericType = new GenericType(other.lexeme, isGeneric);
+            final GenericType genericType = new GenericType(
+                other.lexeme,
+                isGeneric
+            );
             genericType.getArguments().addAll(arguments);
             return genericType;
         }
@@ -203,12 +222,16 @@ public class JvmTypeQualifiedNameParser {
         }
 
         private boolean check(JvmGenericTokenType type) {
-            if (isAtEnd()) return false;
+            if (isAtEnd()) {
+                return false;
+            }
             return peek().type == type;
         }
 
         private Token advance() {
-            if (!isAtEnd()) current++;
+            if (!isAtEnd()) {
+                current++;
+            }
             return previous();
         }
 
@@ -225,7 +248,9 @@ public class JvmTypeQualifiedNameParser {
         }
 
         private Token consume(JvmGenericTokenType type, String message) {
-            if (check(type)) return advance();
+            if (check(type)) {
+                return advance();
+            }
 
             throw error(peek(), message);
         }
@@ -248,7 +273,7 @@ public class JvmTypeQualifiedNameParser {
     }
 
 
-    public static GenericType parseJvmGenerics(String input) {
+    public static @Nullable GenericType parseJvmGenerics(String input) {
         Scanner sc = new Scanner(input);
         final List<Token> tokens = sc.scanTokens();
         Parser p = new Parser(tokens);

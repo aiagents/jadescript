@@ -12,19 +12,11 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComp
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationshipQuery;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.utils.LazyInit;
-import jadescript.lang.Performative;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.stream.Stream;
-
-import static jadescript.lang.Performative.UNKNOWN;
-import static jadescript.lang.Performative.performativeByName;
 
 
 public class TypeHelper implements SemanticsConsts {

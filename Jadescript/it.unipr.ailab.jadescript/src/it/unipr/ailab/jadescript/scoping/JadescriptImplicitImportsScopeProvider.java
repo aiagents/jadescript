@@ -11,8 +11,14 @@ public class JadescriptImplicitImportsScopeProvider
     extends XImportSectionNamespaceScopeProvider {
     @Override
     protected List<ImportNormalizer> getImplicitImports(boolean ignoreCase) {
-        List<ImportNormalizer> result = new ArrayList<>(super.getImplicitImports(ignoreCase));
-        result.add(doCreateImportNormalizer(QualifiedName.create("jade", "core", "AID"), false, false));
+        List<ImportNormalizer> result = new ArrayList<>(
+            super.getImplicitImports(ignoreCase)
+        );
+        result.add(doCreateImportNormalizer(
+            QualifiedName.create("jade", "core", "AID"),
+            false,
+            false
+        ));
         return result;
     }
 }

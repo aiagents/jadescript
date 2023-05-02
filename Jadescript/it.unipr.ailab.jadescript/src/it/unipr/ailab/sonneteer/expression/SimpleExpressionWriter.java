@@ -28,17 +28,28 @@ public class SimpleExpressionWriter extends ExpressionWriter {
 
 
     @Override
-    public ExpressionWriter bindVariableUsages(LocalVarBindingProvider varBindingProvider) {
-        return w.expr(replacePlaceholderInString(expression, varBindingProvider::bindRead));
+    public ExpressionWriter bindVariableUsages(
+        LocalVarBindingProvider varBindingProvider
+    ) {
+        return w.expr(replacePlaceholderInString(
+            expression,
+            varBindingProvider::bindRead
+        ));
     }
 
 
-    public static String replacePlaceholderInString(String text, Function<String, String> replacer){
+    public static String replacePlaceholderInString(
+        String text,
+        Function<String, String> replacer
+    ){
         Pattern contextPattern = Pattern.compile("#\\{[\\w.]+\\}");
         Matcher m = contextPattern .matcher(text);
         while(m.find()){
             String currentGroup = m.group();
-            String currentPattern = currentGroup.replaceAll("^#\\{", "").replaceAll("\\}$", "").trim();
+            String currentPattern = currentGroup
+                .replaceAll("^#\\{", "")
+                .replaceAll("\\}$", "")
+                .trim();
             String mapValue = replacer.apply(currentPattern);
             if (mapValue != null){
                 text = text.replace(currentGroup, mapValue);

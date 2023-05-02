@@ -7,8 +7,6 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
-import static it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils.safeFilter;
-
 public interface BehaviourFailureHandledContext extends SemanticsConsts {
 
     @NotNull

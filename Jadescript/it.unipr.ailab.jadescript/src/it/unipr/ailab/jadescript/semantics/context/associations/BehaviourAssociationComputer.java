@@ -18,7 +18,8 @@ public interface BehaviourAssociationComputer extends AgentAssociationComputer {
         );
     }
 
-    private Stream<BehaviourAssociation> computeBehaviourAssociationsFromSupertype() {
+    private Stream<BehaviourAssociation>
+    computeBehaviourAssociationsFromSupertype() {
         Maybe<Searcheable> ms = superTypeSearcheable();
         if (ms.isPresent() && ms.toNullable() instanceof BehaviourAssociated) {
             return ((BehaviourAssociated) ms.toNullable())
@@ -33,8 +34,9 @@ public interface BehaviourAssociationComputer extends AgentAssociationComputer {
     default void debugDumpBehaviourAssociations(SourceCodeBuilder scb) {
         scb.open("--> is BehaviourAssociated {");
         scb.line("*** Behaviour associations: ***");
-        computeAllBehaviourAssociations().forEach((BehaviourAssociation b) -> b.debugDump(
-            scb));
+        computeAllBehaviourAssociations().forEach(
+            (BehaviourAssociation b) -> b.debugDump(scb)
+        );
         scb.close("}");
     }
 

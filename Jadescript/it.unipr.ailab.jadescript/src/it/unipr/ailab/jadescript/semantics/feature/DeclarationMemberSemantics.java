@@ -23,7 +23,8 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
  * Created on 26/04/18.
  */
 @Singleton
-public abstract class DeclarationMemberSemantics<T extends Feature> extends Semantics {
+public abstract class DeclarationMemberSemantics<T extends Feature>
+    extends Semantics {
 
 
     public DeclarationMemberSemantics(SemanticsModule semanticsModule) {
@@ -95,8 +96,10 @@ public abstract class DeclarationMemberSemantics<T extends Feature> extends Sema
         return module.get(ContextManager.class).currentContext()
                 .actAs(SelfAssociated.class)
                 .findFirst()
-                .flatMap(sac -> sac.computeCurrentSelfAssociations().findFirst())
+                .flatMap(sac -> sac.computeCurrentSelfAssociations()
+                    .findFirst())
                 .map(sa -> sa.getAssociatedType().namespace().currentLocation())
-                .orElse(module.get(ContextManager.class).currentContext().currentLocation());
+                .orElse(module.get(ContextManager.class).currentContext()
+                    .currentLocation());
     }
 }

@@ -17,7 +17,11 @@ public class FileWriter extends Commentable implements Writer {
     private final List<ImportWriter> importWriters = new ArrayList<>();
     private final ITypeDeclarationWriter typeDeclarationPoet;
 
-    public FileWriter(String fileName, String packageName, ITypeDeclarationWriter typeDeclarationPoet) {
+    public FileWriter(
+        String fileName,
+        String packageName,
+        ITypeDeclarationWriter typeDeclarationPoet
+    ) {
         this.fileName = fileName;
         this.packageName = packageName;
         this.typeDeclarationPoet = typeDeclarationPoet;

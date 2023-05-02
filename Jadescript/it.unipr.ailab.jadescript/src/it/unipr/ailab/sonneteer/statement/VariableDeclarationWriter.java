@@ -15,7 +15,11 @@ public class VariableDeclarationWriter extends StatementWriter {
         this.name = name;
     }
 
-    public VariableDeclarationWriter(String type, String name, ExpressionWriter initExpression){
+    public VariableDeclarationWriter(
+        String type,
+        String name,
+        ExpressionWriter initExpression
+    ){
         this.type = type;
         this.name = name;
         this.initExpression = initExpression;

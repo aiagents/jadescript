@@ -23,7 +23,6 @@ import org.eclipse.emf.ecore.EObject;
 
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils.safeFilter;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public class ProceduralFeatureContainerContext
@@ -59,7 +58,8 @@ public class ProceduralFeatureContainerContext
             some(new ContextGeneratedName(
                 THIS,
                 thisReferenceType,
-                () -> SemanticsUtils.getOuterClassThisReference(featureContainer)
+                () -> SemanticsUtils
+                    .getOuterClassThisReference(featureContainer)
                     .orElse(THIS)
             ))
         );

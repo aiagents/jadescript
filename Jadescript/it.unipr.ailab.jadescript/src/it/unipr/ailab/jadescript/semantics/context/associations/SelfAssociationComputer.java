@@ -33,7 +33,9 @@ public interface SelfAssociationComputer extends WithSupertype {
     default void debugDumpSelfAssociations(SourceCodeBuilder scb) {
         scb.open("--> is SelfAssociated {");
         scb.line("*** Self associations: ***");
-        computeAllSelfAssociations().forEach((SelfAssociation b) -> b.debugDump(scb));
+        computeAllSelfAssociations().forEach(
+            (SelfAssociation b) -> b.debugDump(scb)
+        );
         scb.close("}");
     }
 }

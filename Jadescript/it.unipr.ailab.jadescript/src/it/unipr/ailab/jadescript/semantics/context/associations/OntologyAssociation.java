@@ -187,6 +187,13 @@ SF_SU_SO
     }
 
 
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof OntologyAssociation
+            && compareTo((OntologyAssociation) o) == 0;
+    }
+
+
     /**
      * Is the ontology being declared
      * <pre>

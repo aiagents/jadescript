@@ -21,7 +21,11 @@ public class TryCatchWriter extends StatementWriter {
 
     }
 
-    public TryCatchWriter addCatchBranch(String exceptionType, String varName, BlockWriter body){
+    public TryCatchWriter addCatchBranch(
+        String exceptionType,
+        String varName,
+        BlockWriter body
+    ){
         exceptionTypes.add(exceptionType);
         varNames.add(varName);
         catchBranches.add(body);
@@ -36,12 +40,17 @@ public class TryCatchWriter extends StatementWriter {
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
         getComments().forEach(x -> x.writeSonnet(s));
-        if(catchBranches.isEmpty()) throw new InvalidStatementException(
-                "Attempted to create a try/catch statement without any catch branches");
+        if(catchBranches.isEmpty()) {
+            throw new InvalidStatementException(
+                    "Attempted to create a try/catch statement without " +
+                        "any catch branches");
+        }
         s.spaced("try");
         tryBranch.writeSonnet(s);
         for(int i = 0; i < varNames.size(); i++){
-            s.add("catch(").spaced(exceptionTypes.get(i)).add(varNames.get(i)).spaced(")");
+            s.add("catch(")
+                .spaced(exceptionTypes.get(i)).add(varNames.get(i))
+                .spaced(")");
             catchBranches.get(i).writeSonnet(s);
         }
         finallyBranch.safeDo(fbSafe -> {

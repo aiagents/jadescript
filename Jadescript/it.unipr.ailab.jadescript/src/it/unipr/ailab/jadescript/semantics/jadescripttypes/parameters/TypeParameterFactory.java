@@ -16,8 +16,7 @@ public class TypeParameterFactory {
     }
 
 
-    public FormalTypeParameter
-    typeParameter() {
+    public FormalTypeParameter typeParameter() {
         return new FormalTypeParameter(
             factoryModule,
             Maybe.nothing(),

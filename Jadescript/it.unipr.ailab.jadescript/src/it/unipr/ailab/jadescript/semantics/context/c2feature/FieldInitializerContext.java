@@ -9,7 +9,10 @@ public class FieldInitializerContext
         extends ProceduralFeatureContext
     implements MightUseAgentReference {
 
-    public FieldInitializerContext(SemanticsModule module, ProceduralFeatureContainerContext outer) {
+    public FieldInitializerContext(
+        SemanticsModule module,
+        ProceduralFeatureContainerContext outer
+    ) {
         super(module, outer);
     }
 

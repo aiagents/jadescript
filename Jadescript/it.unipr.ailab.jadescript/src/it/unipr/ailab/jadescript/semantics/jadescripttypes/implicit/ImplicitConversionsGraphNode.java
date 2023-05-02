@@ -51,7 +51,9 @@ class ImplicitConversionsGraphNode
     }
 
 
-    public void setLinkToPredecessor(ImplicitConversionsGraphEdge linkToPredecessor) {
+    public void setLinkToPredecessor(
+        ImplicitConversionsGraphEdge linkToPredecessor
+    ) {
         this.linkToPredecessor = linkToPredecessor;
     }
 

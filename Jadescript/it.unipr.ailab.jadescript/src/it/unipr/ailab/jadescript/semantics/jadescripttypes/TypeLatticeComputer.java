@@ -130,50 +130,6 @@ public class TypeLatticeComputer {
     }
 
 
-//    public IJadescriptType getGLB(IJadescriptType t0, IJadescriptType... ts) {
-//        if (ts.length == 0) {
-//            return t0;
-//        } else if (ts.length == 1) {
-//            return getGLB(t0, ts[0]);
-//        } else {
-//            return Arrays.stream(ts).reduce(t0, this::getGLB);
-//        }
-//    }
-
-
-    @SuppressWarnings("unused")
-    public Maybe<JvmTypeReference> getGLB(
-        Maybe<JvmTypeReference> t1,
-        Maybe<JvmTypeReference> t2
-    ) {
-        final boolean noT1 = t1.isNothing();
-        final boolean noT2 = t2.isNothing();
-
-        if (noT1 && noT2) {
-            return nothing();
-        }
-
-        if (noT1) {
-            return t2;
-        }
-
-        if (noT2) {
-            return t1;
-        }
-
-        if (jvm.get().isAssignable(t1.toNullable(), t2.toNullable(), false)) {
-            return t2;
-        }
-
-        if (jvm.get().isAssignable(t2.toNullable(), t1.toNullable(), false)) {
-            return t1;
-        }
-
-        return nothing();
-
-    }
-
-
     public IJadescriptType getLUB(
         IJadescriptType t1,
         IJadescriptType t2,

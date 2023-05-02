@@ -19,7 +19,10 @@ public class SemanticsClassState<I extends EObject, T> {
 
     public T getOrNew(Maybe<I> input){
         if(input.isPresent()){
-            return stateMap.computeIfAbsent(input.toNullable(), (__) -> newStateSupplier.get());
+            return stateMap.computeIfAbsent(
+                input.toNullable(),
+                (__) -> newStateSupplier.get()
+            );
         }
         return nullState;
     }
@@ -28,9 +31,6 @@ public class SemanticsClassState<I extends EObject, T> {
         return input.__(stateMap::get);
     }
 
-    public boolean hasState(Maybe<I> input){
-        return input.__(stateMap::containsKey).orElse(false);
-    }
 
     public void set(Maybe<I> input, T newState){
         if(input.isPresent()) {

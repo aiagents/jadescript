@@ -1,9 +1,9 @@
 package it.unipr.ailab.jadescript.semantics.context.associations;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.namespace.ImportedMembersNamespace;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.namespace.ImportedMembersNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithCompilables;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
@@ -16,18 +16,25 @@ import java.util.Comparator;
 import static it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts.THIS;
 
 public class BehaviourAssociation
-    implements Comparable<BehaviourAssociation>, Association{
+    implements Comparable<BehaviourAssociation>, Association {
+
     private final IJadescriptType behaviour;
     private final BehaviourAssociationKind associationKind;
 
-    public BehaviourAssociation(IJadescriptType behaviour, BehaviourAssociationKind associationKind) {
+
+    public BehaviourAssociation(
+        IJadescriptType behaviour,
+        BehaviourAssociationKind associationKind
+    ) {
         this.behaviour = behaviour;
         this.associationKind = associationKind;
     }
 
+
     public IJadescriptType getBehaviour() {
         return behaviour;
     }
+
 
     public BehaviourAssociationKind getAssociationKind() {
 
@@ -42,7 +49,8 @@ public class BehaviourAssociation
     ) {
         return ImportedMembersNamespace.importMembersNamespace(
             module,
-            acceptor -> SemanticsUtils.getOuterClassThisReference(eObject).orElse(THIS),
+            acceptor -> SemanticsUtils.getOuterClassThisReference(eObject)
+                .orElse(THIS),
             ExpressionDescriptor.thisReference,
             getAssociatedType().namespace()
         );
@@ -52,15 +60,25 @@ public class BehaviourAssociation
     public void debugDump(SourceCodeBuilder scb) {
         scb.open("BehaviourAssociation{");
         scb.line("behaviour=" + behaviour.getDebugPrint());
-        scb.line("associationKind= " + associationKind.getClass().getSimpleName());
+        scb.line("associationKind= " + associationKind.getClass()
+            .getSimpleName());
         scb.close("}");
     }
 
-    public static BehaviourAssociation applyExtends(BehaviourAssociation input){
-        return new BehaviourAssociation(input.getBehaviour(), applyExtends(input.getAssociationKind()));
+
+    public static BehaviourAssociation applyExtends(
+        BehaviourAssociation input
+    ) {
+        return new BehaviourAssociation(
+            input.getBehaviour(),
+            applyExtends(input.getAssociationKind())
+        );
     }
 
-    public static BehaviourAssociationKind applyExtends(BehaviourAssociationKind input) {
+
+    public static BehaviourAssociationKind applyExtends(
+        BehaviourAssociationKind input
+    ) {
         if (input instanceof B) {
             return SB.INSTANCE;
         } else {
@@ -77,9 +95,11 @@ SB
 
     @Override
     public int compareTo(@NotNull BehaviourAssociation o) {
-        return Comparator.<BehaviourAssociation>comparingInt(a -> a.getAssociationKind().distanceOrdinal())
-                .compare(this, o);
+        return Comparator.<BehaviourAssociation>comparingInt(
+            a -> a.getAssociationKind().distanceOrdinal()
+        ).compare(this, o);
     }
+
 
     @Override
     public IJadescriptType getAssociatedType() {
@@ -87,8 +107,17 @@ SB
     }
 
 
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof BehaviourAssociation
+            && compareTo((BehaviourAssociation) o) == 0;
+    }
+
+
     public interface BehaviourAssociationKind {
+
         int distanceOrdinal();
+
     }
 
     /**
@@ -100,7 +129,9 @@ SB
      * }
      * </pre>
      */
-    public enum B implements BehaviourAssociationKind {INSTANCE;
+    public enum B implements BehaviourAssociationKind {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
@@ -120,14 +151,15 @@ SB
      * }
      * </pre>
      */
-    public enum SB implements BehaviourAssociationKind {INSTANCE;
+    public enum SB implements BehaviourAssociationKind {
+        INSTANCE;
+
 
         @Override
         public int distanceOrdinal() {
             return 1;
         }
     }
-
 
 
 }

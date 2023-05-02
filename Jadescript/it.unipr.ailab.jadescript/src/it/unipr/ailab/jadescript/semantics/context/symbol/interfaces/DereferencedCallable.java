@@ -7,10 +7,6 @@ public interface DereferencedCallable
     MemberCallable,
     CompilableCallable {
 
-    @Override
-    default Signature getSignature() {
-        return MemberCallable.super.getSignature();
-    }
 
 
 

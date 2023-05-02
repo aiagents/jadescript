@@ -1,7 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.util;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
@@ -39,11 +38,6 @@ public abstract class UtilityType extends JadescriptType {
         return List.of();
     }
 
-
-    @Override
-    public IJadescriptType postResolve() {
-        return super.postResolve();
-    }
 
 
     @Override

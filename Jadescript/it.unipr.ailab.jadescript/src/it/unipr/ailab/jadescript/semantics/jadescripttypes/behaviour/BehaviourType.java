@@ -1,10 +1,8 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour;
 
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
-import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.UsingOntologyType;

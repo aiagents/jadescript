@@ -10,7 +10,6 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.stream.Stream;

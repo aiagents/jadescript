@@ -10,33 +10,43 @@ public class SourceCodeBuilder {
     }
 
     public SourceCodeBuilder(String s){
-        if(!s.isEmpty()) freshLine = false;
+        if(!s.isEmpty()) {
+            freshLine = false;
+        }
         this.sb = new StringBuilder(s);
     }
 
     public SourceCodeBuilder line(String s){
-        if(freshLine) appendTabs();
+        if(freshLine) {
+            appendTabs();
+        }
         sb.append(s).append("\n");
         freshLine = true;
         return this;
     }
 
     public SourceCodeBuilder line(){
-        if(freshLine) appendTabs();
+        if(freshLine) {
+            appendTabs();
+        }
         sb.append("\n");
         freshLine = true;
         return this;
     }
 
     public SourceCodeBuilder spaced(String s){
-        if(freshLine) appendTabs();
+        if(freshLine) {
+            appendTabs();
+        }
         sb.append(s).append(" ");
         freshLine = false;
         return this;
     }
 
     public SourceCodeBuilder add(String s){
-        if(freshLine) appendTabs();
+        if(freshLine) {
+            appendTabs();
+        }
         sb.append(s);
         freshLine = false;
         return this;

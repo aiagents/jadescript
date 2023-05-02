@@ -35,7 +35,7 @@ public class MaybeList<OfType> implements Iterable<Maybe<OfType>> {
     @SuppressWarnings("unchecked")
     private MaybeList(
         @NotNull List<?> source,
-        boolean copyRef
+        @SuppressWarnings("SameParameterValue") boolean copyRef
     ) {
         if (copyRef) {
             this.wrappedList = (List<Object>) source;

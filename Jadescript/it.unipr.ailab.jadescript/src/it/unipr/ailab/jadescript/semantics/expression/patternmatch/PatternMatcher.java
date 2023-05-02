@@ -1,9 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.expression.patternmatch;
 
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
-import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.sonneteer.WriterFactory;
 import it.unipr.ailab.sonneteer.classmember.ClassMemberWriter;
@@ -44,14 +42,12 @@ public abstract class PatternMatcher {
 
 
     public static List<StatementWriter> compileAdaptType(
-        SemanticsModule module,
         String adaptType
     ) {
         final ReturnStatementWriter returnFalse = w.returnStmnt(w.False);
 
         final VariableDeclarationWriter declareX =
             w.variable(adaptType, "__x");//initialized later
-        final TypeHelper typeHelper = module.get(TypeHelper.class);
         final TryCatchWriter checkXType = w.tryCatch(w.block()
                 .addStatement(w.ifStmnt(
                     w.expr("__objx instanceof " + JvmTypeHelper
@@ -64,18 +60,6 @@ public abstract class PatternMatcher {
             .addCatchBranch("java.lang.ClassCastException", "ignored", w.block()
                 .addStatement(returnFalse));
         return Arrays.asList(declareX, checkXType);
-    }
-
-
-    public PatternMatcher addSubResult(PatternMatcher subResult) {
-        subResults.add(subResult);
-        return this;
-    }
-
-
-    public PatternMatcher addSubResults(List<PatternMatcher> subResults) {
-        this.subResults.addAll(subResults);
-        return this;
     }
 
 
@@ -115,7 +99,6 @@ public abstract class PatternMatcher {
         ) {
             super(patternMatchInput);
             compiledAdaptType = compileAdaptType(
-                patternMatchInput.module,
                 solvedPatternType.compileToJavaTypeReference()
             );
         }

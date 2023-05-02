@@ -17,15 +17,26 @@ public class FieldWriter extends ClassMemberWriter {
     private final String name;
     private ExpressionWriter initExpression = null;
 
-    public FieldWriter(Visibility visibility, boolean isStatic, boolean isFinal,
-                       String type, String name){
+    public FieldWriter(
+        Visibility visibility,
+        boolean isStatic,
+        boolean isFinal,
+        String type,
+        String name
+    ){
         super(visibility, isFinal, isStatic);
         this.type = type;
         this.name = name;
     }
 
-    public FieldWriter(Visibility visibility, boolean isStatic, boolean isFinal,
-                       String type, String name, ExpressionWriter initExpression){
+    public FieldWriter(
+        Visibility visibility,
+        boolean isStatic,
+        boolean isFinal,
+        String type,
+        String name,
+        ExpressionWriter initExpression
+    ){
         this(visibility, isStatic, isFinal, type, name);
         this.initExpression = initExpression;
     }
@@ -36,8 +47,12 @@ public class FieldWriter extends ClassMemberWriter {
         getComments().forEach(x -> x.writeSonnet(s));
         getAnnotations().forEach(s::line);
         getVisibility().writeSonnet(s);
-        if(isFinal()) s.spaced("final");
-        if(isStatic()) s.spaced("static");
+        if(isFinal()) {
+            s.spaced("final");
+        }
+        if(isStatic()) {
+            s.spaced("static");
+        }
         s.spaced(type).add(name);
         if(initExpression!=null) {
             s.spaced(" = ");
@@ -59,10 +74,18 @@ public class FieldWriter extends ClassMemberWriter {
     }
 
     public MethodWriter generateGetter(){
-        String firstCapitalLetterName = name.substring(0,1).toUpperCase()+name.substring(1);
-        MethodWriter getter = new MethodWriter(Visibility.PUBLIC, false, isStatic(), getType(), "get" + firstCapitalLetterName);
-        getter.getBody().addStatement(new ReturnStatementWriter(new SimpleExpressionWriter(
-                (isStatic() ? "" : "this.") + name)));
+        String firstCapitalLetterName = name.substring(0,1).toUpperCase()
+            +name.substring(1);
+        MethodWriter getter = new MethodWriter(
+            Visibility.PUBLIC,
+            false,
+            isStatic(),
+            getType(),
+            "get" + firstCapitalLetterName
+        );
+        getter.getBody().addStatement(new ReturnStatementWriter(
+            new SimpleExpressionWriter((isStatic() ? "" : "this.") + name)
+        ));
         return getter;
     }
 

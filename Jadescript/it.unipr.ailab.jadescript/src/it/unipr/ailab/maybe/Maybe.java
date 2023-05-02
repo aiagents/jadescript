@@ -405,7 +405,9 @@ public class Maybe<OfType> {
 
 
     public Maybe<OfType> nullIf(Predicate<OfType> predicate) {
-        if (isNothing()) return this;
+        if (isNothing()) {
+            return this;
+        }
         if (predicate.test(o)) {
             return nothing();
         } else {
@@ -419,7 +421,9 @@ public class Maybe<OfType> {
      * returns false.
      */
     public Maybe<OfType> require(Predicate<OfType> predicate) {
-        if (isNothing()) return this;
+        if (isNothing()) {
+            return this;
+        }
         if (predicate.test(o)) {
             return this;
         } else {

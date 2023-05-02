@@ -5,19 +5,17 @@ import org.eclipse.xtext.EcoreUtil2;
 import org.eclipse.xtext.common.types.JvmIdentifiableElement;
 import org.eclipse.xtext.common.types.JvmMember;
 import org.eclipse.xtext.common.types.JvmType;
-import org.eclipse.xtext.naming.IQualifiedNameConverter;
 import org.eclipse.xtext.naming.IQualifiedNameProvider;
 import org.eclipse.xtext.xbase.scoping.XbaseQualifiedNameProvider;
 import org.jetbrains.annotations.Nullable;
 import org.eclipse.xtext.naming.QualifiedName;
 
-import com.google.inject.Inject;
-
 import it.unipr.ailab.jadescript.jadescript.Model;
 import it.unipr.ailab.jadescript.jadescript.NamedFeature;
 
 @SuppressWarnings("restriction")
-public class JadescriptQualifiedNameProvider extends XbaseQualifiedNameProvider {
+public class JadescriptQualifiedNameProvider
+	extends XbaseQualifiedNameProvider {
 
 
 

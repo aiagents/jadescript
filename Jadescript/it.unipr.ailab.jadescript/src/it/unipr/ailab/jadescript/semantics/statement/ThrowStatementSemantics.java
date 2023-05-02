@@ -50,7 +50,9 @@ public class ThrowStatementSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return state;
+        if (input == null) {
+            return state;
+        }
 
         Maybe<RValueExpression> reason = input.__(ThrowStatement::getReason);
         final RValueExpressionSemantics rves =

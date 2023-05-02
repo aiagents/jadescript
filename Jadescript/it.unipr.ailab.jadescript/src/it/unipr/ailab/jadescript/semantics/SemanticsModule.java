@@ -6,7 +6,6 @@ import org.eclipse.xtext.xbase.jvmmodel.JvmAnnotationReferenceBuilder;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypeReferenceBuilder;
 import org.eclipse.xtext.xbase.jvmmodel.JvmTypesBuilder;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.InvocationTargetException;
@@ -85,7 +84,8 @@ public class SemanticsModule {
                 clazz.getSimpleName()
             );
             e.printStackTrace();
-            //noinspection ConstantConditions
+
+            //noinspection DataFlowIssue
             throw Exceptions.sneakyThrow(e);
         }
     }
@@ -112,7 +112,7 @@ public class SemanticsModule {
                 clazz.getSimpleName()
             );
             e.printStackTrace();
-            //noinspection ConstantConditions
+            //noinspection DataFlowIssue
             throw Exceptions.sneakyThrow(e);
         }
     }

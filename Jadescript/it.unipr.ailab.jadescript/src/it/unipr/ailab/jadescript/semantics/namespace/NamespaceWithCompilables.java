@@ -3,7 +3,6 @@ package it.unipr.ailab.jadescript.semantics.namespace;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
-import it.unipr.ailab.jadescript.semantics.context.search.UnknownLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;

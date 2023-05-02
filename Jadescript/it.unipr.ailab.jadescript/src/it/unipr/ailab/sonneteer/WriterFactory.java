@@ -39,7 +39,9 @@ public class WriterFactory {
 
 
     public static WriterFactory getInstance() {
-        if (instance == null) instance = new WriterFactory();
+        if (instance == null) {
+            instance = new WriterFactory();
+        }
         return instance;
     }
 

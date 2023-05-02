@@ -55,7 +55,9 @@ public class PutBackStatementSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return state;
+        if (input == null) {
+            return state;
+        }
 
         Maybe<RValueExpression> message =
             input.__(PutbackStatement::getMessage);

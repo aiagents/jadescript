@@ -14,17 +14,11 @@ import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BehaviourType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.UserDefinedBehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
-import jade.core.behaviours.Behaviour;
-import jadescript.core.Agent;
-import jadescript.core.behaviours.CyclicBehaviour;
 import jadescript.core.behaviours.OneShot;
-import jadescript.java.AgentEnv;
-import jadescript.java.SideEffectsFlag;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 import java.util.ArrayList;
@@ -128,7 +122,9 @@ public class ActivateStatementSemantics
         StaticState state,
         ValidationMessageAcceptor acceptor
     ) {
-        if (input == null) return state;
+        if (input == null) {
+            return state;
+        }
         Maybe<RValueExpression> expr =
             input.__(ActivateStatement::getExpression);
         Maybe<RValueExpression> period =

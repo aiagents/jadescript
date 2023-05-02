@@ -12,13 +12,19 @@ public class MethodCallStatementWriter extends StatementWriter {
     private final String methodName;
     private final List<ExpressionWriter> parameters;
 
-    public MethodCallStatementWriter(String methodName, ExpressionWriter... parameters){
+    public MethodCallStatementWriter(
+        String methodName,
+        ExpressionWriter... parameters
+    ){
         this.methodName = methodName;
         this.parameters = new ArrayList<>();
         this.parameters.addAll(Arrays.asList(parameters));
     }
 
-    public MethodCallStatementWriter(String methodName, List<ExpressionWriter> params) {
+    public MethodCallStatementWriter(
+        String methodName,
+        List<ExpressionWriter> params
+    ) {
         this.methodName = methodName;
         this.parameters = new ArrayList<>(params);
     }
@@ -30,8 +36,9 @@ public class MethodCallStatementWriter extends StatementWriter {
         for(int i = 0; i < parameters.size(); i++){
             ExpressionWriter p = parameters.get(i);
             p.writeSonnet(s);
-            if(i != parameters.size()-1)
+            if(i != parameters.size()-1) {
                 s.spaced(",");
+            }
         }
         s.add(")").line(";");
     }

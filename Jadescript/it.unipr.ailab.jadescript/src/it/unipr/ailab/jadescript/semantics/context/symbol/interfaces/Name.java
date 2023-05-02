@@ -71,16 +71,24 @@ public interface Name extends Located {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             Signature that = (Signature) o;
 
-            if (canWrite != that.canWrite) return false;
+            if (canWrite != that.canWrite) {
+                return false;
+            }
 
             if (getName() != null
                 ? !getName().equals(that.getName())
-                : that.getName() != null) return false;
+                : that.getName() != null) {
+                return false;
+            }
 
             if (getType() != null) {
                 return TypeComparator.rawEquals(this.getType(), that.getType());

@@ -72,7 +72,8 @@ public class LogStatementSemantics extends StatementSemantics<LogStatement> {
         }
 
 
-        var thisRef = SemanticsUtils.getOuterClassThisReference(input).orElse("this");
+        var thisRef = SemanticsUtils.getOuterClassThisReference(input)
+            .orElse("this");
         String logLevelCompiled = "jade.util.Logger." + logLevel.orElse("INFO");
         acceptor.accept(w.callStmnt(
             logger,

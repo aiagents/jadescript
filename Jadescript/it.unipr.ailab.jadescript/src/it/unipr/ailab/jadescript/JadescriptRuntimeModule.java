@@ -33,7 +33,9 @@ public class JadescriptRuntimeModule extends AbstractJadescriptRuntimeModule {
 	@Override
 	public void configureIScopeProviderDelegate(final Binder binder) {
 		binder.bind(IScopeProvider.class)
-		    .annotatedWith(Names.named(AbstractDeclarativeScopeProvider.NAMED_DELEGATE))
+		    .annotatedWith(Names.named(
+				AbstractDeclarativeScopeProvider.NAMED_DELEGATE
+			))
 		.to(XImportSectionNamespaceScopeProvider.class);
 	}
 	

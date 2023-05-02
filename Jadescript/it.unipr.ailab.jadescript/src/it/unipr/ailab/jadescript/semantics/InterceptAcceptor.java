@@ -17,34 +17,76 @@ public class InterceptAcceptor implements ValidationMessageAcceptor{
     }
 
     @Override
-    public void acceptError(String s, EObject eObject, EStructuralFeature eStructuralFeature, int i, String s1, String... strings) {
+    public void acceptError(
+        String s,
+        EObject eObject,
+        EStructuralFeature eStructuralFeature,
+        int i,
+        String s1,
+        String... strings
+    ) {
         thereAreErrors = true;
         input.acceptError(s, eObject, eStructuralFeature, i, s1, strings);
     }
 
     @Override
-    public void acceptError(String s, EObject eObject, int i, int i1, String s1, String... strings) {
+    public void acceptError(
+        String s,
+        EObject eObject,
+        int i,
+        int i1,
+        String s1,
+        String... strings
+    ) {
         thereAreErrors = true;
         input.acceptError(s, eObject, i, i1, s1, strings);
     }
 
     @Override
-    public void acceptWarning(String s, EObject eObject, EStructuralFeature eStructuralFeature, int i, String s1, String... strings) {
+    public void acceptWarning(
+        String s,
+        EObject eObject,
+        EStructuralFeature eStructuralFeature,
+        int i,
+        String s1,
+        String... strings
+    ) {
         input.acceptWarning(s, eObject, eStructuralFeature, i, s1, strings);
     }
 
     @Override
-    public void acceptWarning(String s, EObject eObject, int i, int i1, String s1, String... strings) {
+    public void acceptWarning(
+        String s,
+        EObject eObject,
+        int i,
+        int i1,
+        String s1,
+        String... strings
+    ) {
         input.acceptWarning(s, eObject, i, i1, s1, strings);
     }
 
     @Override
-    public void acceptInfo(String s, EObject eObject, EStructuralFeature eStructuralFeature, int i, String s1, String... strings) {
+    public void acceptInfo(
+        String s,
+        EObject eObject,
+        EStructuralFeature eStructuralFeature,
+        int i,
+        String s1,
+        String... strings
+    ) {
         input.acceptInfo(s, eObject, eStructuralFeature, i, s1, strings);
     }
 
     @Override
-    public void acceptInfo(String s, EObject eObject, int i, int i1, String s1, String... strings) {
+    public void acceptInfo(
+        String s,
+        EObject eObject,
+        int i,
+        int i1,
+        String s1,
+        String... strings
+    ) {
         input.acceptInfo(s, eObject, i, i1, s1, strings);
     }
 

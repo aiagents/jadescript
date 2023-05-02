@@ -9,16 +9,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Abstract class representing a writer for a class member. Each class member can
- * be annotated, be final, be static, and have specific visibility.
+ * Abstract class representing a writer for a class member. Each class member
+ * can be annotated, be final, be static, and have specific visibility.
  */
-public abstract class ClassMemberWriter extends Commentable implements Writer, Annotable {
+public abstract class ClassMemberWriter
+    extends Commentable
+    implements Writer, Annotable {
     protected final Visibility visibility;
     protected final boolean isStatic;
     protected final boolean isFinal;
     protected final List<String> annotations = new ArrayList<>();
 
-    public ClassMemberWriter(Visibility visibility, boolean isFinal, boolean isStatic) {
+    public ClassMemberWriter(
+        Visibility visibility,
+        boolean isFinal,
+        boolean isStatic
+    ) {
         this.isStatic = isStatic;
         this.isFinal = isFinal;
         this.visibility = visibility;

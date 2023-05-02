@@ -243,7 +243,7 @@ public class ParametricTypeSchema<T extends IJadescriptType> {
     ){
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
-        boolean argsNumberCheck = VALID;
+        boolean argsNumberCheck;
         boolean argsBoundCheck = VALID;
         boolean argsValidCheck = VALID;
 

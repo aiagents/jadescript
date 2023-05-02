@@ -1,8 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.basic;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
-import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
@@ -11,18 +9,12 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.id.TypeCategoryAdapte
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
-import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
-import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.nothing;
 import static it.unipr.ailab.maybe.Maybe.some;
 
 public abstract class BasicType

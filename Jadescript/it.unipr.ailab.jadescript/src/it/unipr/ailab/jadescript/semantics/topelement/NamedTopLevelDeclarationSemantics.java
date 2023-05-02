@@ -102,7 +102,9 @@ public abstract class NamedTopLevelDeclarationSemantics<T extends NamedElement>
     ) {
 
 
-        if (input == null) return;
+        if (input == null) {
+            return;
+        }
         Maybe<String> name = input.__(NamedElement::getName);
         if (isNameAlwaysRequired() && name.isNothing()) {
             return;

@@ -14,7 +14,9 @@ import it.unipr.ailab.sonneteer.statement.ReturnStatementWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ClassDeclarationWriter extends TypeDeclarationWriter implements IClassDeclarationWriter {
+public class ClassDeclarationWriter
+    extends TypeDeclarationWriter
+    implements IClassDeclarationWriter {
 
     private final List<String> annotations = new ArrayList<>();
     private final String name;
@@ -23,8 +25,12 @@ public class ClassDeclarationWriter extends TypeDeclarationWriter implements ICl
     private final List<ClassMemberWriter> members = new ArrayList<>();
     private boolean orderConvention = true;
 
-    public ClassDeclarationWriter(Visibility visibility, boolean isFinal, boolean isStatic,
-                                  String name) {
+    public ClassDeclarationWriter(
+        Visibility visibility,
+        boolean isFinal,
+        boolean isStatic,
+        String name
+    ) {
         super(visibility, isFinal, isStatic);
         this.name = name;
     }
@@ -50,31 +56,75 @@ public class ClassDeclarationWriter extends TypeDeclarationWriter implements ICl
 
     @Override
     public IClassDeclarationWriter addPSFS(String constName, String value) {
-        members.add(new FieldWriter(Visibility.PUBLIC, true, true, "String", constName,
-                new SimpleExpressionWriter("\"" + value + "\"")));
+        members.add(new FieldWriter(
+            Visibility.PUBLIC,
+            true,
+            true,
+            "String",
+            constName,
+            new SimpleExpressionWriter("\"" + value + "\"")
+        ));
         return this;
     }
 
     @Override
-    public IClassDeclarationWriter addPSFS(String constName, String value, CommentWriter comment) {
-        FieldWriter f = new FieldWriter(Visibility.PUBLIC, true, true, "String", constName,
-                new SimpleExpressionWriter("\"" + value + "\""));
+    public IClassDeclarationWriter addPSFS(
+        String constName,
+        String value,
+        CommentWriter comment
+    ) {
+        FieldWriter f = new FieldWriter(
+            Visibility.PUBLIC,
+            true,
+            true,
+            "String",
+            constName,
+            new SimpleExpressionWriter("\"" + value + "\"")
+        );
         f.addComment(comment);
         members.add(f);
         return this;
     }
 
     @Override
-    public ClassDeclarationWriter addProperty(String type, String name, boolean readOnly) {
-        String firstCapitalLetterName = name.substring(0, 1).toUpperCase() + name.substring(1);
-        addMember(new FieldWriter(Visibility.PRIVATE, false, false, type, name));
-        MethodWriter getter = new MethodWriter(Visibility.PUBLIC, false, false, type, "get" + firstCapitalLetterName);
-        getter.getBody().addStatement(new ReturnStatementWriter(new SimpleExpressionWriter("this." + name)));
+    public ClassDeclarationWriter addProperty(
+        String type,
+        String name,
+        boolean readOnly
+    ) {
+        String firstCapitalLetterName = name.substring(0, 1).toUpperCase() +
+            name.substring(1);
+        addMember(new FieldWriter(
+            Visibility.PRIVATE,
+            false,
+            false,
+            type,
+            name
+        ));
+        MethodWriter getter = new MethodWriter(
+            Visibility.PUBLIC,
+            false,
+            false,
+            type,
+            "get" + firstCapitalLetterName
+        );
+        getter.getBody().addStatement(new ReturnStatementWriter(
+            new SimpleExpressionWriter("this." + name)
+        ));
         addMember(getter);
         if (!readOnly) {
-            MethodWriter setter = new MethodWriter(Visibility.PUBLIC, false, false, "void", "set" + firstCapitalLetterName)
-                    .addParameter(new ParameterWriter(type, name));
-            setter.getBody().addStatement(new AssignmentWriter("this." + name, new SimpleExpressionWriter(name)));
+            MethodWriter setter = new MethodWriter(
+                Visibility.PUBLIC,
+                false,
+                false,
+                "void",
+                "set" + firstCapitalLetterName
+            ).addParameter(new ParameterWriter(type, name));
+
+            setter.getBody().addStatement(new AssignmentWriter(
+                "this." + name,
+                new SimpleExpressionWriter(name)
+            ));
             addMember(setter);
         }
         return this;
@@ -95,32 +145,39 @@ public class ClassDeclarationWriter extends TypeDeclarationWriter implements ICl
 
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
-        if (orderConvention)
+        if (orderConvention) {
             sortMembersByConvention();
+        }
         getComments().forEach(x -> x.writeSonnet(s));
         annotations.forEach(s::line);
         getVisibility().writeSonnet(s);
-        if (isFinal())
+        if (isFinal()) {
             s.spaced("final");
-        if (isStatic())
+        }
+        if (isStatic()) {
             s.spaced("static");
+        }
         s.spaced("class").spaced(name);
         if (!extend.isEmpty()) {
             s.spaced("extends");
             for (int i = 0; i < extend.size(); i++) {
                 String x = extend.get(i);
-                if (i != extend.size() - 1)
+                if (i != extend.size() - 1) {
                     s.add(x).spaced(",");
-                else s.spaced(x);
+                } else {
+                    s.spaced(x);
+                }
             }
         }
         if (!implement.isEmpty()) {
             s.spaced("implements");
             for (int i = 0; i < implement.size(); i++) {
                 String x = implement.get(i);
-                if (i != implement.size() - 1)
+                if (i != implement.size() - 1) {
                     s.add(x).spaced(",");
-                else s.spaced(x);
+                } else {
+                    s.spaced(x);
+                }
             }
         }
         s.line("{");
@@ -129,8 +186,9 @@ public class ClassDeclarationWriter extends TypeDeclarationWriter implements ICl
             for (int i = 0; i < members.size(); i++) {
                 ClassMemberWriter m = members.get(i);
                 m.writeSonnet(s);
-                if (i != members.size() - 1)
+                if (i != members.size() - 1) {
                     s.line();
+                }
             }
         }
         s.dedent();
@@ -182,9 +240,11 @@ public class ClassDeclarationWriter extends TypeDeclarationWriter implements ICl
                             break;
                     }
                 }
-            } else if (m instanceof MethodWriter)
+            } else if (m instanceof MethodWriter) {
                 methods.add((MethodWriter) m);
-            else other.add(m);
+            } else {
+                other.add(m);
+            }
         });
 
         members.clear();

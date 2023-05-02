@@ -10,7 +10,6 @@ import it.unipr.ailab.jadescript.semantics.namespace.BuiltinOpsNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.utils.LazyInit;
-import jade.core.AID;
 
 import java.util.List;
 

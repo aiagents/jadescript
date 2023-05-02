@@ -52,8 +52,12 @@ public interface ExpressionDescriptor {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof PropertyChain)) return false;
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof PropertyChain)) {
+                return false;
+            }
 
             PropertyChain that = (PropertyChain) o;
 

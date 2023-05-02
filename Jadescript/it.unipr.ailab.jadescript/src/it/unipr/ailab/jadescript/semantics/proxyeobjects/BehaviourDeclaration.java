@@ -7,12 +7,10 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BehaviourTy
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.EReference;
 import org.eclipse.xtext.common.types.JvmParameterizedTypeReference;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Locale;
 import java.util.Objects;
 
 import static it.unipr.ailab.maybe.Maybe.some;

@@ -8,7 +8,10 @@ public class WhileStatementWriter extends StatementWriter implements LoopWriter{
     private final ExpressionWriter condition;
     private final StatementWriter body;
 
-    public WhileStatementWriter(ExpressionWriter condition, StatementWriter body){
+    public WhileStatementWriter(
+        ExpressionWriter condition,
+        StatementWriter body
+    ){
         this.condition = condition;
         this.body = body;
     }

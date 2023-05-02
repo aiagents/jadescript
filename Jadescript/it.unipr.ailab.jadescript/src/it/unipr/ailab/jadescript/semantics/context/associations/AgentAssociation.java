@@ -135,6 +135,13 @@ SF_SA
     }
 
 
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof AgentAssociation
+            && compareTo((AgentAssociation) o) == 0;
+    }
+
+
     /**
      * Is the agent being declared
      * <pre>

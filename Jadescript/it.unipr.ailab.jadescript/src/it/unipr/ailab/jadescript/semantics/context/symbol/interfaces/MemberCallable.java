@@ -14,10 +14,6 @@ public interface MemberCallable extends Dereferenceable, Callable {
         Function<BlockElementAcceptor, String> ownerCompiler
     );
 
-    @Override
-    default Signature getSignature() {
-        return Callable.super.getSignature();
-    }
 
     default void debugDumpMemberCallable(SourceCodeBuilder scb){
         dereference((__) -> "<owner>").debugDumpDereferencedCallable(scb);

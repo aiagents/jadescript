@@ -10,9 +10,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProv
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.UtilityType;
 import it.unipr.ailab.jadescript.semantics.namespace.EmptyTypeNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import jadescript.java.SideEffectsFlag;
 
-import java.util.List;
 import java.util.stream.Stream;
 
 public class SideEffectFlagInternalType extends UtilityType {

@@ -11,6 +11,7 @@ import it.unipr.ailab.jadescript.jadescript.Model;
 @SuppressWarnings("restriction")
 public class JadescriptFormatter extends XbaseFormatter {
 
+	@SuppressWarnings("EmptyMethod")
 	protected void format(Model model, IFormattableDocument doc) {
 		// Default formatting disabled.
 	}

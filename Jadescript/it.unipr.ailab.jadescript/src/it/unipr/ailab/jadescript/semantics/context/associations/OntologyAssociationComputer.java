@@ -10,19 +10,22 @@ import java.util.stream.Stream;
 public interface OntologyAssociationComputer extends WithSupertype {
 
     Stream<OntologyAssociation> computeUsingOntologyAssociations();
+
     Stream<OntologyAssociation> computeCurrentOntologyAssociations();
+
     Stream<OntologyAssociation> computeForClauseOntologyAssociations();
 
     default Stream<OntologyAssociation> computeAllOntologyAssociations() {
         return Streams.concat(
-                computeCurrentOntologyAssociations(),
-                computeUsingOntologyAssociations(),
-                computeForClauseOntologyAssociations(),
-                computeOntologyAssociationsFromSupertype()
+            computeCurrentOntologyAssociations(),
+            computeUsingOntologyAssociations(),
+            computeForClauseOntologyAssociations(),
+            computeOntologyAssociationsFromSupertype()
         );
     }
 
-    private Stream<OntologyAssociation> computeOntologyAssociationsFromSupertype() {
+    private Stream<OntologyAssociation>
+    computeOntologyAssociationsFromSupertype() {
         Maybe<Searcheable> ms = superTypeSearcheable();
         if (ms.isPresent() && ms.toNullable() instanceof OntologyAssociated) {
             return ((OntologyAssociated) ms.toNullable())
@@ -33,27 +36,34 @@ public interface OntologyAssociationComputer extends WithSupertype {
         }
     }
 
-    OntologyAssociationComputer EMPTY_ONTOLOGY_ASSOCIATIONS = new OntologyAssociationComputer() {
-        @Override
-        public Stream<OntologyAssociation> computeUsingOntologyAssociations() {
-            return Stream.empty();
-        }
+    OntologyAssociationComputer EMPTY_ONTOLOGY_ASSOCIATIONS =
+        new OntologyAssociationComputer() {
+            @Override
+            public Stream<OntologyAssociation>
+            computeUsingOntologyAssociations() {
+                return Stream.empty();
+            }
 
-        @Override
-        public Stream<OntologyAssociation> computeCurrentOntologyAssociations() {
-            return Stream.empty();
-        }
 
-        @Override
-        public Stream<OntologyAssociation> computeForClauseOntologyAssociations() {
-            return Stream.empty();
-        }
+            @Override
+            public Stream<OntologyAssociation>
+            computeCurrentOntologyAssociations() {
+                return Stream.empty();
+            }
 
-        @Override
-        public Maybe<Searcheable> superTypeSearcheable() {
-            return Maybe.nothing();
-        }
-    };
+
+            @Override
+            public Stream<OntologyAssociation>
+            computeForClauseOntologyAssociations() {
+                return Stream.empty();
+            }
+
+
+            @Override
+            public Maybe<Searcheable> superTypeSearcheable() {
+                return Maybe.nothing();
+            }
+        };
 
 
 }

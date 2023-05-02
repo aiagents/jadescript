@@ -84,18 +84,24 @@ public interface Pattern extends Located{
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof Signature)) return false;
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof Signature)) {
+                return false;
+            }
 
             Signature that = (Signature) o;
 
             if (getName() != null ? !getName().equals(that.getName()) :
-                that.getName() != null)
+                that.getName() != null) {
                 return false;
+            }
             if (getInputType() != null ?
                 !getInputType().equals(that.getInputType()) :
-                that.getInputType() != null)
+                that.getInputType() != null) {
                 return false;
+            }
             return getTermTypes() != null ?
                 getTermTypes().equals(that.getTermTypes())
                 : that.getTermTypes() == null;

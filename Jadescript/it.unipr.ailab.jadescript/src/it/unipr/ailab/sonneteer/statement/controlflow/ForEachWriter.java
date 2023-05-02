@@ -11,7 +11,12 @@ public class ForEachWriter extends StatementWriter implements LoopWriter{
     private final ExpressionWriter iterable;
     private final StatementWriter body;
 
-    public ForEachWriter(String varType, String varName, ExpressionWriter iterable, StatementWriter body){
+    public ForEachWriter(
+        String varType,
+        String varName,
+        ExpressionWriter iterable,
+        StatementWriter body
+    ){
         this.varType = varType;
         this.varName = varName;
         this.iterable = iterable;

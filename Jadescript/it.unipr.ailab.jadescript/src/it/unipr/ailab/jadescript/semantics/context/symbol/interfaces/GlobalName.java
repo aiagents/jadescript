@@ -6,10 +6,6 @@ import java.util.stream.Stream;
 
 public interface GlobalName extends Global, CompilableName {
 
-    @Override
-    default Signature getSignature() {
-        return CompilableName.super.getSignature();
-    }
 
     public interface Namespace extends CompilableName.Namespace {
         Stream<? extends GlobalName> globalNames(

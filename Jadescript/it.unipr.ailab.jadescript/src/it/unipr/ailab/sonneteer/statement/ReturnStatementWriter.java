@@ -19,7 +19,9 @@ public class ReturnStatementWriter extends StatementWriter {
     public void writeSonnet(SourceCodeBuilder s) {
         getComments().forEach(x -> x.writeSonnet(s));
         s.spaced("return");
-        if(expression != null) expression.writeSonnet(s);
+        if(expression != null) {
+            expression.writeSonnet(s);
+        }
         s.line(";");
     }
 

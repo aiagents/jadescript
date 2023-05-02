@@ -16,7 +16,12 @@ public class LocalClassStatementWriter extends StatementWriter
 
 
     public LocalClassStatementWriter(String name) {
-        delegate = new ClassDeclarationWriter(Visibility.PACKAGE, false, false, name);
+        delegate = new ClassDeclarationWriter(
+            Visibility.PACKAGE,
+            false,
+            false,
+            name
+        );
     }
 
     @Override
@@ -40,17 +45,27 @@ public class LocalClassStatementWriter extends StatementWriter
     }
 
     @Override
-    public IClassDeclarationWriter addPSFS(String constName, String value, CommentWriter comment) {
+    public IClassDeclarationWriter addPSFS(
+        String constName,
+        String value,
+        CommentWriter comment
+    ) {
         return delegate.addPSFS(constName, value, comment);
     }
 
     @Override
-    public ClassDeclarationWriter addProperty(String type, String name, boolean readOnly) {
+    public ClassDeclarationWriter addProperty(
+        String type,
+        String name,
+        boolean readOnly
+    ) {
         return delegate.addProperty(type, name, readOnly);
     }
 
     @Override
-    public ClassDeclarationWriter.ConstructorWriter addConstructor(Visibility visibility) {
+    public ClassDeclarationWriter.ConstructorWriter addConstructor(
+        Visibility visibility
+    ) {
         return delegate.addConstructor(visibility);
     }
 

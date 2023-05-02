@@ -43,7 +43,9 @@ implements GlobalCallable.Namespace, GlobalName.Namespace {
 
 
     @Override
-    public Stream<? extends GlobalCallable> globalCallables(@Nullable String name) {
+    public Stream<? extends GlobalCallable> globalCallables(
+        @Nullable String name
+    ) {
         return namespace.globalCallables(name);
     }
 

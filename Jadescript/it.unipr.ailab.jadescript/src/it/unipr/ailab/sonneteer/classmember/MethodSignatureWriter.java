@@ -29,7 +29,9 @@ public class MethodSignatureWriter extends ClassMemberWriter {
         for (int i = 0; i < parameters.size(); i++) {
             ParameterWriter p = parameters.get(i);
             p.writeSonnet(s);
-            if (i != parameters.size() - 1) s.spaced(",");
+            if (i != parameters.size() - 1) {
+                s.spaced(",");
+            }
         }
         s.add(")");
         if (!throwsDeclarations.isEmpty()) {

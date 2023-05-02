@@ -37,8 +37,9 @@ public class MethodCallExpressionWriter extends ExpressionWriter {
         for(int i = 0; i < parameters.size(); i++){
             ExpressionWriter p = parameters.get(i);
             p.writeSonnet(s);
-            if(i != parameters.size()-1)
+            if(i != parameters.size()-1) {
                 s.spaced(",");
+            }
         }
         s.add(")");
     }

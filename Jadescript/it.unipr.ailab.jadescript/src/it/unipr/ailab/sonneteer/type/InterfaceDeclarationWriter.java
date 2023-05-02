@@ -18,8 +18,12 @@ public class InterfaceDeclarationWriter extends TypeDeclarationWriter {
 
     private final List<ClassMemberWriter> members = new ArrayList<>();
 
-    public InterfaceDeclarationWriter(Visibility visibility, boolean isFinal, boolean isStatic,
-                                      String name) {
+    public InterfaceDeclarationWriter(
+        Visibility visibility,
+        boolean isFinal,
+        boolean isStatic,
+        String name
+    ) {
         super(visibility, isFinal, isStatic);
         this.name = name;
     }
@@ -29,27 +33,50 @@ public class InterfaceDeclarationWriter extends TypeDeclarationWriter {
         return this;
     }
 
-    public InterfaceDeclarationWriter addMethodSignature(MethodSignatureWriter methodSignaturePoet){
+    public InterfaceDeclarationWriter addMethodSignature(
+        MethodSignatureWriter methodSignaturePoet
+    ){
         members.add(methodSignaturePoet);
         return this;
     }
 
     public MethodWriter addDefaultMethod(String type, String name){
-        MethodWriter mp = new MethodWriter(Visibility.PACKAGE, false, false,
-                "default "+type, name);
+        MethodWriter mp = new MethodWriter(
+            Visibility.PACKAGE,
+            false,
+            false,
+            "default "+type,
+            name
+        );
         members.add(mp);
         return mp;
     }
 
     public InterfaceDeclarationWriter addPSFS(String constName, String value){
-        members.add(new FieldWriter(Visibility.PUBLIC, true, true, "String", constName,
-                new SimpleExpressionWriter("\""+value+"\"")));
+        members.add(new FieldWriter(
+            Visibility.PUBLIC,
+            true,
+            true,
+            "String",
+            constName,
+            new SimpleExpressionWriter("\""+value+"\"")
+        ));
         return this;
     }
 
-    public InterfaceDeclarationWriter addPSFS(String constName, String value, CommentWriter comment){
-        FieldWriter f = new FieldWriter(Visibility.PUBLIC, true, true, "String", constName,
-                new SimpleExpressionWriter("\""+value+"\""));
+    public InterfaceDeclarationWriter addPSFS(
+        String constName,
+        String value,
+        CommentWriter comment
+    ){
+        FieldWriter f = new FieldWriter(
+            Visibility.PUBLIC,
+            true,
+            true,
+            "String",
+            constName,
+            new SimpleExpressionWriter("\""+value+"\"")
+        );
         f.addComment(comment);
         members.add(f);
         return this;
@@ -60,15 +87,22 @@ public class InterfaceDeclarationWriter extends TypeDeclarationWriter {
         getComments().forEach(x -> x.writeSonnet(s));
         annotations.forEach(s::line);
         getVisibility().writeSonnet(s);
-        if(isFinal()) s.spaced("final");
-        if(isStatic()) s.spaced("static");
+        if(isFinal()) {
+            s.spaced("final");
+        }
+        if(isStatic()) {
+            s.spaced("static");
+        }
         s.spaced("interface").spaced(name);
         if(!extend.isEmpty()){
             s.spaced("extends");
             for (int i = 0; i < extend.size(); i++) {
                 String x = extend.get(i);
-                if(i != extend.size()-1) s.add(x).spaced(",");
-                else s.spaced(x);
+                if(i != extend.size()-1) {
+                    s.add(x).spaced(",");
+                } else {
+                    s.spaced(x);
+                }
             }
         }
         s.line("{");
@@ -77,7 +111,9 @@ public class InterfaceDeclarationWriter extends TypeDeclarationWriter {
             for (int i = 0; i < members.size(); i++) {
                 ClassMemberWriter m = members.get(i);
                 m.writeSonnet(s);
-                if(i != members.size()-1) s.line();
+                if(i != members.size()-1) {
+                    s.line();
+                }
             }
         }
         s.dedent();

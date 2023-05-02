@@ -10,7 +10,6 @@ import static it.unipr.ailab.maybe.Maybe.some;
 
 public class MessageTypeParameter extends FormalTypeParameter {
 
-    /*package-private*/ final SemanticsModule module;
     /*package-private*/ final IJadescriptType upperBound;
     /*package-private*/ final TypeArgument defaultArgumentType;
     /*package-private*/ final BiFunction<TypeArgument, String, String> promoter;
@@ -22,7 +21,6 @@ public class MessageTypeParameter extends FormalTypeParameter {
         BiFunction<TypeArgument, String, String> promoter
     ){
         super(module, some(upperBound), some(defaultArgumentType));
-        this.module = module;
         this.upperBound = upperBound;
         this.defaultArgumentType = defaultArgumentType;
         this.promoter = promoter;

@@ -152,6 +152,7 @@ public class StringLiteralSemantics
     }
 
 
+    @SuppressWarnings("SameReturnValue")
     private boolean invalidEscapeSequence(
         Maybe<? extends EObject> input,
         ValidationMessageAcceptor acceptor,

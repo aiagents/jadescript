@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -236,10 +235,8 @@ public class OntologyElementConstructor implements GlobalCallable {
         List<String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
-        String fullyQualifiedName = javaMethodName();
-        return ((Function<List<String>, String>) (args) -> fullyQualifiedName + "(" +
-            String.join(" ,", args) +
-            ")").apply(compiledRexprs);
+        return javaMethodName() +
+            "(" + String.join(" ,", compiledRexprs) + ")";
     }
 
 
@@ -248,15 +245,13 @@ public class OntologyElementConstructor implements GlobalCallable {
         Map<String, String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
-        String fullyQualifiedName = javaMethodName();
-        List<String> paramNames = parameterNames();
-        return ((Function<Map<String, String>, String>) (args) -> fullyQualifiedName + "(" + String.join(
+        return javaMethodName() + "(" + String.join(
             " ,",
             CallSemantics.sortToMatchParamNames(
-                args,
-                paramNames
+                compiledRexprs,
+                parameterNames()
             )
-        ) + ")").apply(compiledRexprs);
+        ) + ")";
     }
 
 

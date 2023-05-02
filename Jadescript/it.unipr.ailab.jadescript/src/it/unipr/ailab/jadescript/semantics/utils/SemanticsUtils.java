@@ -105,7 +105,7 @@ public class SemanticsUtils implements SemanticsConsts {
 
     public static <T> Stream<T> safeFilter(
         Stream<T> stream,
-        @Nullable  Predicate<T> predicate
+        @Nullable Predicate<T> predicate
     ) {
         if (predicate != null) {
             return stream.filter(predicate);
@@ -224,16 +224,12 @@ public class SemanticsUtils implements SemanticsConsts {
     }
 
 
-
-
     public static ITextRegionWithLineInformation getLocationForEObject(
         EObject inputSafe
     ) {
         return NodeModelUtils.getNode(inputSafe)
             .getTextRegionWithLineInformation();
     }
-
-
 
 
     public static int min(int... args) {
@@ -248,7 +244,9 @@ public class SemanticsUtils implements SemanticsConsts {
 
 
     @SafeVarargs
-    public static <T> Stream<T> buildStream(Supplier<? extends T>... suppliers) {
+    public static <T> Stream<T> buildStream(
+        Supplier<? extends T>... suppliers
+    ) {
         return Arrays.stream(suppliers)
             .map(Supplier::get);
     }
@@ -317,9 +315,6 @@ public class SemanticsUtils implements SemanticsConsts {
     }
 
 
-
-
-
     public static class Tuple2<T1, T2> {
 
         private final T1 _1;
@@ -344,15 +339,21 @@ public class SemanticsUtils implements SemanticsConsts {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             Tuple2<?, ?> tuple2 = (Tuple2<?, ?>) o;
 
             if (get_1() != null
                 ? !get_1().equals(tuple2.get_1())
                 : tuple2.get_1() != null
-            ) return false;
+            ) {
+                return false;
+            }
             return get_2() != null
                 ? get_2().equals(tuple2.get_2())
                 : tuple2.get_2() == null;
@@ -424,8 +425,12 @@ public class SemanticsUtils implements SemanticsConsts {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             Tuple3<?, ?, ?> tuple3 = (Tuple3<?, ?, ?>) o;
 
@@ -501,8 +506,12 @@ public class SemanticsUtils implements SemanticsConsts {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             Tuple4<?, ?, ?, ?> tuple4 = (Tuple4<?, ?, ?, ?>) o;
 
