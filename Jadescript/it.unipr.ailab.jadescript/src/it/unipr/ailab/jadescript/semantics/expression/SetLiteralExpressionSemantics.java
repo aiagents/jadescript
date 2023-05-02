@@ -17,6 +17,8 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.NothingType;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -24,8 +26,8 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class SetLiteralExpressionSemantics
@@ -76,51 +78,115 @@ public class SetLiteralExpressionSemantics
 
 
     @Override
-    protected StaticState advanceInternal(
-        Maybe<MapOrSetLiteral> input,
-        StaticState state
-    ) {
-        return subExpressionsAdvanceAll(input, state);
-    }
-
-
-    @Override
     protected String compileInternal(
         Maybe<MapOrSetLiteral> input,
-        StaticState state, BlockElementAcceptor acceptor
+        StaticState state,
+        BlockElementAcceptor acceptor
     ) {
         final MaybeList<RValueExpression> elements =
             input.__toList(MapOrSetLiteral::getKeys);
         final Maybe<TypeExpression> explicitElementType =
             input.__(MapOrSetLiteral::getKeyTypeParameter);
+        Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
 
+        final TypeExpressionSemantics tes =
+            module.get(TypeExpressionSemantics.class);
 
-        if (elements.isEmpty()) {
-            return module.get(BuiltinTypeProvider.class).set(
-                module.get(TypeExpressionSemantics.class)
-                    .toJadescriptType(explicitElementType)
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
+        if (elements.isBlank() && rest.isNothing()) {
+            return builtins.set(
+                tes.toJadescriptType(explicitElementType)
             ).compileNewEmptyInstance();
         }
 
-
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
+        StaticState runningState = state;
+        StringJoiner stringJoiner = new StringJoiner(", ");
+        for (Maybe<RValueExpression> element : elements) {
+            stringJoiner.add(rves.compile(element, runningState, acceptor));
+            runningState = rves.advance(element, runningState);
+        }
 
-        return "jadescript.util.JadescriptCollections.createSet(" +
-            "java.util.List.of(" + mapExpressionsWithState(
-            rves,
-            elements.stream(),
-            state,
-            (elem, runningState) -> rves.compile(
-                elem,
+        final String restString;
+        if (rest.isPresent()) {
+            restString = ", " + rves.compile(
+                rest,
                 runningState,
                 acceptor
-            )
-        ).collect(Collectors.joining(", ")) + "))";
+            );
+        } else {
+            restString = "";
+        }
+        return "jadescript.util.JadescriptCollections.createSet(" +
+            "java.util.List.of(" + stringJoiner + ")" + restString + ")";
+
     }
 
 
-    private IJadescriptType computeElementsTypeLUB(
+    @Override
+    protected IJadescriptType inferTypeInternal(
+        Maybe<MapOrSetLiteral> input,
+        StaticState state
+    ) {
+        Maybe<TypeExpression> typeParameter =
+            input.__(MapOrSetLiteral::getKeyTypeParameter);
+
+        boolean isWithPipe =
+            input.__(MapOrSetLiteral::isWithPipe).orElse(false);
+
+        Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
+
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
+
+        if (typeParameter.isPresent()) {
+            return builtins.set(
+                module.get(TypeExpressionSemantics.class).
+                    toJadescriptType(typeParameter)
+            );
+        }
+
+        final IJadescriptType elementsTypePrePipe =
+            computePrePipeElementsTypeLUB(
+                input.__toList(MapOrSetLiteral::getKeys),
+                state
+            );
+
+        if (isWithPipe) {
+            IJadescriptType restType =
+                module.get(RValueExpressionSemantics.class)
+                    .inferType(rest, state);
+            if (restType.category().isSet() || restType.category().isList()) {
+                final IJadescriptType restElementType =
+                    restType.getElementTypeIfCollection()
+                        .orElseGet(() -> builtins.nothing(""));
+                return builtins.set(lattice.getLUB(
+                    elementsTypePrePipe,
+                    restElementType,
+                    "Cannot compute the type of the elements " +
+                        "of the set: could not find a common supertype " +
+                        "of the types of elements before the pipe " +
+                        "('" + elementsTypePrePipe + "') and the types of" +
+                        " the" +
+                        " elements of the collection after the pipe ('" +
+                        restElementType + "')"
+                ));
+            }
+        }
+
+
+        return builtins.set(elementsTypePrePipe);
+
+
+    }
+
+
+    private IJadescriptType computePrePipeElementsTypeLUB(
         MaybeList<RValueExpression> valuesList,
         StaticState state
     ) {
@@ -165,61 +231,34 @@ public class SetLiteralExpressionSemantics
 
 
     @Override
-    protected IJadescriptType inferTypeInternal(
+    protected StaticState advanceInternal(
         Maybe<MapOrSetLiteral> input,
         StaticState state
     ) {
-        Maybe<TypeExpression> typeParameter =
-            input.__(MapOrSetLiteral::getKeyTypeParameter);
+        MaybeList<RValueExpression> elements =
+            input.__toList(MapOrSetLiteral::getKeys);
+        final Maybe<RValueExpression> rest =
+            input.__(MapOrSetLiteral::getRest);
 
-        boolean isWithPipe =
-            input.__(MapOrSetLiteral::isWithPipe).orElse(false);
-        Maybe<RValueExpression> rest = input.__(MapOrSetLiteral::getRest);
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
 
-        final BuiltinTypeProvider builtins =
-            module.get(BuiltinTypeProvider.class);
-        final TypeLatticeComputer lattice =
-            module.get(TypeLatticeComputer.class);
+        StaticState newState = state;
 
-        if (typeParameter.isPresent()) {
-            return builtins.set(
-                module.get(TypeExpressionSemantics.class).
-                    toJadescriptType(typeParameter)
+        for (Maybe<RValueExpression> expr : elements) {
+            newState = rves.advance(
+                expr,
+                newState
             );
-        } else {
-            final IJadescriptType elementsTypePrePipe =
-                computeElementsTypeLUB(
-                    input.__toList(MapOrSetLiteral::getKeys),
-                    state
-                );
-            if (isWithPipe) {
-                IJadescriptType restType =
-                    module.get(RValueExpressionSemantics.class)
-                        .inferType(rest, state);
-                if (restType.category().isSet()) {
-                    SetType restSetType = (SetType) restType;
-                    final IJadescriptType restElementType =
-                        restSetType.getElementType();
-                    return builtins.set(lattice.getLUB(
-                        elementsTypePrePipe,
-                        restElementType,
-                        "Cannot compute the type of the elements " +
-                            "of the set: could not find a common supertype " +
-                            "of the types of elements before the pipe " +
-                            "('" + elementsTypePrePipe + "') and the types of" +
-                            " the" +
-                            " elements of the set after the pipe ('" +
-                            restElementType + "')"
-                    ));
-                } else {
-                    return builtins.set(elementsTypePrePipe);
-                }
-            } else {
-                return builtins.set(elementsTypePrePipe);
-            }
         }
 
+        if (rest.isNothing()) {
+            return newState;
+        }
 
+        newState = rves.advance(rest, newState);
+
+        return newState;
     }
 
 
@@ -240,11 +279,15 @@ public class SetLiteralExpressionSemantics
             input.__(MapOrSetLiteral::isWithTypeSpecifiers)
                 .orElse(false);
 
+        final Maybe<RValueExpression> rest
+            = input.__(MapOrSetLiteral::getRest);
+
         final Maybe<TypeExpression> keysTypeParameter =
             input.__(MapOrSetLiteral::getKeyTypeParameter);
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
+
         final TypeLatticeComputer lattice =
             module.get(TypeLatticeComputer.class);
 
@@ -254,7 +297,10 @@ public class SetLiteralExpressionSemantics
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
 
-        if (elements.isEmpty()) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
+        if (elements.isBlank() && rest.isNothing()) {
             if (hasTypeSpecifiers) {
                 return tes.validate(
                     keysTypeParameter,
@@ -273,7 +319,7 @@ public class SetLiteralExpressionSemantics
         }
 
 
-        //Assuming !elements.isEmpty()
+        //Assuming !elements.isBlank() || rest.isPresent()
 
         final IJadescriptType explicitType =
             tes.toJadescriptType(keysTypeParameter);
@@ -312,55 +358,178 @@ public class SetLiteralExpressionSemantics
                 elementsCheck = elementsCheck && typeCheck;
             }
 
+            boolean restCheck;
+            if (rest.isPresent()) {
+                restCheck = validateRestExplicitType(
+                    acceptor,
+                    rest,
+                    explicitType,
+                    runningState
+                );
+            } else {
+                restCheck = VALID;
+            }
             return tes.validate(
                 keysTypeParameter,
                 acceptor
             ) && explicitType.validateType(
                 keysTypeParameter,
                 acceptor
-            ) && elementsCheck;
+            ) && elementsCheck && restCheck;
 
-        } else {
+        }
 
-            Maybe<RValueExpression> element0 = elements.get(0);
-            boolean elementsCheck = rves.validate(
-                element0,
-                state,
+        //No type specifiers
+        boolean elementsCheck = VALID;
+        IJadescriptType elementsLUB = builtins.nothing(
+            "Cannot compute the type of the elements " +
+                "of the set: no elements provided."
+        );
+        StaticState runningState = state;
+
+        for (int i = 0; i < elements.size(); i++) {
+            Maybe<RValueExpression> element = elements.get(i);
+            boolean elementCheck = rves.validate(
+                element,
+                runningState,
                 acceptor
             );
-            IJadescriptType elementsLUB = rves.inferType(element0, state);
-            StaticState runningState = rves.advance(element0, state);
-
-            //Starting from second element
-            for (int i = 1; i < elements.size(); i++) {
-                Maybe<RValueExpression> element = elements.get(i);
-                boolean elementCheck = rves.validate(
+            elementsCheck = elementsCheck && elementCheck;
+            if (elementCheck == VALID) {
+                IJadescriptType elementType = rves.inferType(
                     element,
+                    runningState
+                );
+                elementsLUB = lattice.getLUB(
+                    elementsLUB,
+                    elementType,
+                    "Cannot compute the type of the elements " +
+                        "of the set: could not find a common supertype " +
+                        "of the types '" + elementsLUB + "' and '"
+                        + elementType + "'."
+                );
+            }
+            runningState = rves.advance(element, runningState);
+        }
+
+        boolean restCheck;
+        if (rest.isPresent()) {
+            SemanticsUtils.Tuple2<Boolean, IJadescriptType> r =
+                validateRestImplicitType(
+                    rest,
                     runningState,
                     acceptor
                 );
-                elementsCheck = elementsCheck && elementCheck;
-                if (elementCheck == VALID) {
-                    IJadescriptType elementType = rves.inferType(
-                        element,
-                        runningState
-                    );
-                    elementsLUB = lattice.getLUB(
-                        elementsLUB,
-                        elementType,
-                        "Cannot compute the type of the elements " +
-                            "of the set: could not find a common supertype " +
-                            "of the types '" + elementsLUB + "' and '"
-                            + elementType + "'."
-                    );
-                }
-                runningState = rves.advance(element, runningState);
+            restCheck = r.get_1();
+            if (restCheck == VALID) {
+                IJadescriptType restElemType = r.get_2();
+                elementsLUB = lattice.getLUB(
+                    elementsLUB,
+                    restElemType,
+                    "Cannot compute the type of the elements " +
+                        "of the set: could not find a common supertype " +
+                        "of the types '" + elementsLUB + "' and '" +
+                        restElemType + "'."
+                );
             }
-
-            return elementsLUB.validateType(input, acceptor);
+        }else{
+            restCheck = VALID;
         }
 
+        return elementsLUB.validateType(input, acceptor) && restCheck;
 
+
+    }
+
+    private boolean validateRestExplicitType(
+        ValidationMessageAcceptor acceptor,
+        Maybe<RValueExpression> rest,
+        IJadescriptType expected,
+        StaticState runningState
+    ) {
+
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
+        boolean restCheck = rves.validate(
+            rest, runningState, acceptor
+        );
+
+        if (restCheck == VALID) {
+            IJadescriptType restType = rves.inferType(
+                rest, runningState
+            );
+
+            restCheck = validationHelper.assertExpectedTypesAny(
+                List.of(
+                    builtins.list(builtins.covariant(expected)),
+                    builtins.set(builtins.covariant(expected))
+                ),
+                restType,
+                "InvalidRestType",
+                rest,
+                acceptor
+            );
+        }
+
+        return restCheck;
+    }
+
+
+    private SemanticsUtils.Tuple2<Boolean, IJadescriptType>
+    validateRestImplicitType(
+        Maybe<RValueExpression> rest,
+        StaticState runningState,
+        ValidationMessageAcceptor acceptor
+    ) {
+        RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+
+        BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
+        boolean restCheck = rves.validate(
+            rest,
+            runningState,
+            acceptor
+        );
+
+        final NothingType nothing = builtins.nothing("");
+        if (restCheck == INVALID) {
+            return new SemanticsUtils.Tuple2<>(INVALID, nothing);
+        }
+
+        IJadescriptType restType = rves.inferType(
+            rest, runningState
+        );
+
+        restCheck = restType.validateType(rest, acceptor);
+
+        if (restCheck == INVALID) {
+            return new SemanticsUtils.Tuple2<>(INVALID, nothing);
+        }
+
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
+        restCheck = validationHelper.asserting(
+            restType.category().isList() || restType.category().isSet(),
+            "InvalidRestType",
+            "Expected a list or a set.",
+            rest,
+            acceptor
+        );
+
+        IJadescriptType restElementType = restType.getElementTypeIfCollection()
+            .orElse(nothing);
+
+        return new SemanticsUtils.Tuple2<>(restCheck, restElementType);
     }
 
 

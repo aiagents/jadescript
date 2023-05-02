@@ -30,7 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static com.google.common.collect.Streams.zip;
-import static it.unipr.ailab.maybe.Maybe.someStream;
+import static it.unipr.ailab.maybe.Maybe.*;
 
 public class MapLiteralExpressionSemantics
     extends AssignableExpressionSemantics<MapOrSetLiteral> {
@@ -92,12 +92,16 @@ public class MapLiteralExpressionSemantics
         final Maybe<TypeExpression> valuesTypeParameter =
             input.__(MapOrSetLiteral::getValueTypeParameter);
 
-        if (values.isBlank() || keys.isBlank()) {
+        final Maybe<RValueExpression> rest =
+            input.__(MapOrSetLiteral::getRest);
+
+        if ((values.isBlank() || keys.isBlank()) && rest.isNothing()) {
+            final TypeExpressionSemantics tes =
+                module.get(TypeExpressionSemantics.class);
+
             return module.get(BuiltinTypeProvider.class).map(
-                module.get(TypeExpressionSemantics.class)
-                    .toJadescriptType(keysTypeParameter),
-                module.get(TypeExpressionSemantics.class)
-                    .toJadescriptType(valuesTypeParameter)
+                tes.toJadescriptType(keysTypeParameter),
+                tes.toJadescriptType(valuesTypeParameter)
             ).compileNewEmptyInstance();
         }
 
@@ -108,23 +112,33 @@ public class MapLiteralExpressionSemantics
         ArrayList<String> compiledKeys = new ArrayList<>(assumedSize);
         ArrayList<String> compiledValues = new ArrayList<>(assumedSize);
 
-        StaticState newState = state;
+        StaticState runningState = state;
         for (int i = 0; i < assumedSize; i++) {
             final Maybe<RValueExpression> key = keys.get(i);
             final Maybe<RValueExpression> value = values.get(i);
-            compiledKeys.add(rves.compile(key, newState, acceptor));
-            newState = rves.advance(key, newState);
-            compiledValues.add(rves.compile(value, newState, acceptor));
-            newState = rves.advance(value, newState);
+            compiledKeys.add(rves.compile(key, runningState, acceptor));
+            runningState = rves.advance(key, runningState);
+            compiledValues.add(rves.compile(value, runningState, acceptor));
+            runningState = rves.advance(value, runningState);
         }
 
+        final String restString;
+        if (rest.isPresent()) {
+            restString = ", " + rves.compile(
+                rest,
+                runningState,
+                acceptor
+            );
+        } else {
+            restString = "";
+        }
 
         return "jadescript.util.JadescriptCollections.createMap("
             + "java.util.Arrays.asList("
             + String.join(" ,", compiledKeys)
             + "), java.util.Arrays.asList("
             + String.join(" ,", compiledValues)
-            + "))";
+            + ")" + restString + ")";
     }
 
 
@@ -135,12 +149,17 @@ public class MapLiteralExpressionSemantics
     ) {
         final MaybeList<RValueExpression> keys =
             input.__toList(MapOrSetLiteral::getKeys);
+
         final MaybeList<RValueExpression> values =
             input.__toList(MapOrSetLiteral::getValues);
+
         final Maybe<TypeExpression> keysTypeParameter =
             input.__(MapOrSetLiteral::getKeyTypeParameter);
         final Maybe<TypeExpression> valuesTypeParameter =
             input.__(MapOrSetLiteral::getValueTypeParameter);
+
+        final Maybe<RValueExpression> rest =
+            input.__(MapOrSetLiteral::getRest);
 
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
@@ -194,6 +213,38 @@ public class MapLiteralExpressionSemantics
             newState = rves.advance(value, newState);
         }
 
+        if (rest.isPresent()) {
+            IJadescriptType restType = rves.inferType(rest, state);
+            if (restType.category().isMap()) {
+                MapType restAsMap = (MapType) restType;
+                final IJadescriptType restKeyType = restAsMap.getKeyType();
+                final IJadescriptType restValueType = restAsMap.getValueType();
+                lubKeys = lattice.getLUB(
+                    lubKeys,
+                    restKeyType,
+                    "Cannot compute the type of the keys " +
+                        "of the map: could not find a common supertype " +
+                        "of the types of keys before the pipe " +
+                        "('" + lubKeys + "') and the types of" +
+                        " the" +
+                        " keys of the map after the pipe ('" +
+                        restKeyType + "')."
+                );
+
+                lubValues = lattice.getLUB(
+                    lubValues,
+                    restValueType,
+                    "Cannot compute the type of the values " +
+                        "of the map: could not find a common supertype " +
+                        "of the types of values before the pipe " +
+                        "('" + lubValues + "') and the types of" +
+                        " the" +
+                        " values of the map after the pipe ('" +
+                        restValueType + "')."
+                );
+            }
+        }
+
         return builtins.map(lubKeys, lubValues);
     }
 
@@ -220,6 +271,10 @@ public class MapLiteralExpressionSemantics
         final Maybe<TypeExpression> valuesTypeParameter =
             input.__(MapOrSetLiteral::getValueTypeParameter);
 
+        final Maybe<RValueExpression> rest =
+            input.__(MapOrSetLiteral::getRest);
+
+
         boolean syntax = syntaxValidation(input, "literal", acceptor);
         if (syntax == INVALID) {
             return INVALID;
@@ -227,16 +282,16 @@ public class MapLiteralExpressionSemantics
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeLatticeComputer lattice =
+            module.get(TypeLatticeComputer.class);
 
         boolean stage1 = VALID;
 
         int assumedSize = Math.min(keys.size(), values.size());
 
         StaticState newState = state;
-        final BuiltinTypeProvider builtins =
-            module.get(BuiltinTypeProvider.class);
-        final TypeLatticeComputer lattice =
-            module.get(TypeLatticeComputer.class);
 
         IJadescriptType keysLub = builtins.nothing(
             "Cannot infer the type of the keys of the map."
@@ -244,6 +299,10 @@ public class MapLiteralExpressionSemantics
         IJadescriptType valuesLub = builtins.nothing(
             "Cannot infer the type of the values of the map."
         );
+
+
+        List<SemanticsUtils.Tuple2<IJadescriptType, IJadescriptType>> types
+            = new ArrayList<>();
 
         for (int i = 0; i < assumedSize; i++) {
             final Maybe<RValueExpression> key = keys.get(i);
@@ -278,13 +337,18 @@ public class MapLiteralExpressionSemantics
 
             newState = rves.advance(value, newState);
 
+            types.add(new SemanticsUtils.Tuple2<>(newKeyType, newValueType));
+
             stage1 = stage1 && keyCheck && valCheck;
         }
 
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
+
+
         stage1 = stage1 && validationHelper.asserting(
-            (!values.isBlank() && !keys.isBlank()) || hasTypeSpecifiers,
+            (!values.isBlank() && !keys.isBlank()
+                || rest.isPresent()) || hasTypeSpecifiers,
             "MapLiteralCannotComputeTypes",
             "Missing type specifications for empty map literal",
             input,
@@ -300,6 +364,51 @@ public class MapLiteralExpressionSemantics
             acceptor
         );
 
+        Maybe<IJadescriptType> restTypeMaybe = nothing();
+
+        if (rest.isPresent() && !hasTypeSpecifiers) {
+            boolean restCheck = rves.validate(rest, newState, acceptor);
+
+            if (restCheck == VALID) {
+                IJadescriptType restType = rves.inferType(rest, newState);
+                restCheck = restType.validateType(rest, acceptor);
+                if(restCheck == VALID){
+                    restTypeMaybe = some(restType);
+                    restCheck = validationHelper.asserting(
+                        restType.category().isMap(),
+                        "InvalidRestType",
+                        "Epected a map",
+                        rest,
+                        acceptor
+                    );
+                }
+
+                if(restCheck == VALID){
+                    MapType mapType = (MapType) restType;
+                    IJadescriptType restKeyType = mapType.getKeyType();
+                    IJadescriptType restValueType = mapType.getValueType();
+                    keysLub = lattice.getLUB(
+                        keysLub,
+                        restKeyType,
+                        "Cannot compute the type of the keys " +
+                            "of the map: could not find a common supertype " +
+                            "of the types '" + keysLub + "' and '" +
+                            restKeyType + "'."
+                    );
+
+                    valuesLub = lattice.getLUB(
+                        valuesLub,
+                        restValueType,
+                        "Cannot compute the type of the values " +
+                            "of the map: could not find a common supertype " +
+                            "of the types '" + valuesLub + "' and '" +
+                            restValueType + "'."
+                    );
+                }
+            }
+
+            stage1 = stage1 && restCheck;
+        }
 
         if (stage1 == INVALID) {
             return INVALID;
@@ -310,14 +419,14 @@ public class MapLiteralExpressionSemantics
             return VALID;
         }
 
+        final TypeExpressionSemantics tes =
+            module.get(TypeExpressionSemantics.class);
+
         boolean keysValidation = hasTypeSpecifiers
             || keysLub.validateType(input, acceptor);
 
-        final TypeExpressionSemantics tes =
-            module.get(TypeExpressionSemantics.class);
         keysValidation = keysValidation
             && tes.validate(keysTypeParameter, acceptor);
-
 
         boolean valsValidation = hasTypeSpecifiers
             || valuesLub.validateType(input, acceptor);
@@ -331,39 +440,59 @@ public class MapLiteralExpressionSemantics
             return keysValidation && valsValidation;
         }
 
-        newState = state;
         final IJadescriptType explicitKeyType =
             tes.toJadescriptType(keysTypeParameter);
         final IJadescriptType explicitValueType =
             tes.toJadescriptType(valuesTypeParameter);
 
+        assumedSize = Math.min(
+            types.size(),
+            Math.min(keys.size(), values.size())
+        );
         for (int i = 0; i < assumedSize; i++) {
             Maybe<RValueExpression> key = keys.get(i);
             Maybe<RValueExpression> value = values.get(i);
-
+            final SemanticsUtils.Tuple2<IJadescriptType, IJadescriptType> tt =
+                types.get(i);
+            IJadescriptType inferredKeyType = tt.get_1();
+            IJadescriptType inferredValueType = tt.get_2();
             boolean keyConf = validationHelper.assertExpectedType(
                 explicitKeyType,
-                rves.inferType(key, newState),
+                inferredKeyType,
                 "InvalidMapKey",
                 key,
                 acceptor
             );
-            newState = rves.advance(key, newState);
 
             boolean valConf = validationHelper.assertExpectedType(
                 explicitValueType,
-                rves.inferType(value, newState),
+                inferredValueType,
                 "InvalidMapValue",
                 value,
                 acceptor
             );
-            newState = rves.advance(value, newState);
 
             keysValidation = keysValidation && keyConf;
             valsValidation = valsValidation && valConf;
         }
 
-        return keysValidation && valsValidation;
+        boolean restTypeValidation;
+        if(restTypeMaybe.isPresent()){
+            restTypeValidation = validationHelper.assertExpectedType(
+                builtins.map(
+                    builtins.covariant(explicitKeyType),
+                    builtins.covariant(explicitValueType)
+                ),
+                restTypeMaybe.toNullable(),
+                "InvalidRestValue",
+                rest,
+                acceptor
+            );
+        }else{
+            restTypeValidation = VALID;
+        }
+
+        return keysValidation && valsValidation && restTypeValidation;
 
     }
 
@@ -388,12 +517,23 @@ public class MapLiteralExpressionSemantics
             input.__toList(MapOrSetLiteral::getValues);
         final MaybeList<RValueExpression> keys =
             input.__toList(MapOrSetLiteral::getKeys);
+        final Maybe<RValueExpression> rest =
+            input.__(MapOrSetLiteral::getRest);
+
         StaticState newState = state;
+
         int assumedSize = Math.min(keys.size(), values.size());
         for (int i = 0; i < assumedSize; i++) {
             newState = rves.advance(keys.get(i), newState);
             newState = rves.advance(values.get(i), newState);
         }
+
+        if (rest.isNothing()) {
+            return newState;
+        }
+
+        newState = rves.advance(rest, newState);
+
         return newState;
     }
 

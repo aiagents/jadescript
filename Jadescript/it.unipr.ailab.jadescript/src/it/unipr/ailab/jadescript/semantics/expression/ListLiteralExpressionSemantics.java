@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.someStream;
@@ -85,8 +84,7 @@ public class ListLiteralExpressionSemantics
             input.__toList(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter =
             input.__(ListLiteral::getTypeParameter);
-        Maybe<RValueExpression> rest =
-            input.__(ListLiteral::getRest);
+        Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
 
         if (values.isBlank() && rest.isNothing()) {
             final TypeExpressionSemantics tes =
@@ -103,36 +101,28 @@ public class ListLiteralExpressionSemantics
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        if (rest.isNothing()) {
-            return "jadescript.util.JadescriptCollections.createList(" +
-                "java.util.List.of(" + mapExpressionsWithState(
-                rves,
-                values.stream(),
-                state,
-                (elem, runningState) -> rves.compile(
-                    elem,
-                    runningState,
-                    acceptor
-                )
-            ).collect(Collectors.joining(", ")) + "))";
-        } else {
-            StaticState runningState = state;
-            StringJoiner stringJoiner = new StringJoiner(", ");
-            for (Maybe<RValueExpression> expr : values) {
-                stringJoiner.add(rves.compile(expr, runningState, acceptor));
-                runningState = rves.advance(expr, runningState);
-            }
 
-            final String restCompiled = rves.compile(
+        StaticState runningState = state;
+        StringJoiner stringJoiner = new StringJoiner(", ");
+        for (Maybe<RValueExpression> expr : values) {
+            stringJoiner.add(rves.compile(expr, runningState, acceptor));
+            runningState = rves.advance(expr, runningState);
+        }
+
+        final String restString;
+        if(rest.isPresent()) {
+            restString = ", " + rves.compile(
                 rest,
                 runningState,
                 acceptor
             );
-
-            return "jadescript.util.JadescriptCollections.createList(" +
-                "java.util.List.of(" + stringJoiner + "), " +
-                restCompiled + ")";
+        }else{
+            restString = "";
         }
+        return "jadescript.util.JadescriptCollections.createList(" +
+            "java.util.List.of(" + stringJoiner + ")" +
+            restString + ")";
+
     }
 
 
@@ -151,7 +141,6 @@ public class ListLiteralExpressionSemantics
             input.__(ListLiteral::isWithPipe).orElse(false);
         Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
 
-
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
         final TypeLatticeComputer lattice =
@@ -163,6 +152,7 @@ public class ListLiteralExpressionSemantics
                     toJadescriptType(typeParameter)
             );
         }
+
         final IJadescriptType elementsTypePrePipe =
             computePrePipeElementsTypeLUB(values, state);
 
@@ -184,12 +174,11 @@ public class ListLiteralExpressionSemantics
                             "of the types of elements before the pipe " +
                             "('" + elementsTypePrePipe + "') and the types of" +
                             " the" +
-                            " elements of the list after the pipe ('" +
+                            " elements of the collection after the pipe ('" +
                             restElementType + "')."
                     )
                 );
             }
-            return builtins.list(elementsTypePrePipe);
         }
 
         return builtins.list(elementsTypePrePipe);
@@ -222,9 +211,9 @@ public class ListLiteralExpressionSemantics
 
         StaticState newState = state;
 
-        for (Maybe<RValueExpression> rValueExpressionMaybe : values) {
+        for (Maybe<RValueExpression> expr : values) {
             newState = rves.advance(
-                rValueExpressionMaybe,
+                expr,
                 newState
             );
         }
@@ -909,9 +898,6 @@ public class ListLiteralExpressionSemantics
                 restCheck = validateRestExplicitType(
                     acceptor,
                     rest,
-                    rves,
-                    validationHelper,
-                    builtins,
                     explicitType,
                     runningState
                 );
@@ -936,7 +922,6 @@ public class ListLiteralExpressionSemantics
         );
         StaticState runningState = state;
 
-        //Starting from second element
         for (int i = 0; i < values.size(); i++) {
             Maybe<RValueExpression> element = values.get(i);
             boolean elementCheck = rves.validate(
@@ -1046,12 +1031,18 @@ public class ListLiteralExpressionSemantics
     private boolean validateRestExplicitType(
         ValidationMessageAcceptor acceptor,
         Maybe<RValueExpression> rest,
-        RValueExpressionSemantics rves,
-        ValidationHelper validationHelper,
-        BuiltinTypeProvider builtins,
         IJadescriptType expected,
         StaticState runningState
     ) {
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
         boolean restCheck = rves.validate(
             rest, runningState, acceptor
         );
