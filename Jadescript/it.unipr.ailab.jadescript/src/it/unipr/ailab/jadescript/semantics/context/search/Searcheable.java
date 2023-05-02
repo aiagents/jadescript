@@ -67,7 +67,7 @@ public interface Searcheable {
     SearchLocation currentLocation();
 
     default void debugDump(SourceCodeBuilder scb) {
-        scb.line("TODO implement debugDump for " + this.getClass().getName());
+        scb.line("Implement debugDump for " + this.getClass().getName());
     }
 
 

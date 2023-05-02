@@ -69,7 +69,7 @@ public class SetType
         super(
             module,
             builtinPrefix + "Set",
-            "Set",
+            "set",
             "SET"
         );
         this.elementType = elementType;

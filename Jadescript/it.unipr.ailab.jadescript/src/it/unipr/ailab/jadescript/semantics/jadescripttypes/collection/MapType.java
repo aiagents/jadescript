@@ -69,7 +69,7 @@ public class MapType
         super(
             module,
             builtinPrefix + "Map",
-            "Map",
+            "map",
             "MAP"
         );
 

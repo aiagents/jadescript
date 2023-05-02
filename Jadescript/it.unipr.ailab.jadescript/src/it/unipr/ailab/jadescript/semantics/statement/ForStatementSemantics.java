@@ -25,7 +25,8 @@ import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nothing;
+import static it.unipr.ailab.maybe.Maybe.some;
 
 /**
  * Created on 26/04/18.
@@ -39,7 +40,6 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
     }
 
 
-    //TODO migrate to new var assignment semantics
     @Override
     public StaticState compileStatement(
         Maybe<ForStatement> input,
@@ -67,11 +67,11 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
             module.get(BuiltinTypeProvider.class);
         if (input.__(ForStatement::isIndexedLoop).orElse(false)) {
             firstVarType = builtins.integer();
-        } else if (collectionType instanceof MapType) {
+        } else if (collectionType.category().isMap()) {
             firstVarType = ((MapType) collectionType).getKeyType();
-        } else if (collectionType instanceof ListType) {
+        } else if (collectionType.category().isList()) {
             firstVarType = ((ListType) collectionType).getElementType();
-        } else if (collectionType instanceof SetType) {
+        } else if (collectionType.category().isSet()) {
             firstVarType = ((SetType) collectionType).getElementType();
         } else {
             firstVarType = builtins.any(
@@ -89,149 +89,194 @@ public class ForStatementSemantics extends StatementSemantics<ForStatement> {
         final StaticState afterCollection = rves.advance(collection, state);
 
         if (input.__(ForStatement::isIndexedLoop).orElse(false)) {
-            Maybe<RValueExpression> end = input.__(ForStatement::getEndIndex);
-
-            final String compiledEndIndex =
-                rves.compile(end, afterCollection, acceptor);
-
-            final StaticState afterEndIndex =
-                rves.advance(end, afterCollection);
-
-            ExpressionWriter completeCollExpression = w.expr(
-                "new jadescript.util.IntegerRange(" + compiledCollection +
-                    ", " + compiledEndIndex + ", true, true)"
+            return compileIndexedLoop(
+                input,
+                acceptor,
+                varName,
+                forBody,
+                rves,
+                firstVarType,
+                compiledCollection,
+                afterCollection
             );
 
-            StaticState withVar = afterEndIndex.declareName(
+        }
+
+        if (input.__(ForStatement::isMapIteration).orElse(false)
+            && collectionType.category().isMap()) {
+
+            return compileMapIteration(
+                acceptor,
+                collection,
+                varName,
+                var2Name,
+                forBody,
+                (MapType) collectionType,
+                compiledCollection,
+                afterCollection
+            );
+        }
+
+
+        StaticState withVar = afterCollection.declareName(
+            LocalVariable.localVariable(
+                varName.orElse(""),
+                firstVarType
+            )
+        );
+
+        StaticState inBlock = withVar.enterLoopScope();
+
+        final PSR<BlockWriter> blockPSR = module.get(BlockSemantics.class)
+            .compileOptionalBlock(
+                forBody,
+                inBlock
+            );
+
+        final BlockWriter blockCompiled = blockPSR.result();
+
+        final StaticState endOfBlock = blockPSR.state();
+
+        final StaticState afterBlock = endOfBlock.exitScope();
+
+        acceptor.accept(w.foreach(
+            firstVarType.compileToJavaTypeReference(),
+            varName.orElse(""),
+            w.expr(compiledCollection),
+            blockCompiled
+        ));
+
+
+        return afterCollection.intersectAlternative(afterBlock);
+
+
+    }
+
+
+    private StaticState compileMapIteration(
+        BlockElementAcceptor acceptor,
+        Maybe<RValueExpression> collection,
+        Maybe<String> varName,
+        Maybe<String> var2Name,
+        Maybe<OptionalBlock> forBody,
+        MapType collectionType,
+        String compiledCollection,
+        StaticState afterCollection
+    ) {
+        IJadescriptType firstVarType;
+        final MapType mapType = collectionType;
+        firstVarType = mapType.getKeyType();
+        IJadescriptType secondVarType = mapType.getValueType();
+
+        String collectionAuxVar = acceptor.auxiliaryVariable(
+            collection,
+            mapType.compileToJavaTypeReference(),
+            "collection",
+            compiledCollection
+        );
+
+
+        StaticState withVars = afterCollection
+            .declareName(
                 LocalVariable.localVariable(
                     varName.orElse(""),
                     firstVarType
                 )
-            );
-
-
-            StaticState inBlockScope = withVar.enterLoopScope();
-
-            final PSR<BlockWriter> blockPSR = module.get(BlockSemantics.class)
-                .compileOptionalBlock(
-                    forBody,
-                    inBlockScope
-                );
-
-            BlockWriter compiledBlock = blockPSR.result();
-
-            StaticState endOfBlock = blockPSR.state();
-
-            StaticState afterBlock = endOfBlock.exitScope();
-
-            acceptor.accept(w.foreach(
-                firstVarType.compileToJavaTypeReference(),
-                varName.orElse(""),
-                completeCollExpression,
-                compiledBlock
-            ));
-
-            return afterEndIndex.intersectAlternative(afterBlock);
-
-        } else if (
-            input.__(ForStatement::isMapIteration).orElse(false)
-                && collectionType instanceof MapType
-        ) {
-
-            final MapType mapType = ((MapType) collectionType);
-            firstVarType = mapType.getKeyType();
-            IJadescriptType secondVarType = mapType.getValueType();
-
-            String collectionAuxVar = acceptor.auxiliaryVariable(
-                collection,
-                mapType.compileToJavaTypeReference(),
-                "collection",
-                compiledCollection
-            );
-
-
-            StaticState withVars = afterCollection
-                .declareName(
-                    LocalVariable.localVariable(
-                        varName.orElse(""),
-                        firstVarType
-                    )
-                ).declareName(
-                    LocalVariable.localVariable(
-                        var2Name.orElse(""),
-                        secondVarType
-                    )
-                );
-
-
-            StaticState inBlock = withVars.enterLoopScope();
-
-            PSR<BlockWriter> blockPSR = module.get(BlockSemantics.class)
-                .compileOptionalBlock(
-                    forBody,
-                    inBlock
-                );
-            BlockWriter compiledBlock = blockPSR.result();
-            StaticState endOfBlock = blockPSR.state();
-
-            StaticState afterBlock = endOfBlock.exitScope();
-
-
-            compiledBlock.addStatement(
-                0,
-                w.variable(
-                    secondVarType.compileToJavaTypeReference(),
+            ).declareName(
+                LocalVariable.localVariable(
                     var2Name.orElse(""),
-                    w.expr(collectionAuxVar + ".get(" +
-                        varName.orElse("") + ")")
+                    secondVarType
                 )
             );
 
-            acceptor.accept(w.foreach(
-                firstVarType.compileToJavaTypeReference(),
+
+        StaticState inBlock = withVars.enterLoopScope();
+
+        PSR<BlockWriter> blockPSR = module.get(BlockSemantics.class)
+            .compileOptionalBlock(
+                forBody,
+                inBlock
+            );
+        BlockWriter compiledBlock = blockPSR.result();
+        StaticState endOfBlock = blockPSR.state();
+
+        StaticState afterBlock = endOfBlock.exitScope();
+
+
+        compiledBlock.addStatement(
+            0,
+            w.variable(
+                secondVarType.compileToJavaTypeReference(),
+                var2Name.orElse(""),
+                w.expr(collectionAuxVar + ".get(" +
+                    varName.orElse("") + ")")
+            )
+        );
+
+        acceptor.accept(w.foreach(
+            firstVarType.compileToJavaTypeReference(),
+            varName.orElse(""),
+            w.expr(collectionAuxVar + ".keySet()"),
+            compiledBlock
+        ));
+
+        return afterCollection.intersectAlternative(afterBlock);
+    }
+
+
+    private StaticState compileIndexedLoop(
+        Maybe<ForStatement> input,
+        BlockElementAcceptor acceptor,
+        Maybe<String> varName,
+        Maybe<OptionalBlock> forBody,
+        RValueExpressionSemantics rves,
+        IJadescriptType firstVarType,
+        String compiledCollection,
+        StaticState afterCollection
+    ) {
+        Maybe<RValueExpression> end = input.__(ForStatement::getEndIndex);
+
+        final String compiledEndIndex =
+            rves.compile(end, afterCollection, acceptor);
+
+        final StaticState afterEndIndex =
+            rves.advance(end, afterCollection);
+
+        ExpressionWriter completeCollExpression = w.expr(
+            "new jadescript.util.IntegerRange(" + compiledCollection +
+                ", " + compiledEndIndex + ", true, true)"
+        );
+
+        StaticState withVar = afterEndIndex.declareName(
+            LocalVariable.localVariable(
                 varName.orElse(""),
-                w.expr(collectionAuxVar + ".keySet()"),
-                compiledBlock
-            ));
-
-            return afterCollection.intersectAlternative(afterBlock);
-        } else {
-            // Something's wrong: best-effort compiling
-
-            StaticState withVar = afterCollection
-                .declareName(
-                    LocalVariable.localVariable(
-                        varName.orElse(""),
-                        firstVarType
-                    )
-                );
-
-            StaticState inBlock = withVar.enterLoopScope();
-
-            final PSR<BlockWriter> blockPSR = module.get(BlockSemantics.class)
-                .compileOptionalBlock(
-                    forBody,
-                    inBlock
-                );
-
-            final BlockWriter blockCompiled = blockPSR.result();
-
-            final StaticState endOfBlock = blockPSR.state();
-
-            final StaticState afterBlock = endOfBlock.exitScope();
-
-            acceptor.accept(w.foreach(
-                firstVarType.compileToJavaTypeReference(),
-                varName.orElse(""),
-                w.expr(compiledCollection),
-                blockCompiled
-            ));
+                firstVarType
+            )
+        );
 
 
-            return afterCollection.intersectAlternative(afterBlock);
-        }
+        StaticState inBlockScope = withVar.enterLoopScope();
 
+        final PSR<BlockWriter> blockPSR = module.get(BlockSemantics.class)
+            .compileOptionalBlock(
+                forBody,
+                inBlockScope
+            );
 
+        BlockWriter compiledBlock = blockPSR.result();
+
+        StaticState endOfBlock = blockPSR.state();
+
+        StaticState afterBlock = endOfBlock.exitScope();
+
+        acceptor.accept(w.foreach(
+            firstVarType.compileToJavaTypeReference(),
+            varName.orElse(""),
+            completeCollExpression,
+            compiledBlock
+        ));
+
+        return afterEndIndex.intersectAlternative(afterBlock);
     }
 
 

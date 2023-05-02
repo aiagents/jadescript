@@ -70,7 +70,7 @@ public class ListType
         super(
             module,
             builtinPrefix + "List",
-            "List",
+            "list",
             "LIST"
         );
 

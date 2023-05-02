@@ -132,6 +132,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
     }
 
 
+
+
     public PatternMatcher createEmptyCompileOutput() {
         return new PatternMatcher.AsEmpty(this);
     }
@@ -358,12 +360,12 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
     public static class MatchesExpression<T> extends PatternMatchInput<T> {
 
         public static final PatternMatchMode MODE = new PatternMatchMode(
-            PatternMatchMode.HolesAndGroundness.ACCEPTS_NONVAR_HOLES_ONLY,
+            PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE,
             TypeRelationshipQuery.related(),
             PatternMatchMode.RequiresSuccessfulMatch.CAN_FAIL,
             PatternMatchMode.PatternApplicationSideEffects
                 .CAN_HAVE_SIDE_EFFECTS,
-            PatternMatchMode.Unification.WITHOUT_VAR_DECLARATION,
+            PatternMatchMode.Unification.WITH_VAR_DECLARATION,
             PatternMatchMode.NarrowsTypeOfInput.NARROWS_TYPE,
             PatternMatchMode.PatternLocation.BOOLEAN_EXPRESSION
         );
@@ -415,8 +417,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
         extends PatternMatchInput<T> {
 
         public static final PatternMatchMode MODE = new PatternMatchMode(
-            PatternMatchMode.HolesAndGroundness
-                .REQUIRES_FREE_VARS,
+            PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_VARS,
             TypeRelationshipQuery.superTypeOrEqual(),
             PatternMatchMode.RequiresSuccessfulMatch.REQUIRES_SUCCESSFUL_MATCH,
             PatternMatchMode.PatternApplicationSideEffects
@@ -467,66 +468,6 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             return rightType;
         }
 
-
-    }
-
-    public static class ForAssignment<T> extends PatternMatchInput<T> {
-
-        private final IJadescriptType elementType;
-
-
-        public ForAssignment(
-            SemanticsModule module,
-            IJadescriptType elementType,
-            Maybe<T> pattern,
-            String termID,
-            String rootPatternMatchVariableName,
-            Maybe<ExpressionDescriptor> descriptorMaybe
-        ) {
-            super(
-                module,
-                new PatternMatchMode(
-                    PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_VARS,
-                    TypeRelationshipQuery.superTypeOrEqual(),
-                    PatternMatchMode.RequiresSuccessfulMatch
-                        .REQUIRES_SUCCESSFUL_MATCH,
-                    PatternMatchMode.PatternApplicationSideEffects
-                        .CAN_HAVE_SIDE_EFFECTS,
-                    PatternMatchMode.Unification.WITH_VAR_DECLARATION,
-                    PatternMatchMode.NarrowsTypeOfInput.DOES_NOT_NARROW_TYPE,
-                    PatternMatchMode.PatternLocation.ROOT_OF_ASSIGNED_EXPRESSION
-                ),
-                pattern,
-                termID,
-                rootPatternMatchVariableName,
-                descriptorMaybe
-            );
-            this.elementType = elementType;
-        }
-
-
-        @Override
-        public <R> ForAssignment<R> mapPattern(Function<T, R> function) {
-            return new ForAssignment<>(
-                module,
-                this.getElementType(),
-                this.getPattern().__(function),
-                this.getTermID(),
-                this.getRootPatternMatchVariableName(),
-                this.getInputDescriptor()
-            );
-        }
-
-
-        @Override
-        public IJadescriptType getProvidedInputType() {
-            return elementType;
-        }
-
-
-        public IJadescriptType getElementType() {
-            return elementType;
-        }
 
     }
 
@@ -595,10 +536,21 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             PatternMatchInput<RT> rootInput,
             PatternMatchMode.HolesAndGroundness holesAndGroundnessRequirement
         ) {
+            PatternMatchMode.HolesAndGroundness holesAndGroundness;
+
+            if (holesAndGroundnessRequirement == null) {
+                holesAndGroundness =
+                    rootInput.getMode().getHolesAndGroundness();
+                if(holesAndGroundness ==
+                    PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_VARS){
+                    holesAndGroundness =
+                        PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE;
+                }
+            } else {
+                holesAndGroundness = holesAndGroundnessRequirement;
+            }
             return new PatternMatchMode(
-                holesAndGroundnessRequirement == null
-                    ? rootInput.getMode().getHolesAndGroundness()
-                    : holesAndGroundnessRequirement,
+                holesAndGroundness,
                 // Subpatterns always have a "related" requirement,
                 // except when in a successful match is required.
                 rootInput.getMode().getRequiresSuccessfulMatch()

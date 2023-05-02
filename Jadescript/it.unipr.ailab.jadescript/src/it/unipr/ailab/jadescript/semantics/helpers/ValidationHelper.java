@@ -16,11 +16,8 @@ import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
 import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.Callable;
-import it.unipr.ailab.jadescript.semantics.expression.RValueExpressionSemantics;
+import it.unipr.ailab.jadescript.semantics.expression.SubscriptExpressionSemantics;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.MapType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRelationship;
@@ -250,55 +247,18 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
-    //TODO unify in SubscriptExpressionSemantics
     public boolean validateIndex(
         IJadescriptType collectionType,
         Maybe<RValueExpression> indexExpression,
         StaticState beforeIndex,
-        ValidationMessageAcceptor subValidations
+        ValidationMessageAcceptor acceptor
     ) {
-        final RValueExpressionSemantics rves =
-            module.get(RValueExpressionSemantics.class);
-
-        boolean indexCheck = rves.validate(
+        return module.get(SubscriptExpressionSemantics.class).validateIndex(
+            collectionType,
             indexExpression,
             beforeIndex,
-            subValidations
+            acceptor
         );
-
-        boolean notSetCheck = asserting(
-            !(collectionType instanceof SetType),
-            "InvalidKeyType",
-            "Unexpected key/index specification in sets.",
-            indexExpression,
-            subValidations
-        );
-
-        if (indexCheck == INVALID || notSetCheck == INVALID) {
-            return INVALID;
-        }
-
-        final IJadescriptType indexType =
-            rves.inferType(indexExpression, beforeIndex);
-
-        if (collectionType instanceof MapType) {
-            return assertExpectedType(
-                ((MapType) collectionType).getKeyType(),
-                indexType,
-                "InvalidKeyType",
-                indexExpression,
-                subValidations
-            );
-        } else {
-            return assertExpectedType(
-                module.get(BuiltinTypeProvider.class).integer(),
-                rves.inferType(indexExpression, beforeIndex),
-                "InvalidIndexType",
-                indexExpression,
-                subValidations
-            );
-        }
-
     }
 
 
@@ -402,7 +362,6 @@ public class ValidationHelper implements SemanticsConsts {
     }
 
 
-
     public boolean assertExpectedType(
         TypeArgument expected,
         TypeArgument actual,
@@ -416,13 +375,13 @@ public class ValidationHelper implements SemanticsConsts {
 
         final TypeComparator comparator = module.get(TypeComparator.class);
         final TypeRelationship result;
-        if(expected instanceof IJadescriptType
-            && actual instanceof IJadescriptType){
+        if (expected instanceof IJadescriptType
+            && actual instanceof IJadescriptType) {
             result = comparator.compare(
                 (IJadescriptType) expected,
                 (IJadescriptType) actual
             );
-        }else {
+        } else {
             result = comparator.compareTypeArguments(expected, actual);
         }
         return asserting(
@@ -471,6 +430,7 @@ public class ValidationHelper implements SemanticsConsts {
             acceptor
         );
     }
+
 
     public boolean assertExpectedTypesAny(
         List<IJadescriptType> alternatives,

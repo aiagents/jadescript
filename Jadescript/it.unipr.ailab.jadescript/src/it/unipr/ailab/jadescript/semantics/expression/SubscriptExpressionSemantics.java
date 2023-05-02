@@ -115,10 +115,6 @@ public class SubscriptExpressionSemantics
         final String keyCompiled = module.get(RValueExpressionSemantics.class)
             .compile(input.__(Subscript::getKey), afterRest, acceptor);
 
-        //NOT NEEDED
-//        final StaticState afterKey =
-//            module.get(RValueExpressionSemantics.class)
-//                .advance(input.mapPartial2(Subscript::getKey), afterRest);
 
         if (restType.category().isList()) {
             acceptor.accept(w.simpleStmt(
@@ -132,8 +128,7 @@ public class SubscriptExpressionSemantics
             ));
         } else {
             acceptor.accept(w.simpleStmt(
-                restCompiled + "[" + keyCompiled
-                    + "] = " + compiledExpression
+                restCompiled + "[" + keyCompiled + "] = " + compiledExpression
             ));
         }
     }
@@ -317,19 +312,19 @@ public class SubscriptExpressionSemantics
                     key,
                     acceptor
                 );
-            } else {
-                return INVALID;
             }
-        } else {
-            return module.get(ValidationHelper.class).emitError(
-                "InvalidSubscriptOperation",
-                "[] operator cannot be used on types that are " +
-                    "not list, map, or text. Type found: " +
-                    restType.getFullJadescriptName(),
-                key,
-                acceptor
-            );
+
+            return VALID;
         }
+
+        return module.get(ValidationHelper.class).emitError(
+            "InvalidSubscriptOperation",
+            "[] operator cannot be used to set values on " +
+                "types that are not list or map. Type found: " +
+                restType.getFullJadescriptName(),
+            key,
+            acceptor
+        );
 
     }
 
@@ -503,16 +498,9 @@ public class SubscriptExpressionSemantics
             (s, i) -> s.advance(i, state)
         );
 
+
         final Maybe<RValueExpression> key = input.__(Subscript::getKey);
 
-        boolean keyCheck = module.get(RValueExpressionSemantics.class)
-            .validate(key, afterRest, acceptor);
-
-        if (keyCheck == INVALID) {
-            return INVALID;
-        }
-        IJadescriptType keyType = module.get(RValueExpressionSemantics.class)
-            .inferType(key, state);
 
         //NOT NEEDED:
 //        StaticState afterKey = module.get(RValueExpressionSemantics.class)
@@ -524,12 +512,91 @@ public class SubscriptExpressionSemantics
         final TypeComparator comparator = module.get(TypeComparator.class);
 
         if (restType.category().isTuple()) {
+            return validateIndex(
+                restType,
+                key,
+                state,
+                acceptor
+            );
+        }
+
+        if (comparator.checkIs(superTypeOrEqual(), builtins.text(), restType)) {
+
+            final RValueExpressionSemantics rves =
+                module.get(RValueExpressionSemantics.class);
+
+            boolean keyCheck = rves.validate(key, afterRest, acceptor);
+
+            if (keyCheck == INVALID) {
+                return INVALID;
+            }
+
+            IJadescriptType keyType = rves.inferType(key, state);
+
+            return module.get(ValidationHelper.class).assertExpectedType(
+                builtins.integer(),
+                keyType,
+                "InvalidTextSubscription",
+                key,
+                acceptor
+            );
+        }
+
+
+        if (restType.category().isMap() || restType.category().isList()) {
+            return validateIndex(
+                restType,
+                key,
+                state,
+                acceptor
+            );
+        }
+
+        return module.get(ValidationHelper.class).emitError(
+            "InvalidElementAccessOperation",
+            "[] operator cannot be used on types that are " +
+                "not tuple, list, map, or text. Type found: " +
+                restType.getFullJadescriptName(),
+            key,
+            acceptor
+        );
+    }
+
+
+    public boolean validateIndex(
+        IJadescriptType collectionType,
+        Maybe<RValueExpression> indexExpression,
+        StaticState beforeIndex,
+        ValidationMessageAcceptor acceptor
+    ) {
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+
+        boolean indexCheck = rves.validate(
+            indexExpression,
+            beforeIndex,
+            acceptor
+        );
+
+        if (indexCheck == INVALID) {
+            return INVALID;
+        }
+
+        IJadescriptType indexType = rves.inferType(
+            indexExpression,
+            beforeIndex
+        );
+
+        if (collectionType.category().isTuple()) {
             boolean indexTypeValidation =
                 module.get(ValidationHelper.class).assertExpectedType(
                     builtins.integer(),
-                    keyType,
+                    indexType,
                     "InvalidTupleIndex",
-                    key,
+                    indexExpression,
                     acceptor
                 );
 
@@ -537,7 +604,10 @@ public class SubscriptExpressionSemantics
                 return INVALID;
             }
 
-            final Optional<Integer> integer = extractIntegerIfAvailable(key);
+            final Optional<Integer> integer = extractIntegerIfAvailable(
+                indexExpression
+            );
+
             boolean indexValidation = module.get(ValidationHelper.class)
                 .asserting(
                     integer.isPresent(),
@@ -546,75 +616,52 @@ public class SubscriptExpressionSemantics
                         "index number, only index expressions whose value is " +
                         "trivially known at compile time can be used. Please " +
                         "use an integer literal constant.",
-                    key,
+                    indexExpression,
                     acceptor
                 );
 
             if (integer.isPresent()) {
-                final TupleType tupleType = (TupleType) restType;
+                final TupleType tupleType = (TupleType) collectionType;
                 indexValidation = module.get(ValidationHelper.class).asserting(
                     integer.get() >= 0
                         && integer.get() < tupleType.getElementTypes().size(),
                     "InvalidTupleIndex",
                     "Index out of range. Index: " + integer.get() + "; " +
                         "tuple length: " + tupleType.getElementTypes().size(),
-                    key,
+                    indexExpression,
                     acceptor
                 );
             }
-
             return indexValidation;
-
-        } else if (comparator.compare(builtins.text(), restType)
-            .is(superTypeOrEqual())) {
-            return module.get(ValidationHelper.class).assertExpectedType(
-                builtins.integer(),
-                keyType,
-                "InvalidStringSubscription",
-                key,
-                acceptor
-            );
-        } else if (restType.category().isMap()
-            || restType.category().isList()) {
-
-            final List<? extends MemberCallable> matchesFound =
-                restType.namespace().searchAs(
-                    MemberCallable.Namespace.class,
-                    searcher -> searcher.memberCallables("get")
-                        .filter(mc -> mc.arity() == 1)
-                        .filter(mc ->
-                            comparator.compare(
-                                mc.parameterTypes().get(0),
-                                keyType
-                            ).is(superTypeOrEqual()))
-                ).collect(Collectors.toList());
-
-            if (matchesFound.size() != 1) {
-
-                return module.get(ValidationHelper.class).emitError(
-                    "InvalidElementAccessOperation",
-                    "Cannot perform '[]' operator on values of type "
-                        + restType.getFullJadescriptName() + ", using values " +
-                        "of type" + keyType.getFullJadescriptName() +
-                        "as index.",
-                    key,
-                    acceptor
-                );
-            } else {
-                return VALID;
-            }
-        } else {
-            //It's neither an array nor a list/map... error!
-            return module.get(ValidationHelper.class).emitError(
-                "InvalidElementAccessOperation",
-                "[] operator cannot be used on types that are " +
-                    "not list, map, or text. Type found: " +
-                    restType.getFullJadescriptName(),
-                key,
-                acceptor
-            );
         }
 
+
+        final List<? extends MemberCallable> matchesFound =
+            collectionType.namespace().searchAs(
+                MemberCallable.Namespace.class,
+                searcher -> searcher.memberCallables("get")
+                    .filter(mc -> mc.arity() == 1)
+                    .filter(mc ->
+                        comparator.compare(
+                            mc.parameterTypes().get(0),
+                            indexType
+                        ).is(superTypeOrEqual()))
+            ).collect(Collectors.toList());
+
+        if (matchesFound.size() != 1) {
+
+            return module.get(ValidationHelper.class).emitError(
+                "InvalidElementAccessOperation",
+                "Cannot perform '[]' operator on values of type "
+                    + collectionType.getFullJadescriptName() + ", using " +
+                    "values of type " + indexType.getFullJadescriptName() +
+                    " as index.",
+                indexExpression,
+                acceptor
+            );
+        } else {
+            return VALID;
+        }
     }
 
 

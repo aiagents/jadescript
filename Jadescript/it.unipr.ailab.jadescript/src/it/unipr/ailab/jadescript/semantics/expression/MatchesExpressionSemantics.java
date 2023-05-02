@@ -179,9 +179,6 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
                 module.get(UnaryPrefixExpressionSemantics.class),
                 x
             )));
-        //TODO should include patterns?
-        //TODO should include whole subpatterns (since they are likely
-        // evaluated as expressions)?
     }
 
 

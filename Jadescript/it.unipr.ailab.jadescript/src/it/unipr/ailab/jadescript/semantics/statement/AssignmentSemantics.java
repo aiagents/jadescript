@@ -39,7 +39,6 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
         final Maybe<LValueExpression> left = input.__(Assignment::getLexpr);
         final Maybe<RValueExpression> right = input.__(Assignment::getRexpr);
 
-
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
