@@ -263,11 +263,6 @@ public class MatchesExpressionSemantics extends ExpressionSemantics<Matches> {
     }
 
 
-    private boolean isInHandlerWhenExpression() {
-        return module.get(ContextManager.class).currentContext()
-            .actAs(HandlerWhenExpressionContext.class)
-            .findFirst().isPresent();
-    }
 
 
     @Override

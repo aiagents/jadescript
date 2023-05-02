@@ -245,12 +245,6 @@ public class MaybeList<OfType> implements Iterable<Maybe<OfType>> {
     }
 
 
-    private void wrapAll() {
-        for (int i = 0; i < this.size(); i++) {
-            wrapGet(i);
-        }
-    }
-
 
     public int size() {
         return wrappedList.size();
