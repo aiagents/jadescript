@@ -63,8 +63,7 @@ public class Jadescript {
     }
 
     @SuppressWarnings({"unchecked"})
-    public static <T>
-    T createEmptyValue(Class<?> type){
+    public static <T> T createEmptyValue(Class<?> type){
         if(type.equals(jadescript.core.behaviours.Behaviour.class)
         || type.equals(jadescript.core.behaviours.Base.class)){
             return (T) jadescript.core.behaviours.Behaviour.__createEmpty();

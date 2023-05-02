@@ -2129,7 +2129,7 @@ public class BuiltinTypeProvider {
     }
 
 
-    private BoundedTypeArgument contravariant(
+    public BoundedTypeArgument contravariant(
         IJadescriptType type
     ) {
         return new BoundedTypeArgument(
@@ -2140,7 +2140,7 @@ public class BuiltinTypeProvider {
     }
 
 
-    private BoundedTypeArgument covariant(
+    public BoundedTypeArgument covariant(
         IJadescriptType type
     ) {
         return new BoundedTypeArgument(
@@ -2172,6 +2172,7 @@ public class BuiltinTypeProvider {
     public BaseMessageType anyMessage() {
         return tAnyMessage.get();
     }
+
 
 
     private SemanticsModule getModule() {

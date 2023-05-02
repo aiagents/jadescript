@@ -18,6 +18,8 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.ListType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.NothingType;
+import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.emf.common.util.EList;
@@ -26,12 +28,12 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static it.unipr.ailab.maybe.Maybe.someStream;
-import static it.unipr.ailab.maybe.MaybeList.fromMaybeAList;
 
 /**
  * Created on 31/03/18.
@@ -64,8 +66,8 @@ public class ListLiteralExpressionSemantics
 
 
         return Streams.concat(
-                Stream.of(input.__(ListLiteral::getRest)),
-                someStream(values)
+                someStream(values),
+                Stream.of(input.__(ListLiteral::getRest))
             )
             .filter(Maybe::isPresent)
             .map(x -> new SemanticsBoundToExpression<>(
@@ -79,40 +81,58 @@ public class ListLiteralExpressionSemantics
         StaticState state, BlockElementAcceptor acceptor
     ) {
 
-        Maybe<EList<RValueExpression>> values =
-            input.__(ListLiteral::getValues);
+        MaybeList<RValueExpression> values =
+            input.__toList(ListLiteral::getValues);
         Maybe<TypeExpression> typeParameter =
             input.__(ListLiteral::getTypeParameter);
-        if (values.__(List::isEmpty).orElse(true)) {
+        Maybe<RValueExpression> rest =
+            input.__(ListLiteral::getRest);
+
+        if (values.isBlank() && rest.isNothing()) {
             final TypeExpressionSemantics tes =
                 module.get(TypeExpressionSemantics.class);
 
             final IJadescriptType elementType =
                 tes.toJadescriptType(typeParameter);
 
-
             return module.get(BuiltinTypeProvider.class)
                 .list(elementType)
                 .compileNewEmptyInstance();
-
         }
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        MaybeList<RValueExpression> elements = fromMaybeAList(values);
+        if (rest.isNothing()) {
+            return "jadescript.util.JadescriptCollections.createList(" +
+                "java.util.List.of(" + mapExpressionsWithState(
+                rves,
+                values.stream(),
+                state,
+                (elem, runningState) -> rves.compile(
+                    elem,
+                    runningState,
+                    acceptor
+                )
+            ).collect(Collectors.joining(", ")) + "))";
+        } else {
+            StaticState runningState = state;
+            StringJoiner stringJoiner = new StringJoiner(", ");
+            for (Maybe<RValueExpression> expr : values) {
+                stringJoiner.add(rves.compile(expr, runningState, acceptor));
+                runningState = rves.advance(expr, runningState);
+            }
 
-        return "jadescript.util.JadescriptCollections.createList(" +
-            "java.util.List.of(" + mapExpressionsWithState(
-            rves,
-            elements.stream(),
-            state,
-            (elem, runningState) -> rves.compile(
-                elem,
+            final String restCompiled = rves.compile(
+                rest,
                 runningState,
                 acceptor
-            )
-        ).collect(Collectors.joining(", ")) + "))";
+            );
+
+            return "jadescript.util.JadescriptCollections.createList(" +
+                "java.util.List.of(" + stringJoiner + "), " +
+                restCompiled + ")";
+        }
     }
 
 
@@ -144,16 +164,17 @@ public class ListLiteralExpressionSemantics
             );
         }
         final IJadescriptType elementsTypePrePipe =
-            computeElementsTypeLUB(values, state);
+            computePrePipeElementsTypeLUB(values, state);
 
         if (isWithPipe) {
             IJadescriptType restType =
                 module.get(RValueExpressionSemantics.class)
                     .inferType(rest, state);
-            if (restType.category().isList()) {
-                ListType restListType = (ListType) restType;
+            if (restType.category().isList() || restType.category().isSet()) {
                 final IJadescriptType restElementType =
-                    restListType.getElementType();
+                    restType.getElementTypeIfCollection()
+                        .orElseGet(() -> builtins.nothing(""));
+
                 return builtins.list(
                     lattice.getLUB(
                         elementsTypePrePipe,
@@ -191,30 +212,34 @@ public class ListLiteralExpressionSemantics
         Maybe<ListLiteral> input,
         StaticState state
     ) {
-        Maybe<EList<RValueExpression>> values =
-            input.__(ListLiteral::getValues);
-        if (values.__(List::isEmpty).orElse(true)) {
-            return state;
-        }
+        MaybeList<RValueExpression> values =
+            input.__toList(ListLiteral::getValues);
+        final Maybe<RValueExpression> rest =
+            input.__(ListLiteral::getRest);
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
 
-        MaybeList<RValueExpression> valuesList = fromMaybeAList(values);
         StaticState newState = state;
 
-        for (Maybe<RValueExpression> rValueExpressionMaybe : valuesList) {
+        for (Maybe<RValueExpression> rValueExpressionMaybe : values) {
             newState = rves.advance(
                 rValueExpressionMaybe,
                 newState
             );
         }
 
+        if (rest.isNothing()) {
+            return newState;
+        }
+
+        newState = rves.advance(rest, newState);
+
         return newState;
     }
 
 
-    private IJadescriptType computeElementsTypeLUB(
+    private IJadescriptType computePrePipeElementsTypeLUB(
         MaybeList<RValueExpression> valuesList,
         StaticState state
     ) {
@@ -249,7 +274,7 @@ public class ListLiteralExpressionSemantics
                 );
             }
         }
-        return seen ? acc : builtins.any(
+        return seen ? acc : builtins.nothing(
             "Cannot infer the type of the elements of the list from an " +
                 "empty list expression. Please specify it by adding " +
                 "'of TYPE' after the closed bracket."
@@ -799,6 +824,8 @@ public class ListLiteralExpressionSemantics
         Maybe<TypeExpression> typeParameter =
             input.__(ListLiteral::getTypeParameter);
 
+        final Maybe<RValueExpression> rest = input.__(ListLiteral::getRest);
+
         boolean hasTypeSpecifier =
             input.__(ListLiteral::isWithTypeSpecifier).orElse(false);
 
@@ -814,7 +841,11 @@ public class ListLiteralExpressionSemantics
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
 
-        if (values.isEmpty()) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
+
+        if (values.isBlank() && rest.isNothing()) {
             if (hasTypeSpecifier) {
                 return tes.validate(
                     typeParameter,
@@ -833,7 +864,7 @@ public class ListLiteralExpressionSemantics
         }
 
 
-        // Assuming !values.isEmpty()
+        // Assuming !values.isBlank() || rest.isPresent()
 
         final IJadescriptType explicitType =
             tes.toJadescriptType(typeParameter);
@@ -873,52 +904,176 @@ public class ListLiteralExpressionSemantics
                 elementsCheck = elementsCheck && typeCheck;
             }
 
+            boolean restCheck;
+            if (rest.isPresent()) {
+                restCheck = validateRestExplicitType(
+                    acceptor,
+                    rest,
+                    rves,
+                    validationHelper,
+                    builtins,
+                    explicitType,
+                    runningState
+                );
+            } else {
+                restCheck = VALID;
+            }
+
             return tes.validate(
                 typeParameter,
                 acceptor
             ) && explicitType.validateType(
                 typeParameter,
                 acceptor
-            ) && elementsCheck;
-        } else {
-            Maybe<RValueExpression> element0 = values.get(0);
-            boolean elementsCheck = rves.validate(
-                element0,
-                state,
+            ) && elementsCheck && restCheck;
+        }
+
+        //No type specifiers
+        boolean elementsCheck = VALID;
+        IJadescriptType elementsLUB = builtins.nothing(
+            "Cannot compute the type of the elements " +
+                "of the list: no elements provided."
+        );
+        StaticState runningState = state;
+
+        //Starting from second element
+        for (int i = 0; i < values.size(); i++) {
+            Maybe<RValueExpression> element = values.get(i);
+            boolean elementCheck = rves.validate(
+                element,
+                runningState,
                 acceptor
             );
-            IJadescriptType elementsLUB = rves.inferType(element0, state);
-            StaticState runningState = rves.advance(element0, state);
 
-            //Starting from second element
-            for (int i = 1; i < values.size(); i++) {
-                Maybe<RValueExpression> element = values.get(i);
-                boolean elementCheck = rves.validate(
+            elementsCheck = elementsCheck && elementCheck;
+            if (elementsCheck == VALID) {
+                IJadescriptType elementType = rves.inferType(
                     element,
+                    runningState
+                );
+                elementsLUB = lattice.getLUB(
+                    elementsLUB,
+                    elementType,
+                    "Cannot compute the type of the elements " +
+                        "of the list: could not find a common supertype " +
+                        "of the types '" + elementsLUB + "' and '" +
+                        elementType + "'."
+                );
+            }
+            runningState = rves.advance(element, runningState);
+        }
+
+        boolean restCheck;
+        if (rest.isPresent()) {
+            SemanticsUtils.Tuple2<Boolean, IJadescriptType> r =
+                validateRestImplicitType(
+                    rest,
                     runningState,
                     acceptor
                 );
-
-                elementsCheck = elementsCheck && elementCheck;
-                if (elementsCheck == VALID) {
-                    IJadescriptType elementType = rves.inferType(
-                        element,
-                        runningState
-                    );
-                    elementsLUB = lattice.getLUB(
-                        elementsLUB,
-                        elementType,
-                        "Cannot compute the type of the elements " +
-                            "of the list: could not find a common supertype " +
-                            "of the types '" + elementsLUB + "' and '" +
-                            elementType + "'."
-                    );
-                }
-                runningState = rves.advance(element, runningState);
+            restCheck = r.get_1();
+            if (restCheck == VALID) {
+                IJadescriptType restElemType = r.get_2();
+                elementsLUB = lattice.getLUB(
+                    elementsLUB,
+                    restElemType,
+                    "Cannot compute the type of the elements " +
+                        "of the list: could not find a common supertype " +
+                        "of the types '" + elementsLUB + "' and '" +
+                        restElemType + "'."
+                );
             }
-
-            return elementsLUB.validateType(input, acceptor);
+        } else {
+            restCheck = VALID;
         }
+
+
+        return elementsLUB.validateType(input, acceptor) && restCheck;
+    }
+
+
+    private SemanticsUtils.Tuple2<Boolean, IJadescriptType>
+    validateRestImplicitType(
+        Maybe<RValueExpression> rest,
+        StaticState runningState,
+        ValidationMessageAcceptor acceptor
+    ) {
+        RValueExpressionSemantics rves =
+            module.get(RValueExpressionSemantics.class);
+
+        BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+
+        boolean restCheck = rves.validate(
+            rest,
+            runningState,
+            acceptor
+        );
+
+        final NothingType nothing = builtins.nothing("");
+        if (restCheck == INVALID) {
+            return new SemanticsUtils.Tuple2<>(INVALID, nothing);
+        }
+
+        IJadescriptType restType = rves.inferType(
+            rest, runningState
+        );
+
+        restCheck = restType.validateType(rest, acceptor);
+
+        if (restCheck == INVALID) {
+            return new SemanticsUtils.Tuple2<>(INVALID, nothing);
+        }
+
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
+        restCheck = validationHelper.asserting(
+            restType.category().isList() || restType.category().isSet(),
+            "InvalidRestType",
+            "Expected a list or a set.",
+            rest,
+            acceptor
+        );
+
+        IJadescriptType restElementType = restType.getElementTypeIfCollection()
+            .orElse(nothing);
+
+        return new SemanticsUtils.Tuple2<>(restCheck, restElementType);
+    }
+
+
+    private boolean validateRestExplicitType(
+        ValidationMessageAcceptor acceptor,
+        Maybe<RValueExpression> rest,
+        RValueExpressionSemantics rves,
+        ValidationHelper validationHelper,
+        BuiltinTypeProvider builtins,
+        IJadescriptType expected,
+        StaticState runningState
+    ) {
+        boolean restCheck = rves.validate(
+            rest, runningState, acceptor
+        );
+
+        if (restCheck == VALID) {
+            IJadescriptType restType = rves.inferType(
+                rest, runningState
+            );
+
+            restCheck = validationHelper.assertExpectedTypesAny(
+                List.of(
+                    builtins.list(builtins.covariant(expected)),
+                    builtins.set(builtins.covariant(expected))
+                ),
+                restType,
+                "InvalidRestType",
+                rest,
+                acceptor
+            );
+        }
+
+        return restCheck;
     }
 
 
