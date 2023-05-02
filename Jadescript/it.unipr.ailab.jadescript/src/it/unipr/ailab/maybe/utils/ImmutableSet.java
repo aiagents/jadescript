@@ -54,9 +54,10 @@ public class ImmutableSet<E> implements Iterable<E> {
     }
 
 
-    public int size(){
+    public int size() {
         return this.wrapped.size();
     }
+
 
     @Contract(pure = true)
     @SuppressWarnings("unchecked")
@@ -92,7 +93,8 @@ public class ImmutableSet<E> implements Iterable<E> {
         }
     }
 
-    public boolean isEmpty(){
+
+    public boolean isEmpty() {
         return this.wrapped.isEmpty();
     }
 
@@ -178,9 +180,9 @@ public class ImmutableSet<E> implements Iterable<E> {
      */
     public <V> ImmutableMap<E, V> associateOpt(
         Function<? super E, Optional<? extends V>> associator
-    ){
+    ) {
         Map<E, V> result = new HashMap<>();
-        for(E e: this){
+        for (E e : this) {
             final Optional<? extends V> opt = associator.apply(e);
             opt.ifPresent(o -> result.put(e, o));
         }
@@ -192,7 +194,7 @@ public class ImmutableSet<E> implements Iterable<E> {
         Function<? super E, ? extends K> computeKey
     ) {
         ImmutableMultiMap<K, E> result = new ImmutableMultiMap<>();
-        for(E e: this){
+        for (E e : this) {
             result.mutPut(computeKey.apply(e), e);
         }
         return result;

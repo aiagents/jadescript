@@ -6,6 +6,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 
 public interface AgentAssociated
     extends AgentAssociationComputer, Associated {
+
     static ContextGeneratedName contextGeneratedAgentReference(
         IJadescriptType agentType
     ) {
@@ -15,4 +16,5 @@ public interface AgentAssociated
             CompilationHelper::compileAgentReference
         );
     }
+
 }

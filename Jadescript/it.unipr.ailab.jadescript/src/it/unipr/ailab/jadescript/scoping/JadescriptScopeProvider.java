@@ -11,5 +11,5 @@ package it.unipr.ailab.jadescript.scoping;
  * on how and when to use it.
  */
 public class JadescriptScopeProvider extends AbstractJadescriptScopeProvider {
-	
+
 }

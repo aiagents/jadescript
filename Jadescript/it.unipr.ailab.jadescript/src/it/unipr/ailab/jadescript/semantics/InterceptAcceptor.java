@@ -6,15 +6,17 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
 /**
  * Created on 30/04/18.
- *
  */
-public class InterceptAcceptor implements ValidationMessageAcceptor{
+public class InterceptAcceptor implements ValidationMessageAcceptor {
+
     private final ValidationMessageAcceptor input;
     private boolean thereAreErrors = false;
 
-    public InterceptAcceptor(ValidationMessageAcceptor input){
+
+    public InterceptAcceptor(ValidationMessageAcceptor input) {
         this.input = input;
     }
+
 
     @Override
     public void acceptError(
@@ -29,6 +31,7 @@ public class InterceptAcceptor implements ValidationMessageAcceptor{
         input.acceptError(s, eObject, eStructuralFeature, i, s1, strings);
     }
 
+
     @Override
     public void acceptError(
         String s,
@@ -42,6 +45,7 @@ public class InterceptAcceptor implements ValidationMessageAcceptor{
         input.acceptError(s, eObject, i, i1, s1, strings);
     }
 
+
     @Override
     public void acceptWarning(
         String s,
@@ -53,6 +57,7 @@ public class InterceptAcceptor implements ValidationMessageAcceptor{
     ) {
         input.acceptWarning(s, eObject, eStructuralFeature, i, s1, strings);
     }
+
 
     @Override
     public void acceptWarning(
@@ -66,6 +71,7 @@ public class InterceptAcceptor implements ValidationMessageAcceptor{
         input.acceptWarning(s, eObject, i, i1, s1, strings);
     }
 
+
     @Override
     public void acceptInfo(
         String s,
@@ -77,6 +83,7 @@ public class InterceptAcceptor implements ValidationMessageAcceptor{
     ) {
         input.acceptInfo(s, eObject, eStructuralFeature, i, s1, strings);
     }
+
 
     @Override
     public void acceptInfo(
@@ -90,7 +97,9 @@ public class InterceptAcceptor implements ValidationMessageAcceptor{
         input.acceptInfo(s, eObject, i, i1, s1, strings);
     }
 
-    public boolean thereAreErrors(){
+
+    public boolean thereAreErrors() {
         return thereAreErrors;
     }
+
 }

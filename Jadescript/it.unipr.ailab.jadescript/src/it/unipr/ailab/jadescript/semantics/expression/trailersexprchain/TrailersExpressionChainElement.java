@@ -13,13 +13,16 @@ public abstract class TrailersExpressionChainElement {
 
     protected final SemanticsModule module;
 
+
     public TrailersExpressionChainElement(
         SemanticsModule module
     ) {
         this.module = module;
     }
 
+
     public abstract AssignableExpressionSemantics
         .SemanticsBoundToAssignableExpression<?>
     resolveChain(ReversedTrailerChain withoutFirst);
+
 }

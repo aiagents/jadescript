@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class PermissiveJvmBasedNamespace extends JadescriptTypeNamespace{
+public class PermissiveJvmBasedNamespace extends JadescriptTypeNamespace {
 
 
     private final JvmTypeNamespace jvmNamespace;

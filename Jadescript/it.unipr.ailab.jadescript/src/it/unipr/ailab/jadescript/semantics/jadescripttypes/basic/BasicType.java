@@ -25,13 +25,14 @@ public abstract class BasicType
     private final JvmTypeReference jvmType;
     private final String defaultValue;
 
+
     public BasicType(
-            SemanticsModule module,
-            String typeID,
-            String simpleName,
-            String schemaName,
-            JvmTypeReference jvmType,
-            String defaultValue
+        SemanticsModule module,
+        String typeID,
+        String simpleName,
+        String schemaName,
+        JvmTypeReference jvmType,
+        String defaultValue
     ) {
         super(module, typeID, simpleName, simpleName.toUpperCase());
         this.schemaName = schemaName;
@@ -47,6 +48,7 @@ public abstract class BasicType
         }
     };
 
+
     @Override
     public TypeCategory category() {
         return CATEGORY;
@@ -58,20 +60,24 @@ public abstract class BasicType
         return true;
     }
 
+
     @Override
     public boolean isSendable() {
         return true;
     }
+
 
     @Override
     public boolean isReferrable() {
         return true;
     }
 
+
     @Override
     public boolean hasProperties() {
         return true;
     }
+
 
     @Override
     public boolean isErroneous() {
@@ -104,9 +110,10 @@ public abstract class BasicType
 
 
     @Override
-    public JvmTypeReference asJvmTypeReference(){
+    public JvmTypeReference asJvmTypeReference() {
         return jvmType;
     }
+
 
     @Override
     public String compileNewEmptyInstance() {

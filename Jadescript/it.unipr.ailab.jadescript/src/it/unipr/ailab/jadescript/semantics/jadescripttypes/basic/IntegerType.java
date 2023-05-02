@@ -13,7 +13,7 @@ public class IntegerType extends BasicType {
 
     public IntegerType(
         SemanticsModule module
-        ) {
+    ) {
         super(
             module,
             builtinPrefix + "integer",
@@ -23,6 +23,7 @@ public class IntegerType extends BasicType {
             "0"
         );
     }
+
 
     private final LazyInit<JadescriptTypeNamespace.Empty> namespace =
         lazyInit(() ->

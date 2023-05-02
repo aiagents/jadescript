@@ -4,13 +4,15 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 public class OnDeactivateHandlerContext
-extends EventHandlerContext{
+    extends EventHandlerContext {
+
     public OnDeactivateHandlerContext(
-            SemanticsModule module,
-            ProceduralFeatureContainerContext outer
+        SemanticsModule module,
+        ProceduralFeatureContainerContext outer
     ) {
         super(module, outer, "deactivate");
     }
+
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {
@@ -18,8 +20,10 @@ extends EventHandlerContext{
         scb.line("--> is OnDeactivateHandlerContext");
     }
 
+
     @Override
     public String getCurrentOperationLogName() {
         return "on deactivate";
     }
+
 }

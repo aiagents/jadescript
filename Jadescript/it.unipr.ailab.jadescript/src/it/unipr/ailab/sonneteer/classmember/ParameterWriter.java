@@ -17,15 +17,18 @@ public class ParameterWriter implements Writer, Annotable {
     private final String type;
     private final String name;
 
-    public ParameterWriter(String type, String name){
+
+    public ParameterWriter(String type, String name) {
         this.type = type;
         this.name = name;
     }
+
 
     @Override
     public void addAnnotation(String annotation) {
         annotations.add(annotation);
     }
+
 
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
@@ -33,11 +36,14 @@ public class ParameterWriter implements Writer, Annotable {
         s.spaced(type).add(name);
     }
 
+
     public String getName() {
         return name;
     }
 
+
     public String getType() {
         return type;
     }
+
 }

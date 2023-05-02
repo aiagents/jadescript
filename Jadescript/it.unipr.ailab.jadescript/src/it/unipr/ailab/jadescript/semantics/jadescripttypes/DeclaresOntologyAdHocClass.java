@@ -14,20 +14,22 @@ import java.util.List;
 import java.util.function.Function;
 
 public interface DeclaresOntologyAdHocClass {
+
     WriterFactory w = WriterFactory.getInstance();
 
     void declareAdHocClass(
-            EList<JvmMember> members,
-            Maybe<ExtendingFeature> feature,
-            HashMap<String, String> generatedSpecificClasses,
-            List<StatementWriter> addSchemaWriters,
-            List<StatementWriter> describeSchemaWriters,
-            TypeExpression slotTypeExpression,
-            Function<TypeExpression, String> schemaNameForSlotProvider,
-            SemanticsModule module
+        EList<JvmMember> members,
+        Maybe<ExtendingFeature> feature,
+        HashMap<String, String> generatedSpecificClasses,
+        List<StatementWriter> addSchemaWriters,
+        List<StatementWriter> describeSchemaWriters,
+        TypeExpression slotTypeExpression,
+        Function<TypeExpression, String> schemaNameForSlotProvider,
+        SemanticsModule module
     );
 
     String getAdHocClassName();
 
     String getConverterToAdHocClassMethodName();
+
 }

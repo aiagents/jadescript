@@ -9,12 +9,13 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import java.util.stream.Stream;
 
 public interface SelfAssociationComputer extends WithSupertype {
+
     Stream<SelfAssociation> computeCurrentSelfAssociations();
 
     default Stream<SelfAssociation> computeAllSelfAssociations() {
         return Streams.concat(
-                computeCurrentSelfAssociations(),
-                computeSelfAssociationsFromSupertype()
+            computeCurrentSelfAssociations(),
+            computeSelfAssociationsFromSupertype()
         );
     }
 
@@ -23,7 +24,7 @@ public interface SelfAssociationComputer extends WithSupertype {
         if (ms.isPresent() && ms.toNullable() instanceof SelfAssociated) {
             return ((SelfAssociated) ms.toNullable())
                 .computeAllSelfAssociations()
-                    .map(SelfAssociation::applyExtends);
+                .map(SelfAssociation::applyExtends);
         } else {
             return Stream.empty();
         }
@@ -38,4 +39,5 @@ public interface SelfAssociationComputer extends WithSupertype {
         );
         scb.close("}");
     }
+
 }

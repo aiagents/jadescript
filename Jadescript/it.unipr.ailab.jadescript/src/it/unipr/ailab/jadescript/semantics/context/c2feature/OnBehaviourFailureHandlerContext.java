@@ -10,27 +10,30 @@ import org.jetbrains.annotations.Nullable;
 import java.util.stream.Stream;
 
 public class OnBehaviourFailureHandlerContext
-        extends HandlerWithWhenExpressionContext
-        implements CompilableName.Namespace, BehaviourFailureHandledContext {
+    extends HandlerWithWhenExpressionContext
+    implements CompilableName.Namespace, BehaviourFailureHandledContext {
 
     private final IJadescriptType failedBehaviourType;
     private final IJadescriptType behaviourFailureReasonType;
 
+
     public OnBehaviourFailureHandlerContext(
-            SemanticsModule module,
-            ProceduralFeatureContainerContext outer,
-            IJadescriptType failedBehaviourType,
-            IJadescriptType behaviourFailureReasonType
+        SemanticsModule module,
+        ProceduralFeatureContainerContext outer,
+        IJadescriptType failedBehaviourType,
+        IJadescriptType behaviourFailureReasonType
     ) {
         super(module, outer, "behaviour failure");
         this.failedBehaviourType = failedBehaviourType;
         this.behaviourFailureReasonType = behaviourFailureReasonType;
     }
 
+
     @Override
     public IJadescriptType getFailureReasonType() {
         return behaviourFailureReasonType;
     }
+
 
     @Override
     public IJadescriptType getFailedBehaviourType() {
@@ -54,10 +57,12 @@ public class OnBehaviourFailureHandlerContext
         return "on behaviour failure";
     }
 
+
     @Override
     public void debugDump(SourceCodeBuilder scb) {
         super.debugDump(scb);
         scb.line("--> is OnBehaviourFailureHandlerContext");
         debugDumpBehaviourFailureHandled(scb);
     }
+
 }

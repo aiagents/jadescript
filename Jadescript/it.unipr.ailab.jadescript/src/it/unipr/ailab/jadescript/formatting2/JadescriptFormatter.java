@@ -3,16 +3,16 @@
  */
 package it.unipr.ailab.jadescript.formatting2;
 
+import it.unipr.ailab.jadescript.jadescript.Model;
 import org.eclipse.xtext.formatting2.IFormattableDocument;
 import org.eclipse.xtext.xbase.formatting2.XbaseFormatter;
-
-import it.unipr.ailab.jadescript.jadescript.Model;
 
 @SuppressWarnings("restriction")
 public class JadescriptFormatter extends XbaseFormatter {
 
-	@SuppressWarnings("EmptyMethod")
-	protected void format(Model model, IFormattableDocument doc) {
-		// Default formatting disabled.
-	}
+    @SuppressWarnings("EmptyMethod")
+    protected void format(Model model, IFormattableDocument doc) {
+        // Default formatting disabled.
+    }
+
 }

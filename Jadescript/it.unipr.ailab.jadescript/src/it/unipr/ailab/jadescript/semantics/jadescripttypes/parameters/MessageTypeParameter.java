@@ -14,19 +14,18 @@ public class MessageTypeParameter extends FormalTypeParameter {
     /*package-private*/ final TypeArgument defaultArgumentType;
     /*package-private*/ final BiFunction<TypeArgument, String, String> promoter;
 
+
     /*package-private*/ MessageTypeParameter(
         SemanticsModule module,
         IJadescriptType upperBound,
         TypeArgument defaultArgumentType,
         BiFunction<TypeArgument, String, String> promoter
-    ){
+    ) {
         super(module, some(upperBound), some(defaultArgumentType));
         this.upperBound = upperBound;
         this.defaultArgumentType = defaultArgumentType;
         this.promoter = promoter;
     }
-
-
 
 
     @Override

@@ -7,9 +7,9 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableN
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.ImportedMembersNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithMembers;
-import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import jadescript.lang.Performative;
 import org.jetbrains.annotations.Nullable;

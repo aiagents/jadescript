@@ -1,6 +1,6 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.id;
 
-public class TypeCategoryAdapter implements TypeCategory{
+public class TypeCategoryAdapter implements TypeCategory {
 
     @Override
     public boolean isAny() {

@@ -23,7 +23,7 @@ public interface OntoContentType
     boolean isNative();
 
     @Override
-    default TypeCategory category(){
+    default TypeCategory category() {
         return CATEGORY;
     }
 
@@ -31,8 +31,8 @@ public interface OntoContentType
         return ontoContentKind.name();
     }
 
-    static String getCategoryName(OntoContentKind ontoContentKind){
-        switch (ontoContentKind){
+    static String getCategoryName(OntoContentKind ontoContentKind) {
+        switch (ontoContentKind) {
             case Predicate:
             case Proposition:
             case AtomicProposition:

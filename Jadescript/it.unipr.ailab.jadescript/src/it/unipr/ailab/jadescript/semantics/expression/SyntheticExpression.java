@@ -20,19 +20,20 @@ import static it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts.VALID;
 
 /**
  * Created on 01/11/2018.
- *
  */
 public class SyntheticExpression implements RValueExpression {
 
-    public enum SyntheticType{
+    public enum SyntheticType {
         CUSTOM
     }
 
-    public static class SemanticsMethods{
+    public static class SemanticsMethods {
+
         public List<? extends ExpressionSemantics<?>> getSubExpressions() {
             // Override if needed
             return Collections.emptyList();
         }
+
 
         @SuppressWarnings("SameReturnValue")
         public String compile() {
@@ -40,10 +41,12 @@ public class SyntheticExpression implements RValueExpression {
             return "";
         }
 
+
         public IJadescriptType inferType(SemanticsModule module) {
             // Override if needed
             return module.get(BuiltinTypeProvider.class).any("");
         }
+
 
         @SuppressWarnings("SameReturnValue")
         public boolean mustTraverse() {
@@ -51,11 +54,13 @@ public class SyntheticExpression implements RValueExpression {
             return false;
         }
 
+
         public Optional<ExpressionSemantics.SemanticsBoundToExpression<?>>
         traverse() {
             // Override if needed
             return Optional.empty();
         }
+
 
         @SuppressWarnings({"EmptyMethod", "SameReturnValue"})
         public boolean validate(ValidationMessageAcceptor acceptor) {
@@ -63,125 +68,151 @@ public class SyntheticExpression implements RValueExpression {
             return VALID;
         }
 
+
         @SuppressWarnings("SameReturnValue")
         public boolean isPatternEvaluationPure() {
             // Override if needed
             return true;
         }
+
     }
 
     private final SyntheticType syntheticType;
     private SemanticsMethods customSemantics = null;
 
+
     public SyntheticExpression(SyntheticType syntheticType) {
         this.syntheticType = syntheticType;
     }
+
 
     public SyntheticExpression(SemanticsMethods custom) {
         this.syntheticType = SyntheticType.CUSTOM;
         this.customSemantics = custom;
     }
 
-    public SemanticsMethods getSemanticsMethods(){
+
+    public SemanticsMethods getSemanticsMethods() {
         return customSemantics;
     }
+
 
     public SyntheticType getSyntheticType() {
         return syntheticType;
     }
+
 
     @Override
     public EClass eClass() {
         throw new UnsupportedOperationException();
     }
 
+
     @Override
     public Resource eResource() {
         throw new UnsupportedOperationException();
     }
+
 
     @Override
     public EObject eContainer() {
         throw new UnsupportedOperationException();
     }
 
+
     @Override
     public EStructuralFeature eContainingFeature() {
         throw new UnsupportedOperationException();
     }
+
 
     @Override
     public EReference eContainmentFeature() {
         throw new UnsupportedOperationException();
     }
 
+
     @Override
     public EList<EObject> eContents() {
         throw new UnsupportedOperationException();
     }
+
 
     @Override
     public TreeIterator<EObject> eAllContents() {
         throw new UnsupportedOperationException();
     }
 
+
     @Override
     public boolean eIsProxy() {
         throw new UnsupportedOperationException();
     }
+
 
     @Override
     public EList<EObject> eCrossReferences() {
         throw new UnsupportedOperationException();
     }
 
+
     @Override
     public Object eGet(EStructuralFeature eStructuralFeature) {
         throw new UnsupportedOperationException();
     }
+
 
     @Override
     public Object eGet(EStructuralFeature eStructuralFeature, boolean b) {
         throw new UnsupportedOperationException();
     }
 
+
     @Override
     public void eSet(EStructuralFeature eStructuralFeature, Object o) {
         throw new UnsupportedOperationException();
     }
+
 
     @Override
     public boolean eIsSet(EStructuralFeature eStructuralFeature) {
         throw new UnsupportedOperationException();
     }
 
+
     @Override
     public void eUnset(EStructuralFeature eStructuralFeature) {
         throw new UnsupportedOperationException();
     }
+
 
     @Override
     public Object eInvoke(EOperation eOperation, EList<?> eList) {
         throw new UnsupportedOperationException();
     }
 
+
     @Override
     public EList<Adapter> eAdapters() {
         throw new UnsupportedOperationException();
     }
+
 
     @Override
     public boolean eDeliver() {
         throw new UnsupportedOperationException();
     }
 
+
     @Override
     public void eSetDeliver(boolean b) {
         throw new UnsupportedOperationException();
     }
 
+
     @Override
     public void eNotify(Notification notification) {
         throw new UnsupportedOperationException();
     }
+
 }

@@ -5,12 +5,15 @@ import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 public class ContextGenerated extends SearchLocation {
 
     private static ContextGenerated instance = null;
-    public static ContextGenerated getInstance(){
+
+
+    public static ContextGenerated getInstance() {
         if (instance == null) {
             instance = new ContextGenerated();
         }
         return instance;
     }
+
 
     @Override
     public boolean equals(Object obj) {

@@ -10,16 +10,19 @@ import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 public abstract class Context
-        implements SemanticsConsts, Searcheable,
+    implements SemanticsConsts, Searcheable,
     AutoNameClashValidator,
     AutoCallableClashValidator {
+
     protected final SemanticsModule module;
+
 
     public Context(SemanticsModule module) {
         this.module = module;
     }
 
-    public SearchLocation currentLocation(){
+
+    public SearchLocation currentLocation() {
         return new ContextLocation(this);
     }
 
@@ -27,4 +30,5 @@ public abstract class Context
     public abstract void debugDump(SourceCodeBuilder scb);
 
     public abstract String getCurrentOperationLogName();
+
 }

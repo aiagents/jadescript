@@ -174,7 +174,8 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
         return isInteger(type) || isReal(type);
     }
 
-    private boolean isInteger(IJadescriptType type){
+
+    private boolean isInteger(IJadescriptType type) {
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
         final TypeComparator comparator = module.get(TypeComparator.class);
@@ -183,7 +184,8 @@ public class AdditiveExpressionSemantics extends ExpressionSemantics<Additive> {
             .is(superTypeOrEqual());
     }
 
-    private boolean isReal(IJadescriptType type){
+
+    private boolean isReal(IJadescriptType type) {
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
         final TypeComparator comparator = module.get(TypeComparator.class);

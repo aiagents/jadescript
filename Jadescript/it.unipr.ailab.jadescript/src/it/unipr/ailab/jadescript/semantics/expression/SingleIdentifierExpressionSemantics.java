@@ -299,13 +299,13 @@ public class SingleIdentifierExpressionSemantics
         Maybe<SingleIdentifier> input,
         StaticState state
     ) {
-        if(input == null){
+        if (input == null) {
             return module.get(BuiltinTypeProvider.class).nothing("");
         }
 
         final Maybe<CompilableName> resolved =
             resolveAsNamedSymbol(input, state);
-        if(resolved.isPresent()){
+        if (resolved.isPresent()) {
             return resolved.toNullable().writingType();
         }
 

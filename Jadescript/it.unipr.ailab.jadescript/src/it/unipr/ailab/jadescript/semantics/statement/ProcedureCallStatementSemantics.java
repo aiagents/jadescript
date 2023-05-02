@@ -104,7 +104,7 @@ public class ProcedureCallStatementSemantics
 
             boolean callCheck = ncs.validate(nativeCall, state, acceptor);
 
-            if(callCheck == INVALID){
+            if (callCheck == INVALID) {
                 return state;
             }
 

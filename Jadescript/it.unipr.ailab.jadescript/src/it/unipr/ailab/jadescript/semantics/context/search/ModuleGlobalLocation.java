@@ -8,13 +8,15 @@ public class ModuleGlobalLocation extends FQNameLocation {
         super(moduleName);
     }
 
+
     @Override
     public String toString() {
-        return "(module: "+getModuleName()+")";
+        return "(module: " + getModuleName() + ")";
     }
 
 
     public String getModuleName() {
         return getFullyQualifiedName();
     }
+
 }

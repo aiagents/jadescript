@@ -6,13 +6,15 @@ public class SingleLineStatementCommentWriter extends StatementWriter {
 
     private final String comment;
 
-    public SingleLineStatementCommentWriter(String comment){
+
+    public SingleLineStatementCommentWriter(String comment) {
         this.comment = comment;
     }
 
+
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
-        s.line("//"+comment);
+        s.line("//" + comment);
     }
 
 }

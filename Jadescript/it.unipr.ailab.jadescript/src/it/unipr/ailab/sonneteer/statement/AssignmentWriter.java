@@ -9,10 +9,12 @@ public class AssignmentWriter extends StatementWriter {
     private final String leftSide;
     private final ExpressionWriter rightSide;
 
-    public AssignmentWriter(String leftSide, ExpressionWriter rightSide){
+
+    public AssignmentWriter(String leftSide, ExpressionWriter rightSide) {
         this.leftSide = leftSide;
         this.rightSide = rightSide;
     }
+
 
     @Override
     public void writeSonnet(SourceCodeBuilder s) {

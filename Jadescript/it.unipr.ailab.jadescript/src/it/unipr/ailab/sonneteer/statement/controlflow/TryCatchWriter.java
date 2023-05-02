@@ -16,38 +16,42 @@ public class TryCatchWriter extends StatementWriter {
     private final List<BlockWriter> catchBranches = new ArrayList<>();
     private Maybe<BlockWriter> finallyBranch = Maybe.nothing();
 
-    public TryCatchWriter(BlockWriter tryBranch){
+
+    public TryCatchWriter(BlockWriter tryBranch) {
         this.tryBranch = tryBranch;
 
     }
+
 
     public TryCatchWriter addCatchBranch(
         String exceptionType,
         String varName,
         BlockWriter body
-    ){
+    ) {
         exceptionTypes.add(exceptionType);
         varNames.add(varName);
         catchBranches.add(body);
         return this;
     }
 
-    public TryCatchWriter setFinallyBranch(BlockWriter finallyBranch){
+
+    public TryCatchWriter setFinallyBranch(BlockWriter finallyBranch) {
         this.finallyBranch = Maybe.some(finallyBranch);
         return this;
     }
 
+
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
         getComments().forEach(x -> x.writeSonnet(s));
-        if(catchBranches.isEmpty()) {
+        if (catchBranches.isEmpty()) {
             throw new InvalidStatementException(
-                    "Attempted to create a try/catch statement without " +
-                        "any catch branches");
+                "Attempted to create a try/catch statement without " +
+                    "any catch branches");
         }
         s.spaced("try");
         tryBranch.writeSonnet(s);
-        for(int i = 0; i < varNames.size(); i++){
+        for (int i = 0; i < varNames.size(); i++) {
             s.add("catch(")
                 .spaced(exceptionTypes.get(i)).add(varNames.get(i))
                 .spaced(")");
@@ -58,4 +62,5 @@ public class TryCatchWriter extends StatementWriter {
             fbSafe.writeSonnet(s);
         });
     }
+
 }

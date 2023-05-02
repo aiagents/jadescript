@@ -59,6 +59,7 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     private final Cache<EObject, CompilableCallable> resolutionCache
         = CacheBuilder.newBuilder().maximumSize(100).build();
 
+
     public static <T> List<T> sortToMatchParamNames(
         List<T> args,
         List<String> argNames,
@@ -143,7 +144,6 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     traverseInternal(Maybe<Call> input) {
         return Optional.empty();
     }
-
 
 
     @Override
@@ -1439,26 +1439,28 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
         }
     }
 
+
     private boolean isCachable(
         boolean isProcedure,
         CompilableCallable callable
-    ){
-        if(callable == null){
+    ) {
+        if (callable == null) {
             return false;
         }
 
-        if(isProcedure != callable.returnType().category().isJavaVoid()){
+        if (isProcedure != callable.returnType().category().isJavaVoid()) {
             return false;
         }
 
         for (IJadescriptType parameterType : callable.parameterTypes()) {
-            if(parameterType.isErroneous()){
+            if (parameterType.isErroneous()) {
                 return false;
             }
         }
 
         return true;
     }
+
 
     public Maybe<? extends CompilableCallable> resolve(
         Maybe<Call> input,
@@ -1467,10 +1469,10 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
     ) {
         final Maybe<? extends EObject> extracted
             = SemanticsUtils.extractEObject(input);
-        if(extracted.isPresent()){
+        if (extracted.isPresent()) {
             final @Nullable CompilableCallable cached =
                 this.resolutionCache.getIfPresent(extracted.toNullable());
-            if(cached != null){
+            if (cached != null) {
                 return some(cached);
             }
         }
@@ -1482,10 +1484,10 @@ public class CallSemantics extends AssignableExpressionSemantics<Call> {
             );
         if (callableSymbols.size() == 1) {
             final CompilableCallable result = callableSymbols.get(0);
-            if(extracted.isPresent() && isCachable(
+            if (extracted.isPresent() && isCachable(
                 input.__(Call::isProcedure).orElse(false),
                 result
-            )){
+            )) {
                 this.resolutionCache.put(extracted.toNullable(), result);
             }
             return Maybe.some(result);

@@ -15,9 +15,9 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableN
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.emf.ecore.EObject;
 
@@ -140,7 +140,6 @@ public class ProceduralFeatureContainerContext
                         .globalPatterns(name))
         );
     }
-
 
 
     @Override

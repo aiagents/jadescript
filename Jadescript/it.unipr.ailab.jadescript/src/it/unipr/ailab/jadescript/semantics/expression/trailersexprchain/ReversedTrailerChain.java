@@ -13,9 +13,11 @@ import java.util.List;
  * Created on 26/08/18.
  */
 public class ReversedTrailerChain {
+
     private final List<Maybe<TrailersExpressionChainElement>> elements
         = new ArrayList<>();
     private final SemanticsModule module;
+
 
     public ReversedTrailerChain(SemanticsModule module) {
         this.module = module;
@@ -30,6 +32,7 @@ public class ReversedTrailerChain {
         return result;
     }
 
+
     public Maybe<
         AssignableExpressionSemantics.SemanticsBoundToAssignableExpression<?>
         > resolveChain() {
@@ -41,12 +44,14 @@ public class ReversedTrailerChain {
         elements.add(Maybe.some(new PrimaryChainElement(module, atom)));
     }
 
+
     public void addSubscription(Maybe<Trailer> currentTrailer) {
         elements.add(Maybe.some(new SubscriptionElement(
             module,
             currentTrailer.__(Trailer::getKey)
         )));
     }
+
 
     public void addGlobalMethodCall(
         Maybe<Primary> atom,

@@ -24,7 +24,8 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nothing;
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 /**
  * Created on 28/12/16.

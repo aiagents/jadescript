@@ -63,8 +63,10 @@ public class Property implements MemberName {
         String name
     ) {
         return (o, r, a) -> a.accept(
-            w.callStmnt(o + ".set" + Strings.toFirstUpper(name),
-                w.expr(r))
+            w.callStmnt(
+                o + ".set" + Strings.toFirstUpper(name),
+                w.expr(r)
+            )
         );
     }
 
@@ -81,7 +83,7 @@ public class Property implements MemberName {
 
     public static BiFunction<String, BlockElementAcceptor, String>
     compileWithJVMGetter(String name) {
-        return (o,a) -> o + ".get" + Strings.toFirstUpper(name) + "()";
+        return (o, a) -> o + ".get" + Strings.toFirstUpper(name) + "()";
     }
 
 
@@ -93,11 +95,11 @@ public class Property implements MemberName {
     }
 
 
-
-
     @Override
-    public DereferencedName dereference(Function<BlockElementAcceptor,
-        String> ownerCompiler) {
+    public DereferencedName dereference(
+        Function<BlockElementAcceptor,
+            String> ownerCompiler
+    ) {
         return new DereferencedProperty(
             ownerCompiler,
             this

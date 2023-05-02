@@ -15,10 +15,12 @@ import java.util.List;
 public abstract class ClassMemberWriter
     extends Commentable
     implements Writer, Annotable {
+
     protected final Visibility visibility;
     protected final boolean isStatic;
     protected final boolean isFinal;
     protected final List<String> annotations = new ArrayList<>();
+
 
     public ClassMemberWriter(
         Visibility visibility,
@@ -30,22 +32,27 @@ public abstract class ClassMemberWriter
         this.visibility = visibility;
     }
 
+
     @Override
     public void addAnnotation(String annotation) {
         annotations.add(annotation);
     }
 
+
     public List<String> getAnnotations() {
         return annotations;
     }
+
 
     public boolean isFinal() {
         return isFinal;
     }
 
+
     public boolean isStatic() {
         return isStatic;
     }
+
 
     public Visibility getVisibility() {
         return visibility;

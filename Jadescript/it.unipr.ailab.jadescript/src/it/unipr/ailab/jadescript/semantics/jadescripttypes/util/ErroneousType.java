@@ -7,7 +7,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.common.types.JvmTypeReference;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
-public abstract class ErroneousType extends UtilityType{
+public abstract class ErroneousType extends UtilityType {
 
     private final String errorMessage;
 
@@ -29,7 +29,7 @@ public abstract class ErroneousType extends UtilityType{
         Maybe<? extends EObject> input,
         ValidationMessageAcceptor acceptor
     ) {
-        if(this.errorMessage.isBlank()){
+        if (this.errorMessage.isBlank()) {
             super.validateType(input, acceptor);
         }
 
@@ -52,7 +52,6 @@ public abstract class ErroneousType extends UtilityType{
     public boolean isErroneous() {
         return true;
     }
-
 
 
 }

@@ -17,7 +17,7 @@ public interface Name extends Located {
 
     boolean canWrite();
 
-    default Signature getSignature(){
+    default Signature getSignature() {
         return new Name.Signature(
             name(), readingType(), canWrite()
         );
@@ -36,7 +36,7 @@ public interface Name extends Located {
         scb.close("}");
     }
 
-    public static class Signature implements BaseSignature{
+    public static class Signature implements BaseSignature {
 
         private final String name;
         private final IJadescriptType type;
@@ -117,7 +117,6 @@ public interface Name extends Located {
         }
 
     }
-
 
 
 }

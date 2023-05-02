@@ -51,7 +51,7 @@ public class BuiltinOpsNamespace extends JadescriptTypeNamespace {
         @Nullable String name
     ) {
         return callables.stream()
-            .filter(c -> name==null || name.equals(c.name()));
+            .filter(c -> name == null || name.equals(c.name()));
 
     }
 
@@ -59,7 +59,7 @@ public class BuiltinOpsNamespace extends JadescriptTypeNamespace {
     @Override
     public Stream<? extends MemberName> memberNames(@Nullable String name) {
         return properties.stream()
-            .filter(p -> name==null || name.equals(p.name()));
+            .filter(p -> name == null || name.equals(p.name()));
     }
 
 }

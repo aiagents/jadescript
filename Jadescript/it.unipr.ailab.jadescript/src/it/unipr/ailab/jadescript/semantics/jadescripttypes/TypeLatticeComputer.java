@@ -151,7 +151,7 @@ public class TypeLatticeComputer {
                 .compare(st1, t2).is(superTypeOrEqual()))
             .findFirst();
 
-        if(lub.isPresent()){
+        if (lub.isPresent()) {
             return lub.get();
         }
 
@@ -179,7 +179,6 @@ public class TypeLatticeComputer {
 
         return builtins.get().any(msg);
     }
-
 
 
 }

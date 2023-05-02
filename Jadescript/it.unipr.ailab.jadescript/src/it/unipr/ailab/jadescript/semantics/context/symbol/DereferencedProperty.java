@@ -12,7 +12,6 @@ public class DereferencedProperty
     private final Function<BlockElementAcceptor, String> ownerCompiler;
 
 
-
     public DereferencedProperty(
         Function<BlockElementAcceptor, String> ownerCompiler,
         Property property

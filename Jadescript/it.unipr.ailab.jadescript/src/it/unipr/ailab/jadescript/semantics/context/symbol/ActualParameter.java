@@ -19,10 +19,11 @@ public final class ActualParameter implements LocalName, FlowSensitiveSymbol {
         this.type = type;
     }
 
+
     public static ActualParameter actualParameter(
         String name,
         IJadescriptType type
-    ){
+    ) {
         return new ActualParameter(name, type);
     }
 

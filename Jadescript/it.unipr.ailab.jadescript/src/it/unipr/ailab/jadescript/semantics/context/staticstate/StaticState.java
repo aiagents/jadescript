@@ -260,7 +260,7 @@ public final class StaticState
                     )
                 ));
 
-        if(!(outerContext() instanceof StaticState)){
+        if (!(outerContext() instanceof StaticState)) {
             return localResults;
         }
 

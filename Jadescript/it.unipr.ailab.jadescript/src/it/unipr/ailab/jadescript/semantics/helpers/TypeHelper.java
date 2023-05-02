@@ -26,7 +26,6 @@ public class TypeHelper implements SemanticsConsts {
     public static final String VOID_TYPEID = builtinPrefix + "JAVAVOID";
 
 
-
     private final SemanticsModule module;
     private final LazyInit<JvmTypeHelper> jvm;
     private final LazyInit<BuiltinTypeProvider> builtins;
@@ -43,6 +42,7 @@ public class TypeHelper implements SemanticsConsts {
             + pattNarrowedContentType + "' and type (inferred from " +
             "when-expression) '" + wexpNarrowedBehaviourType + "'.";
     }
+
 
     public TypeHelper(SemanticsModule module) {
         this.module = module;
@@ -98,10 +98,6 @@ public class TypeHelper implements SemanticsConsts {
         }
         return List.of(t);
     }
-
-
-
-
 
 
     public boolean isTypeWithPrimitiveOntologySchema(IJadescriptType type) {

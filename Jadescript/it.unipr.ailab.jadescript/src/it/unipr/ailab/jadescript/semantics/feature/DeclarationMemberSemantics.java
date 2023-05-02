@@ -31,12 +31,13 @@ public abstract class DeclarationMemberSemantics<T extends Feature>
         super(semanticsModule);
     }
 
+
     public abstract void generateJvmMembers(
-            Maybe<T> input,
-            Maybe<FeatureContainer> featureContainer,
-            EList<JvmMember> members,
-            JvmDeclaredType beingDeclared,
-            BlockElementAcceptor fieldInitializationAcceptor
+        Maybe<T> input,
+        Maybe<FeatureContainer> featureContainer,
+        EList<JvmMember> members,
+        JvmDeclaredType beingDeclared,
+        BlockElementAcceptor fieldInitializationAcceptor
     );
 
 
@@ -81,9 +82,9 @@ public abstract class DeclarationMemberSemantics<T extends Feature>
 
 
     public abstract void validateOnEdit(
-            Maybe<T> input,
-            Maybe<FeatureContainer> container,
-            ValidationMessageAcceptor acceptor
+        Maybe<T> input,
+        Maybe<FeatureContainer> container,
+        ValidationMessageAcceptor acceptor
     );
 
     public abstract void validateOnSave(
@@ -92,14 +93,16 @@ public abstract class DeclarationMemberSemantics<T extends Feature>
         ValidationMessageAcceptor acceptor
     );
 
+
     protected SearchLocation getLocationOfThis() {
         return module.get(ContextManager.class).currentContext()
-                .actAs(SelfAssociated.class)
-                .findFirst()
-                .flatMap(sac -> sac.computeCurrentSelfAssociations()
-                    .findFirst())
-                .map(sa -> sa.getAssociatedType().namespace().currentLocation())
-                .orElse(module.get(ContextManager.class).currentContext()
-                    .currentLocation());
+            .actAs(SelfAssociated.class)
+            .findFirst()
+            .flatMap(sac -> sac.computeCurrentSelfAssociations()
+                .findFirst())
+            .map(sa -> sa.getAssociatedType().namespace().currentLocation())
+            .orElse(module.get(ContextManager.class).currentContext()
+                .currentLocation());
     }
+
 }

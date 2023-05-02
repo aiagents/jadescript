@@ -56,7 +56,8 @@ public abstract class UsingOntologyDeclarationContext
                         .map(OntologyAssociation::applyUsesOntology)
                 );
             } else {
-                result = Streams.concat(result,
+                result = Streams.concat(
+                    result,
                     Stream.of(new OntologyAssociation(
                         ontologyType,
                         OntologyAssociation.U_O.INSTANCE

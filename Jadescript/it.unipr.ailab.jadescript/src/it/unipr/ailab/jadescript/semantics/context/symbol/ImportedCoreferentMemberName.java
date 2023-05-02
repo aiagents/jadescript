@@ -11,7 +11,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import java.util.function.Function;
 
 public class ImportedCoreferentMemberName
-implements CompilableName, FlowSensitiveSymbol {
+    implements CompilableName, FlowSensitiveSymbol {
 
     private final ExpressionDescriptor ownerDescriptor;
     private final Function<BlockElementAcceptor, String> ownerCompiler;

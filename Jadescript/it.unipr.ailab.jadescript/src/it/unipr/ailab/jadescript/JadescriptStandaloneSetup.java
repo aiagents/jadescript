@@ -5,12 +5,14 @@ package it.unipr.ailab.jadescript;
 
 
 /**
- * Initialization support for running Xtext languages without Equinox extension registry.
+ * Initialization support for running Xtext languages without Equinox
+ * extension registry.
  */
 public class JadescriptStandaloneSetup
-	extends JadescriptStandaloneSetupGenerated {
+    extends JadescriptStandaloneSetupGenerated {
 
-	public static void doSetup() {
-		new JadescriptStandaloneSetup().createInjectorAndDoEMFRegistration();
-	}
+    public static void doSetup() {
+        new JadescriptStandaloneSetup().createInjectorAndDoEMFRegistration();
+    }
+
 }

@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public interface Pattern extends Located{
+public interface Pattern extends Located {
 
     String name();
 
@@ -29,7 +29,7 @@ public interface Pattern extends Located{
     }
 
     @Override
-    default BaseSignature getSignature(){
+    default BaseSignature getSignature() {
         return new Signature(
             name(),
             inputType(),
@@ -37,7 +37,7 @@ public interface Pattern extends Located{
         );
     }
 
-    public static class Signature implements BaseSignature{
+    public static class Signature implements BaseSignature {
 
         protected final String name;
         protected final IJadescriptType inputType;

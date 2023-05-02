@@ -4,13 +4,15 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 public class OnActivateHandlerContext
-        extends EventHandlerContext {
+    extends EventHandlerContext {
+
     public OnActivateHandlerContext(
-            SemanticsModule module,
-            ProceduralFeatureContainerContext outer
+        SemanticsModule module,
+        ProceduralFeatureContainerContext outer
     ) {
         super(module, outer, "activate");
     }
+
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {
@@ -18,8 +20,10 @@ public class OnActivateHandlerContext
         scb.line("--> is OnActivateHandlerContext");
     }
 
+
     @Override
     public String getCurrentOperationLogName() {
         return "on activate";
     }
+
 }

@@ -39,7 +39,6 @@ public abstract class UserDefinedType<T extends JadescriptType>
     }
 
 
-
     @Override
     public boolean isSlottable() {
         return getRootCategoryType().isSlottable();
@@ -68,7 +67,6 @@ public abstract class UserDefinedType<T extends JadescriptType>
     public boolean isErroneous() {
         return false;
     }
-
 
 
 }

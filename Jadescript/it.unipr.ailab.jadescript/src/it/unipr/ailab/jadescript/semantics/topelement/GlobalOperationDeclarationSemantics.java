@@ -653,11 +653,11 @@ public class GlobalOperationDeclarationSemantics
             final String call = "jadescript.java.Jadescript.<"
                 + qualifiedName + ">getInstance(" +
                 qualifiedName + ".class)." + methodNameSafe;
-            
-            if(isFunction){
+
+            if (isFunction) {
                 w.returnStmnt(w.callExpr(call, argumentsCompiled))
                     .writeSonnet(scb);
-            }else{
+            } else {
                 w.callStmnt(call, argumentsCompiled).writeSonnet(scb);
             }
 

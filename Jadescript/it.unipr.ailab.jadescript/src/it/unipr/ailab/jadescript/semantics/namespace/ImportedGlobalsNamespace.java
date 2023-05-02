@@ -3,15 +3,17 @@ package it.unipr.ailab.jadescript.semantics.namespace;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.search.Searcheable;
-import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.*;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalName;
+import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalPattern;
 import it.unipr.ailab.maybe.Maybe;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.stream.Stream;
 
 public class ImportedGlobalsNamespace
-extends NamespaceWithCompilables
-implements GlobalCallable.Namespace, GlobalName.Namespace {
+    extends NamespaceWithCompilables
+    implements GlobalCallable.Namespace, GlobalName.Namespace {
 
 
     private final NamespaceWithGlobals namespace;
@@ -71,7 +73,6 @@ implements GlobalCallable.Namespace, GlobalName.Namespace {
     public SearchLocation currentLocation() {
         return namespace.currentLocation();
     }
-
 
 
 }

@@ -4,15 +4,16 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 public abstract class HandlerWhenExpressionContext
-        extends ProceduralFeatureContext
-        implements WhenExpressionContext {
+    extends ProceduralFeatureContext
+    implements WhenExpressionContext {
 
     public HandlerWhenExpressionContext(
-            SemanticsModule module,
-            ProceduralFeatureContainerContext outer
+        SemanticsModule module,
+        ProceduralFeatureContainerContext outer
     ) {
         super(module, outer);
     }
+
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {
@@ -20,4 +21,5 @@ public abstract class HandlerWhenExpressionContext
         scb.line("--> is HandlerWhenExpressionContext");
         debugDumpIsWhenExpressionContext(scb);
     }
+
 }

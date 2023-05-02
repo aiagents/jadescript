@@ -10,15 +10,16 @@ import org.jetbrains.annotations.Nullable;
 import java.util.stream.Stream;
 
 public class OnNativeEventHandlerContext
-        extends HandlerWithWhenExpressionContext
-        implements CompilableName.Namespace, NativeEventHandledContext {
+    extends HandlerWithWhenExpressionContext
+    implements CompilableName.Namespace, NativeEventHandledContext {
 
     private final IJadescriptType nativeEventType;
 
+
     public OnNativeEventHandlerContext(
-            SemanticsModule module,
-            ProceduralFeatureContainerContext outer,
-            IJadescriptType nativeEventType
+        SemanticsModule module,
+        ProceduralFeatureContainerContext outer,
+        IJadescriptType nativeEventType
     ) {
         super(module, outer, "native");
         this.nativeEventType = nativeEventType;
@@ -48,8 +49,10 @@ public class OnNativeEventHandlerContext
         debugDumpNativeEventHandled(scb);
     }
 
+
     @Override
     public String getCurrentOperationLogName() {
         return "on native";
     }
+
 }

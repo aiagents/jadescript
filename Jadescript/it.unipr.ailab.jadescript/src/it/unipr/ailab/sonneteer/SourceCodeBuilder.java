@@ -1,23 +1,27 @@
 package it.unipr.ailab.sonneteer;
 
 public class SourceCodeBuilder {
+
     private final StringBuilder sb;
     private int indentationLevel = 0;
     private boolean freshLine = true;
 
-    public SourceCodeBuilder(){
+
+    public SourceCodeBuilder() {
         this("");
     }
 
-    public SourceCodeBuilder(String s){
-        if(!s.isEmpty()) {
+
+    public SourceCodeBuilder(String s) {
+        if (!s.isEmpty()) {
             freshLine = false;
         }
         this.sb = new StringBuilder(s);
     }
 
-    public SourceCodeBuilder line(String s){
-        if(freshLine) {
+
+    public SourceCodeBuilder line(String s) {
+        if (freshLine) {
             appendTabs();
         }
         sb.append(s).append("\n");
@@ -25,8 +29,9 @@ public class SourceCodeBuilder {
         return this;
     }
 
-    public SourceCodeBuilder line(){
-        if(freshLine) {
+
+    public SourceCodeBuilder line() {
+        if (freshLine) {
             appendTabs();
         }
         sb.append("\n");
@@ -34,8 +39,9 @@ public class SourceCodeBuilder {
         return this;
     }
 
-    public SourceCodeBuilder spaced(String s){
-        if(freshLine) {
+
+    public SourceCodeBuilder spaced(String s) {
+        if (freshLine) {
             appendTabs();
         }
         sb.append(s).append(" ");
@@ -43,8 +49,9 @@ public class SourceCodeBuilder {
         return this;
     }
 
-    public SourceCodeBuilder add(String s){
-        if(freshLine) {
+
+    public SourceCodeBuilder add(String s) {
+        if (freshLine) {
             appendTabs();
         }
         sb.append(s);
@@ -52,7 +59,8 @@ public class SourceCodeBuilder {
         return this;
     }
 
-    public SourceCodeBuilder add(SourceCodeBuilder scb){
+
+    public SourceCodeBuilder add(SourceCodeBuilder scb) {
         String[] lines = scb.toString().split("\n");
         for (String line : lines) {
             line(line);
@@ -60,38 +68,47 @@ public class SourceCodeBuilder {
         return this;
     }
 
-    public SourceCodeBuilder add(Writer w){
+
+    public SourceCodeBuilder add(Writer w) {
         w.writeSonnet(this);
         return this;
     }
 
-    public SourceCodeBuilder indent(){
+
+    public SourceCodeBuilder indent() {
         indentationLevel++;
         return this;
     }
 
-    public SourceCodeBuilder open(String opener){
+
+    public SourceCodeBuilder open(String opener) {
         return this.line(opener).indent();
     }
 
-    public SourceCodeBuilder dedent(){
+
+    public SourceCodeBuilder dedent() {
         indentationLevel--;
         return this;
     }
 
-    public SourceCodeBuilder close(String closer){
+
+    public SourceCodeBuilder close(String closer) {
         return this.dedent().line(closer);
     }
 
-    public SourceCodeBuilder closeAndOpen(String dedentedLine){
+
+    public SourceCodeBuilder closeAndOpen(String dedentedLine) {
         return this.dedent().line(dedentedLine).indent();
     }
 
-    public String toString(){
+
+    public String toString() {
         return sb.toString();
     }
+
 
     private void appendTabs() {
         sb.append("\t".repeat(Math.max(0, indentationLevel)));
     }
+
 }

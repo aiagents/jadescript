@@ -86,7 +86,7 @@ public class SideEffectFlagInternalType extends UtilityType {
     public Stream<IJadescriptType> declaredSupertypes() {
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
-        switch (seMode){
+        switch (seMode) {
             case BOTTOM:
                 return Stream.of(
                     builtins.seModeWithSE(),

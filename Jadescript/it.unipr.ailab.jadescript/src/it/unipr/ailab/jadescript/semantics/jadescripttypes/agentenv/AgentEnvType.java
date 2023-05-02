@@ -53,7 +53,7 @@ public class AgentEnvType extends JadescriptType {
 
     public static SEMode getFromTypeArgument(TypeArgument seMode) {
 
-        if(seMode instanceof SideEffectFlagInternalType){
+        if (seMode instanceof SideEffectFlagInternalType) {
             return ((SideEffectFlagInternalType) seMode).getMode();
         }
 

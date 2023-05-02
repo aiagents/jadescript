@@ -12,15 +12,18 @@ public class SimpleExpressionWriter extends ExpressionWriter {
 
     private final String expression;
 
-    public SimpleExpressionWriter(String expression){
+
+    public SimpleExpressionWriter(String expression) {
         this.expression = expression;
     }
+
 
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
         getComments().forEach(x -> x.writeSonnet(s));
         s.add(expression);
     }
+
 
     public String getExpression() {
         return expression;
@@ -41,20 +44,21 @@ public class SimpleExpressionWriter extends ExpressionWriter {
     public static String replacePlaceholderInString(
         String text,
         Function<String, String> replacer
-    ){
+    ) {
         Pattern contextPattern = Pattern.compile("#\\{[\\w.]+\\}");
-        Matcher m = contextPattern .matcher(text);
-        while(m.find()){
+        Matcher m = contextPattern.matcher(text);
+        while (m.find()) {
             String currentGroup = m.group();
             String currentPattern = currentGroup
                 .replaceAll("^#\\{", "")
                 .replaceAll("\\}$", "")
                 .trim();
             String mapValue = replacer.apply(currentPattern);
-            if (mapValue != null){
+            if (mapValue != null) {
                 text = text.replace(currentGroup, mapValue);
             }
         }
         return text;
     }
+
 }

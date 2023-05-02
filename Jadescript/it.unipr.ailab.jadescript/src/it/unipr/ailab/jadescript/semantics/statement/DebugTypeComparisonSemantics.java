@@ -60,7 +60,7 @@ public class DebugTypeComparisonSemantics
     ) {
 
 
-        switch (op){
+        switch (op) {
             case "?<":
                 return "LUB(\n\t" + type1 + ",\n\t" +
                     type2 + "\n) = " +
@@ -78,6 +78,7 @@ public class DebugTypeComparisonSemantics
                 return getComparisonMessage(type1, type2);
         }
     }
+
 
     private String getComparisonMessage(
         IJadescriptType type1,
@@ -105,7 +106,7 @@ public class DebugTypeComparisonSemantics
             result += "TypeA(" + type1 + ") < TypeB(" + type2 + ").\n";
         }
 
-        if(comparison.is(notRelated())) {
+        if (comparison.is(notRelated())) {
             result += "TypeA(" + type1 + ") and TypeB(" + type2 + ") are not " +
                 "related.";
         }

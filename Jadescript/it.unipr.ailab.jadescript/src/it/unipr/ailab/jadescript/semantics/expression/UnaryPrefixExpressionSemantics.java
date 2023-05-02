@@ -31,7 +31,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.nothing;
 
 /**
  * Created on 28/12/16.
@@ -171,10 +171,10 @@ public class UnaryPrefixExpressionSemantics
                     " is: " + type.getDebugPrint()
             );
         }
-        if(isDebugDescribe){
+        if (isDebugDescribe) {
             final Maybe<ExpressionDescriptor> descriptorMaybe =
                 ones.describeExpression(ofNotation, state);
-            System.out.println("Expression descriptor: "+descriptorMaybe);
+            System.out.println("Expression descriptor: " + descriptorMaybe);
         }
         return afterOp;
 
@@ -506,7 +506,7 @@ public class UnaryPrefixExpressionSemantics
             );
         }
 
-        if(input.__(UnaryPrefix::isDebugDescribeExpression).orElse(false)){
+        if (input.__(UnaryPrefix::isDebugDescribeExpression).orElse(false)) {
             validationHelper.emitInfo(
                 "DEBUG_INFO",
                 "Expression descriptor: "

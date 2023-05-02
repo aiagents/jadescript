@@ -76,6 +76,7 @@ public abstract class NamedTopLevelDeclarationSemantics<T extends NamedElement>
         }
     }
 
+
     public void validateOnRequest(
         Maybe<T> input,
         ValidationMessageAcceptor acceptor
@@ -110,7 +111,7 @@ public abstract class NamedTopLevelDeclarationSemantics<T extends NamedElement>
             return;
         }
 
-        if(input.isNothing()){
+        if (input.isNothing()) {
             return;
         }
 
@@ -125,7 +126,7 @@ public abstract class NamedTopLevelDeclarationSemantics<T extends NamedElement>
 
         final T inputSafe = input.toNullable();
 
-        if(fullyQualifiedName.isNothing()){
+        if (fullyQualifiedName.isNothing()) {
             return;
         }
 
@@ -136,7 +137,7 @@ public abstract class NamedTopLevelDeclarationSemantics<T extends NamedElement>
                 populateMainSuperTypes(input, itClass.getSuperTypes());
             }),
             itClass -> {
-                if(mainGeneratedClassIsAbstract(input)){
+                if (mainGeneratedClassIsAbstract(input)) {
                     itClass.setAbstract(true);
                 }
 
@@ -149,7 +150,8 @@ public abstract class NamedTopLevelDeclarationSemantics<T extends NamedElement>
         );
     }
 
-    public boolean mainGeneratedClassIsAbstract(Maybe<T> input){
+
+    public boolean mainGeneratedClassIsAbstract(Maybe<T> input) {
         return false;
     }
 

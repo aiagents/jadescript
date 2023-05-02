@@ -7,16 +7,18 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import java.util.List;
 
 public abstract class FunctionOrProcedureContext
-        extends ProceduralFeatureContext
-        implements ParameterizedContext {
+    extends ProceduralFeatureContext
+    implements ParameterizedContext {
+
     private final String functionOrProcedureName;
     private final List<ActualParameter> parameters;
 
+
     public FunctionOrProcedureContext(
-            SemanticsModule module,
-            ProceduralFeatureContainerContext outer,
-            String functionOrProcedureName,
-            List<ActualParameter> parameters
+        SemanticsModule module,
+        ProceduralFeatureContainerContext outer,
+        String functionOrProcedureName,
+        List<ActualParameter> parameters
     ) {
         super(module, outer);
         this.functionOrProcedureName = functionOrProcedureName;
@@ -29,6 +31,7 @@ public abstract class FunctionOrProcedureContext
         return parameters;
     }
 
+
     @Override
     public void debugDump(SourceCodeBuilder scb) {
         super.debugDump(scb);
@@ -36,12 +39,15 @@ public abstract class FunctionOrProcedureContext
         debugDumpParameters(scb);
     }
 
+
     public String getFunctionOrProcedureName() {
         return functionOrProcedureName;
     }
+
 
     @Override
     public String getCurrentOperationLogName() {
         return functionOrProcedureName;
     }
+
 }

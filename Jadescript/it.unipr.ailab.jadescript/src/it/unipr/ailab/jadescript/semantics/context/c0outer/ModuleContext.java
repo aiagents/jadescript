@@ -50,7 +50,7 @@ public class ModuleContext
     public Stream<? extends GlobalCallable> globalCallables(
         @Nullable String name
     ) {
-        if(name == null){
+        if (name == null) {
             return Stream.empty();
         }
         final String fqName = getModuleNameAsPrefix() + name;
@@ -62,13 +62,12 @@ public class ModuleContext
     public Stream<? extends GlobalName> globalNames(
         @Nullable String name
     ) {
-        if(name == null){
+        if (name == null) {
             return Stream.empty();
         }
         final String fqName = getModuleNameAsPrefix() + name;
         return getGlobalNamedCellsFromFQName(fqName);
     }
-
 
 
     @NotNull

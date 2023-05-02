@@ -13,10 +13,11 @@ import java.util.stream.Stream;
 
 public interface ParameterizedContext
     extends LocalName.Namespace {
+
     List<ActualParameter> getParameters();
 
     @Override
-    default Stream<? extends LocalName> localNames(@Nullable String name){
+    default Stream<? extends LocalName> localNames(@Nullable String name) {
         return getParameters().stream().filter(
             p -> name == null || p.name().equals(name)
         );
@@ -24,20 +25,18 @@ public interface ParameterizedContext
 
 
     static List<ActualParameter> zipArguments(
-            List<String> paramNames,
-            List<IJadescriptType> paramTypes
+        List<String> paramNames,
+        List<IJadescriptType> paramTypes
     ) {
         return Streams.zip(
-                paramNames.stream(),
-                paramTypes.stream(),
-                ActualParameter::actualParameter
-            ).collect(Collectors.toList());
+            paramNames.stream(),
+            paramTypes.stream(),
+            ActualParameter::actualParameter
+        ).collect(Collectors.toList());
     }
 
 
-
-
-    default void debugDumpParameters(SourceCodeBuilder scb){
+    default void debugDumpParameters(SourceCodeBuilder scb) {
         scb.open("--> is ParameterizedContext {");
         scb.open("parameters = [");
         for (LocalName parameter : getParameters()) {

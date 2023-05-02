@@ -32,7 +32,7 @@ public class OnExceptionHandlerContext
     }
 
 
-     @Override
+    @Override
     public Stream<? extends CompilableName> compilableNames(
         @Nullable String name
     ) {
@@ -40,7 +40,6 @@ public class OnExceptionHandlerContext
             this::getExceptionReasonName
         ).filter(n -> name == null || name.equals(n.name()));
     }
-
 
 
     @Override

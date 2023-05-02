@@ -59,7 +59,7 @@ public abstract class JadescriptType
     @Override
     public String getID() {
         final String result = this.getRawID();
-        if(typeArguments().isEmpty()){
+        if (typeArguments().isEmpty()) {
             return result;
         }
         return result +

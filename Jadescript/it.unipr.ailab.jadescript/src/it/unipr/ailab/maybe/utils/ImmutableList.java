@@ -18,8 +18,6 @@ public class ImmutableList<E> implements Iterable<E> {
     }
 
 
-
-
     @SuppressWarnings("unchecked")
     public static <T> ImmutableList<T> empty() {
         return (ImmutableList<T>) EMPTY;
@@ -38,9 +36,11 @@ public class ImmutableList<E> implements Iterable<E> {
         return ts;
     }
 
-    public int size(){
+
+    public int size() {
         return this.inner.size();
     }
+
 
     public ImmutableList<E> add(E e) {
         return change(l -> l.add(e));
@@ -62,6 +62,7 @@ public class ImmutableList<E> implements Iterable<E> {
     public boolean isEmpty() {
         return inner.isEmpty();
     }
+
 
     public ImmutableList<E> concat(ImmutableList<E> l2) {
         return change(l1 -> l1.addAll(l2.inner));
@@ -93,7 +94,8 @@ public class ImmutableList<E> implements Iterable<E> {
         return new LinkedList<>(inner);
     }
 
-    public ImmutableList<E> change(Consumer<List<E>> change){
+
+    public ImmutableList<E> change(Consumer<List<E>> change) {
         final ImmutableList<E> result = new ImmutableList<>();
         result.inner.addAll(this.inner);
         change.accept(result.inner);

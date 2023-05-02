@@ -5,6 +5,7 @@ public final class TypeRelationshipQuery {
     private final Class<? extends TypeRelationshipInternal> relationshipClz;
     private final String humanReadable;
 
+
     private TypeRelationshipQuery(
         Class<? extends TypeRelationshipInternal> clz,
         String humanReadable
@@ -62,43 +63,49 @@ public final class TypeRelationshipQuery {
     }
 
 
-    public static TypeRelationshipQuery related(){
+    public static TypeRelationshipQuery related() {
         return RELATED;
     }
 
-    public static TypeRelationshipQuery notRelated(){
+
+    public static TypeRelationshipQuery notRelated() {
         return NOT_RELATED;
     }
 
-    public static TypeRelationshipQuery subTypeOrEqual(){
+
+    public static TypeRelationshipQuery subTypeOrEqual() {
         return SUBTYPE_OR_EQUAL;
     }
 
-    public static TypeRelationshipQuery superTypeOrEqual(){
+
+    public static TypeRelationshipQuery superTypeOrEqual() {
         return SUPERTYPE_OR_EQUAL;
     }
 
-    public static TypeRelationshipQuery equal(){
+
+    public static TypeRelationshipQuery equal() {
         return EQUAL;
     }
 
-    public static TypeRelationshipQuery strictSuperType(){
+
+    public static TypeRelationshipQuery strictSuperType() {
         return STRICT_SUPERTYPE;
     }
 
-    public static TypeRelationshipQuery strictSubType(){
+
+    public static TypeRelationshipQuery strictSubType() {
         return STRICT_SUBTYPE;
     }
+
 
     /*package-private*/ boolean matches(TypeRelationshipInternal internal) {
         return this.relationshipClz.isInstance(internal);
     }
 
 
-    public boolean matches(TypeRelationship relationship){
+    public boolean matches(TypeRelationship relationship) {
         return this.matches(relationship.getInternal());
     }
-
 
 
 }

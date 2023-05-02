@@ -12,13 +12,15 @@ public class SemanticsDispatchHelper {
 
     private final SemanticsModule module;
 
+
     public SemanticsDispatchHelper(SemanticsModule module) {
         this.module = module;
     }
 
+
     public void dispachMemberSemantics(
-            Maybe<? extends Feature> f,
-            Consumer<DeclarationMemberSemantics<? extends Feature>> action
+        Maybe<? extends Feature> f,
+        Consumer<DeclarationMemberSemantics<? extends Feature>> action
     ) {
         Feature feature = f.toNullable();
         if (feature instanceof Field) {
@@ -52,8 +54,8 @@ public class SemanticsDispatchHelper {
 
 
     public void dispatchStatementSemantics(
-            Maybe<? extends Statement> statement,
-            Consumer<StatementSemantics<? extends Statement>> action
+        Maybe<? extends Statement> statement,
+        Consumer<StatementSemantics<? extends Statement>> action
     ) {
         Statement input = statement.toNullable();
 
@@ -100,9 +102,10 @@ public class SemanticsDispatchHelper {
             action.accept(module.get(ClearStatementSemantics.class));
         } else if (input instanceof PutbackStatement) {
             action.accept(module.get(PutBackStatementSemantics.class));
-        } else if(input instanceof DebugTypeComparison) {
+        } else if (input instanceof DebugTypeComparison) {
             action.accept(module.get(DebugTypeComparisonSemantics.class));
         }
         //else do nothing
     }
+
 }

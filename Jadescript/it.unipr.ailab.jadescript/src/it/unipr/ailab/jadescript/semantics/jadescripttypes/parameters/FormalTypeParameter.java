@@ -12,6 +12,8 @@ public class FormalTypeParameter
     /*package-private*/ final Maybe<IJadescriptType> upperBound;
     /*package-private*/ final Maybe<TypeArgument> defaultArgument;
     /*package-private*/ int index = -1;
+
+
     /*package-private*/ FormalTypeParameter(
         SemanticsModule module,
         Maybe<IJadescriptType> upperBound,

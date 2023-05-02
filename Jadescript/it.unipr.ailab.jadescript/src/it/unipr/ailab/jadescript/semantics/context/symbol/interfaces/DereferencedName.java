@@ -8,9 +8,9 @@ public interface DereferencedName
     MemberName,
     CompilableName {
 
-    default void debugDumpDereferencedName(SourceCodeBuilder scb){
+    default void debugDumpDereferencedName(SourceCodeBuilder scb) {
         BlockElementAcceptor debugAcceptor = (e) -> e.writeSonnet(scb);
-        scb.open("member name '"+name()+"' {");
+        scb.open("member name '" + name() + "' {");
         {
             scb.line("compiledOwner = " + getOwnerCompiler());
             scb.line("readingType = " + readingType());

@@ -27,13 +27,10 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
         new ArrayList<>();
 
 
-
-
     public ImplicitConversionsHelper(SemanticsModule module) {
         this.module = module;
         init();
     }
-
 
 
     private void init() {
@@ -88,7 +85,7 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
                 final TypeRelationship comparison1 =
                     comparator.compare(def.getFrom(), fromQueue);
 
-                if(!TypeRelationshipQuery.equal().matches(comparison1)){
+                if (!TypeRelationshipQuery.equal().matches(comparison1)) {
                     continue;
                 }
 
@@ -219,13 +216,16 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
             .collect(Collectors.toList());
     }
 
-    private SemanticsModule module(){
+
+    private SemanticsModule module() {
         return this.module;
     }
+
 
     private final LazyInit<JvmTypeHelper> jvm = LazyInit.lazyInit(
         () -> module().get(JvmTypeHelper.class)
     );
+
 
     public boolean isJVMPrimitiveWideningViable(
         JvmTypeReference from,
@@ -283,7 +283,6 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
     }
 
 
-
     public JvmTypeReference boxedReferenceIfPrimitive(JvmTypeReference ref) {
         final JvmType type = ref.getType();
         if (type instanceof JvmPrimitiveType) {
@@ -291,7 +290,6 @@ public class ImplicitConversionsHelper implements SemanticsConsts {
         }
         return ref;
     }
-
 
 
     public JvmTypeReference boxedReference(JvmPrimitiveType primitiveType) {

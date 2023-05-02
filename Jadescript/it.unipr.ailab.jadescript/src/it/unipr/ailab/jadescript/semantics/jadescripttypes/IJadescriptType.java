@@ -87,8 +87,6 @@ public interface IJadescriptType extends TypeArgument {
     }
 
 
-
-
     /**
      * Whether this is a slottable type (it can be part of a content)
      */
@@ -115,7 +113,6 @@ public interface IJadescriptType extends TypeArgument {
      * Whether this is the type of value resulting from a compilation error
      */
     boolean isErroneous();
-
 
 
     Maybe<OntologyType> getDeclaringOntology();
@@ -156,7 +153,6 @@ public interface IJadescriptType extends TypeArgument {
 
     String getDebugPrint();
     //overridden by VOID type in TypeHelper
-
 
 
 }

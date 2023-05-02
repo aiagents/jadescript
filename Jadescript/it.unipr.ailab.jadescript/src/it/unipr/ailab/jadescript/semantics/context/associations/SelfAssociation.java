@@ -1,9 +1,9 @@
 package it.unipr.ailab.jadescript.semantics.context.associations;
 
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
-import it.unipr.ailab.jadescript.semantics.namespace.ImportedMembersNamespace;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.namespace.ImportedMembersNamespace;
 import it.unipr.ailab.jadescript.semantics.namespace.NamespaceWithCompilables;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
@@ -45,6 +45,7 @@ public class SelfAssociation
         );
     }
 
+
     public static SelfAssociation applyExtends(SelfAssociation input) {
         return new SelfAssociation(
             input.getSelf(),
@@ -80,11 +81,12 @@ public class SelfAssociation
         scb.close("}");
     }
 
-        /*
-    Association kinds ordered by "distance"
+
+    /*
+Association kinds ordered by "distance"
 T
 ST
-     */
+ */
     @Override
     public int compareTo(@NotNull SelfAssociation o) {
         return Comparator.<SelfAssociation>comparingInt(a ->
@@ -148,7 +150,9 @@ ST
     }
 
     public interface SelfAssociationKind {
+
         int distanceOrdinal();
+
     }
 
 }

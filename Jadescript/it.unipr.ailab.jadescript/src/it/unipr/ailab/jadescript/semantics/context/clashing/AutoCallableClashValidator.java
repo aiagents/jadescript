@@ -79,9 +79,9 @@ public interface AutoCallableClashValidator extends CallableClashValidator {
         final List<IJadescriptType> apTypes = alreadyPresent.parameterTypes();
         final List<IJadescriptType> tbaTypes = toBeAdded.parameterTypes();
         for (int i = 0; i < apTypes.size(); i++) {
-            if(!TypeRelationshipQuery.equal().matches(comparator.compare(
+            if (!TypeRelationshipQuery.equal().matches(comparator.compare(
                 apTypes.get(i), tbaTypes.get(i)
-            ))){
+            ))) {
                 return false;
             }
         }

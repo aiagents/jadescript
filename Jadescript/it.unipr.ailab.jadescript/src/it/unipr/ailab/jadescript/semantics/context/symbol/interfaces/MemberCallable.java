@@ -15,13 +15,16 @@ public interface MemberCallable extends Dereferenceable, Callable {
     );
 
 
-    default void debugDumpMemberCallable(SourceCodeBuilder scb){
+    default void debugDumpMemberCallable(SourceCodeBuilder scb) {
         dereference((__) -> "<owner>").debugDumpDereferencedCallable(scb);
     }
 
-    public interface Namespace{
+    public interface Namespace {
+
         Stream<? extends MemberCallable> memberCallables(
             @Nullable String name
         );
+
     }
+
 }

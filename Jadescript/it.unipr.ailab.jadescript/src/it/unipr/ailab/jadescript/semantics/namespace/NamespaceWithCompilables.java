@@ -20,6 +20,7 @@ public abstract class NamespaceWithCompilables
         super(module);
     }
 
+
     public static NamespaceWithCompilables empty(
         SemanticsModule module,
         SearchLocation location

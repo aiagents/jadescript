@@ -13,4 +13,5 @@ import static java.lang.annotation.ElementType.FIELD;
 public @interface MessageBuiltinType {
 
     int value() default ACLMessage.UNKNOWN; //Peformative of the message
+
 }

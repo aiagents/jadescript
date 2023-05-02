@@ -15,28 +15,28 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public class GFoPDeclarationContext
-        extends UsingOntologyDeclarationContext
-implements AgentAssociated {
+    extends UsingOntologyDeclarationContext
+    implements AgentAssociated {
 
     private final String GFoPName;
 
+
     public GFoPDeclarationContext(
-            SemanticsModule module,
-            FileContext outer,
-            String GFoPName,
-            List<IJadescriptType> ontologyTypes
+        SemanticsModule module,
+        FileContext outer,
+        String GFoPName,
+        List<IJadescriptType> ontologyTypes
     ) {
         super(module, outer, ontologyTypes);
         this.GFoPName = GFoPName;
     }
 
 
-
-
     @Override
     public Maybe<Searcheable> superTypeSearcheable() {
         return Maybe.nothing();
     }
+
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {
@@ -46,15 +46,18 @@ implements AgentAssociated {
         debugDumpOntologyAssociations(scb);
     }
 
+
     @Override
     public String getCurrentOperationLogName() {
         return GFoPName;
     }
 
+
     @Override
     public Stream<AgentAssociation> computeCurrentAgentAssociations() {
         return Stream.empty();
     }
+
 
     @Override
     public Stream<AgentAssociation> computeForClauseAgentAssociations() {
@@ -64,10 +67,12 @@ implements AgentAssociated {
         ));
     }
 
+
     @Override
     public Stream<OntologyAssociation> computeCurrentOntologyAssociations() {
         return Stream.empty();
     }
+
 
     @Override
     public Stream<OntologyAssociation> computeForClauseOntologyAssociations() {
@@ -77,8 +82,10 @@ implements AgentAssociated {
         ));
     }
 
+
     @Override
     public boolean canUseAgentReference() {
         return false;
     }
+
 }

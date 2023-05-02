@@ -102,7 +102,6 @@ public class ListType
     }
 
 
-
     public IJadescriptType getElementType() {
         return this.elementType.ignoreBound();
     }
@@ -158,8 +157,6 @@ public class ListType
     public String getSlotSchemaName() {
         return "\"" + ListType.getAdHocListClassName(getElementType()) + "\"";
     }
-
-
 
 
     private final LazyInit<BuiltinOpsNamespace> namespace =

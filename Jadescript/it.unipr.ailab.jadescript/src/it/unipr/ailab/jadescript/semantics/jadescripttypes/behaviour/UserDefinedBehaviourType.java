@@ -44,8 +44,6 @@ public class UserDefinedBehaviourType
     }
 
 
-
-
     @Override
     public boolean isSendable() {
         return false;

@@ -10,7 +10,7 @@ import it.unipr.ailab.sonneteer.type.IClassDeclarationWriter;
 import java.util.List;
 
 public class LocalClassStatementWriter extends StatementWriter
-    implements IClassDeclarationWriter{
+    implements IClassDeclarationWriter {
 
     private final IClassDeclarationWriter delegate;
 
@@ -24,25 +24,30 @@ public class LocalClassStatementWriter extends StatementWriter
         );
     }
 
+
     @Override
     public IClassDeclarationWriter addExtends(String extendedClass) {
         return delegate.addExtends(extendedClass);
     }
+
 
     @Override
     public IClassDeclarationWriter addImplements(String implementedInterface) {
         return delegate.addImplements(implementedInterface);
     }
 
+
     @Override
     public ClassDeclarationWriter addMember(ClassMemberWriter member) {
         return delegate.addMember(member);
     }
 
+
     @Override
     public IClassDeclarationWriter addPSFS(String constName, String value) {
         return delegate.addPSFS(constName, value);
     }
+
 
     @Override
     public IClassDeclarationWriter addPSFS(
@@ -53,6 +58,7 @@ public class LocalClassStatementWriter extends StatementWriter
         return delegate.addPSFS(constName, value, comment);
     }
 
+
     @Override
     public ClassDeclarationWriter addProperty(
         String type,
@@ -62,6 +68,7 @@ public class LocalClassStatementWriter extends StatementWriter
         return delegate.addProperty(type, name, readOnly);
     }
 
+
     @Override
     public ClassDeclarationWriter.ConstructorWriter addConstructor(
         Visibility visibility
@@ -69,40 +76,48 @@ public class LocalClassStatementWriter extends StatementWriter
         return delegate.addConstructor(visibility);
     }
 
+
     @Override
     public void addAnnotation(String annotation) {
         delegate.addAnnotation(annotation);
     }
+
 
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
         delegate.writeSonnet(s);
     }
 
+
     @Override
     public List<String> getExtend() {
         return delegate.getExtend();
     }
+
 
     @Override
     public List<String> getImplement() {
         return delegate.getImplement();
     }
 
+
     @Override
     public List<ClassMemberWriter> getMembers() {
         return delegate.getMembers();
     }
+
 
     @Override
     public String getName() {
         return delegate.getName();
     }
 
+
     @Override
     public boolean isOrderConvention() {
         return delegate.isOrderConvention();
     }
+
 
     @Override
     public void setOrderConvention(boolean orderConvention) {

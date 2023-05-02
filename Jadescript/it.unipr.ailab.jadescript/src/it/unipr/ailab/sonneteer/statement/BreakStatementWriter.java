@@ -6,29 +6,30 @@ public class BreakStatementWriter extends StatementWriter {
 
     private final boolean isContinue;
 
+
     public BreakStatementWriter() {
         isContinue = false;
     }
+
 
     public BreakStatementWriter(boolean isContinue) {
         this.isContinue = isContinue;
     }
 
+
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
         getComments().forEach(x -> x.writeSonnet(s));
-        if(isContinue){
+        if (isContinue) {
             s.line("continue;");
-        }else {
+        } else {
             s.line("break;");
         }
     }
 
 
-
-
-
     public boolean isContinue() {
         return isContinue;
     }
+
 }

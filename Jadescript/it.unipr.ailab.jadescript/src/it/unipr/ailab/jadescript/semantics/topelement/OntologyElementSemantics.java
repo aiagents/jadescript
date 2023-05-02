@@ -599,13 +599,13 @@ public class OntologyElementSemantics extends Semantics {
         final TypeComparator comparator =
             module.get(TypeComparator.class);
 
-        if(TypeRelationshipQuery.superTypeOrEqual().matches(
+        if (TypeRelationshipQuery.superTypeOrEqual().matches(
             comparator.compare(builtins.proposition(), type)
         )) {
             return true;
         }
 
-        if(type.category().isTuple() || type.category().isCollection()){
+        if (type.category().isTuple() || type.category().isCollection()) {
             return type.typeArguments().stream()
                 .map(TypeArgument::ignoreBound)
                 .anyMatch(this::includesPropositions);

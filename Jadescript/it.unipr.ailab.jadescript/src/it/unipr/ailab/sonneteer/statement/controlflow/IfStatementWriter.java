@@ -17,24 +17,28 @@ public class IfStatementWriter extends StatementWriter {
     private final List<BlockWriter> elseIfBranches = new ArrayList<>();
     private BlockWriter elseBranch = null;
 
-    public IfStatementWriter(ExpressionWriter condition, BlockWriter ifBranch){
+
+    public IfStatementWriter(ExpressionWriter condition, BlockWriter ifBranch) {
         this.condition = condition;
         this.ifBranch = ifBranch;
     }
 
+
     public IfStatementWriter addElseIfBranch(
         ExpressionWriter condition,
         BlockWriter elseIfBranch
-    ){
+    ) {
         elseIfConditions.add(condition);
         elseIfBranches.add(elseIfBranch);
         return this;
     }
 
-    public IfStatementWriter setElseBranch(BlockWriter elseBranch){
+
+    public IfStatementWriter setElseBranch(BlockWriter elseBranch) {
         this.elseBranch = elseBranch;
         return this;
     }
+
 
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
@@ -43,7 +47,7 @@ public class IfStatementWriter extends StatementWriter {
         condition.writeSonnet(s);
         s.spaced(")");
         ifBranch.writeSonnet(s);
-        for(int i = 0; i < elseIfConditions.size(); i++){
+        for (int i = 0; i < elseIfConditions.size(); i++) {
             ExpressionWriter eic = elseIfConditions.get(i);
             BlockWriter eib = elseIfBranches.get(i);
             s.add("else if(");
@@ -51,27 +55,32 @@ public class IfStatementWriter extends StatementWriter {
             s.spaced(")");
             eib.writeSonnet(s);
         }
-        if(elseBranch != null){
+        if (elseBranch != null) {
             s.spaced("else");
             elseBranch.writeSonnet(s);
         }
     }
 
+
     public ExpressionWriter getCondition() {
         return condition;
     }
+
 
     public BlockWriter getElseBranch() {
         return elseBranch;
     }
 
+
     public List<BlockWriter> getElseIfBranches() {
         return elseIfBranches;
     }
 
+
     public List<ExpressionWriter> getElseIfConditions() {
         return elseIfConditions;
     }
+
 
     public BlockWriter getIfBranch() {
         return ifBranch;

@@ -16,6 +16,7 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
 
     private final Maybe<RValueExpression> key;
 
+
     public SubscriptionElement(
         SemanticsModule module,
         Maybe<RValueExpression> key
@@ -24,11 +25,13 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
         this.key = key;
     }
 
+
     private Maybe<Subscript> generateSubscript(
         ReversedTrailerChain rest
     ) {
         return Subscript.subscript(key, rest);
     }
+
 
     @Override
     public AssignableExpressionSemantics.SemanticsBoundToAssignableExpression<?>
@@ -39,4 +42,5 @@ public class SubscriptionElement extends TrailersExpressionChainElement {
             generateSubscript(rest)
         );
     }
+
 }

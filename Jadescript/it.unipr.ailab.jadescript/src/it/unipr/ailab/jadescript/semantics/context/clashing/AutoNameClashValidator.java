@@ -27,7 +27,7 @@ public interface AutoNameClashValidator extends NameClashValidator {
                     )
                     .filter(c -> c.arity() == 0),
                 ((CompilableCallable.Namespace) this).compilableCallables(
-                    "set" + Strings.toFirstUpper(name))
+                        "set" + Strings.toFirstUpper(name))
                     .filter(c -> c.arity() == 1)
             ).map(alreadyPresent -> new DefinitionClash(
                 toBeAdded,

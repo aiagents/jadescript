@@ -32,10 +32,12 @@ public class MethodWriter extends ClassMemberWriter {
         this.name = name;
     }
 
+
     public MethodWriter addParameter(ParameterWriter parameterPoet) {
         this.parameters.add(parameterPoet);
         return this;
     }
+
 
     public MethodWriter addThrows(String exceptionType) {
         this.throwsDeclarations.add(exceptionType);
@@ -54,7 +56,7 @@ public class MethodWriter extends ClassMemberWriter {
         if (isStatic()) {
             s.spaced("static");
         }
-        if(!returnType.isEmpty()){
+        if (!returnType.isEmpty()) {
             s.spaced(returnType);
         }
         s.add(name).add("(");
@@ -73,7 +75,7 @@ public class MethodWriter extends ClassMemberWriter {
                 s.add(throwsDeclarations.get(i));
                 if (i != throwsDeclarations.size() - 1) {
                     s.spaced(",");
-                }else{
+                } else {
                     s.add(" ");
                 }
             }
@@ -82,23 +84,29 @@ public class MethodWriter extends ClassMemberWriter {
         body.writeSonnet(s);
     }
 
+
     public void setBody(BlockWriter body) {
         this.body = body;
     }
+
 
     public BlockWriter getBody() {
         return body;
     }
 
+
     public String getName() {
         return name;
     }
+
 
     public List<ParameterWriter> getParameters() {
         return parameters;
     }
 
+
     public String getReturnType() {
         return returnType;
     }
+
 }

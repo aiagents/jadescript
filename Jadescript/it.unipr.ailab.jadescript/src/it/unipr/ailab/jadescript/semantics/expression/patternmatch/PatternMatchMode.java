@@ -70,8 +70,6 @@ public class PatternMatchMode {
     }
 
 
-
-
     public RequiresSuccessfulMatch getRequiresSuccessfulMatch() {
         return requiresSuccessfulMatch;
     }
@@ -155,7 +153,6 @@ public class PatternMatchMode {
         REQUIRES_SUCCESSFUL_MATCH,
         CAN_FAIL
     }
-
 
 
     public enum PatternApplicationSideEffects {

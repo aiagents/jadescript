@@ -11,7 +11,8 @@ public enum Visibility implements Writer {
 
     private final String text;
 
-    Visibility(String s){
+
+    Visibility(String s) {
         this.text = s;
     }
 

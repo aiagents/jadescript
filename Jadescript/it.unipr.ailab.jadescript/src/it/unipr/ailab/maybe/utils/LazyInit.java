@@ -26,7 +26,8 @@ public final class LazyInit<T> implements Supplier<T> {
         return new LazyInit<>(supplier);
     }
 
-    public static <S> LazyInit<S> init(S value){
+
+    public static <S> LazyInit<S> init(S value) {
         return new LazyInit<>(value);
     }
 

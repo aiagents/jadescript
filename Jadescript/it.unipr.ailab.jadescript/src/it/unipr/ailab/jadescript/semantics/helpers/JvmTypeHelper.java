@@ -365,7 +365,6 @@ public class JvmTypeHelper {
     }
 
 
-
     public boolean isAssignableGeneric(
         JvmTypeReference toType,
         JvmTypeReference fromType

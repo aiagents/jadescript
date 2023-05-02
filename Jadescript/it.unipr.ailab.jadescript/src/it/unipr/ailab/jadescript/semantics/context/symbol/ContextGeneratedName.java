@@ -37,8 +37,8 @@ public class ContextGeneratedName implements LocalName {
         acceptor.accept(
             w.assign(
                 "/*Error:" +
-            " attempted to write on context-generated name '"+name+"' */" +
-            name,
+                    " attempted to write on context-generated name '" + name + "' */" +
+                    name,
                 w.expr(rexpr)
             )
         );

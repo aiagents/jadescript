@@ -445,7 +445,8 @@ public class MaybeList<OfType> implements Iterable<Maybe<OfType>> {
             .mapToObj(this::wrapGet);
     }
 
-    public Stream<OfType> streamNonNulls(){
+
+    public Stream<OfType> streamNonNulls() {
         return stream().filter(Maybe::isPresent).map(Maybe::toNullable);
     }
 

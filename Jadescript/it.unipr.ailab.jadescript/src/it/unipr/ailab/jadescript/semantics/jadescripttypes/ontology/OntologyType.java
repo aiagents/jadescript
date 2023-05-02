@@ -25,7 +25,7 @@ public interface OntologyType
     };
 
     @Override
-    default TypeCategory category(){
+    default TypeCategory category() {
         return CATEGORY;
     }
 

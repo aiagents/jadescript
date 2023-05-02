@@ -15,4 +15,5 @@ abstract class ParametricTypeBuilder<T extends IJadescriptType> {
         List<? extends TypeArgument> arguments,
         InvalidTypeInstantiatonException error
     );
+
 }

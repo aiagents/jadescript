@@ -14,7 +14,6 @@ public class OnBehaviourFailureHandlerWhenExpressionContext
     implements CompilableName.Namespace, BehaviourFailureHandledContext {
 
 
-
     public OnBehaviourFailureHandlerWhenExpressionContext(
         SemanticsModule module,
         ProceduralFeatureContainerContext outer
@@ -41,7 +40,7 @@ public class OnBehaviourFailureHandlerWhenExpressionContext
     }
 
 
-     @Override
+    @Override
     public Stream<? extends CompilableName> compilableNames(
         @Nullable String name
     ) {

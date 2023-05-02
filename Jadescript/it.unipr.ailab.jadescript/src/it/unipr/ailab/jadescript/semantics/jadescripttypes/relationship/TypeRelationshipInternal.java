@@ -8,11 +8,12 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship;
 interface TypeRelationshipInternal {
 
 
-
     interface Related extends TypeRelationshipInternal {
+
     }
 
     interface NotRelated extends TypeRelationshipInternal {
+
     }
 
     NotRelated NOT_RELATED = new NotRelated() {
@@ -23,12 +24,15 @@ interface TypeRelationshipInternal {
     };
 
     interface SubtypeOrEqual extends Related {
+
     }
 
     interface SupertypeOrEqual extends Related {
+
     }
 
     interface Equal extends SupertypeOrEqual, SubtypeOrEqual {
+
     }
 
     Equal EQUAL = new Equal() {
@@ -39,6 +43,7 @@ interface TypeRelationshipInternal {
     };
 
     interface StrictSubtype extends SubtypeOrEqual {
+
     }
 
     StrictSubtype STRICT_SUBTYPE = new StrictSubtype() {
@@ -49,6 +54,7 @@ interface TypeRelationshipInternal {
     };
 
     interface StrictSupertype extends SupertypeOrEqual {
+
     }
 
     StrictSupertype STRICT_SUPERTYPE = new StrictSupertype() {

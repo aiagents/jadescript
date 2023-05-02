@@ -397,7 +397,7 @@ public class TypeComparator {
         }
 
         // Assuming both members
-        if(rawEquals(subject, target)){
+        if (rawEquals(subject, target)) {
             return some(equal());
         }
 

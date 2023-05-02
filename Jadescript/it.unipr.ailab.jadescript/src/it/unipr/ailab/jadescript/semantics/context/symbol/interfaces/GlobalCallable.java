@@ -8,6 +8,7 @@ public interface GlobalCallable extends Global, CompilableCallable {
 
 
     public interface Namespace extends CompilableCallable.Namespace {
+
         Stream<? extends GlobalCallable> globalCallables(
             @Nullable String name
         );
@@ -15,9 +16,10 @@ public interface GlobalCallable extends Global, CompilableCallable {
         @Override
         default Stream<? extends CompilableCallable> compilableCallables(
             @Nullable String name
-        ){
+        ) {
             return globalCallables(name);
         }
 
     }
+
 }

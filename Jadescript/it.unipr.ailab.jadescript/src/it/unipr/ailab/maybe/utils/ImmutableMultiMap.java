@@ -37,9 +37,11 @@ public class ImmutableMultiMap<K, V> {
         return result;
     }
 
+
     @SafeVarargs
     public static <KK, VV> ImmutableMultiMap<KK, VV> ofSet(
-        KK k, VV... v) {
+        KK k, VV... v
+    ) {
         var result = new ImmutableMultiMap<KK, VV>();
         result.mutPutMany(k, List.of(v));
         return result;

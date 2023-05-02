@@ -220,9 +220,6 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
         }
 
 
-
-
-
         return afterRight;
 
     }

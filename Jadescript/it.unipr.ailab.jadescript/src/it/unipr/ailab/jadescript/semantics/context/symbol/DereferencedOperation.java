@@ -31,7 +31,6 @@ public class DereferencedOperation
     }
 
 
-
     @Override
     public String compileInvokeByArity(
         List<String> compiledRexprs,
@@ -45,7 +44,8 @@ public class DereferencedOperation
 
 
     @Override
-    public String compileInvokeByName(Map<String, String> compiledRexprs,
+    public String compileInvokeByName(
+        Map<String, String> compiledRexprs,
         BlockElementAcceptor acceptor
     ) {
         return invokeByNameCustom.apply(
@@ -59,7 +59,6 @@ public class DereferencedOperation
     public Function<BlockElementAcceptor, String> getOwnerCompiler() {
         return ownerCompiler;
     }
-
 
 
 }

@@ -17,17 +17,19 @@ public class FieldWriter extends ClassMemberWriter {
     private final String name;
     private ExpressionWriter initExpression = null;
 
+
     public FieldWriter(
         Visibility visibility,
         boolean isStatic,
         boolean isFinal,
         String type,
         String name
-    ){
+    ) {
         super(visibility, isFinal, isStatic);
         this.type = type;
         this.name = name;
     }
+
 
     public FieldWriter(
         Visibility visibility,
@@ -36,7 +38,7 @@ public class FieldWriter extends ClassMemberWriter {
         String type,
         String name,
         ExpressionWriter initExpression
-    ){
+    ) {
         this(visibility, isStatic, isFinal, type, name);
         this.initExpression = initExpression;
     }
@@ -47,35 +49,39 @@ public class FieldWriter extends ClassMemberWriter {
         getComments().forEach(x -> x.writeSonnet(s));
         getAnnotations().forEach(s::line);
         getVisibility().writeSonnet(s);
-        if(isFinal()) {
+        if (isFinal()) {
             s.spaced("final");
         }
-        if(isStatic()) {
+        if (isStatic()) {
             s.spaced("static");
         }
         s.spaced(type).add(name);
-        if(initExpression!=null) {
+        if (initExpression != null) {
             s.spaced(" = ");
             initExpression.writeSonnet(s);
         }
         s.line(";");
     }
 
+
     public ExpressionWriter getInitExpression() {
         return initExpression;
     }
+
 
     public String getName() {
         return name;
     }
 
+
     public String getType() {
         return type;
     }
 
-    public MethodWriter generateGetter(){
-        String firstCapitalLetterName = name.substring(0,1).toUpperCase()
-            +name.substring(1);
+
+    public MethodWriter generateGetter() {
+        String firstCapitalLetterName = name.substring(0, 1).toUpperCase()
+            + name.substring(1);
         MethodWriter getter = new MethodWriter(
             Visibility.PUBLIC,
             false,

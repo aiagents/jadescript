@@ -22,7 +22,7 @@ public interface MessageType
     MessageTypeNamespace namespace();
 
     @Override
-    default TypeCategory category(){
+    default TypeCategory category() {
         return CATEGORY;
     }
 

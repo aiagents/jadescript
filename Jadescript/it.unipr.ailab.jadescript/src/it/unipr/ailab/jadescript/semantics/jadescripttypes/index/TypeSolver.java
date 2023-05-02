@@ -541,7 +541,6 @@ public class TypeSolver {
         }
 
 
-
         return result;
     }
 

@@ -9,48 +9,57 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class JvmTypeQualifiedNameParser {
+
     private JvmTypeQualifiedNameParser() {
     } //Do not instantiate
 
+
     public static class GenericType {
+
         private final String type;
         private final boolean isGeneric;
         private final List<GenericType> arguments = new ArrayList<>();
+
 
         public GenericType(String type, boolean isGeneric) {
             this.type = type;
             this.isGeneric = isGeneric;
         }
 
+
         public boolean isGeneric() {
             return isGeneric;
         }
+
 
         public String getType() {
             return type;
         }
 
+
         public List<GenericType> getArguments() {
             return arguments;
         }
 
+
         public JvmTypeReference convertToTypeRef(
-                Function<String, JvmTypeReference> typeRefFactory,
-                BiFunction<String, JvmTypeReference[], JvmTypeReference>
-                    genericTypeRefFactory
-        ){
-            if(isGeneric){
+            Function<String, JvmTypeReference> typeRefFactory,
+            BiFunction<String, JvmTypeReference[], JvmTypeReference>
+                genericTypeRefFactory
+        ) {
+            if (isGeneric) {
                 final JvmTypeReference[] args = arguments.stream()
-                        .map(gt -> gt.convertToTypeRef(
-                            typeRefFactory,
-                            genericTypeRefFactory
-                        ))
-                        .toArray(JvmTypeReference[]::new);
+                    .map(gt -> gt.convertToTypeRef(
+                        typeRefFactory,
+                        genericTypeRefFactory
+                    ))
+                    .toArray(JvmTypeReference[]::new);
                 return genericTypeRefFactory.apply(type, args);
-            }else{
+            } else {
                 return typeRefFactory.apply(type);
             }
         }
+
     }
 
     private enum JvmGenericTokenType {
@@ -58,9 +67,11 @@ public class JvmTypeQualifiedNameParser {
     }
 
     private static class Token {
+
         final JvmGenericTokenType type;
         final String lexeme;
         final int line;
+
 
         Token(JvmGenericTokenType type, String lexeme, int line) {
             this.type = type;
@@ -68,21 +79,26 @@ public class JvmTypeQualifiedNameParser {
             this.line = line;
         }
 
+
         public String toString() {
             return "Token(" + type + " " + lexeme + ")";
         }
+
     }
 
     private static class Scanner {
+
         private final String source;
         private final List<Token> tokens = new ArrayList<>();
         private int start = 0;
         private int current = 0;
         private int line = 1;
 
+
         Scanner(String source) {
             this.source = source;
         }
+
 
         private List<Token> scanTokens() {
             while (!isAtEnd()) {
@@ -94,6 +110,7 @@ public class JvmTypeQualifiedNameParser {
             tokens.add(new Token(JvmGenericTokenType.EOF, "", line));
             return tokens;
         }
+
 
         private void scanToken() {
             char c = advance();
@@ -115,6 +132,7 @@ public class JvmTypeQualifiedNameParser {
             }
         }
 
+
         private boolean match(char expected) {
             if (isAtEnd()) {
                 return false;
@@ -127,6 +145,7 @@ public class JvmTypeQualifiedNameParser {
             return true;
         }
 
+
         private void other() {
             while (!isAtEnd() && isOther(peek())) {
                 advance();
@@ -135,17 +154,21 @@ public class JvmTypeQualifiedNameParser {
             addToken(JvmGenericTokenType.OTHER);
         }
 
+
         private boolean isOther(char x) {
             return x != '<' && x != '>';
         }
+
 
         private boolean isAtEnd() {
             return current >= source.length();
         }
 
+
         private char advance() {
             return source.charAt(current++);
         }
+
 
         private char peek() {
             if (isAtEnd()) {
@@ -153,6 +176,7 @@ public class JvmTypeQualifiedNameParser {
             }
             return source.charAt(current);
         }
+
 
         private void addToken(JvmGenericTokenType type) {
             String text = source.substring(start, current);
@@ -163,28 +187,34 @@ public class JvmTypeQualifiedNameParser {
     }
 
     @SuppressWarnings("serial")
-	public static class ParseError extends RuntimeException {
+    public static class ParseError extends RuntimeException {
 
         private final Token token;
+
 
         public ParseError(Token token, String message) {
             super("Syntax error: " + message);
             this.token = token;
         }
 
+
         public Token getToken() {
             return token;
         }
+
     }
 
 
     private static class Parser {
+
         private final List<Token> tokens;
         private int current = 0;
+
 
         public Parser(List<Token> tokens) {
             this.tokens = tokens;
         }
+
 
         public GenericType type() {
             Token other = consume(
@@ -210,6 +240,7 @@ public class JvmTypeQualifiedNameParser {
             return genericType;
         }
 
+
         private boolean match(JvmGenericTokenType... types) {
             for (JvmGenericTokenType type : types) {
                 if (check(type)) {
@@ -221,12 +252,14 @@ public class JvmTypeQualifiedNameParser {
             return false;
         }
 
+
         private boolean check(JvmGenericTokenType type) {
             if (isAtEnd()) {
                 return false;
             }
             return peek().type == type;
         }
+
 
         private Token advance() {
             if (!isAtEnd()) {
@@ -235,17 +268,21 @@ public class JvmTypeQualifiedNameParser {
             return previous();
         }
 
+
         private boolean isAtEnd() {
             return peek().type == JvmGenericTokenType.EOF;
         }
+
 
         private Token peek() {
             return tokens.get(current);
         }
 
+
         private Token previous() {
             return tokens.get(current - 1);
         }
+
 
         private Token consume(JvmGenericTokenType type, String message) {
             if (check(type)) {
@@ -255,21 +292,24 @@ public class JvmTypeQualifiedNameParser {
             throw error(peek(), message);
         }
 
+
         private ParseError error(Token token, String message) {
             return new ParseError(token, message);
         }
+
 
         private void synchronize() {
             advance();
 
             while (!isAtEnd()) {
                 if (previous().type == JvmGenericTokenType.CLOSE
-                        || peek().type == JvmGenericTokenType.OPEN) {
+                    || peek().type == JvmGenericTokenType.OPEN) {
                     return;
                 }
                 advance();
             }
         }
+
     }
 
 
@@ -277,9 +317,9 @@ public class JvmTypeQualifiedNameParser {
         Scanner sc = new Scanner(input);
         final List<Token> tokens = sc.scanTokens();
         Parser p = new Parser(tokens);
-        try{
+        try {
             return p.type();
-        }catch (ParseError pe){
+        } catch (ParseError pe) {
             p.synchronize();
             return null;
         }

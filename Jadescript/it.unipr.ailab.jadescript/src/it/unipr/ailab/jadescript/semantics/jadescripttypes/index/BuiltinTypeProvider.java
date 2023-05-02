@@ -248,7 +248,7 @@ public class BuiltinTypeProvider {
                     public ListType instantiateErroneous(
                         List<? extends TypeArgument> arguments,
                         InvalidTypeInstantiatonException error
-                    ){
+                    ) {
                         return new ListType(
                             getModule(),
                             any(error.getMessage())
@@ -560,7 +560,7 @@ public class BuiltinTypeProvider {
                         List<? extends TypeArgument> arguments,
                         InvalidTypeInstantiatonException error
                     ) {
-                        if(arguments.size() == 1){
+                        if (arguments.size() == 1) {
                             return new MapType(
                                 getModule(),
                                 arguments.get(0),
@@ -1938,7 +1938,8 @@ public class BuiltinTypeProvider {
         return new AnyType(getModule(), errorMessage);
     }
 
-    public AnyType any(Throwable t){
+
+    public AnyType any(Throwable t) {
         return new AnyType(getModule(), t.getMessage());
     }
 

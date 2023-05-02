@@ -24,7 +24,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.stream.Stream;
 
-import static it.unipr.ailab.maybe.Maybe.*;
+import static it.unipr.ailab.maybe.Maybe.someStream;
 
 public class OntologyDeclarationSupportContext
     extends TopLevelDeclarationContext

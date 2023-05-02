@@ -26,7 +26,6 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
     private final Maybe<ExpressionDescriptor> descriptorMaybe;
 
 
-
     public PatternMatchInput(
         SemanticsModule module,
         PatternMatchMode patternMatchMode,
@@ -63,7 +62,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
         return pattern;
     }
 
-    public Maybe<ExpressionDescriptor> getInputDescriptor(){
+
+    public Maybe<ExpressionDescriptor> getInputDescriptor() {
         return descriptorMaybe;
     }
 
@@ -98,6 +98,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
         );
     }
 
+
     public <T2> SubPattern<T2, T> subPatternForProperty(
         IJadescriptType providedInputType,
         Function<T, T2> extractSubpattern,
@@ -130,8 +131,6 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             (__) -> Maybe.nothing()
         );
     }
-
-
 
 
     public PatternMatcher createEmptyCompileOutput() {
@@ -230,6 +229,7 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             fieldName
         );
     }
+
 
     public PatternMatcher.AsReassigningMethod
     createReassigningMethodOutput(
@@ -541,8 +541,8 @@ public abstract class PatternMatchInput<T> implements SemanticsConsts {
             if (holesAndGroundnessRequirement == null) {
                 holesAndGroundness =
                     rootInput.getMode().getHolesAndGroundness();
-                if(holesAndGroundness ==
-                    PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_VARS){
+                if (holesAndGroundness ==
+                    PatternMatchMode.HolesAndGroundness.REQUIRES_FREE_VARS) {
                     holesAndGroundness =
                         PatternMatchMode.HolesAndGroundness.ACCEPTS_ANY_HOLE;
                 }

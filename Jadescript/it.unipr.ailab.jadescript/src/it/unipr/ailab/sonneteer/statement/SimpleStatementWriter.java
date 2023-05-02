@@ -6,9 +6,11 @@ public class SimpleStatementWriter extends StatementWriter {
 
     private final String stmt;
 
-    public SimpleStatementWriter(String stmt){
+
+    public SimpleStatementWriter(String stmt) {
         this.stmt = stmt;
     }
+
 
     @Override
     public void writeSonnet(SourceCodeBuilder s) {

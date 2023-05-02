@@ -32,9 +32,10 @@ public class NativeCall extends ProxyEObject {
         this.isStatement = isStatement;
     }
 
+
     public static Maybe<NativeCall> fromExpression(
         Maybe<NativeExpression> input
-    ){
+    ) {
         return input.__(i -> new NativeCall(
             i,
             i.getSimpleArguments(),
@@ -44,6 +45,7 @@ public class NativeCall extends ProxyEObject {
             IS_EXPRESSION
         ));
     }
+
 
     public static Maybe<NativeCall> fromStatement(
         Maybe<ProcedureCallStatement> input
@@ -63,19 +65,23 @@ public class NativeCall extends ProxyEObject {
         return simpleArguments;
     }
 
-    public RValueExpression getNameExpr(){
+
+    public RValueExpression getNameExpr() {
         return nameExpr;
     }
+
 
     public boolean isResolveDynamically() {
         return nameExpr != null;
     }
 
-    public TypeExpression getType(){
+
+    public TypeExpression getType() {
         return typeClause;
     }
 
-    public boolean hasTypeClause(){
+
+    public boolean hasTypeClause() {
         return typeClause != null;
     }
 

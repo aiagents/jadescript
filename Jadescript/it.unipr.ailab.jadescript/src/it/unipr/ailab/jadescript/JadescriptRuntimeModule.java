@@ -3,17 +3,15 @@
  */
 package it.unipr.ailab.jadescript;
 
+import com.google.inject.Binder;
+import com.google.inject.name.Names;
+import it.unipr.ailab.jadescript.jvmmodel.JadescriptCompilerUtils;
+import it.unipr.ailab.jadescript.scoping.JadescriptQualifiedNameProvider;
 import org.eclipse.xtext.naming.IQualifiedNameProvider;
 import org.eclipse.xtext.scoping.IScopeProvider;
 import org.eclipse.xtext.scoping.impl.AbstractDeclarativeScopeProvider;
 import org.eclipse.xtext.xbase.compiler.XbaseCompiler;
 import org.eclipse.xtext.xbase.scoping.XImportSectionNamespaceScopeProvider;
-
-import com.google.inject.Binder;
-import com.google.inject.name.Names;
-
-import it.unipr.ailab.jadescript.jvmmodel.JadescriptCompilerUtils;
-import it.unipr.ailab.jadescript.scoping.JadescriptQualifiedNameProvider;
 
 /**
  * Use this class to register components to be used at runtime / without the
@@ -21,24 +19,26 @@ import it.unipr.ailab.jadescript.scoping.JadescriptQualifiedNameProvider;
  */
 @SuppressWarnings("restriction")
 public class JadescriptRuntimeModule extends AbstractJadescriptRuntimeModule {
-	public Class<? extends XbaseCompiler> bindXbaseCompiler() {
-		return JadescriptCompilerUtils.class;
-	}
 
-	@Override
-	public Class<? extends IQualifiedNameProvider> bindIQualifiedNameProvider() {
-		return JadescriptQualifiedNameProvider.class;
-	}
+    public Class<? extends XbaseCompiler> bindXbaseCompiler() {
+        return JadescriptCompilerUtils.class;
+    }
 
-	@Override
-	public void configureIScopeProviderDelegate(final Binder binder) {
-		binder.bind(IScopeProvider.class)
-		    .annotatedWith(Names.named(
-				AbstractDeclarativeScopeProvider.NAMED_DELEGATE
-			))
-		.to(XImportSectionNamespaceScopeProvider.class);
-	}
-	
-	
+
+    @Override
+    public Class<? extends IQualifiedNameProvider> bindIQualifiedNameProvider() {
+        return JadescriptQualifiedNameProvider.class;
+    }
+
+
+    @Override
+    public void configureIScopeProviderDelegate(final Binder binder) {
+        binder.bind(IScopeProvider.class)
+            .annotatedWith(Names.named(
+                AbstractDeclarativeScopeProvider.NAMED_DELEGATE
+            ))
+            .to(XImportSectionNamespaceScopeProvider.class);
+    }
+
 
 }

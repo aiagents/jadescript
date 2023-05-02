@@ -130,9 +130,9 @@ public class BehaviourDeclarationSemantics
         final Maybe<JvmTypeReference> forAgent = inputSafe.getForAgent();
 
         final TypeArgument agentTypeArgument;
-        if(forAgent.isNothing()){
+        if (forAgent.isNothing()) {
             agentTypeArgument = typeHelper.covariant(builtins.agent());
-        }else{
+        } else {
             final TypeSolver typeSolver = module.get(TypeSolver.class);
             agentTypeArgument = typeHelper.contravariant(
                 typeSolver.fromJvmTypeReference(
@@ -179,9 +179,9 @@ public class BehaviourDeclarationSemantics
         final Maybe<JvmTypeReference> forAgent = inputSafe.getForAgent();
 
         final TypeArgument agentArgument;
-        if(forAgent.isNothing()){
+        if (forAgent.isNothing()) {
             agentArgument = builtins.agent();
-        }else{
+        } else {
             final TypeSolver typeSolver = module.get(TypeSolver.class);
             agentArgument = typeSolver.fromJvmTypeReference(
                 forAgent.toNullable(),

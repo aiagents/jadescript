@@ -7,7 +7,9 @@ import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.ecore.EObject;
 
 public interface Association {
+
     IJadescriptType getAssociatedType();
+
     NamespaceWithCompilables importNamespace(
         SemanticsModule module,
         Maybe<? extends EObject> eObject

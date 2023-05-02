@@ -1,6 +1,9 @@
 package it.unipr.ailab.jadescript.semantics.feature;
 
-import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.jadescript.FeatureContainer;
+import it.unipr.ailab.jadescript.jadescript.FeatureWithBody;
+import it.unipr.ailab.jadescript.jadescript.OnExecuteHandler;
+import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
 import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;

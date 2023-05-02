@@ -6,23 +6,26 @@ import it.unipr.ailab.jadescript.semantics.context.associations.BehaviourAssocia
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 public abstract class EventHandlerContext
-        extends ProceduralFeatureContext
-        implements MightUseAgentReference {
+    extends ProceduralFeatureContext
+    implements MightUseAgentReference {
 
     private final String eventType;
 
+
     public EventHandlerContext(
-            SemanticsModule module,
-            ProceduralFeatureContainerContext outer,
-            String eventType
+        SemanticsModule module,
+        ProceduralFeatureContainerContext outer,
+        String eventType
     ) {
         super(module, outer);
         this.eventType = eventType;
     }
 
+
     public String getEventType() {
         return eventType;
     }
+
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {
@@ -33,15 +36,14 @@ public abstract class EventHandlerContext
     }
 
 
-
     @Override
     public boolean canUseAgentReference() {
         // Cannot use agent reference if it is "on create" in a behaviour
         return !"create".equals(eventType)
-                || this.actAs(BehaviourAssociated.class)
-                .findFirst()
-                .flatMap(ba -> ba.computeAllBehaviourAssociations().findFirst())
-                .isEmpty();
+            || this.actAs(BehaviourAssociated.class)
+            .findFirst()
+            .flatMap(ba -> ba.computeAllBehaviourAssociations().findFirst())
+            .isEmpty();
     }
 
 

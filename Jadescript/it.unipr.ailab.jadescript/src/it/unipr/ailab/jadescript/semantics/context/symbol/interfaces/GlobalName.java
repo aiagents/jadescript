@@ -8,6 +8,7 @@ public interface GlobalName extends Global, CompilableName {
 
 
     public interface Namespace extends CompilableName.Namespace {
+
         Stream<? extends GlobalName> globalNames(
             @Nullable String name
         );
@@ -15,9 +16,10 @@ public interface GlobalName extends Global, CompilableName {
         @Override
         default Stream<? extends CompilableName> compilableNames(
             @Nullable String name
-        ){
+        ) {
             return globalNames(name);
         }
 
     }
+
 }

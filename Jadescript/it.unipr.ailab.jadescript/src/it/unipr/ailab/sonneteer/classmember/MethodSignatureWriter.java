@@ -16,11 +16,13 @@ public class MethodSignatureWriter extends ClassMemberWriter {
     private final List<ParameterWriter> parameters = new ArrayList<>();
     private final List<String> throwsDeclarations = new ArrayList<>();
 
+
     public MethodSignatureWriter(String type, String name) {
         super(Visibility.PACKAGE, false, false);
         this.type = type;
         this.name = name;
     }
+
 
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
@@ -40,7 +42,7 @@ public class MethodSignatureWriter extends ClassMemberWriter {
                 s.add(throwsDeclarations.get(i));
                 if (i != throwsDeclarations.size() - 1) {
                     s.spaced(",");
-                }else{
+                } else {
                     s.add(" ");
                 }
             }
@@ -49,10 +51,12 @@ public class MethodSignatureWriter extends ClassMemberWriter {
 
     }
 
+
     public MethodSignatureWriter addParameter(ParameterWriter parameterPoet) {
         parameters.add(parameterPoet);
         return this;
     }
+
 
     public MethodSignatureWriter addThrows(String exceptionType) {
         this.throwsDeclarations.add(exceptionType);

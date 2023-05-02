@@ -13,8 +13,10 @@ import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
  * values ({@code T}, {@link StaticState}).
  */
 public class PSR<T> {
+
     private final T result;
     private final StaticState newState;
+
 
     private PSR(T result, StaticState newState) {
         this.result = result;
@@ -26,9 +28,11 @@ public class PSR<T> {
         return result;
     }
 
+
     public StaticState state() {
         return newState;
     }
+
 
     @Override
     public String toString() {
@@ -39,4 +43,5 @@ public class PSR<T> {
     public static <R> PSR<R> psr(R result, StaticState state) {
         return new PSR<>(result, state);
     }
+
 }

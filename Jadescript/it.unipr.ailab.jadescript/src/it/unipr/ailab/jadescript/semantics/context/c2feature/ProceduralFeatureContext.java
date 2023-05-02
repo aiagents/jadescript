@@ -10,6 +10,7 @@ public abstract class ProceduralFeatureContext extends Context {
 
     protected final ProceduralFeatureContainerContext outer;
 
+
     public ProceduralFeatureContext(
         SemanticsModule module,
         ProceduralFeatureContainerContext outer
@@ -19,12 +20,11 @@ public abstract class ProceduralFeatureContext extends Context {
     }
 
 
-
-
     @Override
     public Maybe<? extends Searcheable> superSearcheable() {
         return Maybe.some(outer);
     }
+
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {

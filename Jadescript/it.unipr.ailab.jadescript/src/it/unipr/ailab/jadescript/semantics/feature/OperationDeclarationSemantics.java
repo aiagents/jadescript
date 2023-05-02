@@ -259,7 +259,7 @@ public interface OperationDeclarationSemantics extends SemanticsConsts {
             acceptor
         );
 
-        if(!isNative) {
+        if (!isNative) {
             validationHelper.asserting(
                 SemanticsUtils.implication(
                     type.isPresent(),

@@ -51,7 +51,7 @@ public class MessageTypeSchema
         IJadescriptType inputContentType,
         String inputExpression
     ) {
-        if(argumentIndex >= formalTypeParameters.size()){
+        if (argumentIndex >= formalTypeParameters.size()) {
             return inputExpression;
         }
 

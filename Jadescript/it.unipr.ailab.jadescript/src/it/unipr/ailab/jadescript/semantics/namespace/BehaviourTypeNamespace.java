@@ -11,8 +11,8 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BaseBehavio
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.BehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour.UserDefinedBehaviourType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
-import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;

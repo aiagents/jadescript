@@ -9,6 +9,7 @@ import java.util.List;
 
 public class JadescriptImplicitImportsScopeProvider
     extends XImportSectionNamespaceScopeProvider {
+
     @Override
     protected List<ImportNormalizer> getImplicitImports(boolean ignoreCase) {
         List<ImportNormalizer> result = new ArrayList<>(
@@ -21,4 +22,5 @@ public class JadescriptImplicitImportsScopeProvider
         ));
         return result;
     }
+
 }

@@ -8,8 +8,10 @@ import java.util.function.Function;
 
 public interface PatternType {
 
-    static HoledPatternType holed(Function<? super IJadescriptType, ?
-        extends IJadescriptType> solvingFunction) {
+    static HoledPatternType holed(
+        Function<? super IJadescriptType, ?
+            extends IJadescriptType> solvingFunction
+    ) {
         return new HoledPatternType(solvingFunction);
     }
 
@@ -60,8 +62,10 @@ public interface PatternType {
             extends IJadescriptType> solvingFunction;
 
 
-        public HoledPatternType(Function<? super IJadescriptType, ?
-            extends IJadescriptType> solvingFunction) {
+        public HoledPatternType(
+            Function<? super IJadescriptType, ?
+                extends IJadescriptType> solvingFunction
+        ) {
             this.solvingFunction = solvingFunction;
         }
 

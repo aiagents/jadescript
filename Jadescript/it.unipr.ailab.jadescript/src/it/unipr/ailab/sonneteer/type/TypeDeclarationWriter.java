@@ -8,6 +8,7 @@ import it.unipr.ailab.sonneteer.qualifiers.Visibility;
 public abstract class TypeDeclarationWriter
     extends ClassMemberWriter
     implements Writer, Annotable, ITypeDeclarationWriter {
+
     public TypeDeclarationWriter(
         Visibility visibility,
         boolean isFinal,
@@ -15,4 +16,5 @@ public abstract class TypeDeclarationWriter
     ) {
         super(visibility, isFinal, isStatic);
     }
+
 }

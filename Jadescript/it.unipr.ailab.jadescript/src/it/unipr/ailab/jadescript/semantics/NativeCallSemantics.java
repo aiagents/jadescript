@@ -553,7 +553,7 @@ public class NativeCallSemantics
         final Stream<JvmOperation> candidates =
             resolveCandidates(jvmNamespace, methodName, argsSize);
 
-        
+
         final Stream<JvmOperation> applicables =
             resolveApplicables(candidates, argTypes);
 

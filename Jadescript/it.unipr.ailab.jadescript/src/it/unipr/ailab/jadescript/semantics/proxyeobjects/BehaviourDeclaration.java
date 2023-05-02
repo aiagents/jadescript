@@ -28,7 +28,6 @@ public class BehaviourDeclaration extends ProxyEObject
     private Maybe<JvmTypeReference> forAgent;
 
 
-
     private BehaviourDeclaration(
         EObject input,
         Maybe<String> behaviourType,
@@ -90,20 +89,21 @@ public class BehaviourDeclaration extends ProxyEObject
         ));
     }
 
-    public BehaviourType.Kind getKind(){
+
+    public BehaviourType.Kind getKind() {
         String type = this.getType();
-        if(type == null || type.isBlank()){
+        if (type == null || type.isBlank()) {
             return BehaviourType.Kind.Base;
         }
 
         type = type.toLowerCase();
 
-        if(Objects.equals(type, "cyclic")){
+        if (Objects.equals(type, "cyclic")) {
             return BehaviourType.Kind.Cyclic;
         }
 
-        if(Objects.equals(type, "one shot")
-        || Objects.equals(type, "oneshot")){
+        if (Objects.equals(type, "one shot")
+            || Objects.equals(type, "oneshot")) {
             return BehaviourType.Kind.OneShot;
         }
 
@@ -178,8 +178,6 @@ public class BehaviourDeclaration extends ProxyEObject
     public EList<JvmTypeReference> getOntologies() {
         return ontologies.toNullable();
     }
-
-
 
 
 }

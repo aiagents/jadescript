@@ -271,7 +271,7 @@ public class EqualityComparisonExpressionSemantics
             "_eqright"
         );
 
-        if(tces.isHoled(rightSubpattern, state)){
+        if (tces.isHoled(rightSubpattern, state)) {
             return true;
         }
 
@@ -329,7 +329,7 @@ public class EqualityComparisonExpressionSemantics
             "_eqright"
         );
 
-        if(tces.isTypelyHoled(rightSubpattern, state)){
+        if (tces.isTypelyHoled(rightSubpattern, state)) {
             return true;
         }
 
@@ -387,7 +387,7 @@ public class EqualityComparisonExpressionSemantics
             "_eqright"
         );
 
-        if(tces.isUnbound(rightSubpattern, state)){
+        if (tces.isUnbound(rightSubpattern, state)) {
             return true;
         }
 

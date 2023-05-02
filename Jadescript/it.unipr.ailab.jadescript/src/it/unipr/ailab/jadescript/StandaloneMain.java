@@ -18,11 +18,12 @@ import java.util.List;
 
 public class StandaloneMain {
 
-    public static void usage(){
+    public static void usage() {
         System.out.println("Jadescript Compiler");
         System.out.println("Usage: java -jar jadescriptc.jar " +
             "<...source files...>");
     }
+
 
     public static void main(String[] args) {
         if (args.length < 1) {
@@ -38,6 +39,7 @@ public class StandaloneMain {
         }
     }
 
+
     @Inject
     private Provider<ResourceSet> resourceSetProvider;
 
@@ -49,6 +51,7 @@ public class StandaloneMain {
 
     @Inject
     private JavaIoFileSystemAccess fileAccess;
+
 
     protected void runGenerator(String string) {
         // Load the resource
@@ -75,4 +78,5 @@ public class StandaloneMain {
         context.setCancelIndicator(CancelIndicator.NullImpl);
         generator.generate(resource, fileAccess, context);
     }
+
 }

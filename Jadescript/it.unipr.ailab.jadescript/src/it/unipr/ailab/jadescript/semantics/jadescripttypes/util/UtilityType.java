@@ -39,12 +39,10 @@ public abstract class UtilityType extends JadescriptType {
     }
 
 
-
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
         return Maybe.nothing();
     }
-
 
 
     @Override

@@ -22,7 +22,6 @@ import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import java.util.Collection;
 
 
-
 /**
  * Created on 10/05/18.
  */

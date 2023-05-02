@@ -208,9 +208,10 @@ public class ImmutableMap<K, V> {
         return putAll(other.inner);
     }
 
+
     public ImmutableMap<K, V> putAll(
         Map<K, V> other
-    ){
+    ) {
         return this.change(m -> m.putAll(other));
     }
 

@@ -18,6 +18,7 @@ public class ParametricTypeSchemaFactory {
         return new ParametricTypeSchema<>(this.factoryModule);
     }
 
+
     public MessageTypeSchema messageType() {
         return new MessageTypeSchema(this.factoryModule);
     }

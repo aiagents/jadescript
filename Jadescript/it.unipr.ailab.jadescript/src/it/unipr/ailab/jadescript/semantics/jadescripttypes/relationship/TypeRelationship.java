@@ -12,7 +12,7 @@ public abstract class TypeRelationship {
     }
 
 
-    public boolean is(TypeRelationshipQuery query){
+    public boolean is(TypeRelationshipQuery query) {
         return query.matches(this);
     }
 
@@ -195,7 +195,7 @@ public abstract class TypeRelationship {
     }
 
 
-    /*package-private*/ TypeRelationshipInternal getInternal(){
+    /*package-private*/ TypeRelationshipInternal getInternal() {
         return this.relationship;
     }
 
@@ -208,7 +208,7 @@ public abstract class TypeRelationship {
 
     @Override
     public boolean equals(Object obj) {
-        if(obj instanceof TypeRelationship) {
+        if (obj instanceof TypeRelationship) {
             return getInternal().equals(
                 ((TypeRelationship) obj).getInternal()
             );
@@ -222,6 +222,7 @@ public abstract class TypeRelationship {
     public int hashCode() {
         return getInternal().hashCode();
     }
+
 
     public abstract TypeRelationship filterSuperOrEqual();
 

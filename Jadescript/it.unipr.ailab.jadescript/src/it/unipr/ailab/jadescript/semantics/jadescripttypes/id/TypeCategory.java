@@ -3,6 +3,7 @@ package it.unipr.ailab.jadescript.semantics.jadescripttypes.id;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 
 public interface TypeCategory {
+
     boolean isAny();
 
     boolean isNothing();

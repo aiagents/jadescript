@@ -974,7 +974,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     protected abstract boolean canBeHoledInternal(Maybe<T> input);
 
 
-
     /**
      * It answers the question: if the provided input type is compatible, and
      * if all sub-pattern match, is it guaranteed (at compile time) that this
@@ -1019,8 +1018,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     }
 
 
-
-
     public final PatternMatcher compilePatternMatch(
         PatternMatchInput<T> input,
         StaticState state,
@@ -1059,7 +1056,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     }
 
 
-
     public abstract PatternMatcher compilePatternMatchInternal(
         PatternMatchInput<T> input,
         StaticState state,
@@ -1094,8 +1090,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
         }
         return inferPatternTypeInternal(input, state);
     }
-
-
 
 
     public abstract PatternType inferPatternTypeInternal(
@@ -1236,8 +1230,6 @@ public abstract class ExpressionSemantics<T> extends Semantics {
 
         return asPatternCheck;
     }
-
-
 
 
     private boolean validateAsWholeSubpattern(

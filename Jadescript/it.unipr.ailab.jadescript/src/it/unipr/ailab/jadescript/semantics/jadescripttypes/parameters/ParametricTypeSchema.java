@@ -49,7 +49,6 @@ public class ParametricTypeSchema<T extends IJadescriptType> {
     private void stateCheckAndUpdate(int newState) {
 
 
-
         if (newState < this.state) {
             throw new IllegalStateException(
                 "Invalid order of specification in building a Jadescript " +
@@ -144,16 +143,16 @@ public class ParametricTypeSchema<T extends IJadescriptType> {
             final IJadescriptType ub = upperBounds.get(i);
             final IJadescriptType arg = arguments.get(i).ignoreBound();
             final IJadescriptType min = typeComparator.min(ub, arg).orElse(ub);
-            if(TypeRelationshipQuery.equal().matches(
+            if (TypeRelationshipQuery.equal().matches(
                 typeComparator.compare(min, ub)
-            )){
+            )) {
                 result.add(typeHelper.covariant(min));
-            }else {
+            } else {
                 result.add(min);
             }
         }
-        if(i < upperBounds.size()){
-            for(; i < upperBounds.size(); i++){
+        if (i < upperBounds.size()) {
+            for (; i < upperBounds.size(); i++) {
                 result.add(typeHelper.covariant(upperBounds.get(i)));
             }
         }
@@ -236,11 +235,12 @@ public class ParametricTypeSchema<T extends IJadescriptType> {
 
     }
 
+
     public boolean validateApplication(
         List<TypeArgument> arguments,
         Maybe<? extends EObject> input,
         ValidationMessageAcceptor acceptor
-    ){
+    ) {
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
         boolean argsNumberCheck;

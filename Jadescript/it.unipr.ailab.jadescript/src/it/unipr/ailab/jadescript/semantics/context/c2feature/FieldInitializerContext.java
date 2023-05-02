@@ -6,7 +6,7 @@ import it.unipr.ailab.jadescript.semantics.context.associations.BehaviourAssocia
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 public class FieldInitializerContext
-        extends ProceduralFeatureContext
+    extends ProceduralFeatureContext
     implements MightUseAgentReference {
 
     public FieldInitializerContext(
@@ -16,23 +16,27 @@ public class FieldInitializerContext
         super(module, outer);
     }
 
+
     @Override
     public void debugDump(SourceCodeBuilder scb) {
         super.debugDump(scb);
         scb.line("--> is FieldInitializerContext");
     }
 
+
     @Override
     public String getCurrentOperationLogName() {
         return "<init>";
     }
 
+
     @Override
     public boolean canUseAgentReference() {
         // Agent reference not accessible in property initializers in behaviours
         return this.actAs(BehaviourAssociated.class)
-                .findFirst()
-                .flatMap(ba -> ba.computeAllBehaviourAssociations().findFirst())
-                .isEmpty();
+            .findFirst()
+            .flatMap(ba -> ba.computeAllBehaviourAssociations().findFirst())
+            .isEmpty();
     }
+
 }

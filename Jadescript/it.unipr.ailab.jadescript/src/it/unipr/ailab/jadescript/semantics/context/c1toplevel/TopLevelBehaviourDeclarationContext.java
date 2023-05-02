@@ -9,8 +9,8 @@ import it.unipr.ailab.jadescript.semantics.context.search.WithSupertype;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 

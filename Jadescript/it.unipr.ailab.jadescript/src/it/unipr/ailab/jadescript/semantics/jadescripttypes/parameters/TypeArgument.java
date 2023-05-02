@@ -20,5 +20,4 @@ public interface TypeArgument {
     String getDebugPrint();
 
 
-
 }

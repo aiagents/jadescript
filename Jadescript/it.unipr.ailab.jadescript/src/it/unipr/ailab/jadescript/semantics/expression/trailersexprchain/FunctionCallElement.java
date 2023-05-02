@@ -13,11 +13,13 @@ import org.eclipse.emf.ecore.EObject;
  * Created on 26/08/18.
  */
 public class FunctionCallElement extends TrailersExpressionChainElement {
+
     private final Maybe<String> identifier;
     private final Maybe<SimpleArgumentList> simpleArgs;
     private final Maybe<NamedArgumentList> namedArgs;
     private final Maybe<? extends EObject> input;
     private final CallSemantics subSemantics;
+
 
     public FunctionCallElement(
         SemanticsModule module,
@@ -33,7 +35,6 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
         this.input = input;
         this.subSemantics = module.get(CallSemantics.class);
     }
-
 
 
     private Maybe<Call> generateMethodCall() {
@@ -55,4 +56,5 @@ public class FunctionCallElement extends TrailersExpressionChainElement {
             subSemantics, generateMethodCall()
         );
     }
+
 }

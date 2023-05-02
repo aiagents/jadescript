@@ -4,8 +4,8 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.helpers.TypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.JadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.parameters.TypeArgument;
@@ -76,8 +76,6 @@ public final class BaseMessageType
     }
 
 
-
-
     @Override
     public Maybe<OntologyType> getDeclaringOntology() {
         return some(module.get(BuiltinTypeProvider.class).ontology());
@@ -126,8 +124,6 @@ public final class BaseMessageType
     public boolean requiresAgentEnvParameter() {
         return false;
     }
-
-
 
 
 }

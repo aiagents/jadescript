@@ -262,23 +262,23 @@ public final class TypeExpressionSemantics extends Semantics {
             if (builtinHierarchicType
                 .__(BuiltinHierarchicType::isCyclicBehaviour)
                 .orElse(false)) {
-                if(agentType == null){
+                if (agentType == null) {
                     type = builtins.cyclicBehaviour();
-                }else{
+                } else {
                     type = builtins.cyclicBehaviour(agentType);
                 }
-            }else if(builtinHierarchicType
-            .__(BuiltinHierarchicType::isOneshotBehaviour)
-                .orElse(false)){
-                if(agentType == null){
+            } else if (builtinHierarchicType
+                .__(BuiltinHierarchicType::isOneshotBehaviour)
+                .orElse(false)) {
+                if (agentType == null) {
                     type = builtins.oneshotBehaviour();
-                }else{
+                } else {
                     type = builtins.oneshotBehaviour(agentType);
                 }
-            }else{
-                if(agentType == null){
+            } else {
+                if (agentType == null) {
                     type = builtins.behaviour();
-                }else{
+                } else {
                     type = builtins.behaviour(agentType);
                 }
             }

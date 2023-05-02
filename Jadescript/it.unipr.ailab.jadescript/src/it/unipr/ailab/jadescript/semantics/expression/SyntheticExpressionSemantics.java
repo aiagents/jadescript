@@ -1,6 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.expression;
 
 import com.google.inject.Singleton;
+import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.ExpressionDescriptor;
 import it.unipr.ailab.jadescript.semantics.context.staticstate.StaticState;
@@ -8,7 +9,6 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatchI
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatcher;
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
-import it.unipr.ailab.jadescript.semantics.BlockElementAcceptor;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
@@ -140,7 +140,7 @@ public class SyntheticExpressionSemantics
     ) {
         final SyntheticExpression.SemanticsMethods customSemantics =
             input.getPattern().__(SyntheticExpression::getSemanticsMethods)
-            .toOpt().orElseGet(SyntheticExpression.SemanticsMethods::new);
+                .toOpt().orElseGet(SyntheticExpression.SemanticsMethods::new);
         //empty methods if null
         final Maybe<SyntheticExpression.SyntheticType> type =
             input.getPattern().__(SyntheticExpression::getSyntheticType);

@@ -7,23 +7,27 @@ public class ReturnStatementWriter extends StatementWriter {
 
     private final ExpressionWriter expression;
 
-    public ReturnStatementWriter(ExpressionWriter expression){
+
+    public ReturnStatementWriter(ExpressionWriter expression) {
         this.expression = expression;
     }
 
-    public ReturnStatementWriter(){
+
+    public ReturnStatementWriter() {
         expression = null;
     }
+
 
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
         getComments().forEach(x -> x.writeSonnet(s));
         s.spaced("return");
-        if(expression != null) {
+        if (expression != null) {
             expression.writeSonnet(s);
         }
         s.line(";");
     }
+
 
     public ExpressionWriter getExpression() {
         return expression;

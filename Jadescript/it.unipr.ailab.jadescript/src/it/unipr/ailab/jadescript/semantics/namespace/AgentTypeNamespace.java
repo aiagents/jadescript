@@ -12,10 +12,10 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCalla
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.AgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.BaseAgentType;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.UserDefinedAgentType;
-import it.unipr.ailab.maybe.utils.LazyInit;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.ontology.OntologyType;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;

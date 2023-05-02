@@ -12,21 +12,24 @@ public class FunctionContext extends FunctionOrProcedureContext
 
     private final IJadescriptType returnType;
 
+
     public FunctionContext(
-            SemanticsModule module,
-            ProceduralFeatureContainerContext outer,
-            String functionName,
-            List<ActualParameter> parameters,
-            IJadescriptType returnType
+        SemanticsModule module,
+        ProceduralFeatureContainerContext outer,
+        String functionName,
+        List<ActualParameter> parameters,
+        IJadescriptType returnType
     ) {
         super(module, outer, functionName, parameters);
         this.returnType = returnType;
     }
 
+
     @Override
     public IJadescriptType expectedReturnType() {
         return returnType;
     }
+
 
     @Override
     public void debugDump(SourceCodeBuilder scb) {
@@ -34,7 +37,6 @@ public class FunctionContext extends FunctionOrProcedureContext
         scb.line("--> is FunctionContext");
         debugDumpReturnExpectation(scb);
     }
-
 
 
     public IJadescriptType getReturnType() {

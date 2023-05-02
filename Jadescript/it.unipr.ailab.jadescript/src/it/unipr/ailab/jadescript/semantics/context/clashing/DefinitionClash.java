@@ -16,13 +16,16 @@ public class DefinitionClash {
         this.alreadyPresent = alreadyPresent;
     }
 
+
     public Located getToBeAddedSymbol() {
         return toBeAdded;
     }
 
+
     public Located getAlreadyPresentSymbol() {
         return alreadyPresent;
     }
+
 
     @Override
     public String toString() {
@@ -30,10 +33,11 @@ public class DefinitionClash {
         final Located alreadyPresent = getAlreadyPresentSymbol();
         return toBeAdded.getSignature() + " in "
             + toBeAdded.sourceLocation() +
-                " clashes with " +
-                alreadyPresent.getSignature() +
+            " clashes with " +
+            alreadyPresent.getSignature() +
             " in " + alreadyPresent.sourceLocation();
     }
+
 
     public static String clashListToString(List<DefinitionClash> clashes) {
         StringBuilder sb = new StringBuilder();
@@ -47,4 +51,5 @@ public class DefinitionClash {
         }
         return sb.toString();
     }
+
 }

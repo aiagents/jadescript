@@ -9,11 +9,11 @@ import it.unipr.ailab.jadescript.semantics.context.c0outer.FileContext;
 import it.unipr.ailab.jadescript.semantics.context.symbol.ContextGeneratedName;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableName;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.AgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.AgentType;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.jetbrains.annotations.Nullable;
 

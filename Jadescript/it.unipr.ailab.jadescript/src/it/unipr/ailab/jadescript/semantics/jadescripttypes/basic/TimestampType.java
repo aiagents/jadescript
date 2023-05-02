@@ -26,6 +26,7 @@ public class TimestampType extends BasicType {
         );
     }
 
+
     private final LazyInit<JadescriptTypeNamespace.Empty> namespace =
         lazyInit(() ->
             new JadescriptTypeNamespace.Empty(module, getLocation())

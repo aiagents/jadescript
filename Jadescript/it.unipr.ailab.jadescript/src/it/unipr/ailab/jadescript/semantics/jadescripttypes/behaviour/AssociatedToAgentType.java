@@ -1,7 +1,7 @@
 package it.unipr.ailab.jadescript.semantics.jadescripttypes.behaviour;
 
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.AgentType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.agent.AgentType;
 import it.unipr.ailab.jadescript.semantics.namespace.JvmTypeNamespace;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.xtext.common.types.JvmField;

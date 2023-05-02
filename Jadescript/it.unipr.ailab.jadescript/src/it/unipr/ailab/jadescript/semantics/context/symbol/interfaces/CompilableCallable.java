@@ -9,11 +9,13 @@ import java.util.stream.Stream;
 
 public interface CompilableCallable extends Compilable, Callable {
 
-    String compileInvokeByArity(List<String> compiledRexprs,
+    String compileInvokeByArity(
+        List<String> compiledRexprs,
         BlockElementAcceptor acceptor
     );
 
-    String compileInvokeByName(Map<String, String> compiledRexprs,
+    String compileInvokeByName(
+        Map<String, String> compiledRexprs,
         BlockElementAcceptor acceptor
     );
 

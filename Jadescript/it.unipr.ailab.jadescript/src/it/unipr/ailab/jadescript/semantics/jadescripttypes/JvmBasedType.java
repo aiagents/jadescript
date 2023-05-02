@@ -36,6 +36,7 @@ public abstract class JvmBasedType extends JadescriptType {
         this.jvmTypeReference = jvmTypeReference;
     }
 
+
     private Map<String, JvmTypeReference> applyArguments(
         JvmDeclaredType type,
         JvmTypeReference referenceToType

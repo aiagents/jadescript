@@ -8,9 +8,11 @@ import it.unipr.ailab.sonneteer.statement.LocalVarBindingProvider;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LambdaWithBlockWriter extends ExpressionWriter{
+public class LambdaWithBlockWriter extends ExpressionWriter {
+
     private final List<ParameterWriter> parameters = new ArrayList<>();
     private BlockWriter body = new BlockWriter();
+
 
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
@@ -32,22 +34,26 @@ public class LambdaWithBlockWriter extends ExpressionWriter{
         return this;
     }
 
+
     public LambdaWithBlockWriter setBody(BlockWriter body) {
         this.body = body;
         return this;
     }
 
+
     public BlockWriter getBody() {
         return body;
     }
+
 
     public List<ParameterWriter> getParameters() {
         return parameters;
     }
 
+
     public LambdaWithBlockWriter setParameters(
         Iterable<ParameterWriter> parameters
-    ){
+    ) {
         this.parameters.clear();
         for (ParameterWriter parameter : parameters) {
             this.parameters.add(parameter);
@@ -55,12 +61,13 @@ public class LambdaWithBlockWriter extends ExpressionWriter{
         return this;
     }
 
+
     @Override
     public ExpressionWriter bindVariableUsages(
         LocalVarBindingProvider varBindingProvider
     ) {
         var l = w.blockLambda().setParameters(
-                this.parameters
+            this.parameters
         );
 
         final BlockWriter block = w.block().addAll(
@@ -69,4 +76,5 @@ public class LambdaWithBlockWriter extends ExpressionWriter{
 
         return l.setBody(block);
     }
+
 }

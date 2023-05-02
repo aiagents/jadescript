@@ -10,4 +10,5 @@ public abstract class SearchLocation {
 
     @Override
     public abstract String toString();
+
 }

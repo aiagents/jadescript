@@ -4,7 +4,7 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 
 public class IncDecOpStatementWriter extends StatementWriter {
 
-    public enum Mode{
+    public enum Mode {
         INC, DEC
     }
 
@@ -12,16 +12,17 @@ public class IncDecOpStatementWriter extends StatementWriter {
     private final String varName;
 
 
-    public IncDecOpStatementWriter(Mode mode, String varName){
+    public IncDecOpStatementWriter(Mode mode, String varName) {
 
         this.mode = mode;
         this.varName = varName;
     }
 
+
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
         getComments().forEach(x -> x.writeSonnet(s));
-        switch (mode){
+        switch (mode) {
             case INC:
                 s.add("++").add(varName).line(";");
                 break;
@@ -31,11 +32,14 @@ public class IncDecOpStatementWriter extends StatementWriter {
         }
     }
 
+
     public Mode getMode() {
         return mode;
     }
 
+
     public String getVarName() {
         return varName;
     }
+
 }

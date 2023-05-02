@@ -41,7 +41,8 @@ public class TypeInterval {
         this.negatedUpperBound = negatedUpperBound;
     }
 
-    public static TypeInterval allTypes(SemanticsModule module){
+
+    public static TypeInterval allTypes(SemanticsModule module) {
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
         return new TypeInterval(
@@ -51,7 +52,8 @@ public class TypeInterval {
         );
     }
 
-    public static TypeInterval empty(SemanticsModule module){
+
+    public static TypeInterval empty(SemanticsModule module) {
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
         return new TypeInterval(
@@ -60,6 +62,7 @@ public class TypeInterval {
             builtins.any("")
         );
     }
+
 
     public IJadescriptType getUpperBound() {
         return upperBound;

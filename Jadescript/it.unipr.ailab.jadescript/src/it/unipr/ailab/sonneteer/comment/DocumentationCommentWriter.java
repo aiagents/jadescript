@@ -8,15 +8,18 @@ public class DocumentationCommentWriter extends MultilineCommentWriter {
         super(firstLine);
     }
 
-    public DocumentationCommentWriter addAuthor(String name){
-        super.addLine("@author "+name);
+
+    public DocumentationCommentWriter addAuthor(String name) {
+        super.addLine("@author " + name);
         return this;
     }
 
+
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
-        s.line(   "/**");
+        s.line("/**");
         getLines().forEach(l -> s.add(" * ").line(l));
-        s.line(   " */");
+        s.line(" */");
     }
+
 }

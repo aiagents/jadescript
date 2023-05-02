@@ -6,7 +6,6 @@ public interface OntologyAssociated
     extends OntologyAssociationComputer, Associated {
 
 
-
     default void debugDumpOntologyAssociations(SourceCodeBuilder scb) {
         scb.open("--> is OntologyAssociated {");
         scb.line("*** Ontology associations: ***");
@@ -15,4 +14,5 @@ public interface OntologyAssociated
         );
         scb.close("}");
     }
+
 }

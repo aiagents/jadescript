@@ -6,7 +6,9 @@ import it.unipr.ailab.sonneteer.statement.LocalVarBindingProvider;
 
 
 public abstract class ExpressionWriter extends Commentable implements Writer {
+
     public abstract ExpressionWriter bindVariableUsages(
-            LocalVarBindingProvider varBindingProvider
-    ) ;
+        LocalVarBindingProvider varBindingProvider
+    );
+
 }

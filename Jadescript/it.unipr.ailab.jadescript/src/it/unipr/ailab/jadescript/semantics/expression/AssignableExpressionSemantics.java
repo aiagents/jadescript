@@ -12,9 +12,9 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.CompilationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
-import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 
@@ -137,7 +137,7 @@ public abstract class AssignableExpressionSemantics<T>
     public final IJadescriptType assignableType(
         Maybe<T> input,
         StaticState state
-    ){
+    ) {
         return this.traversingAssignableSemanticsMap(
             input,
             (s, i) -> s.assignableType(
@@ -563,7 +563,6 @@ public abstract class AssignableExpressionSemantics<T>
         ) {
             return state;
         }
-
 
 
         @Override

@@ -61,6 +61,7 @@ public class Operation implements MemberCallable {
         this.invokeByNameCustom = invokeByNameCustom;
     }
 
+
     public static Operation operation(
         IJadescriptType returnType,
         String name,
@@ -70,7 +71,7 @@ public class Operation implements MemberCallable {
         boolean withoutSideEffects,
         BiFunction<String, List<String>, String> invokeByArityCustom,
         BiFunction<String, Map<String, String>, String> invokeByNameCustom
-    ){
+    ) {
         return new Operation(
             returnType,
             name,
@@ -83,6 +84,7 @@ public class Operation implements MemberCallable {
         );
     }
 
+
     public static Operation operation(
         IJadescriptType returnType,
         String name,
@@ -90,7 +92,7 @@ public class Operation implements MemberCallable {
         List<String> parameterNames,
         SearchLocation location,
         boolean withoutSideEffects
-    ){
+    ) {
         return operation(
             returnType,
             name,
@@ -102,6 +104,7 @@ public class Operation implements MemberCallable {
             Operation.defaultInvokeMemberByName(name, parameterNames)
         );
     }
+
 
     public static Operation procedure(
         SemanticsModule module,
@@ -124,13 +127,14 @@ public class Operation implements MemberCallable {
         );
     }
 
+
     public static Operation procedure(
         SemanticsModule module,
         String name,
         Map<String, IJadescriptType> parameterNamesToTypes,
         List<String> parameterNames,
         SearchLocation location
-    ){
+    ) {
         return procedure(
             module,
             name,
@@ -141,7 +145,6 @@ public class Operation implements MemberCallable {
             Operation.defaultInvokeMemberByName(name, parameterNames)
         );
     }
-
 
 
     public static Operation fromJvmOperation(
@@ -179,7 +182,7 @@ public class Operation implements MemberCallable {
                 final IJadescriptType envType =
                     namespace.resolveType(paramTypeRef).ignoreBound();
 
-                if(envType instanceof AgentEnvType){
+                if (envType instanceof AgentEnvType) {
                     withoutSideEffects =
                         ((AgentEnvType) envType).isWithoutSideEffects();
                 }

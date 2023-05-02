@@ -5,7 +5,7 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.maybe.Maybe;
 
-public class VariadicTypeParameter implements TypeParameter{
+public class VariadicTypeParameter implements TypeParameter {
 
     /*package-private*/ final SemanticsModule module;
     /*package-private*/ final Maybe<IJadescriptType> upperBound;
@@ -19,6 +19,7 @@ public class VariadicTypeParameter implements TypeParameter{
         this.module = module;
         this.upperBound = upperBound;
     }
+
 
     @Override
     public void registerParameter(int index) {

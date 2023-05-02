@@ -17,7 +17,6 @@ public class JvmTypeReferenceSet implements Iterable<String> {
     private final Set<String> rawIDs = new HashSet<>();
 
 
-
     public static JvmTypeReferenceSet generateAllSupertypesSet(
         JvmDeclaredType input
     ) {

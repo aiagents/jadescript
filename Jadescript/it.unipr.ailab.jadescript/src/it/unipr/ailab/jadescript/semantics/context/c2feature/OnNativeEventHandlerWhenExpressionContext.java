@@ -11,12 +11,12 @@ import org.jetbrains.annotations.Nullable;
 import java.util.stream.Stream;
 
 public class OnNativeEventHandlerWhenExpressionContext
-        extends HandlerWhenExpressionContext
-        implements CompilableName.Namespace, NativeEventHandledContext {
+    extends HandlerWhenExpressionContext
+    implements CompilableName.Namespace, NativeEventHandledContext {
 
     public OnNativeEventHandlerWhenExpressionContext(
-            SemanticsModule module,
-            ProceduralFeatureContainerContext outer
+        SemanticsModule module,
+        ProceduralFeatureContainerContext outer
     ) {
         super(module, outer);
     }
@@ -27,7 +27,8 @@ public class OnNativeEventHandlerWhenExpressionContext
         return module.get(BuiltinTypeProvider.class).proposition();
     }
 
-     @Override
+
+    @Override
     public Stream<? extends CompilableName> compilableNames(
         @Nullable String name
     ) {
@@ -47,8 +48,10 @@ public class OnNativeEventHandlerWhenExpressionContext
         debugDumpNativeEventHandled(scb);
     }
 
+
     @Override
     public String getCurrentOperationLogName() {
         return "<evaluating when-expression>";
     }
+
 }

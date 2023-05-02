@@ -8,10 +8,8 @@ public interface DereferencedCallable
     CompilableCallable {
 
 
-
-
-    default void debugDumpDereferencedCallable(SourceCodeBuilder scb){
-        scb.open("member name '"+name()+"' {");
+    default void debugDumpDereferencedCallable(SourceCodeBuilder scb) {
+        scb.open("member name '" + name() + "' {");
         {
             scb.line("compiledOwner = " + getOwnerCompiler());
             scb.line("returnType = " + returnType());

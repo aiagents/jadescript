@@ -6,32 +6,38 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProv
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 
 public class FQNameLocation extends SearchLocation {
+
     private final String fullyQualifiedName;
+
 
     public FQNameLocation(String fullyQualifiedName) {
         this.fullyQualifiedName = fullyQualifiedName;
     }
+
 
     @Override
     public String toString() {
         return "(Fully-qualified name: '" + fullyQualifiedName + "')";
     }
 
+
     public String getFullyQualifiedName() {
         return fullyQualifiedName;
     }
 
-    public IJadescriptType extractType(SemanticsModule module){
-            final TypeSolver typeSolver = module.get(TypeSolver.class);
-            final BuiltinTypeProvider builtins =
-                module.get(BuiltinTypeProvider.class);
-        if(fullyQualifiedName!=null) {
+
+    public IJadescriptType extractType(SemanticsModule module) {
+        final TypeSolver typeSolver = module.get(TypeSolver.class);
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        if (fullyQualifiedName != null) {
             return typeSolver.fromFullyQualifiedName(fullyQualifiedName);
-        }else{
+        } else {
             return builtins.any("Failed to extract type from " +
                 "null qualified name.");
         }
     }
+
 
     @Override
     public boolean equals(Object obj) {
@@ -39,13 +45,15 @@ public class FQNameLocation extends SearchLocation {
             return this.fullyQualifiedName.equals(
                 ((FQNameLocation) obj).fullyQualifiedName
             );
-        }else{
+        } else {
             return false;
         }
     }
 
+
     @Override
     public int hashCode() {
-        return fullyQualifiedName!=null ? fullyQualifiedName.hashCode() : 0;
+        return fullyQualifiedName != null ? fullyQualifiedName.hashCode() : 0;
     }
+
 }

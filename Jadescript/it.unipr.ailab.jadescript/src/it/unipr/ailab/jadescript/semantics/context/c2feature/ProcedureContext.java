@@ -7,11 +7,12 @@ import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import java.util.List;
 
 public class ProcedureContext extends FunctionOrProcedureContext {
+
     public ProcedureContext(
-            SemanticsModule module,
-            ProceduralFeatureContainerContext outer,
-            String procedureName,
-            List<ActualParameter> parameters
+        SemanticsModule module,
+        ProceduralFeatureContainerContext outer,
+        String procedureName,
+        List<ActualParameter> parameters
     ) {
         super(module, outer, procedureName, parameters);
     }
@@ -22,4 +23,5 @@ public class ProcedureContext extends FunctionOrProcedureContext {
         super.debugDump(scb);
         scb.line("--> is ProcedureContext");
     }
+
 }

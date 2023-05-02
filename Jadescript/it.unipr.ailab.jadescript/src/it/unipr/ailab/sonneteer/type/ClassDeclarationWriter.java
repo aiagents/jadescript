@@ -25,6 +25,7 @@ public class ClassDeclarationWriter
     private final List<ClassMemberWriter> members = new ArrayList<>();
     private boolean orderConvention = true;
 
+
     public ClassDeclarationWriter(
         Visibility visibility,
         boolean isFinal,
@@ -42,17 +43,20 @@ public class ClassDeclarationWriter
         return this;
     }
 
+
     @Override
     public IClassDeclarationWriter addImplements(String implementedInterface) {
         implement.add(implementedInterface);
         return this;
     }
 
+
     @Override
     public ClassDeclarationWriter addMember(ClassMemberWriter member) {
         members.add(member);
         return this;
     }
+
 
     @Override
     public IClassDeclarationWriter addPSFS(String constName, String value) {
@@ -66,6 +70,7 @@ public class ClassDeclarationWriter
         ));
         return this;
     }
+
 
     @Override
     public IClassDeclarationWriter addPSFS(
@@ -85,6 +90,7 @@ public class ClassDeclarationWriter
         members.add(f);
         return this;
     }
+
 
     @Override
     public ClassDeclarationWriter addProperty(
@@ -143,6 +149,7 @@ public class ClassDeclarationWriter
         annotations.add(annotation);
     }
 
+
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
         if (orderConvention) {
@@ -194,6 +201,7 @@ public class ClassDeclarationWriter
         s.dedent();
         s.line("}");
     }
+
 
     private void sortMembersByConvention() {
         List<FieldWriter> privateFields = new ArrayList<>();
@@ -266,36 +274,46 @@ public class ClassDeclarationWriter
         return extend;
     }
 
+
     @Override
     public List<String> getImplement() {
         return implement;
     }
+
 
     @Override
     public List<ClassMemberWriter> getMembers() {
         return members;
     }
 
+
     @Override
     public String getName() {
         return name;
     }
+
 
     @Override
     public boolean isOrderConvention() {
         return orderConvention;
     }
 
+
     @Override
     public void setOrderConvention(boolean orderConvention) {
         this.orderConvention = orderConvention;
     }
 
+
     public static class ConstructorWriter extends MethodWriter {
 
-        public ConstructorWriter(Visibility visibility,
-                                 String className) {
+        public ConstructorWriter(
+            Visibility visibility,
+            String className
+        ) {
             super(visibility, false, false, "", className);
         }
+
     }
+
 }

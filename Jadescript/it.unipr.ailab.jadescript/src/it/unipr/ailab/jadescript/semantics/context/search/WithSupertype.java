@@ -7,5 +7,7 @@ import it.unipr.ailab.maybe.Maybe;
  * a "Supertype"
  */
 public interface WithSupertype {
+
     Maybe<Searcheable> superTypeSearcheable();
+
 }

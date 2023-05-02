@@ -12,9 +12,9 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.CompilableN
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.TypeSolver;
 import it.unipr.ailab.jadescript.semantics.namespace.TypeNamespace;
-import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
+import it.unipr.ailab.maybe.utils.LazyInit;
 import it.unipr.ailab.sonneteer.SourceCodeBuilder;
 import org.eclipse.xtext.common.types.JvmDeclaredType;
 import org.jetbrains.annotations.Nullable;
@@ -25,7 +25,6 @@ import java.util.stream.Stream;
 public class AgentDeclarationContext
     extends UsingOntologyDeclarationContext
     implements AgentAssociated, WithSupertype, CompilableName.Namespace {
-
 
 
     private final JvmDeclaredType agentJvmType;
@@ -53,7 +52,6 @@ public class AgentDeclarationContext
             AgentAssociated.contextGeneratedAgentReference(this.agentType.get())
         );
     }
-
 
 
     public IJadescriptType getAgentType() {
@@ -90,8 +88,6 @@ public class AgentDeclarationContext
             AgentAssociation.A.INSTANCE
         ));
     }
-
-
 
 
     @Override

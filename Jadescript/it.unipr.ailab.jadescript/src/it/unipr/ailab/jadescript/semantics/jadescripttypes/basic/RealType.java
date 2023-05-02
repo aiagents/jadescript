@@ -22,6 +22,7 @@ public class RealType extends BasicType {
         );
     }
 
+
     private final LazyInit<JadescriptTypeNamespace.Empty> namespace =
         lazyInit(() ->
             new JadescriptTypeNamespace.Empty(module, getLocation())

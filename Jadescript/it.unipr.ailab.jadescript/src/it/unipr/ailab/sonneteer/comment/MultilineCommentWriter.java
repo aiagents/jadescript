@@ -11,14 +11,17 @@ public class MultilineCommentWriter
 
     private final List<String> lines = new ArrayList<>();
 
-    public MultilineCommentWriter(String firstLine){
+
+    public MultilineCommentWriter(String firstLine) {
         lines.add(firstLine);
     }
 
-    public MultilineCommentWriter addLine(String l){
+
+    public MultilineCommentWriter addLine(String l) {
         lines.add(l);
         return this;
     }
+
 
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
@@ -31,4 +34,5 @@ public class MultilineCommentWriter
     public List<String> getLines() {
         return lines;
     }
+
 }

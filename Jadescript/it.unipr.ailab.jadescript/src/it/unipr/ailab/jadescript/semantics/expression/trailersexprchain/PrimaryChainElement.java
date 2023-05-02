@@ -14,6 +14,7 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
     private final Maybe<Primary> atom;
     private final PrimaryExpressionSemantics primaryExpressionSemantics;
 
+
     public PrimaryChainElement(
         SemanticsModule module,
         Maybe<Primary> atom
@@ -24,6 +25,7 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
             module.get(PrimaryExpressionSemantics.class);
     }
 
+
     @Override
     public AssignableExpressionSemantics.SemanticsBoundToAssignableExpression<?>
     resolveChain(ReversedTrailerChain withoutFirst) {
@@ -33,4 +35,5 @@ public class PrimaryChainElement extends TrailersExpressionChainElement {
             atom
         );
     }
+
 }

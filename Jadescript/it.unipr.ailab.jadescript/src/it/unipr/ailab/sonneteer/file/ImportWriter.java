@@ -8,9 +8,11 @@ public class ImportWriter extends Commentable implements Writer {
 
     private final String qualifiedName;
 
-    public ImportWriter(String qualifiedName){
+
+    public ImportWriter(String qualifiedName) {
         this.qualifiedName = qualifiedName;
     }
+
 
     @Override
     public void writeSonnet(SourceCodeBuilder s) {
@@ -18,7 +20,9 @@ public class ImportWriter extends Commentable implements Writer {
         s.spaced("import").add(qualifiedName).line(";");
     }
 
+
     public String getQualifiedName() {
         return qualifiedName;
     }
+
 }

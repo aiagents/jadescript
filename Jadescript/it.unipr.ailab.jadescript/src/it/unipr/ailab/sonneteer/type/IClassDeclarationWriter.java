@@ -8,6 +8,7 @@ import it.unipr.ailab.sonneteer.qualifiers.Visibility;
 import java.util.List;
 
 public interface IClassDeclarationWriter extends ITypeDeclarationWriter {
+
     IClassDeclarationWriter addExtends(String extendedClass);
 
     IClassDeclarationWriter addImplements(String implementedInterface);
@@ -47,4 +48,5 @@ public interface IClassDeclarationWriter extends ITypeDeclarationWriter {
     boolean isOrderConvention();
 
     void setOrderConvention(boolean orderConvention);
+
 }

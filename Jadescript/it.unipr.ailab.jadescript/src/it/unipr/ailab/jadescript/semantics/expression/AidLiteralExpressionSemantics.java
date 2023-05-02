@@ -23,7 +23,6 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 
-
 public class AidLiteralExpressionSemantics
     extends AssignableExpressionSemantics<AidLiteral> {
 
@@ -184,7 +183,6 @@ public class AidLiteralExpressionSemantics
         // CANNOT BE L-EXPRESSION
         return state;
     }
-
 
 
     @Override

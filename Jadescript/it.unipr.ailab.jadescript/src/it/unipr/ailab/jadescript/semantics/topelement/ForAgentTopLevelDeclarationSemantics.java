@@ -31,7 +31,7 @@ import java.util.Optional;
 @Singleton
 public abstract class ForAgentTopLevelDeclarationSemantics<T extends ForElement>
     extends UsesOntologyTopLevelDeclarationSemantics<T>
-    implements AgentAssociatedDeclarationSemantics<T>{
+    implements AgentAssociatedDeclarationSemantics<T> {
 
     public ForAgentTopLevelDeclarationSemantics(
         SemanticsModule semanticsModule
@@ -85,9 +85,6 @@ public abstract class ForAgentTopLevelDeclarationSemantics<T extends ForElement>
     }
 
 
-
-
-
     @Override
     public void populateMainMembers(
         Maybe<T> input,
@@ -130,9 +127,9 @@ public abstract class ForAgentTopLevelDeclarationSemantics<T extends ForElement>
 
         final Maybe<? extends EObject> extracted =
             SemanticsUtils.extractEObject(input);
-        if(!extracted.safeCast(BehaviourDeclaration.class)
+        if (!extracted.safeCast(BehaviourDeclaration.class)
             .__(BehaviourDeclaration::isMemberBehaviour).orElse(false)
-        && !agent.isErroneous()){
+            && !agent.isErroneous()) {
             module.get(ValidationHelper.class).assertExpectedType(
                 module.get(BuiltinTypeProvider.class).agent(),
                 agent,

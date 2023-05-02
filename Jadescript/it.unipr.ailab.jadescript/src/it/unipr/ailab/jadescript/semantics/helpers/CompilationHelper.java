@@ -1,6 +1,9 @@
 package it.unipr.ailab.jadescript.semantics.helpers;
 
-import it.unipr.ailab.jadescript.jadescript.*;
+import it.unipr.ailab.jadescript.jadescript.OptionalBlock;
+import it.unipr.ailab.jadescript.jadescript.RValueExpression;
+import it.unipr.ailab.jadescript.jadescript.Statement;
+import it.unipr.ailab.jadescript.jadescript.TypeExpression;
 import it.unipr.ailab.jadescript.jvmmodel.JadescriptCompilerUtils;
 import it.unipr.ailab.jadescript.semantics.PSR;
 import it.unipr.ailab.jadescript.semantics.SemanticsModule;
@@ -276,7 +279,6 @@ public class CompilationHelper implements IQualifiedNameProvider {
         }
         return result;
     }
-
 
 
     /**
