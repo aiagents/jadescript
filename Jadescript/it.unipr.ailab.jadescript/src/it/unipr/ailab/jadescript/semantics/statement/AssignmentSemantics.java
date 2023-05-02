@@ -76,6 +76,7 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
 
                 final String localClassName =
                     patternMatchHelper.getPatternMatcherClassName(left);
+
                 final LocalClassStatementWriter localClass =
                     w.localClass(localClassName);
 
@@ -83,8 +84,7 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
                     patternMatchHelper.getSelfField(left)
                 );
 
-                patternMatcher.getDirectWriters()
-                    .forEach(localClass::addMember);
+                patternMatcher.getAllWriters().forEach(localClass::addMember);
 
                 final String matcherVariableName =
                     patternMatchHelper.getPatternMatcherVariableName(left);
@@ -184,7 +184,12 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
                 );
 
                 if (patternCheck) {
-                    return lves.advancePattern(pmi, afterRight);
+                    StaticState afterPattern = lves.advancePattern(
+                        pmi,
+                        afterRight
+                    );
+
+                    return lves.assertDidMatch(pmi, afterPattern);
                 } else {
                     return afterRight;
                 }
@@ -199,7 +204,6 @@ public class AssignmentSemantics extends StatementSemantics<Assignment> {
                 }
 
                 if (lves.isLExpreable(left)) {
-
                     lves.validateAssignment(
                         left,
                         right,

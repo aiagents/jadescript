@@ -280,7 +280,7 @@ public class WhenMatchesStatementSemantics
 
             StaticState afterPattern = lves.advancePattern(pmi, runningState);
 
-            StaticState inBranch = lves.assertDidMatch(pmi, runningState);
+            StaticState inBranch = lves.assertDidMatch(pmi, afterPattern);
 
             inBranch = inBranch.enterScope();
 

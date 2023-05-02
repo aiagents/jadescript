@@ -13,7 +13,7 @@ import org.junit.Before
 import org.eclipse.xtext.util.JavaVersion
 
 /*
- * Tests to check if the validator correctly flags duplicate elements (variables, features, top-elements) as errors.
+ * Tests to check if the validator and compiler correctly infer the types of expressions.
  */
 @RunWith(XtextRunner)
 @InjectWith(JadescriptInjectorProvider)
