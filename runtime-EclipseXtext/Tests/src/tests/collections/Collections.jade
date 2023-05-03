@@ -40,10 +40,13 @@ agent CollectionSender uses ontology Collections
         send message inform P3({"b":2}) to receiver
         log {P1({} of text), P}
         
+        
+        log __dt__ [] of integer
         log __dt__ [] of integer
         log __dt__ [1,2,3|[1,2,3]]
         log __dt__ [|[|[] of integer]]
-        
+        otherMap = {:} of integer:text
+        log __dt__ {:|otherMap}
         
         
     cyclic behaviour MemberBehaviour

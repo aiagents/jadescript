@@ -181,7 +181,7 @@ public abstract class JadescriptType
 
     @Override
     public String getDebugPrint() {
-        return this.getFullJadescriptName() + "{Class=(" +
+        return this.getFullJadescriptName() + "\n{Class=(" +
             getClass().getSimpleName() + "); JvmTypeReference=(" +
             compileToJavaTypeReference() + ")" +
             typeArguments().stream()

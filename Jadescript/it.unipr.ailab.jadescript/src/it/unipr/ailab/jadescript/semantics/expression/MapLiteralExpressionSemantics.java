@@ -22,6 +22,7 @@ import it.unipr.ailab.maybe.MaybeList;
 import it.unipr.ailab.sonneteer.statement.StatementWriter;
 import org.eclipse.xtext.util.Strings;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -261,13 +262,17 @@ public class MapLiteralExpressionSemantics
 
         final MaybeList<RValueExpression> values =
             input.__toList(MapOrSetLiteral::getValues);
+
         final MaybeList<RValueExpression> keys =
             input.__toList(MapOrSetLiteral::getKeys);
+
         final boolean hasTypeSpecifiers =
             input.__(MapOrSetLiteral::isWithTypeSpecifiers)
                 .orElse(false);
+
         final Maybe<TypeExpression> keysTypeParameter =
             input.__(MapOrSetLiteral::getKeyTypeParameter);
+
         final Maybe<TypeExpression> valuesTypeParameter =
             input.__(MapOrSetLiteral::getValueTypeParameter);
 
@@ -282,218 +287,205 @@ public class MapLiteralExpressionSemantics
 
         final RValueExpressionSemantics rves =
             module.get(RValueExpressionSemantics.class);
+
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
+
         final TypeLatticeComputer lattice =
             module.get(TypeLatticeComputer.class);
 
-        boolean stage1 = VALID;
-
-        int assumedSize = Math.min(keys.size(), values.size());
-
-        StaticState newState = state;
-
-        IJadescriptType keysLub = builtins.nothing(
-            "Cannot infer the type of the keys of the map."
-        );
-        IJadescriptType valuesLub = builtins.nothing(
-            "Cannot infer the type of the values of the map."
-        );
-
-
-        List<SemanticsUtils.Tuple2<IJadescriptType, IJadescriptType>> types
-            = new ArrayList<>();
-
-        for (int i = 0; i < assumedSize; i++) {
-            final Maybe<RValueExpression> key = keys.get(i);
-            final Maybe<RValueExpression> value = values.get(i);
-
-            boolean keyCheck = rves.validate(key, newState, acceptor);
-
-            final IJadescriptType newKeyType = rves.inferType(key, newState);
-            keysLub = lattice.getLUB(
-                keysLub,
-                newKeyType,
-                "Cannot compute the type of the keys " +
-                    "of the map: could not find a common supertype " +
-                    "of the types '" + keysLub + "' and '" + newKeyType +
-                    "'."
-            );
-            newState = rves.advance(key, newState);
-
-            boolean valCheck = rves.validate(value, newState, acceptor);
-            final IJadescriptType newValueType = rves.inferType(
-                value,
-                newState
-            );
-            valuesLub = lattice.getLUB(
-                valuesLub,
-                newValueType,
-                "Cannot compute the type of the values " +
-                    "of the map: could not find a common supertype " +
-                    "of the types '" + valuesLub + "' and '" + newValueType +
-                    "'."
-            );
-
-            newState = rves.advance(value, newState);
-
-            types.add(new SemanticsUtils.Tuple2<>(newKeyType, newValueType));
-
-            stage1 = stage1 && keyCheck && valCheck;
-        }
+        final TypeExpressionSemantics tes =
+            module.get(TypeExpressionSemantics.class);
 
         final ValidationHelper validationHelper =
             module.get(ValidationHelper.class);
 
+        if ((keys.isBlank() || values.isBlank()) && rest.isNothing()) {
+            if (hasTypeSpecifiers) {
+                return tes.validate(keysTypeParameter, acceptor)
+                    && tes.validate(valuesTypeParameter, acceptor)
+                    && tes.toJadescriptType(keysTypeParameter)
+                    .validateType(keysTypeParameter, acceptor)
+                    && tes.toJadescriptType(valuesTypeParameter)
+                    .validateType(valuesTypeParameter, acceptor);
+            }
 
-        stage1 = stage1 && validationHelper.asserting(
-            (!values.isBlank() && !keys.isBlank()
-                || rest.isPresent()) || hasTypeSpecifiers,
-            "MapLiteralCannotComputeTypes",
-            "Missing type specifications for empty map literal",
-            input,
-            acceptor
+            return validationHelper.emitError(
+                "MapLiteralCannotComputeType",
+                "Missing type specification for empty map literal.",
+                input,
+                acceptor
+            );
+        }
+
+        // Assuming (!keys.isBlank() && !values.isBlank()) || rest.isPresent()
+
+        final IJadescriptType explicitKeyType =
+            tes.toJadescriptType(keysTypeParameter);
+
+        final IJadescriptType explicitValueType =
+            tes.toJadescriptType(valuesTypeParameter);
+
+        StaticState runningState = state;
+        boolean elementsCheck = VALID;
+        IJadescriptType keysLUB = builtins.nothing(
+            "Cannot compute the type of the keys " +
+                "of the map: no keys provided."
         );
 
-        stage1 = stage1 && validationHelper.asserting(
-            values.stream().filter(Maybe::isPresent).count()
-                == keys.stream().filter(Maybe::isPresent).count(),
-            "InvalidMapLiteral",
-            "Non-matching number of keys and values in the map",
-            input,
-            acceptor
+        IJadescriptType valuesLUB = builtins.nothing(
+            "Cannot compute the type of the values " +
+                "of the map: no values provided."
         );
 
-        Maybe<IJadescriptType> restTypeMaybe = nothing();
+        final int size = Math.min(keys.size(), values.size());
+        for (int i = 0; i < size; i++) {
+            final Maybe<RValueExpression> key = keys.get(i);
+            final Maybe<RValueExpression> value = values.get(i);
+            boolean keyCheck = rves.validateInternal(
+                key,
+                runningState,
+                acceptor
+            );
+            if (keyCheck == VALID) {
+                IJadescriptType keyType = rves.inferType(key, runningState);
 
-        if (rest.isPresent() && !hasTypeSpecifiers) {
-            boolean restCheck = rves.validate(rest, newState, acceptor);
+                runningState = rves.advance(key, runningState);
+
+                if (keyType.validateType(key, acceptor) == VALID) {
+                    if (hasTypeSpecifiers) {
+                        keyCheck = validationHelper.assertExpectedType(
+                            explicitKeyType,
+                            keyType,
+                            "InvalidKeyType",
+                            key,
+                            acceptor
+                        );
+                    } else {
+                        keysLUB = lattice.getLUB(
+                            keysLUB,
+                            keyType,
+                            "Cannot compute the type of the keys " +
+                                "of the map: could not find a common " +
+                                "supertype " +
+                                "of the types '" + keysLUB + "' and '" +
+                                keyType + "'."
+                        );
+                    }
+                }
+            }
+            boolean valueCheck = rves.validateInternal(
+                value,
+                runningState,
+                acceptor
+            );
+            if (valueCheck == VALID) {
+                IJadescriptType valueType = rves.inferType(value, runningState);
+
+                runningState = rves.advance(value, runningState);
+
+                if (valueType.validateType(value, acceptor) == VALID) {
+                    if (hasTypeSpecifiers) {
+                        valueCheck = validationHelper.assertExpectedType(
+                            explicitValueType,
+                            valueType,
+                            "InvalidValueType",
+                            value,
+                            acceptor
+                        );
+                    } else {
+                        valuesLUB = lattice.getLUB(
+                            valuesLUB,
+                            valueType,
+                            "Cannot compute the type of the values " +
+                                "of the map: could not find a common " +
+                                "supertype " +
+                                "of the types '" + valuesLUB + "' and '" +
+                                valueType + "'."
+                        );
+                    }
+                }
+            }
+            elementsCheck = elementsCheck && keyCheck && valueCheck;
+        }
+
+        boolean restCheck;
+        if (rest.isPresent()) {
+            restCheck = rves.validate(rest, runningState, acceptor);
+
+            @Nullable IJadescriptType restType = null;
+            if (restCheck == VALID) {
+                restType = rves.inferType(rest, runningState);
+
+                restCheck = restType.validateType(rest, acceptor);
+            }
 
             if (restCheck == VALID) {
-                IJadescriptType restType = rves.inferType(rest, newState);
-                restCheck = restType.validateType(rest, acceptor);
-                if(restCheck == VALID){
-                    restTypeMaybe = some(restType);
-                    restCheck = validationHelper.asserting(
-                        restType.category().isMap(),
+                restCheck = validationHelper.asserting(
+                    restType.category().isMap(),
+                    "InvalidRestType",
+                    "Expected a map.",
+                    rest,
+                    acceptor
+                );
+            }
+
+            if (restCheck == VALID) {
+                if (hasTypeSpecifiers) {
+                    restCheck = validationHelper.assertExpectedType(
+                        builtins.map(
+                            builtins.covariant(explicitKeyType),
+                            builtins.covariant(explicitValueType)
+                        ),
+                        restType,
                         "InvalidRestType",
-                        "Epected a map",
                         rest,
                         acceptor
                     );
-                }
-
-                if(restCheck == VALID){
+                } else {
                     MapType mapType = (MapType) restType;
-                    IJadescriptType restKeyType = mapType.getKeyType();
-                    IJadescriptType restValueType = mapType.getValueType();
-                    keysLub = lattice.getLUB(
-                        keysLub,
+                    final IJadescriptType restKeyType = mapType.getKeyType();
+                    final IJadescriptType restValueType =
+                        mapType.getValueType();
+
+                    keysLUB = lattice.getLUB(
+                        keysLUB,
                         restKeyType,
                         "Cannot compute the type of the keys " +
-                            "of the map: could not find a common supertype " +
-                            "of the types '" + keysLub + "' and '" +
+                            "of the map: could not find a common " +
+                            "supertype " +
+                            "of the types '" + keysLUB + "' and '" +
                             restKeyType + "'."
                     );
 
-                    valuesLub = lattice.getLUB(
-                        valuesLub,
+                    valuesLUB = lattice.getLUB(
+                        valuesLUB,
                         restValueType,
                         "Cannot compute the type of the values " +
-                            "of the map: could not find a common supertype " +
-                            "of the types '" + valuesLub + "' and '" +
+                            "of the map: could not find a common " +
+                            "supertype " +
+                            "of the types '" + valuesLUB + "' and '" +
                             restValueType + "'."
                     );
                 }
             }
 
-            stage1 = stage1 && restCheck;
+
+        } else {
+            restCheck = VALID;
         }
 
-        if (stage1 == INVALID) {
-            return INVALID;
+        if (hasTypeSpecifiers) {
+            return tes.validate(keysTypeParameter, acceptor)
+                && tes.validate(valuesTypeParameter, acceptor)
+                && explicitKeyType.validateType(keysTypeParameter, acceptor)
+                && explicitValueType.validateType(valuesTypeParameter, acceptor)
+                && elementsCheck && restCheck;
+        } else {
+            return keysLUB.validateType(input, acceptor)
+                && valuesLUB.validateType(input, acceptor)
+                && elementsCheck && restCheck;
         }
-
-
-        if (values.isBlank() || keys.isBlank()) {
-            return VALID;
-        }
-
-        final TypeExpressionSemantics tes =
-            module.get(TypeExpressionSemantics.class);
-
-        boolean keysValidation = hasTypeSpecifiers
-            || keysLub.validateType(input, acceptor);
-
-        keysValidation = keysValidation
-            && tes.validate(keysTypeParameter, acceptor);
-
-        boolean valsValidation = hasTypeSpecifiers
-            || valuesLub.validateType(input, acceptor);
-
-        valsValidation = valsValidation
-            && tes.validate(valuesTypeParameter, acceptor);
-
-        if (valsValidation == INVALID || keysValidation == INVALID
-            || !hasTypeSpecifiers) {
-
-            return keysValidation && valsValidation;
-        }
-
-        final IJadescriptType explicitKeyType =
-            tes.toJadescriptType(keysTypeParameter);
-        final IJadescriptType explicitValueType =
-            tes.toJadescriptType(valuesTypeParameter);
-
-        assumedSize = Math.min(
-            types.size(),
-            Math.min(keys.size(), values.size())
-        );
-        for (int i = 0; i < assumedSize; i++) {
-            Maybe<RValueExpression> key = keys.get(i);
-            Maybe<RValueExpression> value = values.get(i);
-            final SemanticsUtils.Tuple2<IJadescriptType, IJadescriptType> tt =
-                types.get(i);
-            IJadescriptType inferredKeyType = tt.get_1();
-            IJadescriptType inferredValueType = tt.get_2();
-            boolean keyConf = validationHelper.assertExpectedType(
-                explicitKeyType,
-                inferredKeyType,
-                "InvalidMapKey",
-                key,
-                acceptor
-            );
-
-            boolean valConf = validationHelper.assertExpectedType(
-                explicitValueType,
-                inferredValueType,
-                "InvalidMapValue",
-                value,
-                acceptor
-            );
-
-            keysValidation = keysValidation && keyConf;
-            valsValidation = valsValidation && valConf;
-        }
-
-        boolean restTypeValidation;
-        if(restTypeMaybe.isPresent()){
-            restTypeValidation = validationHelper.assertExpectedType(
-                builtins.map(
-                    builtins.covariant(explicitKeyType),
-                    builtins.covariant(explicitValueType)
-                ),
-                restTypeMaybe.toNullable(),
-                "InvalidRestValue",
-                rest,
-                acceptor
-            );
-        }else{
-            restTypeValidation = VALID;
-        }
-
-        return keysValidation && valsValidation && restTypeValidation;
-
     }
 
 
@@ -1307,9 +1299,10 @@ public class MapLiteralExpressionSemantics
             typeCount = VALID;
         }
 
+
         if (typeCount && isMapV) {
             valuesCount = vh.asserting(
-                values.size() == keys.size(),
+                values.excludeNulls().size() == keys.excludeNulls().size(),
                 "InvalidMap" + Strings.toFirstUpper(literalOrPattern),
                 "Non-matching number of keys and values in the map " +
                     literalOrPattern,

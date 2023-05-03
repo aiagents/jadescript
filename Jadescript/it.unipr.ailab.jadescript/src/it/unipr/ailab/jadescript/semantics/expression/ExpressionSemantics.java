@@ -26,6 +26,7 @@ import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.utils.LazyInit;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -522,7 +523,7 @@ public abstract class ExpressionSemantics<T> extends Semantics {
     /**
      * Computes the type of the input expression.
      */
-    public final IJadescriptType inferType(Maybe<T> input, StaticState state) {
+    public final @NotNull IJadescriptType inferType(Maybe<T> input, StaticState state) {
         return traversingSemanticsMap(
             input,
             (sem, i) -> sem.inferType(i, state),

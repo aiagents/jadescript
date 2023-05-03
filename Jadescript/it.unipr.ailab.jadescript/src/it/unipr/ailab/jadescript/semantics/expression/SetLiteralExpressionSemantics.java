@@ -17,11 +17,10 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.TypeLatticeComputer;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.collection.SetType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
-import it.unipr.ailab.jadescript.semantics.jadescripttypes.util.NothingType;
-import it.unipr.ailab.jadescript.semantics.utils.SemanticsUtils;
 import it.unipr.ailab.maybe.Maybe;
 import it.unipr.ailab.maybe.MaybeList;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -272,17 +271,17 @@ public class SetLiteralExpressionSemantics
             return VALID;
         }
 
-        final MaybeList<RValueExpression> elements =
+        final MaybeList<RValueExpression> values =
             input.__toList(MapOrSetLiteral::getKeys);
 
-        final boolean hasTypeSpecifiers =
+        final boolean hasTypeSpecifier =
             input.__(MapOrSetLiteral::isWithTypeSpecifiers)
                 .orElse(false);
 
         final Maybe<RValueExpression> rest
             = input.__(MapOrSetLiteral::getRest);
 
-        final Maybe<TypeExpression> keysTypeParameter =
+        final Maybe<TypeExpression> typeParameter =
             input.__(MapOrSetLiteral::getKeyTypeParameter);
 
         final RValueExpressionSemantics rves =
@@ -300,14 +299,14 @@ public class SetLiteralExpressionSemantics
         final BuiltinTypeProvider builtins =
             module.get(BuiltinTypeProvider.class);
 
-        if (elements.isBlank() && rest.isNothing()) {
-            if (hasTypeSpecifiers) {
+        if (values.isBlank() && rest.isNothing()) {
+            if (hasTypeSpecifier) {
                 return tes.validate(
-                    keysTypeParameter,
+                    typeParameter,
                     acceptor
                 ) && tes.toJadescriptType(
-                    keysTypeParameter
-                ).validateType(keysTypeParameter, acceptor);
+                    typeParameter
+                ).validateType(typeParameter, acceptor);
             }
 
             return validationHelper.emitError(
@@ -322,214 +321,138 @@ public class SetLiteralExpressionSemantics
         //Assuming !elements.isBlank() || rest.isPresent()
 
         final IJadescriptType explicitType =
-            tes.toJadescriptType(keysTypeParameter);
+            tes.toJadescriptType(typeParameter);
 
-        if (hasTypeSpecifiers) {
-            StaticState runningState = state;
-            boolean elementsCheck = VALID;
-
-            final int size = elements.size();
-            for (int i = 0; i < size; i++) {
-                Maybe<RValueExpression> element = elements.get(i);
-                boolean elementCheck = rves.validate(
-                    element,
-                    runningState,
-                    acceptor
-                );
-                elementsCheck = elementsCheck && elementCheck;
-                if (elementCheck == INVALID) {
-                    continue;
-                }
-
-                IJadescriptType elementType = rves.inferType(
-                    element,
-                    runningState
-                );
-                runningState = rves.advance(element, runningState);
-
-                boolean typeCheck = validationHelper.assertExpectedType(
-                    explicitType,
-                    elementType,
-                    "InvalidElementType",
-                    element,
-                    acceptor
-                );
-
-                elementsCheck = elementsCheck && typeCheck;
-            }
-
-            boolean restCheck;
-            if (rest.isPresent()) {
-                restCheck = validateRestExplicitType(
-                    acceptor,
-                    rest,
-                    explicitType,
-                    runningState
-                );
-            } else {
-                restCheck = VALID;
-            }
-            return tes.validate(
-                keysTypeParameter,
-                acceptor
-            ) && explicitType.validateType(
-                keysTypeParameter,
-                acceptor
-            ) && elementsCheck && restCheck;
-
-        }
-
-        //No type specifiers
+        StaticState runningState = state;
         boolean elementsCheck = VALID;
         IJadescriptType elementsLUB = builtins.nothing(
             "Cannot compute the type of the elements " +
                 "of the set: no elements provided."
         );
-        StaticState runningState = state;
 
-        for (int i = 0; i < elements.size(); i++) {
-            Maybe<RValueExpression> element = elements.get(i);
+        final int size = values.size();
+        for (int i = 0; i < size; i++) {
+            Maybe<RValueExpression> element = values.get(i);
             boolean elementCheck = rves.validate(
                 element,
                 runningState,
                 acceptor
             );
             elementsCheck = elementsCheck && elementCheck;
-            if (elementCheck == VALID) {
-                IJadescriptType elementType = rves.inferType(
+            if (elementCheck == INVALID) {
+                continue;
+            }
+
+            IJadescriptType elementType = rves.inferType(
+                element, runningState
+            );
+
+            runningState = rves.advance(element, runningState);
+
+
+            boolean typeCheck = elementType.validateType(
+                element, acceptor
+            );
+
+            if (typeCheck == INVALID) {
+                elementsCheck = INVALID;
+                continue;
+            }
+
+            if (hasTypeSpecifier) {
+                typeCheck = typeCheck && validationHelper.assertExpectedType(
+                    explicitType,
+                    elementType,
+                    "InvalidElementType",
                     element,
-                    runningState
+                    acceptor
                 );
+            } else {
                 elementsLUB = lattice.getLUB(
                     elementsLUB,
                     elementType,
                     "Cannot compute the type of the elements " +
                         "of the set: could not find a common supertype " +
-                        "of the types '" + elementsLUB + "' and '"
-                        + elementType + "'."
+                        "of the types '" + elementsLUB + "' and '" +
+                        elementType + "'."
                 );
             }
-            runningState = rves.advance(element, runningState);
+
+            elementsCheck = elementsCheck && typeCheck;
         }
 
         boolean restCheck;
         if (rest.isPresent()) {
-            SemanticsUtils.Tuple2<Boolean, IJadescriptType> r =
-                validateRestImplicitType(
+            restCheck = rves.validate(rest, runningState, acceptor);
+
+            @Nullable IJadescriptType restType = null;
+            if (restCheck == VALID) {
+                restType = rves.inferType(rest, runningState);
+
+                restCheck = restType.validateType(rest, acceptor);
+            }
+
+            if (restCheck == VALID) {
+                restCheck = validationHelper.asserting(
+                    restType.category().isList()
+                        || restType.category().isSet(),
+                    "InvalidRestType",
+                    "Expected a list or a set.",
                     rest,
-                    runningState,
                     acceptor
                 );
-            restCheck = r.get_1();
-            if (restCheck == VALID) {
-                IJadescriptType restElemType = r.get_2();
-                elementsLUB = lattice.getLUB(
-                    elementsLUB,
-                    restElemType,
-                    "Cannot compute the type of the elements " +
-                        "of the set: could not find a common supertype " +
-                        "of the types '" + elementsLUB + "' and '" +
-                        restElemType + "'."
-                );
             }
-        }else{
+
+            if (restCheck == VALID) {
+                if (hasTypeSpecifier) {
+                    restCheck = validationHelper.assertExpectedTypesAny(
+                        List.of(
+                            builtins.list(builtins.covariant(explicitType)),
+                            builtins.set(builtins.covariant(explicitType))
+                        ),
+                        restType,
+                        "InvalidRestType",
+                        rest,
+                        acceptor
+                    );
+                } else {
+                    IJadescriptType restElemType =
+                        restType.getElementTypeIfCollection()
+                            .orElse(builtins.nothing(""));
+
+                    elementsLUB = lattice.getLUB(
+                        elementsLUB,
+                        restElemType,
+                        "Cannot compute the type of the elements " +
+                            "of the set: could not find a common " +
+                            "supertype " +
+                            "of the types '" + elementsLUB + "' and '" +
+                            restElemType + "'."
+                    );
+                }
+            }
+
+
+        } else {
             restCheck = VALID;
         }
 
-        return elementsLUB.validateType(input, acceptor) && restCheck;
-
-
-    }
-
-    private boolean validateRestExplicitType(
-        ValidationMessageAcceptor acceptor,
-        Maybe<RValueExpression> rest,
-        IJadescriptType expected,
-        StaticState runningState
-    ) {
-
-        final RValueExpressionSemantics rves =
-            module.get(RValueExpressionSemantics.class);
-
-        final ValidationHelper validationHelper =
-            module.get(ValidationHelper.class);
-
-        final BuiltinTypeProvider builtins =
-            module.get(BuiltinTypeProvider.class);
-
-        boolean restCheck = rves.validate(
-            rest, runningState, acceptor
-        );
-
-        if (restCheck == VALID) {
-            IJadescriptType restType = rves.inferType(
-                rest, runningState
-            );
-
-            restCheck = validationHelper.assertExpectedTypesAny(
-                List.of(
-                    builtins.list(builtins.covariant(expected)),
-                    builtins.set(builtins.covariant(expected))
-                ),
-                restType,
-                "InvalidRestType",
-                rest,
+        if (hasTypeSpecifier) {
+            return tes.validate(
+                typeParameter,
                 acceptor
-            );
+            ) && explicitType.validateType(
+                typeParameter,
+                acceptor
+            ) && elementsCheck && restCheck;
+        } else {
+            return elementsLUB.validateType(
+                input,
+                acceptor
+            ) && elementsCheck && restCheck;
         }
 
-        return restCheck;
-    }
 
-
-    private SemanticsUtils.Tuple2<Boolean, IJadescriptType>
-    validateRestImplicitType(
-        Maybe<RValueExpression> rest,
-        StaticState runningState,
-        ValidationMessageAcceptor acceptor
-    ) {
-        RValueExpressionSemantics rves =
-            module.get(RValueExpressionSemantics.class);
-
-        BuiltinTypeProvider builtins =
-            module.get(BuiltinTypeProvider.class);
-
-        boolean restCheck = rves.validate(
-            rest,
-            runningState,
-            acceptor
-        );
-
-        final NothingType nothing = builtins.nothing("");
-        if (restCheck == INVALID) {
-            return new SemanticsUtils.Tuple2<>(INVALID, nothing);
-        }
-
-        IJadescriptType restType = rves.inferType(
-            rest, runningState
-        );
-
-        restCheck = restType.validateType(rest, acceptor);
-
-        if (restCheck == INVALID) {
-            return new SemanticsUtils.Tuple2<>(INVALID, nothing);
-        }
-
-        final ValidationHelper validationHelper =
-            module.get(ValidationHelper.class);
-
-        restCheck = validationHelper.asserting(
-            restType.category().isList() || restType.category().isSet(),
-            "InvalidRestType",
-            "Expected a list or a set.",
-            rest,
-            acceptor
-        );
-
-        IJadescriptType restElementType = restType.getElementTypeIfCollection()
-            .orElse(nothing);
-
-        return new SemanticsUtils.Tuple2<>(restCheck, restElementType);
     }
 
 

@@ -905,14 +905,14 @@ ListLiteral:
 
 MapOrSetLiteral:
 	{MapOrSetLiteral} 
-	(
-     '{' 
+	((
+	 '{' 
   	 keys+=RValueExpression (=>isMap?=':' values+=RValueExpression)? (',' keys+=RValueExpression (=>':'values+=RValueExpression)?)*
   	 (withPipe?='|' rest=RValueExpression)? 
-     '}' (withTypeSpecifiers?='of' keyTypeParameter=TypeExpression (=>isMapT?=':' valueTypeParameter=TypeExpression)?)?) 
-	
-	| 
-	(isEmpty?='{' (isMap?=':')? '}' withTypeSpecifiers?='of' keyTypeParameter=TypeExpression (=>isMapT?=':'valueTypeParameter=TypeExpression)?);
+     '}'
+    ) | (
+    	isEmpty?='{' (isMap?=':')? (withPipe?='|' rest=RValueExpression)? '}'
+    )) (withTypeSpecifiers?='of' keyTypeParameter=TypeExpression (=>isMapT?=':' valueTypeParameter=TypeExpression)?)?;
 
 
 BooleanLiteral:
