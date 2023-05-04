@@ -14,6 +14,8 @@
 			name="Jadescript Editor">
 		</editor>
 	</extension>
+	
+	
 	<extension
 		point="org.eclipse.ui.handlers">
 		<handler
@@ -701,14 +703,19 @@
 	        label="Jadescript Agent"
 	        icon="icons/jadescript_run.png"
 	        modes="run">
-	            <contextualLaunch>
-	            	<enablement>
-	            		<with variable="selection">
-	            			<count value="+">
-	            			</count>
-            			</with>
-	            	</enablement>
-	            </contextualLaunch>
+	        <contextualLaunch>
+	        	<enablement>
+				    <with variable="selection">
+				     <count value="1"/>
+				      <iterate>
+				       <adapt type="org.eclipse.core.resources.IFile">
+              				<test property="org.eclipse.core.resources.extension" value="jade">
+              				</test>
+            			</adapt>
+				      </iterate>
+				     </with>
+  				</enablement>
+	        </contextualLaunch>
 	    </shortcut>
 	</extension>
 	<!-- Launcher for main container -->

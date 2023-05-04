@@ -47,6 +47,7 @@ public class JadescriptAgentsLaunchShortcut implements ILaunchShortcut, IJavaLau
 
 	}
 
+	@Override
 	public void launch(IEditorPart editor, String mode) {
 		@SuppressWarnings("unused")
 		String title = editor.getTitle();
@@ -84,6 +85,7 @@ public class JadescriptAgentsLaunchShortcut implements ILaunchShortcut, IJavaLau
 		return ms;
 	}
 
+	@Override
 	public void launch(ISelection selection, String mode) {
 		if (selection instanceof IStructuredSelection) {
 			List<?> l = ((IStructuredSelection) selection).toList();
