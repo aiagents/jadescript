@@ -128,21 +128,21 @@ public class SelectAgentDialog extends Dialog {
 			});
 		});
 		Label agentArgsLabel = new Label(agentDetailsGroup, SWT.NONE);
-		agentArgsLabel.setText("Agent 'on create' arguments:");
-		agentArgsText = new Text(agentDetailsGroup, SWT.BORDER | SWT.MULTI);
+		agentArgsLabel.setText("Agent's 'on create' arguments:");
+		agentArgsText = new Text(agentDetailsGroup, SWT.BORDER);
 		GridData agentArgsTextLayoutData = new GridData(GridData.FILL_HORIZONTAL);
 		agentArgsText.setLayoutData(agentArgsTextLayoutData);
-		GC gc = new GC(agentArgsText);
-		try
-		{
-		    gc.setFont(agentArgsText.getFont());
-		    FontMetrics fm = gc.getFontMetrics();
-		    agentArgsTextLayoutData.heightHint = 5 * fm.getHeight();
-		}
-		finally
-		{
-		    gc.dispose();
-		}
+//		GC gc = new GC(agentArgsText);
+//		try
+//		{
+//		    gc.setFont(agentArgsText.getFont());
+//		    FontMetrics fm = gc.getFontMetrics();
+//		    agentArgsTextLayoutData.heightHint = 5 * fm.getHeight();
+//		}
+//		finally
+//		{
+//		    gc.dispose();
+//		}
 
 		// CONTAINER
 		Group containerGroup = new Group(container, SWT.BORDER);
