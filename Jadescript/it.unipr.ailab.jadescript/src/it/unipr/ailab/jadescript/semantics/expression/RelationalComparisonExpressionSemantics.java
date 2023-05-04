@@ -12,6 +12,7 @@ import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternMatche
 import it.unipr.ailab.jadescript.semantics.expression.patternmatch.PatternType;
 import it.unipr.ailab.jadescript.semantics.helpers.ValidationHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
+import it.unipr.ailab.jadescript.semantics.jadescripttypes.basic.AIDType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
 import it.unipr.ailab.maybe.Maybe;
@@ -93,6 +94,14 @@ public class RelationalComparisonExpressionSemantics
             .is(subTypeOrEqual())) {
             return "jadescript.lang.Duration.compare(" + leftCompiled
                 + ", " + rightCompiled + ") " + relationalOp + " 0";
+        }
+
+        final AIDType aid = builtins.aid();
+        if(comparator.compare(t1, aid).is(subTypeOrEqual())
+            && comparator.compare(t2, aid).is(subTypeOrEqual())){
+            return "(" + aid.compileAsJavaCast() + " " + leftCompiled + ")" +
+                ".compareTo(" + aid.compileAsJavaCast() + " " +
+                rightCompiled + ") " + relationalOp + " 0";
         }
 
         if (comparator.compare(t1, builtins.timestamp())
@@ -252,6 +261,15 @@ public class RelationalComparisonExpressionSemantics
             .is(subTypeOrEqual());
     }
 
+    private boolean isAid(IJadescriptType type) {
+        final BuiltinTypeProvider builtins =
+            module.get(BuiltinTypeProvider.class);
+        final TypeComparator comparator = module.get(TypeComparator.class);
+
+        return comparator.compare(type, builtins.aid())
+            .is(subTypeOrEqual());
+    }
+
 
     @Override
     protected boolean validateInternal(
@@ -273,57 +291,63 @@ public class RelationalComparisonExpressionSemantics
         final boolean leftValidate = cces.validate(left, state, acceptor);
         final StaticState afterLeft = cces.advance(left, state);
         final boolean rightValidate = cces.validate(right, afterLeft, acceptor);
-        if (leftValidate == VALID && rightValidate == VALID) {
-            IJadescriptType typeLeft = cces.inferType(left, state);
-            IJadescriptType typeRight = cces.inferType(right, afterLeft);
-            final ValidationHelper validationHelper =
-                module.get(ValidationHelper.class);
-            boolean ltValidation = validationHelper.assertExpectedTypesAny(
-                List.of(
-                    builtins.integer(),
-                    builtins.real(),
-                    builtins.timestamp(),
-                    builtins.duration()
-                ),
-                typeLeft,
-                "InvalidOperandType",
-                left,
-                acceptor
-            );
-            boolean rtValidation = validationHelper.assertExpectedTypesAny(
-                List.of(
-                    builtins.integer(),
-                    builtins.real(),
-                    builtins.timestamp(),
-                    builtins.duration()
-                ),
-                typeRight,
-                "InvalidOperandType",
-                right,
-                acceptor
-            );
 
-            boolean otherValidation = validationHelper.asserting(
-                //implication: if left is NUMBER, right has to be NUMBER too
-                (!isNumber(typeLeft) || isNumber(typeRight))
-                    //implication: if left is DURATION,
-                    // right has to be DURATION too
-                    && (!isDuration(typeLeft) || isDuration(typeRight))
-                    //implication: if left is TIMESTAMP,
-                    // right has to be TIMESTAMP too
-                    && (!isTimestamp(typeLeft) || isTimestamp(typeRight)),
-                "IncongruentOperandTypes",
-                "Incompatible types for comparison: '"
-                    + typeLeft.getFullJadescriptName()
-                    + "', '" + typeRight.getFullJadescriptName() + "'",
-                input,
-                acceptor
-            );
-
-            return ltValidation && rtValidation && otherValidation;
+        if (leftValidate == INVALID || rightValidate == INVALID) {
+            return INVALID;
         }
 
-        return leftValidate && rightValidate;
+        IJadescriptType typeLeft = cces.inferType(left, state);
+        IJadescriptType typeRight = cces.inferType(right, afterLeft);
+        final ValidationHelper validationHelper =
+            module.get(ValidationHelper.class);
+
+        boolean ltValidation = validationHelper.assertExpectedTypesAny(
+            List.of(
+                builtins.integer(),
+                builtins.real(),
+                builtins.timestamp(),
+                builtins.duration(),
+                builtins.aid()
+            ),
+            typeLeft,
+            "InvalidOperandType",
+            left,
+            acceptor
+        );
+
+        boolean rtValidation = validationHelper.assertExpectedTypesAny(
+            List.of(
+                builtins.integer(),
+                builtins.real(),
+                builtins.timestamp(),
+                builtins.duration(),
+                builtins.aid()
+            ),
+            typeRight,
+            "InvalidOperandType",
+            right,
+            acceptor
+        );
+
+        boolean otherValidation = validationHelper.asserting(
+            //implication: if left is NUMBER, right has to be NUMBER too
+            (!isNumber(typeLeft) || isNumber(typeRight))
+                //implication: if left is DURATION, right has to be DURATION too
+                && (!isDuration(typeLeft) || isDuration(typeRight))
+                //implication: if left is TIMESTAMP, right has to be too
+                && (!isTimestamp(typeLeft) || isTimestamp(typeRight))
+                //implication: if left is AID, right has to be AID too
+                && (!isAid(typeLeft) || isAid(typeRight)),
+            "IncongruentOperandTypes",
+            "Incompatible types for comparison: '"
+                + typeLeft.getFullJadescriptName()
+                + "', '" + typeRight.getFullJadescriptName() + "'",
+            input,
+            acceptor
+        );
+
+        return ltValidation && rtValidation && otherValidation;
+
     }
 
 

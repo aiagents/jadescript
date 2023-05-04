@@ -1031,4 +1031,22 @@ public class TypeComparator {
         return Maybe.nothing();
     }
 
+    public GivenType given(IJadescriptType subject){
+        return new GivenType(subject, this);
+    }
+
+    public static class GivenType{
+        private final IJadescriptType subject;
+        private final TypeComparator comparator;
+
+        GivenType(IJadescriptType subject, TypeComparator comparator){
+            this.subject = subject;
+            this.comparator = comparator;
+        }
+
+        public TypeRelationship comparedWith(IJadescriptType target){
+            return comparator.compare(subject, target);
+        }
+    }
+
 }
