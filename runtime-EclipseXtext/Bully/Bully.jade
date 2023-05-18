@@ -106,6 +106,8 @@ cyclic behaviour Election for agent Participant
     property iAmCandidate = true
     
     on activate do
+        # Reset the candidate flag back to true 
+        #  each time the behaviour is activated.
         iAmCandidate = true
         log "Sending election messages..."
         # Stop monitoring.
@@ -116,21 +118,20 @@ cyclic behaviour Election for agent Participant
             if p > aid of agent do
                 send message propose ElectNewLeader to p
         
-        # Terminate the reception of responses after the interval.
-        activate TerminateElection(this) after timeoutInterval
+        # Terminate the election process at the timeout.
+        activate TerminateElection after timeoutInterval
         
-    # Someone agreed to attempt to claim the leadership 
-    #  (as it has an higher aid). 
+    
     on message agree (ElectNewLeader, _) do
+        # Someone agreed to attempt to claim the leadership 
         log "Received OK message from "+ localName of sender
+        # The sender has it has an higher aid.
+        # Therefore, the agent cannot be elected anymore. 
         iAmCandidate = false
 
 
 
-one shot behaviour TerminateElection for agent Participant
-    on create with e as Election do
-        election = e
-        
+one shot behaviour TerminateElection for agent Participant    
     on activate do
         deactivate election
         log "Election terminated."
@@ -138,8 +139,8 @@ one shot behaviour TerminateElection for agent Participant
             # The election terminated but the agent is still a candidate:
             # the agent sets itself as the new leader.
             do setLeader with newLeader=aid of agent 
-        
-        
+
+
 
 cyclic behaviour RespondElection for agent Participant
     on message propose (ElectNewLeader, _) when sender < aid of agent do
