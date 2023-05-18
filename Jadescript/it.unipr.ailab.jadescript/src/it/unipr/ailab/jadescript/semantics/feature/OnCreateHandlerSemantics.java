@@ -155,8 +155,7 @@ public class OnCreateHandlerSemantics
             module.get(BuiltinTypeProvider.class);
 
         if (isListOfText(parameters)) {
-            //if that was true, add a variable in the scope with
-            // type JadescriptList<String>.
+            //add a variable in the scope with type JadescriptList<String>.
             Maybe<String> paramName = parameters.get(0)
                 .__(FormalParameter::getName);
 
@@ -173,27 +172,10 @@ public class OnCreateHandlerSemantics
             w.variable(
                 "jadescript.util.JadescriptList<java.lang.String>",
                 paramNameSafe,
-                w.expr("new jadescript.util.JadescriptList<String>()")
+                w.callExpr("__extractListOfTextArguments")
             ).writeSonnet(scb);
 
-            // inside an if that checks that this .getArguments() is not
-            // null, populate the List just created.
-            w.ifStmnt(
-                w.expr("this.getArguments() != null"),
-                w.block().addStatement(
-                    w.foreach(
-                        "java.lang.Object",
-                        "o",
-                        w.expr("this.getArguments()"),
-                        w.block().addStatement(
-                            w.callStmnt(
-                                paramNameSafe + ".add",
-                                w.expr("(String) o")
-                            )
-                        )
-                    )
-                )
-            ).writeSonnet(scb);
+
 
             extractedParameters.add(ActualParameter.actualParameter(
                 paramNameSafe,

@@ -162,22 +162,22 @@ public class FieldSemantics extends DeclarationMemberSemantics<Field> {
                         String eObjectToStringReattempt2 = "" + typeReference3;
                         itMethod.setReturnType(typeReference3);
 
-                        scb.open("/*BEFORE");
-                        scb.add("eObject=");
+                        scb.open("// BEFORE");
+                        scb.add("// eObject=");
                         scb.line("" + eObjectToStringBefore);
-                        scb.close("*/");
-                        scb.open("/*AFTER");
-                        scb.add("eObject=");
+                        scb.close("//");
+                        scb.open("// AFTER");
+                        scb.add("// eObject=");
                         scb.line("" + eObjectToStringAfter);
-                        scb.close("*/");
-                        scb.open("/*REATTEMPT1");
-                        scb.add("eObject=");
+                        scb.close("//");
+                        scb.open("// REATTEMPT1");
+                        scb.add("// eObject=");
                         scb.line("" + eObjectToStringReattempt1);
-                        scb.close("*/");
-                        scb.open("/*REATTEMPT2");
-                        scb.add("eObject=");
+                        scb.close("// ");
+                        scb.open("// REATTEMPT2");
+                        scb.add("// eObject=");
                         scb.line("" + eObjectToStringReattempt2);
-                        scb.close("*/");
+                        scb.close("//");
                         scb.line("return null;");
                     });
                 }

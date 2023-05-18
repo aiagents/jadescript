@@ -21,6 +21,7 @@ import jadescript.lang.JadescriptExecutableContainer;
 import jadescript.lang.JadescriptGlobalFunction;
 import jadescript.lang.JadescriptGlobalProcedure;
 import jadescript.lang.acl.StaleMessageTemplate;
+import jadescript.util.JadescriptList;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -83,8 +84,10 @@ public class Agent extends jade.core.Agent {
         String message
     ) {
 
-        LogRecord record = new LogRecord(level != null ? level : Level.INFO,
-            message != null ? message : "");
+        LogRecord record = new LogRecord(
+            level != null ? level : Level.INFO,
+            message != null ? message : ""
+        );
 
         if (requester instanceof Behaviour && ((Behaviour) requester).getAgent() != null) {
             //Header output (in active behaviour): AgentType ('localName')
@@ -262,7 +265,7 @@ public class Agent extends jade.core.Agent {
             final Throwable cause = reason.cause();
             if (cause != null) {
                 final String causeMessage = cause.getMessage();
-                if(causeMessage !=null) {
+                if (causeMessage != null) {
                     doLog(
                         Level.INFO,
                         this.getClass().getName(),
@@ -305,7 +308,6 @@ public class Agent extends jade.core.Agent {
         __onDestroy();
         super.takeDown();
     }
-    
 
 
     /**
@@ -324,16 +326,31 @@ public class Agent extends jade.core.Agent {
     }
 
 
-    public List<Object> getArgs() {
-        return Arrays.asList(getArguments());
-    }
+    protected JadescriptList<String> __extractListOfTextArguments() {
+        JadescriptList<String> result = new JadescriptList<>();
+        Object[] args = getArguments();
+        if (args == null || args.length == 0) {
+            return result;
+        }
 
+        if (args.length == 1 && args[0] instanceof Collection) {
+            ((Collection<?>) args[0]).stream()
+                .map(e -> (String) e)
+                .forEach(result::add);
+            return result;
+        }
+
+        for (Object arg : args) {
+            result.add((String) arg);
+        }
+        return result;
+
+    }
 
 
     public AID getAid() {
         return super.getAID();
     }
-
 
 
     @SuppressWarnings("EmptyMethod")
@@ -378,8 +395,10 @@ public class Agent extends jade.core.Agent {
      */
     public boolean __isMessageStale(ACLMessage message) {
         final Set<Integer> signatures =
-            __ignoreSignatures.getOrDefault(message.toString(),
-                Set.of());
+            __ignoreSignatures.getOrDefault(
+                message.toString(),
+                Set.of()
+            );
         return __addedBehaviours.stream()
             .filter(Behaviour::isActive)
             .allMatch(b -> signatures.contains(b.hashCode()));
@@ -446,6 +465,7 @@ public class Agent extends jade.core.Agent {
         private final Codec __codec = new jade.content.lang.leap.LEAPCodec();
         private final MessageTemplate __mt = StaleMessageTemplate.matchStale(
             this::__theAgent);
+
 
         public __StaleMessageCleaner(AgentEnv<Agent, AnySideEffectFlag> _agentEnv) {
             super(_agentEnv);
