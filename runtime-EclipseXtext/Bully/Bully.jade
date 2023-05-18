@@ -1,0 +1,157 @@
+module examples.bully
+
+ontology Bully
+    # Used by leaders as heartbeat signals.
+    proposition Alive
+    # Used by candidates claim themselves as new leaders.
+    proposition NewLeader
+    # Used to call elections.
+    action ElectNewLeader
+
+
+
+# Creates the agents involved in the bully algorithm.
+# Each agent created receives the names of the other 
+#  participants as argument.
+agent StartAlgorithm
+    on create with numberOfAgents as integer do
+        names = [] of text
+        for i in 1 to numberOfAgents do
+            add "A" + i to names
+        for participantName in names do
+            create Participant participantName with names
+
+
+
+agent Participant uses ontology Bully
+    property heartbeatPeriod = "PT3S" as duration # 3 seconds
+    property timeoutInterval = "PT10S" as duration # 10 seconds
+    
+    property leader as aid = aid of agent
+    property knownParticipants as list of aid
+    
+    property monitor as MonitorHeartbeat
+    property election as Election
+
+
+    on create with participants as list of text do
+        log "Agent created."
+        
+        # The first element of the argument list 
+        # is the name of the leader.
+        if participants matches [initalLeader|otherParticipants] do
+            leader = initalLeader as aid
+            for op in otherParticipants do
+                opAid = op as aid
+                # Avoids putting itself in the set:
+                if opAid ≠ aid of agent do
+                    add opAid to knownParticipants
+
+        activate DoHeartbeat every heartbeatPeriod
+        activate RespondElection
+        activate HandleLeaderChanges
+        
+        if leader ≠ aid of agent do
+            activate monitor
+        else do
+            activate SimulateTermination after "PT10S" as duration
+
+
+    procedure setLeader with newLeader as aid do
+        # If it is going to set itself as leader
+        if newLeader = aid of agent do
+            # Stop monitoring heartbeat
+            deactivate monitor
+            # Inform others to be the new leader
+            send message inform NewLeader to knownParticipants
+            log "I'm the new leader!"
+            # To keep the example interesting, a leader dies after 10s
+            activate SimulateTermination after "PT10S" as duration
+        else do
+            # Otherwise, start monitoring the new leader's heartbeat
+            activate monitor
+            log "The new leader is " + localName of newLeader
+            
+        leader = newLeader
+        
+        
+        
+one shot behaviour SimulateTermination
+    on activate do
+        log "Simulating termination..."
+        do delete         
+        
+        
+        
+cyclic behaviour MonitorHeartbeat for agent Participant
+    on activate do
+        activate election after timeoutInterval
+        
+    on message inform Alive when sender = leader do
+        log "Leader " + localName of sender + " is alive."
+        # Postpone the activation of startElection
+        activate election after timeoutInterval
+
+
+
+cyclic behaviour DoHeartbeat for agent Participant
+    on execute do
+        # Only the leader sends heartbeats.
+        if leader = aid of agent do
+            send message inform Alive to knownParticipants
+
+
+
+cyclic behaviour Election for agent Participant
+    property iAmCandidate = true
+    
+    on activate do
+        iAmCandidate = true
+        log "Sending election messages..."
+        # Stop monitoring.
+        deactivate monitor
+
+        # Send an election message to all agents with higher aid.
+        for p in knownParticipants do
+            if p > aid of agent do
+                send message propose ElectNewLeader to p
+        
+        # Terminate the reception of responses after the interval.
+        activate TerminateElection(this) after timeoutInterval
+        
+    # Someone agreed to attempt to claim the leadership 
+    #  (as it has an higher aid). 
+    on message agree (ElectNewLeader, _) do
+        log "Received OK message from "+ localName of sender
+        iAmCandidate = false
+
+
+
+one shot behaviour TerminateElection for agent Participant
+    on create with e as Election do
+        election = e
+        
+    on activate do
+        deactivate election
+        log "Election terminated."
+        if iAmCandidate of election do
+            # The election terminated but the agent is still a candidate:
+            # the agent sets itself as the new leader.
+            do setLeader with newLeader=aid of agent 
+        
+        
+
+cyclic behaviour RespondElection for agent Participant
+    on message propose (ElectNewLeader, _) when sender < aid of agent do
+        log "Agent "+localName of sender+" called elections."
+        send message agree ElectNewLeader to sender
+        # Start a new election (if not already started):
+        activate election 
+
+
+
+cyclic behaviour HandleLeaderChanges for agent Participant
+    on message inform NewLeader do 
+        do setLeader with newLeader=sender of message
+
+
