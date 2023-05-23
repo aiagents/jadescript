@@ -1,6 +1,5 @@
 module examples.auction.gui
 
-
 native procedure updateView with 
     view as BuyerView,
     auctions as map of aid:AuctionState
@@ -9,6 +8,7 @@ native procedure updateView with
 
 ontology BuyerGUI extends EnglishAuction
     native concept BuyerView
+    proposition ClosingWindow
 
 
 agent BuyerAgent uses ontologies FacilitatorOntology, BuyerGUI
@@ -47,6 +47,8 @@ agent BuyerAgent uses ontologies FacilitatorOntology, BuyerGUI
             auctions[sender] = st
             do updateView with view, auctions
  
+        on native ClosingWindow do
+            send message request Deregister to "Facilitator"@
             
             
         

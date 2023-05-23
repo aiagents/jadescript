@@ -4,6 +4,7 @@ import it.unipr.ailab.jadescript.semantics.SemanticsModule;
 import it.unipr.ailab.jadescript.semantics.context.search.SearchLocation;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
+import it.unipr.ailab.jadescript.semantics.helpers.JvmTypeHelper;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.EmptyCreatable;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.UnknownJVMType;
@@ -44,6 +45,12 @@ public class UserDefinedOntoContentType
     @Override
     public String compileNewEmptyInstance() {
         String argument;
+
+        if (isNative()) {
+            return "jadescript.java.Jadescript.createEmptyValue(" +
+                JvmTypeHelper.noGenericsTypeName(compileToJavaTypeReference()) +
+                ".class)";
+        }
 
         if (requiresAgentEnvParameter()) {
             argument = AGENT_ENV;

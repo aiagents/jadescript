@@ -1516,6 +1516,22 @@ public class OntologyElementSemantics extends Semantics {
 
         final JvmTypesBuilder jvmTB = module.get(JvmTypesBuilder.class);
 
+        members.add(jvmTB.toField(
+            slotSafe,
+            "__nativeProperty_"+slotNameSafe,
+            slotType.asJvmTypeReference(),
+            it -> {
+                it.setStatic(true);
+                it.setFinal(true);
+                it.setVisibility(JvmVisibility.PRIVATE);
+                module.get(CompilationHelper.class)
+                    .createAndSetInitializer(it, scb -> {
+                        scb.line("/*used as metadata by the Jadescript " +
+                            "compiler: do not use*/ null;");
+                    });
+            }
+        ));
+
         members.add(jvmTB.toMethod(
             slotSafe,
             "get" + Strings.toFirstUpper(slotNameSafe),

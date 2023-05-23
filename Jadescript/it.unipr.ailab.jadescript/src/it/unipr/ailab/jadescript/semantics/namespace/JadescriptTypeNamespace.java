@@ -8,6 +8,7 @@ import it.unipr.ailab.jadescript.semantics.context.symbol.Property;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.GlobalCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberCallable;
 import it.unipr.ailab.jadescript.semantics.context.symbol.interfaces.MemberName;
+import it.unipr.ailab.jadescript.semantics.helpers.SemanticsConsts;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.IJadescriptType;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.index.BuiltinTypeProvider;
 import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeComparator;
@@ -15,8 +16,10 @@ import it.unipr.ailab.jadescript.semantics.jadescripttypes.relationship.TypeRela
 import it.unipr.ailab.maybe.Functional;
 import it.unipr.ailab.maybe.Maybe;
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.xtext.common.types.JvmField;
 import org.eclipse.xtext.common.types.JvmFormalParameter;
 import org.eclipse.xtext.common.types.JvmOperation;
+import org.eclipse.xtext.common.types.JvmVisibility;
 import org.eclipse.xtext.util.Strings;
 import org.jetbrains.annotations.Nullable;
 
@@ -186,86 +189,203 @@ public abstract class JadescriptTypeNamespace extends TypeNamespace {
     }
 
 
+    public Stream<Property> searchNamesFromFieldAndAccessors(
+        @Nullable String searchedName,
+        JvmTypeNamespace jvmTypeNamespace
+    ) {
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        return jvmTypeNamespace.searchJvmField()
+            .filter(f -> f.getType() != null)
+            .filter(f -> f.getSimpleName() != null)
+            .filter(f -> searchedName == null
+                || searchedName.equals(f.getSimpleName()))
+            .flatMap(f -> {
+                final IJadescriptType resolvedType =
+                    jvmTypeNamespace
+                        .resolveType(f.getType())
+                        .ignoreBound();
+                String name = f.getSimpleName();
+
+                boolean hasGetter = jvmTypeNamespace.searchJvmOperation()
+                    .anyMatch(o -> o.getSimpleName().equals(
+                        "get" + Strings.toFirstUpper(name))
+                        && TypeRelationshipQuery.equal().matches(
+                        comparator.compare(
+                            jvmTypeNamespace.resolveType(
+                                o.getReturnType()
+                            ).ignoreBound(),
+                            resolvedType
+                        )
+                    ));
+
+                if (!hasGetter) {
+                    return Stream.empty();
+                }
+
+                boolean hasSetter = jvmTypeNamespace.searchJvmOperation()
+                    .anyMatch(o -> {
+                        boolean nameCheck = o.getSimpleName().equals(
+                            "set" + Strings.toFirstUpper(name));
+                        if (!nameCheck) {
+                            return false;
+                        }
+
+                        if (o.getParameters() == null) {
+                            return false;
+                        }
+
+                        if (o.getParameters().size() != 1) {
+                            return false;
+                        }
+
+                        final JvmFormalParameter param =
+                            o.getParameters().get(0);
+
+                        if (param == null
+                            || param.getParameterType() == null) {
+                            return false;
+                        }
+
+
+                        return TypeRelationshipQuery.equal().matches(
+                            comparator.compare(
+                                jvmTypeNamespace.resolveType(
+                                    param.getParameterType()
+                                ).ignoreBound(),
+                                resolvedType
+                            )
+                        );
+                    });
+
+                return buildStream(
+                    () -> new Property(
+                        hasSetter,
+                        name,
+                        resolvedType,
+                        jvmTypeNamespace.currentLocation(),
+                        Property.compileWithJVMGetter(name),
+                        Property.compileWithJVMSetter(name)
+                    )
+                );
+            });
+
+    }
+
+
+    private boolean hasNativePropertyPrefix(String nativePropertyName) {
+        return nativePropertyName
+            .startsWith(SemanticsConsts.NATIVE_PROPERTY_PREFIX);
+    }
+
+
+    private String removeNativePropertyPrefix(String nativePropertyName) {
+        return nativePropertyName.substring(
+            SemanticsConsts.NATIVE_PROPERTY_PREFIX.length()
+        );
+    }
+
+
+    public Stream<Property> searchNamesFromNativeProperty(
+        @Nullable String searchedName,
+        JvmTypeNamespace jvmTypeNamespace
+    ) {
+        final TypeComparator comparator = module.get(TypeComparator.class);
+        return jvmTypeNamespace.searchJvmField()
+            .filter(f -> f.getType() != null)
+            .filter(f -> f.getSimpleName() != null)
+            .filter(f -> f.getVisibility() == JvmVisibility.PRIVATE)
+            .filter(JvmField::isStatic)
+            .filter(f -> hasNativePropertyPrefix(f.getSimpleName()))
+            .filter(f -> searchedName == null ||
+                removeNativePropertyPrefix(f.getSimpleName())
+                    .equals(searchedName)
+            )
+            .flatMap(f -> {
+                final IJadescriptType resolvedType =
+                    jvmTypeNamespace
+                        .resolveType(f.getType())
+                        .ignoreBound();
+                String name = removeNativePropertyPrefix(f.getSimpleName());
+
+                boolean hasGetter = jvmTypeNamespace.searchJvmOperation()
+                    .anyMatch(o -> o.isAbstract()
+                            && o.getSimpleName()
+                            .equals("get" + Strings.toFirstUpper(name))
+                            && TypeRelationshipQuery.equal().matches(
+                            comparator.compare(
+                                jvmTypeNamespace.resolveType(
+                                    o.getReturnType()
+                                ).ignoreBound(),
+                                resolvedType
+                            )
+                        )
+                    );
+
+                if (!hasGetter) {
+                    return Stream.empty();
+                }
+
+                boolean hasSetter = jvmTypeNamespace.searchJvmOperation()
+                    .anyMatch(o -> {
+                        if(!o.isAbstract()){
+                            return false;
+                        }
+
+                        boolean nameCheck = o.getSimpleName().equals(
+                            "set" + Strings.toFirstUpper(name));
+                        if (!nameCheck) {
+                            return false;
+                        }
+
+                        if (o.getParameters() == null) {
+                            return false;
+                        }
+
+                        if (o.getParameters().size() != 1) {
+                            return false;
+                        }
+
+                        final JvmFormalParameter param =
+                            o.getParameters().get(0);
+
+                        if (param == null
+                            || param.getParameterType() == null) {
+                            return false;
+                        }
+
+
+                        return TypeRelationshipQuery.equal().matches(
+                            comparator.compare(
+                                jvmTypeNamespace.resolveType(
+                                    param.getParameterType()
+                                ).ignoreBound(),
+                                resolvedType
+                            )
+                        );
+                    });
+
+                return buildStream(
+                    () -> new Property(
+                        hasSetter,
+                        name,
+                        resolvedType,
+                        jvmTypeNamespace.currentLocation(),
+                        Property.compileWithJVMGetter(name),
+                        Property.compileWithJVMSetter(name)
+                    )
+                );
+            });
+
+    }
+
+
     public MemberName.Namespace namesFromJvm(
         JvmTypeNamespace jvmTypeNamespace
     ) {
-        return (searchedName) -> {
-            final TypeComparator comparator = module.get(TypeComparator.class);
-            return jvmTypeNamespace.searchJvmField()
-                .filter(f -> f.getType() != null)
-                .filter(f -> f.getSimpleName() != null)
-                .filter(f -> searchedName == null
-                    || searchedName.equals(f.getSimpleName()))
-                .flatMap(f -> {
-                    final IJadescriptType resolvedType =
-                        jvmTypeNamespace.resolveType(f.getType())
-                            .ignoreBound();
-                    String name = f.getSimpleName();
-
-                    boolean hasGetter = jvmTypeNamespace.searchJvmOperation()
-                        .anyMatch(o -> o.getSimpleName().equals(
-                                "get" + Strings.toFirstUpper(name))
-                                && TypeRelationshipQuery.equal().matches(
-                                comparator.compare(
-                                    jvmTypeNamespace.resolveType(
-                                        o.getReturnType()
-                                    ).ignoreBound(),
-                                    resolvedType
-                                )
-                            )
-                        );
-
-                    if (!hasGetter) {
-                        return Stream.empty();
-                    }
-
-                    boolean hasSetter = jvmTypeNamespace.searchJvmOperation()
-                        .anyMatch(o -> {
-                            boolean nameCheck = o.getSimpleName().equals(
-                                "set" + Strings.toFirstUpper(name));
-                            if (!nameCheck) {
-                                return false;
-                            }
-
-                            if (o.getParameters() == null) {
-                                return false;
-                            }
-
-                            if (o.getParameters().size() != 1) {
-                                return false;
-                            }
-
-                            final JvmFormalParameter param =
-                                o.getParameters().get(0);
-
-                            if (param == null
-                                || param.getParameterType() == null) {
-                                return false;
-                            }
-
-
-                            return TypeRelationshipQuery.equal().matches(
-                                comparator.compare(
-                                    jvmTypeNamespace.resolveType(
-                                        param.getParameterType()
-                                    ).ignoreBound(),
-                                    resolvedType
-                                )
-                            );
-                        });
-
-                    return buildStream(
-                        () -> new Property(
-                            hasSetter,
-                            name,
-                            resolvedType,
-                            jvmTypeNamespace.currentLocation(),
-                            Property.compileWithJVMGetter(name),
-                            Property.compileWithJVMSetter(name)
-                        )
-                    );
-                });
-        };
+        return (searchedName) -> Stream.concat(
+            searchNamesFromFieldAndAccessors(searchedName, jvmTypeNamespace),
+            searchNamesFromNativeProperty(searchedName, jvmTypeNamespace)
+        );
     }
 
 

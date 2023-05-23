@@ -800,6 +800,7 @@
 			<newWizardShortcut id="it.unipr.ailab.jadescript.ui.wizards.NewBehaviourWizard"/>
 			<newWizardShortcut id="it.unipr.ailab.jadescript.ui.wizard.JadescriptNewProjectWizard"/>
 			<newWizardShortcut id="org.eclipse.jdt.ui.wizards.NewPackageCreationWizard"/>
+			<newWizardShortcut id="org.eclipse.jdt.ui.wizards.NewClassCreationWizard"/>
 		</perspectiveExtension>
 	</extension>
 </plugin>

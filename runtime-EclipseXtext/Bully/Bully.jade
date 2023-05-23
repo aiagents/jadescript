@@ -3,8 +3,8 @@ module examples.bully
 ontology Bully
     # Used by leaders as heartbeat signals.
     proposition Alive
-    # Used by candidates claim themselves as new leaders.
-    proposition NewLeader
+    # Used to communicate a change of leadership.
+    predicate NewLeader(newLeader as aid)
     # Used to call elections.
     action ElectNewLeader
 
@@ -24,7 +24,7 @@ agent StartAlgorithm
 
 
 agent Participant uses ontology Bully
-    property heartbeatPeriod = "PT3S" as duration # 3 seconds
+    property heartbeatPeriod = "PT3S" as duration # 3 seconds
     property timeoutInterval = "PT10S" as duration # 10 seconds
     
     property leader as aid = aid of agent
@@ -39,9 +39,9 @@ agent Participant uses ontology Bully
         
         # The first element of the argument list 
         # is the name of the leader.
-        if participants matches [initalLeader|otherParticipants] do
+        if participants matches [initalLeader|others] do
             leader = initalLeader as aid
-            for op in otherParticipants do
+            for op in others do
                 opAid = op as aid
                 # Avoids putting itself in the set:
                 if opAid ≠ aid of agent do
@@ -63,7 +63,7 @@ agent Participant uses ontology Bully
             # Stop monitoring heartbeat
             deactivate monitor
             # Inform others to be the new leader
-            send message inform NewLeader to knownParticipants
+            send message inform NewLeader(newLeader) to knownParticipants
             log "I'm the new leader!"
             # To keep the example interesting, a leader dies after 10s
             activate SimulateTermination after "PT10S" as duration
@@ -89,7 +89,7 @@ cyclic behaviour MonitorHeartbeat for agent Participant
         
     on message inform Alive when sender = leader do
         log "Leader " + localName of sender + " is alive."
-        # Postpone the activation of startElection
+        # Postpone the activation of election
         activate election after timeoutInterval
 
 
@@ -122,8 +122,8 @@ cyclic behaviour Election for agent Participant
         activate TerminateElection after timeoutInterval
         
     
-    on message agree (ElectNewLeader, _) do
-        # Someone agreed to attempt to claim the leadership 
+    on message accept_proposal (ElectNewLeader, _) do
+        # Someone accepted to attempt to claim the leadership 
         log "Received OK message from "+ localName of sender
         # The sender has it has an higher aid.
         # Therefore, the agent cannot be elected anymore. 
@@ -145,14 +145,14 @@ one shot behaviour TerminateElection for agent Participant
 cyclic behaviour RespondElection for agent Participant
     on message propose (ElectNewLeader, _) when sender < aid of agent do
         log "Agent "+localName of sender+" called elections."
-        send message agree ElectNewLeader to sender
+        send message accept_proposal ElectNewLeader to sender
         # Start a new election (if not already started):
         activate election 
 
 
 
 cyclic behaviour HandleLeaderChanges for agent Participant
-    on message inform NewLeader do 
-        do setLeader with newLeader=sender of message
+    on message inform NewLeader(l) do 
+        do setLeader with newLeader=l
 
 

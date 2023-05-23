@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="libs">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/libs/jade.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/commons-codec-1.13.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/jadescript.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

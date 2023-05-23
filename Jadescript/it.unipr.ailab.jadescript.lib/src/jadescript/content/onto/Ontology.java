@@ -1,5 +1,6 @@
 package jadescript.content.onto;
 
+import jade.content.ContentManager;
 import jade.content.onto.BasicOntology;
 import jade.content.onto.Introspector;
 import jade.content.onto.OntologyException;
@@ -27,6 +28,33 @@ import static jade.content.lang.sl.SL0Vocabulary.ACLMSG;
 public class Ontology extends jade.content.onto.Ontology implements Ontology_Vocabulary {
     protected static final Ontology _instance = new Ontology();
 
+    public static void registerOntology(
+        jade.content.onto.Ontology o,
+        ContentManager cm
+    ) {
+        if(o instanceof Ontology){
+            registerJadescriptOntology(((Ontology) o), cm);
+        }else{
+            cm.registerOntology(o);
+        }
+    }
+
+    public static void registerJadescriptOntology(
+        Ontology o,
+        ContentManager cm
+    ) {
+        cm.registerOntology(o);
+        registerSuperOntologies(o, cm);
+    }
+
+    private static void registerSuperOntologies(
+        Ontology o,
+        ContentManager cm
+    ) {
+        for (jade.content.onto.Ontology ontology : superOntologies(o)) {
+            registerOntology(ontology, cm);
+        }
+    }
 
     public static void __populateMapSchema(
         TermSchema keySchema,

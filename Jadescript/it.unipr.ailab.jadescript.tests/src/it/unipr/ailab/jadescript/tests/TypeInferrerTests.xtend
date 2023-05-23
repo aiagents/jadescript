@@ -23,7 +23,7 @@ class TypeInferrerTests {
 	
 	@Inject extension CompilationTestHelper
 	@Before
-	public def setJavaVersion() {
+	def setJavaVersion() {
 		javaVersion = JavaVersion.JAVA11
 	}	
 

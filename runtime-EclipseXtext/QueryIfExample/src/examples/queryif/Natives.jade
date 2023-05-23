@@ -1,0 +1,12 @@
+module examples.queryif
+
+# File containing native declarations to interoperate with the JVM.
+
+# Returns a random integer between 0 (included) and max (excluded).
+native function randomInteger(max as integer) as integer
+
+agent Test
+    on create do
+        for i in 0 to 9 do
+            log randomInteger(10)
+        

@@ -90,6 +90,7 @@ public interface SemanticsConsts {
 
     boolean VALID = true;
     boolean INVALID = false;
+    String NATIVE_PROPERTY_PREFIX = "__nativeProperty_";
 
 
     default String synthesizeReceiverListName(final SendMessageStatement send) {

@@ -175,9 +175,10 @@ public abstract class UsesOntologyTopLevelDeclarationSemantics
                         }
 
                         for (JvmTypeReference ontologyType : ontologyTypes) {
-                            scb.line("cm.registerOntology(" +
-                                ontologyType.getQualifiedName('.')
-                                + ".getInstance());");
+                            scb.line("jadescript.content.onto.Ontology"+
+                                ".registerOntology(" +
+                                    ontologyType.getQualifiedName('.')+
+                                        ".getInstance(), cm);");
                         }
                     });
                 }
