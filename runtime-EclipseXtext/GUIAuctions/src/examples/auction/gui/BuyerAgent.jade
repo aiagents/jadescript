@@ -1,0 +1,53 @@
+module examples.auction.gui
+
+
+native procedure updateView with 
+    view as BuyerView,
+    auctions as map of aid:AuctionState
+    uses ontology BuyerGUI 
+    
+
+ontology BuyerGUI extends EnglishAuction
+    native concept BuyerView
+
+
+agent BuyerAgent uses ontologies FacilitatorOntology, BuyerGUI
+    property auctions as map of aid:AuctionState
+    property view as BuyerView
+    
+    on create with v as BuyerView do
+        view of this = v
+        activate RegisterAsBuyer
+        
+    cyclic behaviour RegisterAsBuyer
+        on activate do
+            send message request Register(BuyerRole) to "Facilitator"@
+            
+        on message inform Registered do
+            log "Registered!"
+            activate GetAuctions
+            deactivate this
+
+
+    cyclic behaviour GetAuctions
+        on activate do
+            send message request ProvideAuctions to "Facilitator"@
+    
+        on message inform OpenAuctions(aucts) do
+            send message request ProvideAuctionState to aucts
+            
+        on message inform NewAuctioneer(auctioneer) do
+            send message request ProvideAuctionState to auctioneer
+            
+        on message cfp (SubmitBid(st), _) do
+            auctions[sender] = st
+            do updateView with view, auctions
+            
+        on message inform StateIs(st) do
+            auctions[sender] = st
+            do updateView with view, auctions
+ 
+            
+            
+        
+

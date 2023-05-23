@@ -1,0 +1,73 @@
+module examples.auction.gui
+
+import examples.auction.gui.Item
+
+
+agent Bidder uses ontologies EnglishAuction, BidderGUI
+    property strategy as BidderStrategy
+    property auctioneer as aid
+    property view as BidderView
+    property bidDelay = "PT3S" as duration
+
+    on create with strategy as BidderStrategy, auctioneer as aid, view as BidderView do
+        strategy of this = strategy
+        auctioneer of this = auctioneer
+        view of this = view
+        log "Bidder "+name of agent+" participating to auction of "
+            +localName of auctioneer+" (strategy="+strategy+")"
+        activate ParticipateToAuction
+
+
+
+cyclic behaviour ParticipateToAuction for agent Bidder
+    on activate do
+        send message inform Participating to auctioneer
+        
+    on deactivate do
+        send message inform Leaving to auctioneer
+    
+    on native ManualBid(bid) do
+        log "Submitting bid: "+bid
+        activate SendPropose(item of state of view, bid) after bidDelay
+    
+    on message cfp (SubmitBid(RunningAuction(item, currentBid, bidMinimumIncrement, deadline, currentWinner)), _) do
+        requiredBid = currentBid + bidMinimumIncrement
+        
+        state of view = state of content[0]
+        
+        if strategy matches WithBudget(budget) do
+            # If we are not the best bidder, it's not too late, and we have enough money...
+            if currentWinner ≠ name of agent and now < deadline and requiredBid ≤ budget do
+            # Propose to buy the item at the specified price.
+                log "Submitting bid: "+requiredBid
+                activate SendPropose(item, requiredBid) after bidDelay
+            else if requiredBid > budget do
+                log "Not enough money..."
+                
+
+    on message accept_proposal do
+        log "My bid has been accepted."
+        
+    on message reject_proposal (_, _, reason) do
+        log "My bid was rejected, reason: " + reason
+        
+    on message inform ItemSold(item, aid of agent, bid) do
+        log "I bought "+item+" for "+bid+"!"
+            
+    on message inform ItemSold(item, otherBidder, bid) do
+        log otherBidder+" bought "+item+" for "+bid+"."
+            
+    on message inform ItemNotSold(item) do
+        log "Not sold: "+item+"." 
+    
+    
+one shot behaviour SendPropose for agent Bidder
+    property item as Item
+    property proposingPrice as integer
+    
+    on create with item as Item, proposingPrice as integer do
+        item of this = item
+        proposingPrice of this = proposingPrice
+
+    on execute do
+        send message propose (Buy(item), Priced(item, proposingPrice)) to auctioneer

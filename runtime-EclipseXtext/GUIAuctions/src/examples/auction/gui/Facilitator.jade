@@ -1,0 +1,45 @@
+module examples.auction.gui
+
+
+import examples.auction.gui.EnglishAuction
+
+
+ontology FacilitatorOntology
+    proposition Registered
+    concept Role
+    concept AuctioneerRole extends Role
+    concept BuyerRole extends Role
+    action Register(role as Role)
+    action Deregister
+    predicate NewAuctioneer(auctioneer as aid)
+    action ProvideAuctions
+    predicate OpenAuctions(auctioneers as set of aid)    
+
+
+agent Facilitator uses ontology FacilitatorOntology
+    property auctioneers as set of aid
+    property buyers as set of aid
+
+    on create do
+        log "Agent 'Facilitator' created."
+        activate Facilitate
+        
+    cyclic behaviour Facilitate
+        on message request Register(AuctioneerRole) do
+            log "Registered auctioneer: "+name of sender
+            add sender to auctioneers
+            send message inform Registered to sender
+            send message inform NewAuctioneer(sender) to buyers
+            
+        on message request Register(BuyerRole) do
+            log "Registered buyer"+name of sender
+            add sender to buyers
+            send message inform Registered to sender
+            
+        on message request Deregister do
+            remove sender from auctioneers
+            
+        on message request ProvideAuctions do
+            send message inform OpenAuctions(auctioneers) to sender
+            
+            

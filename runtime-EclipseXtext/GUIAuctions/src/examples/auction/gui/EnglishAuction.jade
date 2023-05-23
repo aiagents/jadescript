@@ -1,0 +1,82 @@
+module examples.auction.gui
+
+ontology EnglishAuction
+
+    # Pre-auction data exchange
+    action ProvideAuctionState
+    
+    predicate StateIs(state as AuctionState)
+    
+    concept AuctionState(
+        item as Item,
+        currentBid as integer, 
+        bidMinimumIncrement as integer
+    )
+    concept RunningAuction(
+        item as Item,
+        currentBid as integer, 
+        bidMinimumIncrement as integer, 
+        deadline as timestamp, 
+        currentlyWinning as text
+    ) extends AuctionState
+    
+    concept AwaitingBidders(
+        item as Item,
+        startingBid as integer, 
+        bidMinimumIncrement as integer,
+        currentlyRegistered as integer
+    ) extends AuctionState with currentBid = startingBid
+
+
+    # Used by bidders to register/deregister to the auctioneer
+    # Note: the example assumes that the only reason for a bidder to be alive 
+    # is to partecipate to the auction
+    proposition Participating
+    proposition Leaving
+
+    # An Item that can be sold
+    concept Item(name as text)
+    concept Painting(author as text, title as text) 
+        extends Item with name= title + " by " + author
+    
+    # Used as CFP content from the auctioneer
+    action SubmitBid(state as AuctionState)
+    
+    # Action of buying an item
+    action Buy(item as Item)
+    
+    # Predicate to inform when an Item is sold
+    predicate ItemSold(item as Item, buyer as aid, finalPrice as integer)
+    
+    # Predicate to inform when an Item is not sold
+    predicate ItemNotSold(item as Item)
+    
+    # Predicate that associates an item with a price
+    predicate Priced(item as Item, price as integer)
+    
+    # Predicate used to signal that a bid was rejected   
+    predicate BidRejected(reason as Proposition)
+    
+    # BidRejected reason: bid too low
+    predicate BidTooLow(minimumBid as integer)
+    
+    # BidRejected reason: wrong item
+    proposition ItemNotForSale
+    
+    # BidRejected reason: other reason
+    predicate InvalidBid(otherReason as text)
+    
+    
+    
+ontology BidderGUI extends EnglishAuction
+    concept BidderStrategy
+    concept Manual extends BidderStrategy
+    concept WithBudget(budget as integer) extends BidderStrategy
+    
+    predicate ManualBid(bid as integer)
+    native concept BidderView(state as AuctionState)
+    
+
+
+
+    
