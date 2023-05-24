@@ -4,6 +4,7 @@ import jade.wrapper.AgentController;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 import jadescript.content.JadescriptPredicate;
+import jadescript.content.JadescriptProposition;
 import jadescript.core.Agent;
 import jadescript.core.nativeevent.NativeEvent;
 
@@ -49,13 +50,13 @@ public class JadescriptAgentController {
     }
 
 
-    public void emit(JadescriptPredicate predicate) {
+    public void emit(JadescriptProposition predicate) {
         emit(predicate, predicate.__getDeclaringOntology());
     }
 
 
     public void emit(
-        JadescriptPredicate predicate,
+        JadescriptProposition predicate,
         jade.content.onto.Ontology ontology
     ) {
         try {

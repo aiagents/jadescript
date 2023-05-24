@@ -15,7 +15,7 @@ ontology EnglishAuction
     concept RunningAuction(
         item as Item,
         currentBid as integer, 
-        bidMinimumIncrement as integer, 
+        bidMinimumIncrement as integer,
         deadline as timestamp, 
         currentlyWinning as text
     ) extends AuctionState
@@ -25,8 +25,23 @@ ontology EnglishAuction
         startingBid as integer, 
         bidMinimumIncrement as integer,
         currentlyRegistered as integer
-    ) extends AuctionState with currentBid = startingBid
+    ) extends AuctionState with currentBid = startingBid - bidMinimumIncrement
 
+    concept AuctionEnded(
+        item as Item,
+        currentBid as integer,
+        bidMinimumIncrement as integer,
+        sold as boolean,
+        winner as aid
+    ) extends AuctionState 
+
+    concept AuctionRemoved(
+        item as Item,
+        currentBid as integer,
+        bidMinimumIncrement as integer,
+        sold as boolean,
+        winner as aid
+    ) extends AuctionEnded
 
     # Used by bidders to register/deregister to the auctioneer
     # Note: the example assumes that the only reason for a bidder to be alive 
@@ -46,10 +61,10 @@ ontology EnglishAuction
     action Buy(item as Item)
     
     # Predicate to inform when an Item is sold
-    predicate ItemSold(item as Item, buyer as aid, finalPrice as integer)
+    predicate ItemSold(item as Item, buyer as aid, finalPrice as integer, finalState as AuctionState)
     
     # Predicate to inform when an Item is not sold
-    predicate ItemNotSold(item as Item)
+    predicate ItemNotSold(item as Item, finalState as AuctionState)
     
     # Predicate that associates an item with a price
     predicate Priced(item as Item, price as integer)
@@ -68,13 +83,6 @@ ontology EnglishAuction
     
     
     
-ontology BidderGUI extends EnglishAuction
-    concept BidderStrategy
-    concept Manual extends BidderStrategy
-    concept WithBudget(budget as integer) extends BidderStrategy
-    
-    predicate ManualBid(bid as integer)
-    native concept BidderView(state as AuctionState)
     
 
 

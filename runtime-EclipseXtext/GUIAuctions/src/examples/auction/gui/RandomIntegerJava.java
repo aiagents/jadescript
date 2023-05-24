@@ -5,7 +5,7 @@ import jadescript.java.InvokerAgent;
 
 public class RandomIntegerJava extends randomInteger {
 
-	private Random random = new Random();
+	private static final Random random = new Random();
 	
 	@Override
 	public Integer randomInteger(InvokerAgent invokerAgent, Integer max) {

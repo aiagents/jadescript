@@ -24,4 +24,10 @@ public class JadescriptException extends RuntimeException{
             throwable
         ));
     }
+
+
+    @Override
+    public String getMessage() {
+        return super.getMessage()+ ": Reason: "+getReason();
+    }
 }

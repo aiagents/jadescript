@@ -32,7 +32,7 @@ agent Facilitator uses ontology FacilitatorOntology
             send message inform NewAuctioneer(sender) to buyers
             
         on message request Register(BuyerRole) do
-            log "Registered buyer"+name of sender
+            log "Registered buyer: "+name of sender
             add sender to buyers
             send message inform Registered to sender
             

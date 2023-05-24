@@ -5,6 +5,7 @@ import it.unipr.ailab.sonneteer.WriterFactory;
 import it.unipr.ailab.sonneteer.expression.ExpressionWriter;
 import it.unipr.ailab.sonneteer.expression.MethodCallExpressionWriter;
 import it.unipr.ailab.sonneteer.statement.BlockWriter;
+import jade.content.lang.leap.LEAPCodec;
 
 public class TemplateCompilationHelper implements SemanticsConsts {
 
@@ -67,6 +68,13 @@ public class TemplateCompilationHelper implements SemanticsConsts {
         return w.callExpr(
             "jadescript.lang.acl.StaleMessageTemplate.matchStale",
             w.expr("() -> " + CompilationHelper.compileAgentReference())
+        );
+    }
+
+    public static MethodCallExpressionWriter isRightCodec() {
+        return w.callExpr(
+            "jade.lang.acl.MessageTemplate.MatchLanguage",
+            w.expr(CODEC_VAR_NAME + ".getName()")
         );
     }
 

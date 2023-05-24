@@ -36,11 +36,9 @@ public class NativeEventsFromJava {
 		JButton button = new JButton("Notify agent!");
 		simpleFrame.add(button, BorderLayout.CENTER);
 
-		var counter = new AtomicInteger();
 		
 		button.addActionListener((e)->{
-			int i = counter.getAndIncrement();
-			agent.emit(NativeEventTest.ButtonClicked(i));
+			agent.emit(NativeEventTest.ButtonClicked());
 		});
 		
 		simpleFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

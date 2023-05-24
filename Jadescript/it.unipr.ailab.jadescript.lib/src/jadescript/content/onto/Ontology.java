@@ -28,6 +28,8 @@ import static jade.content.lang.sl.SL0Vocabulary.ACLMSG;
 public class Ontology extends jade.content.onto.Ontology implements Ontology_Vocabulary {
     protected static final Ontology _instance = new Ontology();
 
+    private final jade.content.onto.Ontology[] superOntologies;
+
     public static void registerOntology(
         jade.content.onto.Ontology o,
         ContentManager cm
@@ -39,19 +41,13 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
         }
     }
 
-    public static void registerJadescriptOntology(
-        Ontology o,
-        ContentManager cm
-    ) {
+    public static void registerJadescriptOntology(Ontology o, ContentManager cm) {
         cm.registerOntology(o);
         registerSuperOntologies(o, cm);
     }
 
-    private static void registerSuperOntologies(
-        Ontology o,
-        ContentManager cm
-    ) {
-        for (jade.content.onto.Ontology ontology : superOntologies(o)) {
+    private static void registerSuperOntologies(Ontology o, ContentManager cm) {
+        for (jade.content.onto.Ontology ontology : o.superOntologies) {
             registerOntology(ontology, cm);
         }
     }
@@ -113,28 +109,30 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
 
     public Ontology(String name, jade.content.onto.Ontology[] base, Introspector introspector) {
         super(name, base, introspector);
+        this.superOntologies = base;
     }
 
     public Ontology(String name, jade.content.onto.Ontology base, Introspector introspector) {
         super(name, base, introspector);
+        this.superOntologies = new jade.content.onto.Ontology[]{base};
     }
 
     public Ontology(String name, Introspector introspector) {
         super(name, introspector);
+        this.superOntologies = superOntologies();
     }
 
     public Ontology(String name, jade.content.onto.Ontology base) {
         super(name, base);
+        this.superOntologies = new jade.content.onto.Ontology[]{base};
     }
 
     public Ontology() {
-        super(
-                "JADESCRIPT_ONTOLOGY",
-                superOntologies(),
-                new ReflectiveIntrospector()
-        );
-        try {
+        super("JADESCRIPT_ONTOLOGY", superOntologies(), new ReflectiveIntrospector());
 
+        this.superOntologies = superOntologies();
+
+        try {
             //Support types for Jadescript collections
             add(new ConceptSchema(MAP_ENTRY), JadescriptMapEntry.class);
             add(new ConceptSchema(SET_ENTRY), JadescriptSetEntry.class);
@@ -250,7 +248,6 @@ public class Ontology extends jade.content.onto.Ontology implements Ontology_Voc
             RequestWhenMessage_schema.add(REQUESTWHENMESSAGE_ELEMENT1, (PredicateSchema) PredicateSchema.getBaseSchema());
 
             // End generated part.
-
         } catch (OntologyException e) {
             e.printStackTrace();
         }

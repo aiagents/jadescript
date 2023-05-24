@@ -9,7 +9,7 @@ agent Auctioneer uses ontologies EnglishAuction, FacilitatorOntology
     # No auction can be done with less participants:
     property minimumParticipants = 2  
     # The auctioneer awaits this interval for new bids:
-    property waitingForBidsTime = "PT30S" as duration 
+    property waitingForBidsTime as duration
     # Initial price:
     property startBid as integer
     # If the auction never reaches this price, the item is not sold:
@@ -20,7 +20,7 @@ agent Auctioneer uses ontologies EnglishAuction, FacilitatorOntology
     property item as Item
     
     # --Auctioneer state variables--
-    property currentBid = startBid
+    property currentBid as integer
     property candidateBuyer as aid
     property thereIsCandidate = false
     property participants as set of aid 
@@ -30,11 +30,14 @@ agent Auctioneer uses ontologies EnglishAuction, FacilitatorOntology
     property endAuction as EndAuction = EndAuction
     
     on create with item as Item, startBid as integer, 
-        reserve as integer, bidMinimumIncrement as integer do
+        reserve as integer, bidMinimumIncrement as integer, 
+        timeout as duration do
         item of this = item
         startBid of this = startBid
+        currentBid of this = startBid
         reserve of this = reserve
         bidMinimumIncrement of this = bidMinimumIncrement
+        waitingForBidsTime = timeout
         log "Auctioneer " + name of agent + " selling item " + item + "."
         log "Registering... "
         activate RegisterAsAuctioneer
@@ -70,9 +73,17 @@ cyclic behaviour AwaitParticipants for agent Auctioneer
             log "Selling: " + item
             activate doAuction
             deactivate this
+        else do
+            send message inform StateIs(AwaitingBidders(
+                item,
+                currentBid,
+                bidMinimumIncrement,
+                size of participants
+            )) to sender
             
 
     on message inform Leaving do
+        log sender + " is leaving the Auction."
         remove sender of message from participants
         do logStatus
         
@@ -124,6 +135,7 @@ cyclic behaviour DoAuction for agent Auctioneer
     
     
     on message inform Leaving do
+        log sender + " is leaving the Auction."
         remove sender of message from participants
         if size of participants < minimumParticipants do
             activate endAuction
@@ -174,12 +186,18 @@ one shot behaviour EndAuction for agent Auctioneer
     
     on execute do
         deactivate doAuction
+        st = AuctionEnded(item, currentBid, bidMinimumIncrement, true, candidateBuyer)
         if not thereIsCandidate or currentBid < reserve do
             log "No valid bid submitted. Not selling item."
-            send message inform ItemNotSold(item) to participants
+            sold of st = false
+            send message inform ItemNotSold(item, st) to participants
             do delete
+        else if not (participants contains candidateBuyer) do
+            log "The highest bidder left the auction. Not selling item."
+            sold of st = false
+            send message inform ItemNotSold(item, st) to participants
         else do
             log "Selling item "+item+" to "+candidateBuyer
-            send message inform ItemSold(item, candidateBuyer, currentBid) to participants
+            send message inform ItemSold(item, candidateBuyer, currentBid, st) to participants
             do delete
     

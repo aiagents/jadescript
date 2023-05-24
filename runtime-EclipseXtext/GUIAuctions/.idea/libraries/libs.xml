@@ -6,6 +6,8 @@
       <root url="jar://$PROJECT_DIR$/libs/jadescript.jar!/" />
     </CLASSES>
     <JAVADOC />
-    <SOURCES />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../../Jadescript/it.unipr.ailab.jadescript.lib/src" />
+    </SOURCES>
   </library>
 </component>

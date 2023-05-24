@@ -203,9 +203,10 @@ public class Agent extends jade.core.Agent {
         o2aNativeEventManager.activate(this);
         this.setO2AManager(o2aNativeEventManager);
 
-        __StaleMessageCleaner staleMessageCleaner =
-            new __StaleMessageCleaner(_agentEnv);
-        staleMessageCleaner.activate(this);
+        //Temporarily disabled
+//        __StaleMessageCleaner staleMessageCleaner =
+//            new __StaleMessageCleaner(_agentEnv);
+//        staleMessageCleaner.activate(this);
     }
 
 

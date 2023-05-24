@@ -4,24 +4,25 @@ package jadescript.core.nativeevent;
 import jade.content.Predicate;
 import jade.content.onto.Ontology;
 import jadescript.content.JadescriptPredicate;
+import jadescript.content.JadescriptProposition;
 
 public class NativeEvent implements Predicate {
-    private JadescriptPredicate content;
+    private JadescriptProposition content;
     private Ontology ontology;
 
     public NativeEvent() {
     }
 
-    public NativeEvent(JadescriptPredicate content, Ontology ontology) {
+    public NativeEvent(JadescriptProposition content, Ontology ontology) {
         this.content = content;
         this.ontology = ontology;
     }
 
-    public JadescriptPredicate getContent() {
+    public JadescriptProposition getContent() {
         return content;
     }
 
-    public void setContent(JadescriptPredicate content) {
+    public void setContent(JadescriptProposition content) {
         this.content = content;
     }
 

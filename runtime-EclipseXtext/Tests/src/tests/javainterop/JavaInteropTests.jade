@@ -1,7 +1,7 @@
 module tests.javainterop
 
 ontology NativeEventTest
-    predicate ButtonClicked(counter as integer)
+    proposition ButtonClicked
     
 
 agent NativeEventsAgent uses ontology NativeEventTest
@@ -10,15 +10,17 @@ agent NativeEventsAgent uses ontology NativeEventTest
 
 
 cyclic behaviour Test uses ontology NativeEventTest
+    property count as integer
     on activate do 
         log "Activate Test!"
         
-    on native ButtonClicked(10) do
-        log "Exiting from JVM process..."
-        do native tests.javainterop.NativeEventsFromJava.doExit
-        
-    on native ButtonClicked(count ) do
-        log "Button Clicked! Text = "
-            + native["tests.javainterop.NativeEventsFromJava.nativeInvocationTest"](count) as text
+    on native ButtonClicked do
+        if count = 10 do
+            log "Exiting from JVM process..."
+            do native tests.javainterop.NativeEventsFromJava.doExit
+        else do
+            log "Button Clicked! Text = "
+                + native["tests.javainterop.NativeEventsFromJava.nativeInvocationTest"](count) as text
+            count = count + 1
 
             

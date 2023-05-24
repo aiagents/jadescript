@@ -1,22 +1,36 @@
 module examples.auction.gui
 
 import examples.auction.gui.Item
+import examples.auction.gui.randomInteger
 
 
-agent Bidder uses ontologies EnglishAuction, BidderGUI
-    property strategy as BidderStrategy
+agent Bidder uses ontologies BuyerGUI
+    property strategy as BidderStrategy = IdleBidder
     property auctioneer as aid
     property view as BidderView
-    property bidDelay = "PT3S" as duration
+    property delayMin as integer
+    property delayMax as integer
+    property participate as ParticipateToAuction = ParticipateToAuction
 
-    on create with strategy as BidderStrategy, auctioneer as aid, view as BidderView do
+    on create with auctioneer as aid, view as BidderView, delayMin as integer, delayMax as integer do
         strategy of this = strategy
         auctioneer of this = auctioneer
         view of this = view
+        delayMin of this = delayMin
+        delayMax of this = delayMax
         log "Bidder "+name of agent+" participating to auction of "
             +localName of auctioneer+" (strategy="+strategy+")"
-        activate ParticipateToAuction
+        activate participate
+        activate DetectLeaving
 
+    cyclic behaviour DetectLeaving
+        on native ClosingWindow do
+            deactivate participate
+            
+    function bidDelay() as duration do
+        nseconds = delayMin + randomInteger(delayMax-delayMin)
+        return ("PT"+nseconds+"S") as duration
+        
 
 
 cyclic behaviour ParticipateToAuction for agent Bidder
@@ -25,40 +39,58 @@ cyclic behaviour ParticipateToAuction for agent Bidder
         
     on deactivate do
         send message inform Leaving to auctioneer
+        do delete
     
-    on native ManualBid(bid) do
+    on native SetStrategy(ManualBid(bid)) do
         log "Submitting bid: "+bid
-        activate SendPropose(item of state of view, bid) after bidDelay
+        activate SendPropose(item of state of view, bid)
+        strategy of agent = IdleBidder
+    
+    on native SetStrategy(strat) do
+        strategy of agent = strat
+        if strat matches AutoBudget(budget) 
+            and state of view matches RunningAuction(itm, cb, bmi, d, cw) do
+            do attemptAuto with cb + bmi, d, budget, cw, itm
     
     on message cfp (SubmitBid(RunningAuction(item, currentBid, bidMinimumIncrement, deadline, currentWinner)), _) do
         requiredBid = currentBid + bidMinimumIncrement
         
         state of view = state of content[0]
         
-        if strategy matches WithBudget(budget) do
-            # If we are not the best bidder, it's not too late, and we have enough money...
-            if currentWinner ≠ name of agent and now < deadline and requiredBid ≤ budget do
-            # Propose to buy the item at the specified price.
-                log "Submitting bid: "+requiredBid
-                activate SendPropose(item, requiredBid) after bidDelay
-            else if requiredBid > budget do
-                log "Not enough money..."
+        if strategy matches AutoBudget(budget) do
+            do attemptAuto with requiredBid, deadline, budget, currentWinner, item
                 
+    procedure attemptAuto with bid as integer, deadline as timestamp, budget as integer,
+            currentWinner as text, item as Item do
+        # If we are not the best bidder, it's not too late, and we have enough money...
+        if currentWinner ≠ name of agent and now < deadline and bid ≤ budget do
+        # Propose to buy the item at the specified price.
+            log "Submitting bid: "+bid
+            activate SendPropose(item, bid) after bidDelay
+        else if bid > budget do
+            log "Not enough money..."
+            
+    on message inform StateIs(s) do
+        state of view of agent = s
 
+    # TODO integrate all these messages in the view
     on message accept_proposal do
         log "My bid has been accepted."
         
     on message reject_proposal (_, _, reason) do
         log "My bid was rejected, reason: " + reason
         
-    on message inform ItemSold(item, aid of agent, bid) do
+    on message inform ItemSold(item, aid of agent, bid, st) do
         log "I bought "+item+" for "+bid+"!"
+        state of view = st
             
-    on message inform ItemSold(item, otherBidder, bid) do
+    on message inform ItemSold(item, otherBidder, bid, st) do
         log otherBidder+" bought "+item+" for "+bid+"."
+        state of view = st
             
-    on message inform ItemNotSold(item) do
+    on message inform ItemNotSold(item, st) do
         log "Not sold: "+item+"." 
+        state of view = st
     
     
 one shot behaviour SendPropose for agent Bidder
