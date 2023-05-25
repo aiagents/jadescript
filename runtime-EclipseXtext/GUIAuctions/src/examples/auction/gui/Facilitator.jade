@@ -34,10 +34,12 @@ agent Facilitator uses ontology FacilitatorOntology
         on message request Register(BuyerRole) do
             log "Registered buyer: "+name of sender
             add sender to buyers
-            send message inform Registered to sender
+            send message inform OpenAuctions(auctioneers) to sender
             
         on message request Deregister do
+            log "Deregistered: "+name of sender
             remove sender from auctioneers
+            remove sender from buyers
             
         on message request ProvideAuctions do
             send message inform OpenAuctions(auctioneers) to sender

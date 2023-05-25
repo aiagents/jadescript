@@ -10,6 +10,7 @@ public class NativesBinder {
         Jadescript.bindNative(BuyerView.class, BuyerViewJava.class);
         Jadescript.bindNative(updateBuyerView.class, BuyerViewJava.UpdateViewJava.class);
         Jadescript.bindNative(BidderView.class, BidderViewJava.class);
+        Jadescript.bindNative(notifyResponse.class, BidderViewJava.NotifyResponseJava.class);
         Jadescript.bindNative(randomInteger.class, RandomIntegerJava.class);
 
     }

@@ -66,6 +66,7 @@ cyclic behaviour AwaitParticipants for agent Auctioneer
         do logStatus
 
     on message inform Participating do
+        log localName of sender + " is now Participating."
         add sender of message to participants
         do logStatus
         if size of participants ≥ minimumParticipants do
@@ -74,6 +75,8 @@ cyclic behaviour AwaitParticipants for agent Auctioneer
             activate doAuction
             deactivate this
         else do
+            log "Informing new participant "+localName of sender+" of awaiting state ("
+                + size of participants+"/"+minimumParticipants+")"
             send message inform StateIs(AwaitingBidders(
                 item,
                 currentBid,
@@ -83,11 +86,13 @@ cyclic behaviour AwaitParticipants for agent Auctioneer
             
 
     on message inform Leaving do
-        log sender + " is leaving the Auction."
+        log localName of sender + " is leaving the Auction."
         remove sender of message from participants
         do logStatus
         
     on message request ProvideAuctionState do
+        log "Informing "+localName of sender+" of awaiting state ("
+                + size of participants+"/"+minimumParticipants+")"
         send message inform StateIs(AwaitingBidders(
             item,
             currentBid,

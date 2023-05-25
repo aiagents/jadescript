@@ -10,8 +10,8 @@ native procedure updateBuyerView with
 ontology BuyerGUI extends EnglishAuction
     native concept BuyerView
     native concept BidderView(state as AuctionState)
-    proposition ClosingWindow
-    proposition Refresh
+    proposition CloseCommand
+    proposition RefreshCommand
     concept BidderStrategy
     concept IdleBidder extends BidderStrategy
     concept AutoBudget(budget as integer) extends BidderStrategy
@@ -26,29 +26,22 @@ agent BuyerAgent uses ontologies FacilitatorOntology, BuyerGUI
     
     on create with v as BuyerView do
         view of this = v
-        activate RegisterAsBuyer
+        activate GetAuctions
         activate BuyerGUIEvents
         
-    cyclic behaviour RegisterAsBuyer
-        on activate do
-            send message request Register(BuyerRole) to "Facilitator"@
-            
-        on message inform Registered do
-            log "Registered!"
-            activate GetAuctions
-            deactivate this
-
+   
 cyclic behaviour BuyerGUIEvents for agent BuyerAgent
-    on native ClosingWindow do
+    on native CloseCommand do
         send message request Deregister to "Facilitator"@
         
-    on native Refresh do
+    on native RefreshCommand do
         send message request ProvideAuctions to "Facilitator"@
 
 
 cyclic behaviour GetAuctions for agent BuyerAgent
     on activate do
-        send message request ProvideAuctions to "Facilitator"@
+        log "Registering..."
+        send message request Register(BuyerRole) to "Facilitator"@
 
     on message inform OpenAuctions(aucts) do
         log "Auctioneers found: "+aucts
@@ -68,6 +61,5 @@ cyclic behaviour GetAuctions for agent BuyerAgent
         auctions[sender] = st
         do updateBuyerView with view, auctions
 
-    
-            
+
 

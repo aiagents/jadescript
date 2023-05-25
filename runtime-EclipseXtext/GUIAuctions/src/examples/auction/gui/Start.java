@@ -15,8 +15,7 @@ public class Start {
         if (args.length < 1
                 || (!args[0].equals("-facilitator") && !args[0].equals("-seller") && !args[0].equals("-buyer"))
         ) {
-            System.err.println("Usage: java -jar <jarfile> [-facilitator | -seller | -buyer <delayMin> <delayMax>]");
-            System.exit(1);
+            usage();
         }
 
         NativesBinder.bindAllNativeTypes();
@@ -49,9 +48,18 @@ public class Start {
 
         if (args[0].equals("-buyer")) {
             var container = Jadescript.newContainer();
-            BuyerViewJava.createBuyer(container, Integer.parseInt(args[1]), Integer.parseInt(args[2]));
+            if(args.length < 4){
+                usage();
+            }else {
+                BuyerViewJava.createBuyer(args[3], container, Integer.parseInt(args[1]), Integer.parseInt(args[2]));
+            }
         }
 
+    }
+
+    private static void usage() {
+        System.err.println("Usage: java -jar <jarfile> [-facilitator | -seller | -buyer <delayMin> <delayMax>]");
+        System.exit(1);
     }
 
 }

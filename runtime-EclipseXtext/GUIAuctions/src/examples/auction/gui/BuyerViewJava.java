@@ -1,6 +1,7 @@
 package examples.auction.gui;
 
 import jade.core.AID;
+import jade.util.Logger;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 import jadescript.java.InvokerAgent;
@@ -17,10 +18,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 public class BuyerViewJava extends BuyerView {
 
+    private static final Logger logger = Logger.getMyLogger(BidderViewJava.class.getName());
+
     private static final SimpleDateFormat formatter = new SimpleDateFormat("HHmmssSSS");
+    private String inputName = "";
     private ContainerController container = null;
     private int delayMin = 0;
     private int delayMax = 0;
@@ -37,11 +42,12 @@ public class BuyerViewJava extends BuyerView {
     private final Map<AID, BidderViewJava> auctions = new ConcurrentHashMap<>();
 
     public static void createBuyer(
+            String name,
             ContainerController container,
             int delayMin,
             int delayMax
     ) throws StaleProxyException {
-        new BuyerViewJava(container, delayMin, delayMax).start();
+        new BuyerViewJava(name, container, delayMin, delayMax).start();
     }
 
 
@@ -49,14 +55,20 @@ public class BuyerViewJava extends BuyerView {
         //Do nothing
     }
 
-    private BuyerViewJava(ContainerController container, int delayMin, int delayMax) {
+    private BuyerViewJava(String inputName, ContainerController container, int delayMin, int delayMax) {
+        this.inputName = inputName;
         this.container = container;
         this.delayMin = delayMin;
         this.delayMax = delayMax;
     }
 
     public void start() throws StaleProxyException {
-        this.agentName = "buyer" + formatter.format(new Date());
+        if (this.inputName.isBlank()) {
+            this.agentName = "buyer" + formatter.format(new Date());
+        } else {
+            this.agentName = inputName;
+        }
+
         agent = BuyerAgent.create(
                 container,
                 agentName,
@@ -71,7 +83,10 @@ public class BuyerViewJava extends BuyerView {
         this.jframe.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                agent.emit(BuyerGUI.ClosingWindow());
+                agent.emit(BuyerGUI.CloseCommand());
+                auctions.forEach((__, bidderView) -> {
+                    bidderView.buyerShutdown();
+                });
             }
         });
 
@@ -90,6 +105,7 @@ public class BuyerViewJava extends BuyerView {
 //        refresh.addActionListener((__) -> agent.emit(BuyerGUI.Refresh()));
 
         jframe.setVisible(true);
+        updateAuctionsGUI();
     }
 
 
@@ -100,9 +116,10 @@ public class BuyerViewJava extends BuyerView {
     public void updateAuctions(JadescriptMap<AID, AuctionState> auctions) {
         final Map<AID, BidderViewJava> removed = getRemoved(this.auctions, auctions);
         final Map<AID, AuctionState> added = getAdded(this.auctions, auctions);
-        System.out.println("removed: " + removed); //TODO
-        System.out.println("added: " + added); //TODO
+        System.out.println("removed: " + removed);
+        System.out.println("added: " + added);
 
+        // Removing
         for (Map.Entry<AID, BidderViewJava> r : removed.entrySet()) {
             final AuctionState prevState = r.getValue().getState();
             r.getValue().setState(
@@ -117,6 +134,7 @@ public class BuyerViewJava extends BuyerView {
             );
         }
 
+        // Adding
         for (Map.Entry<AID, AuctionState> a : added.entrySet()) {
             var view = new BidderViewJava(
                     container,
@@ -130,10 +148,14 @@ public class BuyerViewJava extends BuyerView {
             this.auctions.put(a.getKey(), view);
         }
 
+        // Updating
         for (Map.Entry<AID, AuctionState> entry : auctions.entrySet()) {
             if (this.auctions.containsKey(entry.getKey())) {
                 final BidderViewJava bidderViewJava = this.auctions.get(entry.getKey());
-                if (!bidderViewJava.getState().equals(entry.getValue())) {
+                if (!added.containsKey(entry.getKey())
+                        && !removed.containsKey(entry.getKey())
+                        && !bidderViewJava.getState().equals(entry.getValue())) {
+
                     bidderViewJava.setState(entry.getValue());
                 }
             }
@@ -146,16 +168,16 @@ public class BuyerViewJava extends BuyerView {
         SwingUtilities.invokeLater(() -> {
             auctionsView.removeAll(); //TODO
 
-            if(auctions.isEmpty()){
+            if (auctions.isEmpty()) {
                 final JLabel label = new JLabel("(No sellers found)");
                 label.setAlignmentX(Component.CENTER_ALIGNMENT);
                 auctionsView.add(label);
-            }else {
+                logger.log(Level.INFO, "No sellers.");
+            } else {
                 //noinspection ComparatorCombinators
                 this.auctions.entrySet().stream()
                         .sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
                         .forEach(entry -> {
-
                             final JPanel panel = entry.getValue().getPanel();
                             panel.setAlignmentX(Component.LEFT_ALIGNMENT);
                             auctionsView.add(panel);
@@ -163,6 +185,7 @@ public class BuyerViewJava extends BuyerView {
             }
 
             jframe.revalidate();
+            SwingUtilities.invokeLater(() -> jframe.repaint());
         });
     }
 

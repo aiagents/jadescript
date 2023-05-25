@@ -3,8 +3,10 @@ module examples.auction.gui
 import examples.auction.gui.Item
 import examples.auction.gui.randomInteger
 
+native procedure notifyResponse with view as BidderView, msg as text
+    uses ontology BuyerGUI
 
-agent Bidder uses ontologies BuyerGUI
+agent Bidder uses ontology BuyerGUI
     property strategy as BidderStrategy = IdleBidder
     property auctioneer as aid
     property view as BidderView
@@ -24,7 +26,7 @@ agent Bidder uses ontologies BuyerGUI
         activate DetectLeaving
 
     cyclic behaviour DetectLeaving
-        on native ClosingWindow do
+        on native CloseCommand do
             deactivate participate
             
     function bidDelay() as duration do
@@ -35,9 +37,18 @@ agent Bidder uses ontologies BuyerGUI
 
 cyclic behaviour ParticipateToAuction for agent Bidder
     on activate do
+        log "Requesting to participate."
         send message inform Participating to auctioneer
         
     on deactivate do
+        log "Requesting to leave"
+        state of view = AuctionRemoved(
+            item of state of view,
+            currentBid of state of view,
+            bidMinimumIncrement of state of view,
+            false,
+            auctioneer
+        )
         send message inform Leaving to auctioneer
         do delete
     
@@ -51,6 +62,7 @@ cyclic behaviour ParticipateToAuction for agent Bidder
         if strat matches AutoBudget(budget) 
             and state of view matches RunningAuction(itm, cb, bmi, d, cw) do
             do attemptAuto with cb + bmi, d, budget, cw, itm
+    
     
     on message cfp (SubmitBid(RunningAuction(item, currentBid, bidMinimumIncrement, deadline, currentWinner)), _) do
         requiredBid = currentBid + bidMinimumIncrement
@@ -73,16 +85,19 @@ cyclic behaviour ParticipateToAuction for agent Bidder
     on message inform StateIs(s) do
         state of view of agent = s
 
-    # TODO integrate all these messages in the view
+    
     on message accept_proposal do
         log "My bid has been accepted."
+        do notifyResponse with view, "Bid accepted."
         
     on message reject_proposal (_, _, reason) do
         log "My bid was rejected, reason: " + reason
+        do notifyResponse with view, "Bid rejected: "+reason
         
     on message inform ItemSold(item, aid of agent, bid, st) do
         log "I bought "+item+" for "+bid+"!"
         state of view = st
+        
             
     on message inform ItemSold(item, otherBidder, bid, st) do
         log otherBidder+" bought "+item+" for "+bid+"."
