@@ -1,8 +1,9 @@
 module examples.auction.gui
 
-native procedure updateBuyerView with 
+native procedure addAuctionView with 
     view as BuyerView,
-    auctions as map of aid:AuctionState
+    auctioneer as aid,
+    auctionState as AuctionState
     uses ontology BuyerGUI 
     
 
@@ -21,7 +22,6 @@ ontology BuyerGUI extends EnglishAuction
 
 
 agent BuyerAgent uses ontologies FacilitatorOntology, BuyerGUI
-    property auctions as map of aid:AuctionState
     property view as BuyerView
     
     on create with v as BuyerView do
@@ -29,10 +29,13 @@ agent BuyerAgent uses ontologies FacilitatorOntology, BuyerGUI
         activate GetAuctions
         activate BuyerGUIEvents
         
+    on destroy do
+        send message request Deregister to "Facilitator"@
+        
    
 cyclic behaviour BuyerGUIEvents for agent BuyerAgent
     on native CloseCommand do
-        send message request Deregister to "Facilitator"@
+        do delete
         
     on native RefreshCommand do
         send message request ProvideAuctions to "Facilitator"@
@@ -53,13 +56,13 @@ cyclic behaviour GetAuctions for agent BuyerAgent
         
     on message cfp (SubmitBid(st), _) do
         log "Auction of "+localName of sender+" in state: "+ st
-        auctions[sender] = st
-        do updateBuyerView with view, auctions
+        do addAuctionView with view, sender, st
         
     on message inform StateIs(st) do
         log "Auction of "+localName of sender+" in state: "+ st
-        auctions[sender] = st
-        do updateBuyerView with view, auctions
+        do addAuctionView with view, sender, st
+        
+    
 
 
 

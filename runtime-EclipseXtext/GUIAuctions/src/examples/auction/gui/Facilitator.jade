@@ -24,6 +24,10 @@ agent Facilitator uses ontology FacilitatorOntology
         log "Agent 'Facilitator' created."
         activate Facilitate
         
+    procedure logRegistered do
+        log "Auctioneers: "+auctioneers
+        log "Buyers: "+buyers
+        
     cyclic behaviour Facilitate
         on message request Register(AuctioneerRole) do
             log "Registered auctioneer: "+name of sender

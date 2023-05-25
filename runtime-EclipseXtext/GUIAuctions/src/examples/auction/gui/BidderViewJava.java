@@ -275,7 +275,7 @@ public class BidderViewJava extends BidderView {
     }
 
     private Color lighter(Color c) {
-        final double augm = 100;
+        final double augm = 10;
         return new Color(
                 Math.min(255, (int) ((double) c.getRed() + augm)),
                 Math.min(255, (int) ((double) c.getGreen() + augm)),
@@ -451,13 +451,7 @@ public class BidderViewJava extends BidderView {
         }
     }
 
-    public void buyerShutdown() {
-        try {
-            bidderAgent.emit(BuyerGUI.CloseCommand());
-        }catch (Throwable ignore){
 
-        }
-    }
 
 
     private static class IntegerDocumentFilter extends DocumentFilter {

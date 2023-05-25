@@ -8,6 +8,7 @@
     <JAVADOC />
     <SOURCES>
       <root url="file://$PROJECT_DIR$/../../Jadescript/it.unipr.ailab.jadescript.lib/src" />
+      <root url="file://$USER_HOME$/jade/src" />
     </SOURCES>
   </library>
 </component>

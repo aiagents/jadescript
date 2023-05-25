@@ -5,9 +5,7 @@ import jade.util.Logger;
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
 import jadescript.java.InvokerAgent;
-import jadescript.java.Jadescript;
 import jadescript.java.JadescriptAgentController;
-import jadescript.util.JadescriptMap;
 
 import javax.swing.*;
 import java.awt.*;
@@ -15,7 +13,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -83,10 +80,25 @@ public class BuyerViewJava extends BuyerView {
         this.jframe.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                agent.emit(BuyerGUI.CloseCommand());
-                auctions.forEach((__, bidderView) -> {
-                    bidderView.buyerShutdown();
-                });
+                //TODO
+//                auctions.forEach((__, bidderView) -> {
+//                    bidderView.buyerShutdown();
+//                });
+                try {
+                    if (agent != null) {
+                        agent.emit(BuyerGUI.CloseCommand());
+                    }
+                } catch (Throwable ignored) {
+
+                }
+                if (container != null) {
+                    try {
+                        container.kill();
+                    } catch (StaleProxyException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
             }
         });
 
@@ -100,9 +112,6 @@ public class BuyerViewJava extends BuyerView {
 
         jframe.add(scrollPane, BorderLayout.CENTER);
 
-//        final JButton refresh = new JButton("Refresh");
-//        jframe.add(refresh, BorderLayout.NORTH);
-//        refresh.addActionListener((__) -> agent.emit(BuyerGUI.Refresh()));
 
         jframe.setVisible(true);
         updateAuctionsGUI();
@@ -113,51 +122,26 @@ public class BuyerViewJava extends BuyerView {
         return agentName;
     }
 
-    public void updateAuctions(JadescriptMap<AID, AuctionState> auctions) {
-        final Map<AID, BidderViewJava> removed = getRemoved(this.auctions, auctions);
-        final Map<AID, AuctionState> added = getAdded(this.auctions, auctions);
-        System.out.println("removed: " + removed);
-        System.out.println("added: " + added);
+    public void addAuction(AID auctioneer, AuctionState state) {
+        logger.log(Logger.INFO, "Added auction of " + auctioneer.getLocalName() + ": " + state);
 
-        // Removing
-        for (Map.Entry<AID, BidderViewJava> r : removed.entrySet()) {
-            final AuctionState prevState = r.getValue().getState();
-            r.getValue().setState(
-                    EnglishAuction.AuctionRemoved(
-                            prevState.getItem(),
-                            prevState.getCurrentBid(),
-                            prevState.getBidMinimumIncrement(),
-                            prevState instanceof AuctionEnded ? ((AuctionEnded) prevState).getSold() : false,
-                            prevState instanceof AuctionEnded ? ((AuctionEnded) prevState).getWinner() :
-                                    Jadescript.asAid("ams")
-                    )
-            );
-        }
 
-        // Adding
-        for (Map.Entry<AID, AuctionState> a : added.entrySet()) {
+        if (!this.auctions.containsKey(auctioneer)) {
+
             var view = new BidderViewJava(
                     container,
                     this,
-                    a.getKey(),
-                    a.getValue(),
+                    auctioneer,
+                    state,
                     delayMin,
                     delayMax
             );
             view.start();
-            this.auctions.put(a.getKey(), view);
-        }
-
-        // Updating
-        for (Map.Entry<AID, AuctionState> entry : auctions.entrySet()) {
-            if (this.auctions.containsKey(entry.getKey())) {
-                final BidderViewJava bidderViewJava = this.auctions.get(entry.getKey());
-                if (!added.containsKey(entry.getKey())
-                        && !removed.containsKey(entry.getKey())
-                        && !bidderViewJava.getState().equals(entry.getValue())) {
-
-                    bidderViewJava.setState(entry.getValue());
-                }
+            this.auctions.put(auctioneer, view);
+        } else {
+            final BidderViewJava bidderViewJava = this.auctions.get(auctioneer);
+            if (!bidderViewJava.getState().equals(state)) {
+                bidderViewJava.setState(state);
             }
         }
 
@@ -169,10 +153,10 @@ public class BuyerViewJava extends BuyerView {
             auctionsView.removeAll(); //TODO
 
             if (auctions.isEmpty()) {
-                final JLabel label = new JLabel("(No sellers found)");
+                final JLabel label = new JLabel("(No auctions found)");
                 label.setAlignmentX(Component.CENTER_ALIGNMENT);
                 auctionsView.add(label);
-                logger.log(Level.INFO, "No sellers.");
+                logger.log(Level.INFO, "No auctions.");
             } else {
                 //noinspection ComparatorCombinators
                 this.auctions.entrySet().stream()
@@ -185,7 +169,7 @@ public class BuyerViewJava extends BuyerView {
             }
 
             jframe.revalidate();
-            SwingUtilities.invokeLater(() -> jframe.repaint());
+            SwingUtilities.invokeLater(jframe::repaint);
         });
     }
 
@@ -194,46 +178,20 @@ public class BuyerViewJava extends BuyerView {
         updateAuctionsGUI();
     }
 
-    private Map<AID, BidderViewJava> getRemoved(
-            Map<AID, BidderViewJava> before,
-            Map<AID, AuctionState> after
-    ) {
-        Map<AID, BidderViewJava> result = new HashMap<>();
-        for (var entry : before.entrySet()) {
-            if (!after.containsKey(entry.getKey())) {
-                result.put(entry.getKey(), entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    private Map<AID, AuctionState> getAdded(
-            Map<AID, BidderViewJava> before,
-            Map<AID, AuctionState> after
-    ) {
-        Map<AID, AuctionState> result = new HashMap<>();
-        for (var entry : after.entrySet()) {
-            if (!before.containsKey(entry.getKey())) {
-                result.put(entry.getKey(), entry.getValue());
-            }
-        }
-        return result;
-    }
 
     public void revalidateAll() {
         SwingUtilities.invokeLater(jframe::revalidate);
     }
 
 
-    public static class UpdateViewJava extends updateBuyerView {
+    public static class addAuctionViewJava extends addAuctionView {
 
         @Override
-        public void updateBuyerView(InvokerAgent invokerAgent,
-                                    BuyerView view,
-                                    JadescriptMap<AID, AuctionState> auctions) {
-            if (view instanceof BuyerViewJava) {
-                ((BuyerViewJava) view).updateAuctions(auctions);
-            }
+        public void addAuctionView(InvokerAgent invokerAgent,
+                                   BuyerView view,
+                                   AID auctioneer,
+                                   AuctionState auctionState) {
+            ((BuyerViewJava) view).addAuction(auctioneer, auctionState);
         }
     }
 

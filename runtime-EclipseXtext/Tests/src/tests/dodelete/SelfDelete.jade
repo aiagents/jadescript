@@ -1,0 +1,37 @@
+module tests.dodelete
+
+ontology Deletion
+    proposition GoodBye
+
+agent Observer uses ontology Deletion
+    on create do
+        activate Observe
+        create SelfDelete "SD"
+        
+    cyclic behaviour Observe
+        on message inform GoodBye do
+            log "Agent "+localName of sender+" sent "+content+" before deleting itself." 
+
+agent SelfDelete uses ontology Deletion
+    on create do
+        log "Self deleting in 10 seconds..."
+        activate Countdown every "PT1S" as duration
+        
+    on destroy do
+        log "GoodBye!"
+        send message inform GoodBye to "Observer"@
+        
+        
+    cyclic behaviour Countdown
+        property count = 0
+        
+        on activate do
+            log "Countdown..."
+        
+        on execute do
+            count = count + 1
+            log count+"!"
+            if count = 10 do
+                do delete
+        
+        

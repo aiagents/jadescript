@@ -8,10 +8,12 @@ public class NativesBinder {
 
     public static void bindAllNativeTypes() {
         Jadescript.bindNative(BuyerView.class, BuyerViewJava.class);
-        Jadescript.bindNative(updateBuyerView.class, BuyerViewJava.UpdateViewJava.class);
+        Jadescript.bindNative(addAuctionView.class, BuyerViewJava.addAuctionViewJava.class);
         Jadescript.bindNative(BidderView.class, BidderViewJava.class);
         Jadescript.bindNative(notifyResponse.class, BidderViewJava.NotifyResponseJava.class);
         Jadescript.bindNative(randomInteger.class, RandomIntegerJava.class);
+        Jadescript.bindNative(AuctioneerView.class, AuctioneerViewJava.class);
+        Jadescript.bindNative(updateAuctioneerGUI.class, AuctioneerViewJava.UpdateAuctioneerGUIJava.class);
 
     }
 }

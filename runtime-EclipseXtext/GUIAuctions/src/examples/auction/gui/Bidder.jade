@@ -14,7 +14,10 @@ agent Bidder uses ontology BuyerGUI
     property delayMax as integer
     property participate as ParticipateToAuction = ParticipateToAuction
 
-    on create with auctioneer as aid, view as BidderView, delayMin as integer, delayMax as integer do
+    on create with auctioneer as aid, 
+                   view as BidderView, 
+                   delayMin as integer, 
+                   delayMax as integer do
         strategy of this = strategy
         auctioneer of this = auctioneer
         view of this = view
@@ -24,6 +27,9 @@ agent Bidder uses ontology BuyerGUI
             +localName of auctioneer+" (strategy="+strategy+")"
         activate participate
         activate DetectLeaving
+        
+    on destroy do
+        deactivate participate
 
     cyclic behaviour DetectLeaving
         on native CloseCommand do
@@ -66,9 +72,7 @@ cyclic behaviour ParticipateToAuction for agent Bidder
     
     on message cfp (SubmitBid(RunningAuction(item, currentBid, bidMinimumIncrement, deadline, currentWinner)), _) do
         requiredBid = currentBid + bidMinimumIncrement
-        
         state of view = state of content[0]
-        
         if strategy matches AutoBudget(budget) do
             do attemptAuto with requiredBid, deadline, budget, currentWinner, item
                 
@@ -90,9 +94,9 @@ cyclic behaviour ParticipateToAuction for agent Bidder
         log "My bid has been accepted."
         do notifyResponse with view, "Bid accepted."
         
-    on message reject_proposal (_, _, reason) do
-        log "My bid was rejected, reason: " + reason
-        do notifyResponse with view, "Bid rejected: "+reason
+    on message reject_proposal (_, _, BidRejected(BidTooLow(b))) do
+        log "My bid was rejected, bid too low: " + b
+        do notifyResponse with view, "Bid too low: "+b
         
     on message inform ItemSold(item, aid of agent, bid, st) do
         log "I bought "+item+" for "+bid+"!"

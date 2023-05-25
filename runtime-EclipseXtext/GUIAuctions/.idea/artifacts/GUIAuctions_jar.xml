@@ -1,0 +1,14 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="GUIAuctions:jar">
+    <output-path>$PROJECT_DIR$/classes/artifacts/GUIAuctions_jar</output-path>
+    <root id="archive" name="GUIAuctions.jar">
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/META-INF-IDEA/META-INF/MANIFEST.MF" />
+      </element>
+      <element id="module-output" name="GUIAuctions" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/jade.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/commons-codec-1.13.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/jadescript.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
