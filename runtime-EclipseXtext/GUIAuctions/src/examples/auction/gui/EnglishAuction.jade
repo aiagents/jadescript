@@ -1,53 +1,23 @@
 module examples.auction.gui
 
+
+
 ontology EnglishAuction
-
-    # Pre-auction data exchange
-    action ProvideAuctionState
-    
-    predicate StateIs(state as AuctionState)
-    
-    concept AuctionState(
-        item as Item,
-        currentBid as integer, 
-        bidMinimumIncrement as integer
-    )
-    concept RunningAuction(
-        item as Item,
-        currentBid as integer, 
-        bidMinimumIncrement as integer,
-        deadline as timestamp, 
-        currentlyWinning as text
-    ) extends AuctionState
-    
-    concept AwaitingBidders(
-        item as Item,
-        startingBid as integer, 
-        bidMinimumIncrement as integer,
-        currentlyRegistered as integer
-    ) extends AuctionState with currentBid = startingBid - bidMinimumIncrement
-
-    concept AuctionEnded(
-        item as Item,
-        currentBid as integer,
-        bidMinimumIncrement as integer,
-        sold as boolean,
-        winner as aid
-    ) extends AuctionState 
-
-    concept AuctionRemoved(
-        item as Item,
-        currentBid as integer,
-        bidMinimumIncrement as integer,
-        sold as boolean,
-        winner as aid
-    ) extends AuctionEnded
-
     # Used by bidders to register/deregister to the auctioneer
     # Note: the example assumes that the only reason for a bidder to be alive 
     # is to partecipate to the auction
+    action ProvideAuctionState
+    
     proposition Participating
     proposition Leaving
+    
+    predicate AwaitingStart(
+        item as Item,
+        startingBid as integer,
+        bidMinimumIncrement as integer,
+        currentlyRegistered as integer,
+        required as integer
+    )
 
     # An Item that can be sold
     concept Item(name as text)
@@ -55,16 +25,22 @@ ontology EnglishAuction
         extends Item with name= title + " by " + author
     
     # Used as CFP content from the auctioneer
-    action SubmitBid(state as AuctionState)
+    action SubmitBid(
+        item as Item,
+        currentPrice as integer, 
+        bidMinimumIncrement as integer, 
+        nextTimeout as timestamp, 
+        currentlyWinning as text
+    )
     
     # Action of buying an item
     action Buy(item as Item)
     
     # Predicate to inform when an Item is sold
-    predicate ItemSold(item as Item, buyer as aid, finalPrice as integer, finalState as AuctionState)
+    predicate ItemSold(item as Item, buyer as aid, finalPrice as integer)
     
     # Predicate to inform when an Item is not sold
-    predicate ItemNotSold(item as Item, finalState as AuctionState)
+    predicate ItemNotSold(item as Item, buyer as aid, finalPrice as integer)
     
     # Predicate that associates an item with a price
     predicate Priced(item as Item, price as integer)
@@ -82,7 +58,41 @@ ontology EnglishAuction
     predicate InvalidBid(otherReason as text)
     
     
+ontology AuctionsGUI extends EnglishAuction
+    concept AuctionState(
+        item as Item,
+        currentBid as integer
+    )
     
+    concept RunningAuctionState(
+        item as Item,
+        currentBid as integer, 
+        bidMinimumIncrement as integer,
+        deadline as timestamp, 
+        currentlyWinning as text
+    ) extends AuctionState
+    
+    concept AwaitingAuctionState(
+        item as Item,
+        startingBid as integer, 
+        bidMinimumIncrement as integer,
+        currentlyRegistered as integer,
+        minimumParticipants as integer
+    ) extends AuctionState with currentBid = startingBid - bidMinimumIncrement
+
+    concept EndedAuctionState(
+        item as Item,
+        currentBid as integer,
+        sold as boolean,
+        winner as aid
+    ) extends AuctionState 
+
+    concept RemovedAuctionState(
+        item as Item,
+        currentBid as integer,
+        sold as boolean,
+        winner as aid
+    ) extends EndedAuctionState
     
 
 

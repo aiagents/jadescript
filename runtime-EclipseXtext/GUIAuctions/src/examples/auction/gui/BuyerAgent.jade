@@ -1,14 +1,7 @@
 module examples.auction.gui
 
-native procedure addAuctionView with 
-    view as BuyerView,
-    auctioneer as aid,
-    auctionState as AuctionState
-    uses ontology BuyerGUI 
-    
 
-
-ontology BuyerGUI extends EnglishAuction
+ontology BuyerGUI extends AuctionsGUI
     native concept BuyerView
     native concept BidderView(state as AuctionState)
     proposition CloseCommand
@@ -20,6 +13,11 @@ ontology BuyerGUI extends EnglishAuction
     predicate SetStrategy(strat as BidderStrategy)
     
 
+native procedure addAuctionView with 
+    view as BuyerView,
+    auctioneer as aid,
+    auctionState as AuctionState
+    uses ontology BuyerGUI 
 
 agent BuyerAgent uses ontologies FacilitatorOntology, BuyerGUI
     property view as BuyerView
@@ -54,11 +52,17 @@ cyclic behaviour GetAuctions for agent BuyerAgent
         log "Auctioneer found: "+auctioneer
         send message request ProvideAuctionState to auctioneer
         
-    on message cfp (SubmitBid(st), _) do
+    on message cfp (SubmitBid(item, currentPrice, bidMinimumIncrement, 
+            nextDeadline, currentlyWinning), _) do
+        st = RunningAuctionState(item, currentPrice, bidMinimumIncrement,
+            nextDeadline, currentlyWinning)
         log "Auction of "+localName of sender+" in state: "+ st
         do addAuctionView with view, sender, st
         
-    on message inform StateIs(st) do
+    on message inform AwaitingStart(item, startingBid, bidMinimumIncrement,
+            currentlyRegistered, required) do
+        st = AwaitingAuctionState(item, startingBid,
+            bidMinimumIncrement, currentlyRegistered, required)
         log "Auction of "+localName of sender+" in state: "+ st
         do addAuctionView with view, sender, st
         

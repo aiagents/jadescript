@@ -77,8 +77,8 @@ public class AuctioneerViewJava extends AuctioneerView {
         stopButton = new JButton("Stop");
         countdownTimer = new Timer(500, (__) -> {
             final AuctionState s = getState();
-            if (s instanceof RunningAuction) {
-                final long seconds = ((RunningAuction) state).getDeadline().toZonedDateTime().toEpochSecond()
+            if (s instanceof RunningAuctionState) {
+                final long seconds = ((RunningAuctionState) state).getDeadline().toZonedDateTime().toEpochSecond()
                         - ZonedDateTime.now().toEpochSecond();
                 countdownLabel.setText("T: " + Math.max(0L, seconds));
                 countdownLabel.repaint();
@@ -222,9 +222,7 @@ public class AuctioneerViewJava extends AuctioneerView {
                 //noinspection ComparatorCombinators
                 participants.entrySet().stream()
                         .sorted((e1, e2) -> e1.getKey().compareTo(e2.getKey()))
-                        .forEach(e -> {
-                            mainPanel.add(e.getValue());
-                        });
+                        .forEach(e -> mainPanel.add(e.getValue()));
 
             }
             auctioneerFrame.revalidate();
@@ -262,14 +260,14 @@ public class AuctioneerViewJava extends AuctioneerView {
     private void update(AuctionState state, JadescriptSet<AID> participants) {
         this.state = state;
         SwingUtilities.invokeLater(() -> {
-            if (state instanceof AwaitingBidders) {
-                updateAwaiting(((AwaitingBidders) state), participants);
-            } else if (state instanceof RunningAuction) {
-                updateRunning(((RunningAuction) state), participants);
-            } else if (state instanceof AuctionRemoved) {
-                updateRemoved(((AuctionRemoved) state), participants);
-            } else if (state instanceof AuctionEnded) {
-                updateEnded((AuctionEnded) state, participants);
+            if (state instanceof AwaitingAuctionState) {
+                updateAwaiting(((AwaitingAuctionState) state), participants);
+            } else if (state instanceof RunningAuctionState) {
+                updateRunning(((RunningAuctionState) state), participants);
+            } else if (state instanceof RemovedAuctionState) {
+                updateRemoved(((RemovedAuctionState) state), participants);
+            } else if (state instanceof EndedAuctionState) {
+                updateEnded((EndedAuctionState) state, participants);
             }
         });
     }
@@ -281,7 +279,7 @@ public class AuctioneerViewJava extends AuctioneerView {
         mainPanel.setBorder(BorderFactory.createLineBorder(color, 5));
     }
 
-    private void updateAwaiting(AwaitingBidders state, JadescriptSet<AID> participants) {
+    private void updateAwaiting(AwaitingAuctionState state, JadescriptSet<AID> participants) {
         setTitleAndColor("(Awaiting for participants)", awaiting);
         updateParticipantMap(state, participants);
         countdownTimer.stop();
@@ -289,7 +287,7 @@ public class AuctioneerViewJava extends AuctioneerView {
         messageLabel.setText("---");
     }
 
-    private void updateRunning(RunningAuction state, JadescriptSet<AID> participants) {
+    private void updateRunning(RunningAuctionState state, JadescriptSet<AID> participants) {
         if (state.getCurrentlyWinning().isBlank()) {
             setTitleAndColor("(Awaiting bids)", open);
         } else {
@@ -300,7 +298,7 @@ public class AuctioneerViewJava extends AuctioneerView {
         messageLabel.setText("Price: " + state.getCurrentBid());
     }
 
-    private void updateEnded(AuctionEnded state, JadescriptSet<AID> participants) {
+    private void updateEnded(EndedAuctionState state, JadescriptSet<AID> participants) {
         setTitleAndColor("(Auction Ended)", done);
         updateParticipantMap(state, participants);
         countdownTimer.stop();
@@ -308,7 +306,7 @@ public class AuctioneerViewJava extends AuctioneerView {
         messageLabel.setText("Price: " + state.getCurrentBid());
     }
 
-    private void updateRemoved(AuctionRemoved state, JadescriptSet<AID> participants) {
+    private void updateRemoved(RemovedAuctionState state, JadescriptSet<AID> participants) {
         setTitleAndColor("(Auctioneer Offline)", removed);
         updateParticipantMap(state, participants);
         countdownTimer.stop();
@@ -362,23 +360,23 @@ public class AuctioneerViewJava extends AuctioneerView {
         }
 
         public void setState(AuctionState state) {
-            if (state instanceof AwaitingBidders) {
+            if (state instanceof AwaitingAuctionState) {
                 setStatus("(Idle)", idle);
                 this.lastBidLabel.setText("");
-            } else if (state instanceof RunningAuction) {
-                if ("".equals(((RunningAuction) state).getCurrentlyWinning())) {
+            } else if (state instanceof RunningAuctionState) {
+                if ("".equals(((RunningAuctionState) state).getCurrentlyWinning())) {
                     setStatus("(Idle)", idle);
                     this.lastBidLabel.setText("");
 
-                } else if (participant.getName().equals(((RunningAuction) state).getCurrentlyWinning())) {
+                } else if (participant.getName().equals(((RunningAuctionState) state).getCurrentlyWinning())) {
                     setStatus("(Leading)", leading);
                     this.lastBidLabel.setText("Last bid: " + state.getCurrentBid());
                 } else {
                     setStatus("(Outbid)", outbid);
                 }
-            } else if (state instanceof AuctionEnded) {
-                if (((AuctionEnded) state).getSold()) {
-                    if (participant.equals(((AuctionEnded) state).getWinner())) {
+            } else if (state instanceof EndedAuctionState) {
+                if (((EndedAuctionState) state).getSold()) {
+                    if (participant.equals(((EndedAuctionState) state).getWinner())) {
                         setStatus("(Won)", winner);
                         this.lastBidLabel.setText("Winning bid:" + state.getCurrentBid());
                     } else {

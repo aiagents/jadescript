@@ -58,7 +58,7 @@ public class BidderViewJava extends BidderView {
         this.labelCountdown = new JLabel();
         String[] options = {"Auto Bidding", "Manual Bid"};
         this.comboStategy = new JComboBox<>(options);
-        this.fieldMoney = new JTextField(state.getCurrentBid() + state.getBidMinimumIncrement());
+        this.fieldMoney = new JTextField("30");
         this.stratButton = new JButton("Submit");
         this.labelMessage = new JLabel(" ");
         this.leaveButton = new JButton("Leave");
@@ -145,8 +145,8 @@ public class BidderViewJava extends BidderView {
             biddingPanel.add(labelCurrent, gbc);
 
             every500.add(() -> {
-                if (state instanceof RunningAuction) {
-                    final long seconds = ((RunningAuction) state).getDeadline().toZonedDateTime().toEpochSecond()
+                if (state instanceof RunningAuctionState) {
+                    final long seconds = ((RunningAuctionState) state).getDeadline().toZonedDateTime().toEpochSecond()
                             - ZonedDateTime.now().toEpochSecond();
                     labelCountdown.setText("T: " + Math.max(0L, seconds));
                     labelCountdown.repaint();
@@ -260,14 +260,14 @@ public class BidderViewJava extends BidderView {
     }
 
     private void updateBidderGUI() {
-        if (state instanceof AwaitingBidders) {
-            updateAwaiting(((AwaitingBidders) state));
-        } else if (state instanceof RunningAuction) {
-            updateRunning(((RunningAuction) state));
-        } else if (state instanceof AuctionRemoved) {
-            updateRemoved(((AuctionRemoved) state));
-        } else if (state instanceof AuctionEnded) {
-            updateEnded((AuctionEnded) state);
+        if (state instanceof AwaitingAuctionState) {
+            updateAwaiting(((AwaitingAuctionState) state));
+        } else if (state instanceof RunningAuctionState) {
+            updateRunning(((RunningAuctionState) state));
+        } else if (state instanceof RemovedAuctionState) {
+            updateRemoved(((RemovedAuctionState) state));
+        } else if (state instanceof EndedAuctionState) {
+            updateEnded((EndedAuctionState) state);
         }
         if (buyerJava != null) {
             buyerJava.revalidateAll();
@@ -296,7 +296,7 @@ public class BidderViewJava extends BidderView {
         stratButton.setEnabled(enabled);
     }
 
-    private void updateAwaiting(AwaitingBidders state) {
+    private void updateAwaiting(AwaitingAuctionState state) {
         timer500.stop();
 
         setTitleAndStatus(state, "Awaiting", Color.orange);
@@ -312,7 +312,7 @@ public class BidderViewJava extends BidderView {
         leaveButton.setText("Leave");
     }
 
-    private void updateEnded(AuctionEnded state) {
+    private void updateEnded(EndedAuctionState state) {
         timer500.stop();
 
         if (state.getSold()) {
@@ -339,7 +339,7 @@ public class BidderViewJava extends BidderView {
         }
     }
 
-    private void updateRemoved(AuctionRemoved state) {
+    private void updateRemoved(RemovedAuctionState state) {
         timer500.stop();
 
         setTitleAndStatus(state, "Removed", Color.darkGray);
@@ -354,7 +354,7 @@ public class BidderViewJava extends BidderView {
     }
 
 
-    private void updateRunning(RunningAuction state) {
+    private void updateRunning(RunningAuctionState state) {
         final String currentlyWinning = state.getCurrentlyWinning();
         final String me = bidderAgent.getName();
         final String status;
@@ -403,14 +403,10 @@ public class BidderViewJava extends BidderView {
     }
 
     public void showError(String str) {
-        //TODO
-//        if (errorLabel == null) {
-//            errorLabel = new JLabel();
-//        }
-//
-//        errorLabel.setText(str);
-//        errorLabel.setVisible(true);
-        biddingPanel.setVisible(false);
+        labelTop.setText(str);
+        labelStatus.setText("Error");
+        labelCurrent.setText("---");
+        labelMessage.setText("---");
         timer500.stop();
         leaveButton.setText("Leave");
     }
@@ -422,13 +418,13 @@ public class BidderViewJava extends BidderView {
     }
 
     private int getStateLevel(AuctionState s) {
-        if (s instanceof AwaitingBidders) {
+        if (s instanceof AwaitingAuctionState) {
             return 1;
-        } else if (s instanceof RunningAuction) {
+        } else if (s instanceof RunningAuctionState) {
             return 2;
-        } else if (s instanceof AuctionRemoved) {
+        } else if (s instanceof RemovedAuctionState) {
             return 4;//Not a bug
-        } else if (s instanceof AuctionEnded) {
+        } else if (s instanceof EndedAuctionState) {
             return 3;//Not a bug
         } else {
             return 0;

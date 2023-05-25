@@ -42,7 +42,7 @@ public class Start {
             var container = Jadescript.newMainContainer(port);
 
             try {
-                if(safeGet(l, 0, "-norma").equals("-rma")) {
+                if(safeGet(l, 1, "-norma").equals("-rma")) {
                     AgentController rma = container.createNewAgent("rma", "jade.tools.rma.rma", null);
                     rma.start();
                 }
@@ -95,7 +95,7 @@ public class Start {
     }
 
     private static void usage() {
-        System.err.println("Usage: \n" +
+        System.err.println("Usage: ([-pNNNN] is the optional port, defaults to 1099) \n" +
                 "java -jar <jarfile> [-pNNNN] -main [-rma] \n" +
                 "   => Starts the facilitator and the main container. (-rma) starts also the JADE GUI.\n" +
                 "java -jar <jarfile> [-pNNNN] -seller -form \n" +
@@ -109,7 +109,7 @@ public class Start {
                 "           increment = 1\n" +
                 "           reserve = 40\n" +
                 "java -jar <jarfile> [-pNNNN] -buyer <name> [<delayMin> <delayMax>]\n" +
-                "   => Starts a buyer. With specified name, and range of artificial random delays when submitting bids " +
+                "   => Starts a buyer. With specified name and range of artificial random delays when submitting bids " +
                 "(defaults to min=1 max=3).\n"
         );
         System.exit(1);

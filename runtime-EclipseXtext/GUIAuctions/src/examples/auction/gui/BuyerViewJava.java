@@ -80,10 +80,6 @@ public class BuyerViewJava extends BuyerView {
         this.jframe.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                //TODO
-//                auctions.forEach((__, bidderView) -> {
-//                    bidderView.buyerShutdown();
-//                });
                 try {
                     if (agent != null) {
                         agent.emit(BuyerGUI.CloseCommand());
@@ -150,7 +146,7 @@ public class BuyerViewJava extends BuyerView {
 
     public void updateAuctionsGUI() {
         SwingUtilities.invokeLater(() -> {
-            auctionsView.removeAll(); //TODO
+            auctionsView.removeAll();
 
             if (auctions.isEmpty()) {
                 final JLabel label = new JLabel("(No auctions found)");

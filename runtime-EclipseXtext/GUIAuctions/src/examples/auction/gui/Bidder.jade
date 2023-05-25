@@ -3,6 +3,7 @@ module examples.auction.gui
 import examples.auction.gui.Item
 import examples.auction.gui.randomInteger
 
+# Used by the bidder to change notify the user of the auctioneer's response to a bid
 native procedure notifyResponse with view as BidderView, msg as text
     uses ontology BuyerGUI
 
@@ -13,11 +14,9 @@ agent Bidder uses ontology BuyerGUI
     property delayMin as integer
     property delayMax as integer
     property participate as ParticipateToAuction = ParticipateToAuction
-
-    on create with auctioneer as aid, 
-                   view as BidderView, 
-                   delayMin as integer, 
-                   delayMax as integer do
+    
+    on create with auctioneer as aid, view as BidderView, 
+            delayMin as integer, delayMax as integer do
         strategy of this = strategy
         auctioneer of this = auctioneer
         view of this = view
@@ -35,10 +34,9 @@ agent Bidder uses ontology BuyerGUI
         on native CloseCommand do
             deactivate participate
             
-    function bidDelay() as duration do
+    function bidDelay as duration do
         nseconds = delayMin + randomInteger(delayMax-delayMin)
         return ("PT"+nseconds+"S") as duration
-        
 
 
 cyclic behaviour ParticipateToAuction for agent Bidder
@@ -48,11 +46,10 @@ cyclic behaviour ParticipateToAuction for agent Bidder
         
     on deactivate do
         log "Requesting to leave"
-        state of view = AuctionRemoved(
+        state of view = RemovedAuctionState(
             item of state of view,
             currentBid of state of view,
-            bidMinimumIncrement of state of view,
-            false,
+            false, 
             auctioneer
         )
         send message inform Leaving to auctioneer
@@ -66,30 +63,33 @@ cyclic behaviour ParticipateToAuction for agent Bidder
     on native SetStrategy(strat) do
         strategy of agent = strat
         if strat matches AutoBudget(budget) 
-            and state of view matches RunningAuction(itm, cb, bmi, d, cw) do
+            and state of view matches RunningAuctionState(itm, cb, bmi, d, cw) do
             do attemptAuto with cb + bmi, d, budget, cw, itm
     
-    
-    on message cfp (SubmitBid(RunningAuction(item, currentBid, bidMinimumIncrement, deadline, currentWinner)), _) do
+    on message cfp (SubmitBid(item, currentBid, bidMinimumIncrement, 
+            deadline, currentWinner), _) do
         requiredBid = currentBid + bidMinimumIncrement
-        state of view = state of content[0]
+        state of view = RunningAuctionState(item, currentBid, 
+            bidMinimumIncrement, deadline, currentWinner)
         if strategy matches AutoBudget(budget) do
             do attemptAuto with requiredBid, deadline, budget, currentWinner, item
-                
+
     procedure attemptAuto with bid as integer, deadline as timestamp, budget as integer,
             currentWinner as text, item as Item do
         # If we are not the best bidder, it's not too late, and we have enough money...
         if currentWinner ≠ name of agent and now < deadline and bid ≤ budget do
-        # Propose to buy the item at the specified price.
+            # Propose to buy the item at the specified price.
             log "Submitting bid: "+bid
             activate SendPropose(item, bid) after bidDelay
         else if bid > budget do
             log "Not enough money..."
-            
-    on message inform StateIs(s) do
-        state of view of agent = s
 
-    
+    on message inform AwaitingStart(item, startingBid, 
+        bidMinimumIncrement, currentlyRegistered, required) do
+        state of view of agent = AwaitingAuctionState(
+            item, startingBid, bidMinimumIncrement,
+            currentlyRegistered, required)
+
     on message accept_proposal do
         log "My bid has been accepted."
         do notifyResponse with view, "Bid accepted."
@@ -98,19 +98,17 @@ cyclic behaviour ParticipateToAuction for agent Bidder
         log "My bid was rejected, bid too low: " + b
         do notifyResponse with view, "Bid too low: "+b
         
-    on message inform ItemSold(item, aid of agent, bid, st) do
+    on message inform ItemSold(item, aid of agent, bid) do
         log "I bought "+item+" for "+bid+"!"
-        state of view = st
+        state of view = EndedAuctionState(item, bid, true, aid of agent)
         
-            
-    on message inform ItemSold(item, otherBidder, bid, st) do
+    on message inform ItemSold(item, otherBidder, bid) do
         log otherBidder+" bought "+item+" for "+bid+"."
-        state of view = st
+        state of view = EndedAuctionState(item, bid, true, otherBidder)
             
-    on message inform ItemNotSold(item, st) do
+    on message inform ItemNotSold(item, lastBidder, bid) do
         log "Not sold: "+item+"." 
-        state of view = st
-    
+        state of view = EndedAuctionState(item, bid, false, lastBidder)
     
 one shot behaviour SendPropose for agent Bidder
     property item as Item

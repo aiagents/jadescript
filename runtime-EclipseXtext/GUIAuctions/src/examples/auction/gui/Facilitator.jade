@@ -1,8 +1,6 @@
 module examples.auction.gui
 
-
 import examples.auction.gui.EnglishAuction
-
 
 ontology FacilitatorOntology
     proposition Registered
@@ -47,5 +45,3 @@ agent Facilitator uses ontology FacilitatorOntology
             
         on message request ProvideAuctions do
             send message inform OpenAuctions(auctioneers) to sender
-            
-            

@@ -2,14 +2,16 @@ module examples.auction.gui
 
 import examples.auction.gui.ItemNotForSale
 
+
+ontology AuctioneerGUI extends AuctionsGUI
+    native concept AuctioneerView
+    proposition CloseAuctioneer
+
+
 native procedure updateAuctioneerGUI with view as AuctioneerView,
     state as AuctionState, participants as set of aid
     uses ontologies EnglishAuction, AuctioneerGUI
 
-
-ontology AuctioneerGUI
-    native concept AuctioneerView
-    proposition CloseAuctioneer
 
 # Auctioneer agent.
 agent Auctioneer uses ontologies EnglishAuction, AuctioneerGUI, FacilitatorOntology
@@ -42,11 +44,9 @@ agent Auctioneer uses ontologies EnglishAuction, AuctioneerGUI, FacilitatorOntol
     property terminated = false
     
     on create with view as AuctioneerView, 
-                   item as Item,
-                   startBid as integer, 
-                   reserve as integer, 
-                   bidMinimumIncrement as integer, 
-                   timeout as duration do
+            item as Item, startBid as integer, 
+            reserve as integer, bidMinimumIncrement as integer, 
+            timeout as duration do
         item of this = item
         startBid of this = startBid
         currentBid of this = startBid
@@ -64,23 +64,24 @@ agent Auctioneer uses ontologies EnglishAuction, AuctioneerGUI, FacilitatorOntol
             do terminateAuction
         send message request Deregister to "Facilitator"@
         
-        
+    # Procedure used to terminate the auction
     procedure terminateAuction do
-        st = AuctionEnded(item, currentBid, bidMinimumIncrement, true, candidateBuyer)
+        # Create state and update view
+        st = EndedAuctionState(item, currentBid, true, candidateBuyer)
         do updateAuctioneerGUI with view, st, participants
         if not thereIsCandidate or currentBid < reserve do
             log "No valid bid submitted. Not selling item."
             sold of st = false
-            send message inform ItemNotSold(item, st) to participants
+            send message inform ItemNotSold(item, candidateBuyer, currentBid) to participants
         else if not (participants contains candidateBuyer) do
             log "The highest bidder left the auction. Not selling item."
             sold of st = false
-            send message inform ItemNotSold(item, st) to participants
+            send message inform ItemNotSold(item, candidateBuyer, currentBid) to participants
         else do
             log "Selling item "+item+" to "+candidateBuyer
-            send message inform ItemSold(item, candidateBuyer, currentBid, st) to participants
+            send message inform ItemSold(item, candidateBuyer, currentBid) to participants
         terminated = true
-        
+
 
 cyclic behaviour RegisterAsAuctioneer for agent Auctioneer
     on activate do
@@ -90,8 +91,6 @@ cyclic behaviour RegisterAsAuctioneer for agent Auctioneer
         log "Registered!"
         activate AwaitParticipants
         deactivate this
-    
-    
 
 
 cyclic behaviour AwaitParticipants for agent Auctioneer
@@ -99,12 +98,8 @@ cyclic behaviour AwaitParticipants for agent Auctioneer
         log "Awaiting participants (" + size of participants + "/" + minimumParticipants + ")..."
  
     on activate do
-        st = AwaitingBidders(
-            item,
-            currentBid,
-            bidMinimumIncrement,
-            size of participants
-        )
+        st = AwaitingAuctionState(item, currentBid,
+            bidMinimumIncrement, size of participants, minimumParticipants)
         do updateAuctioneerGUI with view, st, participants
         do logStatus
 
@@ -112,12 +107,8 @@ cyclic behaviour AwaitParticipants for agent Auctioneer
         log localName of sender + " is now Participating."
         add sender of message to participants
         do logStatus
-        st = AwaitingBidders(
-            item,
-            currentBid,
-            bidMinimumIncrement,
-            size of participants
-        )
+        st = AwaitingAuctionState(item, currentBid, bidMinimumIncrement,
+            size of participants, minimumParticipants)
         if size of participants ≥ minimumParticipants do
             log "Starting auction."
             log "Selling: " + item
@@ -128,29 +119,23 @@ cyclic behaviour AwaitParticipants for agent Auctioneer
             log "Informing new participant "+localName of sender+" of awaiting state ("
                 + size of participants+"/"+minimumParticipants+")"
             do updateAuctioneerGUI with view, st, participants
-            send message inform StateIs(st) to sender
+            send message inform AwaitingStart(item, currentBid, 
+                bidMinimumIncrement, size of participants, minimumParticipants) to sender
             
-
     on message inform Leaving do
         log localName of sender + " is leaving the Auction."
         remove sender of message from participants
-        do updateAuctioneerGUI with view, AwaitingBidders(
-            item,
-            currentBid,
-            bidMinimumIncrement,
-            size of participants
-        ), participants
+        do updateAuctioneerGUI with view, AwaitingAuctionState(
+            item, currentBid, bidMinimumIncrement,
+            size of participants, minimumParticipants), participants
         do logStatus
         
     on message request ProvideAuctionState do
         log "Informing "+localName of sender+" of awaiting state ("
                 + size of participants+"/"+minimumParticipants+")"
-        send message inform StateIs(AwaitingBidders(
-            item,
-            currentBid,
-            bidMinimumIncrement,
-            size of participants
-        )) to sender
+        send message inform AwaitingStart(
+            item, currentBid, bidMinimumIncrement,
+            size of participants, minimumParticipants) to sender
 
 
 cyclic behaviour DoAuction for agent Auctioneer 
@@ -165,15 +150,11 @@ cyclic behaviour DoAuction for agent Auctioneer
     procedure callForBids do
         nextTimeout = now + waitingForBidsTime
         log "Calling for proposals, new price: " + currentBid + ", next timeout: " + nextTimeout
-        st = RunningAuction(
-                item,
-            currentBid,
-            bidMinimumIncrement,
-            nextTimeout,
-            getCurrentWinnerName()
-        )
-        do updateAuctioneerGUI with view, st, participants
-        send message cfp SubmitBid(st) to participants
+        do updateAuctioneerGUI with view, RunningAuctionState(
+            item, currentBid, bidMinimumIncrement,
+            nextTimeout, getCurrentWinnerName()), participants
+        send message cfp SubmitBid(item, currentBid, bidMinimumIncrement,
+            nextTimeout, getCurrentWinnerName()) to participants
         activate endAuction at nextTimeout
 
     function getCurrentWinnerName() as text do
@@ -184,16 +165,11 @@ cyclic behaviour DoAuction for agent Auctioneer
         
     on message inform Participating do
         add sender of message to participants
-        st = RunningAuction(
-            item, 
-            currentBid, 
-            bidMinimumIncrement, 
-            nextTimeout, 
-            getCurrentWinnerName()
-        )
-        send message cfp SubmitBid(st) to sender of message
+        st = RunningAuctionState(item, currentBid, bidMinimumIncrement, 
+            nextTimeout, getCurrentWinnerName())
+        send message cfp SubmitBid(item, currentBid, bidMinimumIncrement, 
+            nextTimeout, getCurrentWinnerName()) to sender of message
         do updateAuctioneerGUI with view, st, participants
-    
     
     on message inform Leaving do
         log sender + " is leaving the Auction."
@@ -201,23 +177,14 @@ cyclic behaviour DoAuction for agent Auctioneer
         if size of participants < minimumParticipants do
             activate endAuction
         else do
-            st = RunningAuction(
-                item, 
-                currentBid, 
-                bidMinimumIncrement, 
-                nextTimeout, 
-                getCurrentWinnerName()
-            )
+            st = RunningAuctionState(item, currentBid, bidMinimumIncrement, 
+                nextTimeout, getCurrentWinnerName())
             do updateAuctioneerGUI with view, st, participants
-        
 
-    on message propose (
-        Buy(proposedItem), 
-        Priced(proposedItem, proposedPrice)
-    ) do
+    on message propose (Buy(proposedItem), 
+        Priced(proposedItem, proposedPrice)) do
         log "Received bid of "+proposedPrice
         minExpectedPrice = currentBid+bidMinimumIncrement
-        
         if proposedItem ≠ item do
             log "Rejecting proposal, item not for sale: " + proposedItem
             send message reject_proposal (
@@ -228,7 +195,7 @@ cyclic behaviour DoAuction for agent Auctioneer
         else if proposedPrice < minExpectedPrice do
             log "Rejecting proposal, bid too low (" + proposedPrice + " < " + minExpectedPrice + ")"
             send message reject_proposal (
-            	Buy(proposedItem),
+                Buy(proposedItem),
             	Priced(proposedItem, proposedPrice),
             	BidRejected(BidTooLow(minExpectedPrice))
             ) to sender of message
@@ -244,14 +211,9 @@ cyclic behaviour DoAuction for agent Auctioneer
             do callForBids
             
     on message request ProvideAuctionStatus do
-      send message cfp SubmitBid(RunningAuction(
-          item,
-          currentBid,
-          bidMinimumIncrement,
-          nextTimeout,
-          getCurrentWinnerName()
-      )) to sender
-      
+      send message cfp SubmitBid(item, currentBid,
+          bidMinimumIncrement, nextTimeout, getCurrentWinnerName()
+      ) to sender
 
 
 one shot behaviour EndAuction for agent Auctioneer
