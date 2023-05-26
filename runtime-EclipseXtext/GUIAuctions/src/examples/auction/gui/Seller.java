@@ -2,24 +2,33 @@ package examples.auction.gui;
 
 import jade.wrapper.ContainerController;
 import jade.wrapper.StaleProxyException;
+import jadescript.java.Jadescript;
 import jadescript.lang.Duration;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
+import java.util.HashMap;
+
+import static examples.auction.gui.AuctioneerViewJava.WIN_SIZE;
 
 public class Seller extends JFrame {
 
-    private final ContainerController container;
+    private static final int COLUMNS = 8;
+    private final int port;
+    private final ContainerController sellerContainer;
+    private final HashMap<String, Integer> names = new HashMap<>();
+    private int x_counter = 0;
 
-    public static void createSellerWithForm(ContainerController container) {
-        new Seller(container);
+    public static void createSellerWithForm(int port, int x, int y) {
+        new Seller(port, x, y);
     }
 
     public static void createSeller(
-            ContainerController container,
+            int port,
+            int x,
+            int y,
             String name,
             String item,
             String startBid,
@@ -29,7 +38,9 @@ public class Seller extends JFrame {
     ) {
         try {
             spawnAuctioneer(
-                    container,
+                    Jadescript.newContainer(port),
+                    x,
+                    y,
                     name,
                     item,
                     Integer.parseInt(startBid),
@@ -49,22 +60,17 @@ public class Seller extends JFrame {
     private final JTextField incrementField;
     private final JTextField timeoutField;
     private final JTextField reservePriceField;
-    private final WindowListener killOnClose = new WindowAdapter() {
-        @Override
-        public void windowClosing(WindowEvent e) {
-            try {
-                container.kill();
-            } catch (StaleProxyException ex) {
-                throw new RuntimeException(ex);
-            }
-        }
-    };
 
-    public Seller(ContainerController container) {
-        this.container = container;
+
+    public Seller(int port, int x, int y) {
+        this.port = port;
+        this.sellerContainer = Jadescript.newContainer(port);
         setTitle("Create Auction");
         setLayout(new BorderLayout());
-        setSize(500, 400);
+        setSize(WIN_SIZE, WIN_SIZE);
+        setMaximumSize(new Dimension(WIN_SIZE, WIN_SIZE));
+        setMinimumSize(new Dimension(WIN_SIZE, WIN_SIZE));
+        setLocation(x*WIN_SIZE, y*WIN_SIZE);
 
 
         // Create the main panel with GridBagLayout
@@ -74,7 +80,7 @@ public class Seller extends JFrame {
 
         // Seller name label and field
         JLabel sellerNameLabel = new JLabel("Seller Name:");
-        sellerField = new JTextField(20);
+        sellerField = new JTextField(COLUMNS);
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.anchor = GridBagConstraints.LINE_START;
@@ -86,7 +92,7 @@ public class Seller extends JFrame {
 
         // Item label and field
         JLabel itemLabel = new JLabel("Item:");
-        itemField = new JTextField(20);
+        itemField = new JTextField(COLUMNS);
         gbc.gridx = 0;
         gbc.gridy = 1;
         mainPanel.add(itemLabel, gbc);
@@ -96,7 +102,7 @@ public class Seller extends JFrame {
 
         // Starting bid label and field
         JLabel startingBidLabel = new JLabel("Starting Bid:");
-        startingBidField = new JTextField(10);
+        startingBidField = new JTextField(COLUMNS);
         startingBidField.setText("30");
         gbc.gridx = 0;
         gbc.gridy = 2;
@@ -106,8 +112,8 @@ public class Seller extends JFrame {
         mainPanel.add(startingBidField, gbc);
 
         // Minimum increment label and field
-        JLabel incrementLabel = new JLabel("Minimum Increment:");
-        incrementField = new JTextField(10);
+        JLabel incrementLabel = new JLabel("Increment:");
+        incrementField = new JTextField(COLUMNS);
         incrementField.setText("1");
         gbc.gridx = 0;
         gbc.gridy = 3;
@@ -118,7 +124,7 @@ public class Seller extends JFrame {
 
         // Timeout label and field
         JLabel timeoutLabel = new JLabel("Timeout (seconds):");
-        timeoutField = new JTextField(10);
+        timeoutField = new JTextField(COLUMNS);
         timeoutField.setText("120");
         gbc.gridx = 0;
         gbc.gridy = 4;
@@ -129,7 +135,7 @@ public class Seller extends JFrame {
 
         // Reserve price label and field
         JLabel reservePriceLabel = new JLabel("Reserve Price:");
-        reservePriceField = new JTextField(10);
+        reservePriceField = new JTextField(COLUMNS);
         reservePriceField.setText("50");
         gbc.gridx = 0;
         gbc.gridy = 5;
@@ -140,7 +146,10 @@ public class Seller extends JFrame {
 
         // Spawn button
         JButton spawnButton = new JButton("Create auction");
-        spawnButton.addActionListener(__ -> spawnAuctioneer());
+        spawnButton.addActionListener(__ -> {
+            x_counter++;
+            spawnAuctioneer(x+x_counter, y);
+        });
         gbc.gridx = 0;
         gbc.gridy = 6;
         gbc.gridwidth = 2;
@@ -148,14 +157,26 @@ public class Seller extends JFrame {
         gbc.fill = GridBagConstraints.CENTER;
         mainPanel.add(spawnButton, gbc);
 
-        addWindowListener(killOnClose);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if(sellerContainer!=null && sellerContainer.isJoined()){
+                    try {
+                        sellerContainer.kill();
+                    } catch (StaleProxyException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+                Seller.this.dispose();
+            }
+        });
 
         add(mainPanel, BorderLayout.CENTER);
         setVisible(true);
         pack();
     }
 
-    private void spawnAuctioneer() {
+    private void spawnAuctioneer(int x, int y) {
         String sellerName = sellerField.getText();
         String item = itemField.getText();
         int startingBid = Integer.parseInt(startingBidField.getText());
@@ -163,10 +184,28 @@ public class Seller extends JFrame {
         int timeout = Integer.parseInt(timeoutField.getText());
         int reservePrice = Integer.parseInt(reservePriceField.getText());
 
-        removeWindowListener(killOnClose);
+        int nameUsedCount = names.getOrDefault(sellerName, 0);
+
+        if (nameUsedCount > 0) {
+            nameUsedCount++;
+            names.put(sellerName, nameUsedCount);
+            sellerName = sellerName +"_"+ nameUsedCount;
+        }
+
+        names.put(sellerName, 1);
+
         try {
-            spawnAuctioneer(container, sellerName, item, startingBid, increment, timeout, reservePrice);
-            this.dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+            spawnAuctioneer(
+                    Jadescript.newContainer(port),
+                    x,
+                    y,
+                    sellerName,
+                    item,
+                    startingBid,
+                    increment,
+                    timeout,
+                    reservePrice
+            );
         } catch (StaleProxyException e) {
             throw new RuntimeException(e);
         }
@@ -174,6 +213,8 @@ public class Seller extends JFrame {
 
     public static void spawnAuctioneer(
             ContainerController container,
+            int x,
+            int y,
             String name,
             String item,
             int startingBid,
@@ -189,6 +230,8 @@ public class Seller extends JFrame {
         System.out.println("Reserve Price: " + reservePrice);
 
         new AuctioneerViewJava().start(
+                x,
+                y,
                 container,
                 name,
                 EnglishAuction.Item(item),
@@ -197,18 +240,6 @@ public class Seller extends JFrame {
                 increment,
                 Duration.of(timeout, 0)
         );
-
-
-//        Auctioneer.create(
-//                container,
-//                name,
-//                EnglishAuction.Item(item),
-//                startingBid,
-//                reservePrice,
-//                increment,
-//                Duration.of(timeout, 0)
-//        );
-
 
     }
 }

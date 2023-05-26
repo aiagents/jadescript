@@ -53,10 +53,10 @@ public class BidderViewJava extends BidderView {
         this.biddingPanel = new JPanel();
         this.singleAuctionViewPanel = new JPanel();
         this.labelTop = new JLabel();
-        this.labelStatus = new JLabel("(...)");
-        this.labelCurrent = new JLabel(" --- ");
+        this.labelStatus = new JLabel("     ");
+        this.labelCurrent = new JLabel("     ");
         this.labelCountdown = new JLabel();
-        String[] options = {"Auto Bidding", "Manual Bid"};
+        String[] options = {"Auto", "Manual"};
         this.comboStategy = new JComboBox<>(options);
         this.fieldMoney = new JTextField("30");
         this.stratButton = new JButton("Submit");
@@ -98,6 +98,7 @@ public class BidderViewJava extends BidderView {
         ));
 
 
+
         this.biddingPanel.setLayout(new GridBagLayout());
         this.biddingPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 5));
         this.singleAuctionViewPanel.add(biddingPanel, BorderLayout.CENTER);
@@ -113,10 +114,10 @@ public class BidderViewJava extends BidderView {
                     delayMax
             );
 
-            String rowText = "Auction \"" + auctioneer.getLocalName() + " selling " + state.getItem().getName() + "\"";
+            String rowText = auctioneer.getLocalName() + " selling " + state.getItem().getName();
             labelTop.setText(rowText);
             GridBagConstraints gbc = new GridBagConstraints();
-            gbc.insets = new Insets(3, 3, 3, 3);
+            gbc.insets = new Insets(2, 2, 2, 2);
             gbc.gridx = 0;
             gbc.gridy = 0;
             gbc.gridwidth = GridBagConstraints.REMAINDER;
@@ -126,21 +127,22 @@ public class BidderViewJava extends BidderView {
             biddingPanel.add(labelTop, gbc);
 
             gbc.anchor = GridBagConstraints.WEST;
-            gbc.fill = GridBagConstraints.NONE;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.gridwidth = 1;
             gbc.gridy = 1;
             gbc.gridx = 0;
             Color color = Color.gray;
             labelStatus.setOpaque(true);
             labelStatus.setBackground(color);
+//            fixLabelSize(labelStatus, 90);
             this.biddingPanel.setBorder(BorderFactory.createLineBorder(color, 5));
             biddingPanel.add(labelStatus, gbc);
 
-            gbc.gridx = 1;
             gbc.gridy = 1;
+            gbc.gridx = 1;
             gbc.weightx = 1.0;
             gbc.anchor = GridBagConstraints.CENTER;
-            gbc.fill = GridBagConstraints.NONE;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.gridwidth = 1;
             biddingPanel.add(labelCurrent, gbc);
 
@@ -153,17 +155,18 @@ public class BidderViewJava extends BidderView {
                 }
             });
             timer500.stop();
-            gbc.gridx = 2;
             gbc.gridy = 1;
+            gbc.gridx = 2;
             gbc.weightx = 0.2;
             gbc.anchor = GridBagConstraints.EAST;
-            gbc.fill = GridBagConstraints.NONE;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.gridwidth = 1;
+//            fixLabelSize(labelCountdown, 60);
             biddingPanel.add(labelCountdown, gbc);
 
 
-            gbc.gridx = 0;
             gbc.gridy = 2;
+            gbc.gridx = 0;
             gbc.anchor = GridBagConstraints.WEST;
             gbc.fill = GridBagConstraints.NONE;
             gbc.gridwidth = 1;
@@ -172,8 +175,8 @@ public class BidderViewJava extends BidderView {
             comboStategy.setMaximumSize(comboStategy.getPreferredSize());
             biddingPanel.add(comboStategy, gbc);
 
-            gbc.gridx = 1;
             gbc.gridy = 2;
+            gbc.gridx = 1;
             gbc.weightx = 0.8;
             gbc.anchor = GridBagConstraints.CENTER;
             gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -203,7 +206,7 @@ public class BidderViewJava extends BidderView {
                     fieldMoney.setText("");
                 } else {
                     final String selectedItem = (String) comboStategy.getSelectedItem();
-                    if ("Auto Bidding".equals(selectedItem)) {
+                    if ("Auto".equals(selectedItem)) {
                         bidderAgent.emit(BuyerGUI.SetStrategy(
                                 BuyerGUI.AutoBudget(Integer.parseInt(fieldMoney.getText()))
                         ));
@@ -215,19 +218,21 @@ public class BidderViewJava extends BidderView {
                 }
 
             });
-            gbc.gridx = 3;
             gbc.gridy = 2;
+            gbc.gridx = 2;
             gbc.anchor = GridBagConstraints.EAST;
-            gbc.fill = GridBagConstraints.NONE;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.gridwidth = 1;
             biddingPanel.add(stratButton, gbc);
 
 
-            gbc.gridx = 0;
             gbc.gridy = 3;
-            gbc.anchor = GridBagConstraints.CENTER;
+            gbc.gridx = 0;
+            gbc.weightx = 1.0;
+            gbc.anchor = GridBagConstraints.WEST;
             gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.gridwidth = 2;
+//            fixLabelSize(labelMessage, 170);
             biddingPanel.add(labelMessage, gbc);
 
 
@@ -238,10 +243,10 @@ public class BidderViewJava extends BidderView {
                     bidderAgent.emit(BuyerGUI.CloseCommand());
                 }
             });
-            gbc.gridx = 2;
             gbc.gridy = 3;
+            gbc.gridx = 2;
             gbc.anchor = GridBagConstraints.EAST;
-            gbc.fill = GridBagConstraints.NONE;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.gridwidth = GridBagConstraints.REMAINDER;
             biddingPanel.add(leaveButton, gbc);
 
@@ -253,6 +258,11 @@ public class BidderViewJava extends BidderView {
 
 
         SwingUtilities.invokeLater(this::updateBidderGUI);
+    }
+
+    private void fixLabelSize(Component c, int width){
+        c.setMinimumSize(new Dimension(width, c.getPreferredSize().height));
+        c.setMaximumSize(new Dimension(width, c.getPreferredSize().height));
     }
 
     public JPanel getPanel() {
@@ -300,9 +310,9 @@ public class BidderViewJava extends BidderView {
         timer500.stop();
 
         setTitleAndStatus(state, "Awaiting", Color.orange);
-        labelCurrent.setText("Starting Bid: " + state.getStartingBid());
+        labelCurrent.setText("Price: " + state.getStartingBid());
 
-        labelCurrent.setText(" --- ");
+        labelCurrent.setText("     ");
         labelCountdown.setText("");
 
         setActionRowEnabled(false);
@@ -324,14 +334,14 @@ public class BidderViewJava extends BidderView {
                 labelMessage.setText("Item sold to '" + state.getWinner().getLocalName() + "'");
             }
 
-            labelCurrent.setText("Winning Bid: " + state.getCurrentBid());
+            labelCurrent.setText("Price: " + state.getCurrentBid());
             labelCountdown.setText("");
 
             setActionRowEnabled(false);
             leaveButton.setText("Remove");
         } else {
             setTitleAndStatus(state, "Terminated", Color.gray);
-            labelCurrent.setText("Last Bid: " + state.getCurrentBid());
+            labelCurrent.setText("Price: " + state.getCurrentBid());
             labelCountdown.setText("");
             setActionRowEnabled(false);
             labelMessage.setText("Item not sold.");
@@ -344,7 +354,7 @@ public class BidderViewJava extends BidderView {
 
         setTitleAndStatus(state, "Removed", Color.darkGray);
 
-        labelCurrent.setText("Last Bid: " + state.getCurrentBid());
+        labelCurrent.setText("Price: " + state.getCurrentBid());
 
 
         labelCountdown.setText("");
@@ -362,7 +372,7 @@ public class BidderViewJava extends BidderView {
         if (currentlyWinning.isBlank()) {
             status = "Open";
             color = Color.pink;
-            labelMessage.setText("Auctioneer awaiting first bid.");
+            labelMessage.setText("Awaiting first bid.");
         } else if (currentlyWinning.equals(me)) {
             status = "Leading";
             color = Color.BLUE;
@@ -375,7 +385,7 @@ public class BidderViewJava extends BidderView {
 
         setTitleAndStatus(state, status, color);
 
-        labelCurrent.setText("Current Bid: " + state.getCurrentBid());
+        labelCurrent.setText("Price: " + state.getCurrentBid());
 
         timer500.start();
 
@@ -405,8 +415,8 @@ public class BidderViewJava extends BidderView {
     public void showError(String str) {
         labelTop.setText(str);
         labelStatus.setText("Error");
-        labelCurrent.setText("---");
-        labelMessage.setText("---");
+        labelCurrent.setText("   ");
+        labelMessage.setText("   ");
         timer500.stop();
         leaveButton.setText("Leave");
     }

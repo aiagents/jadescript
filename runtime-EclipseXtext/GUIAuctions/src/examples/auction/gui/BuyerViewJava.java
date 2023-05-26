@@ -27,8 +27,8 @@ public class BuyerViewJava extends BuyerView {
     private int delayMin = 0;
     private int delayMax = 0;
 
-    public static final int MAX_WIDTH = 720;
-    public static final int MAX_INNER_WIDTH = MAX_WIDTH - 30;
+    public static final int WIN_SIZE = 320;
+    public static final int MAX_INNER_WIDTH = WIN_SIZE - 30;
 
     private JadescriptAgentController agent;
     private JFrame jframe;
@@ -40,11 +40,13 @@ public class BuyerViewJava extends BuyerView {
 
     public static void createBuyer(
             String name,
+            int x,
+            int y,
             ContainerController container,
             int delayMin,
             int delayMax
     ) throws StaleProxyException {
-        new BuyerViewJava(name, container, delayMin, delayMax).start();
+        new BuyerViewJava(name, container, delayMin, delayMax).start(x, y);
     }
 
 
@@ -59,7 +61,7 @@ public class BuyerViewJava extends BuyerView {
         this.delayMax = delayMax;
     }
 
-    public void start() throws StaleProxyException {
+    public void start(int x, int y) throws StaleProxyException {
         if (this.inputName.isBlank()) {
             this.agentName = "buyer" + formatter.format(new Date());
         } else {
@@ -74,27 +76,31 @@ public class BuyerViewJava extends BuyerView {
 
         this.jframe = new JFrame(agentName);
 
-        this.jframe.setMinimumSize(new Dimension(MAX_WIDTH, 300));
-        this.jframe.setMaximumSize(new Dimension(MAX_WIDTH, Integer.MAX_VALUE));
+        this.jframe.setSize(new Dimension(WIN_SIZE, WIN_SIZE));
+        this.jframe.setMinimumSize(new Dimension(WIN_SIZE, WIN_SIZE));
+        this.jframe.setMaximumSize(new Dimension(WIN_SIZE, Integer.MAX_VALUE));
+        this.jframe.setLocation(x * WIN_SIZE, y * WIN_SIZE);
         this.jframe.setLayout(new BorderLayout());
+        this.jframe.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         this.jframe.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                try {
-                    if (agent != null) {
-                        agent.emit(BuyerGUI.CloseCommand());
-                    }
-                } catch (Throwable ignored) {
-
-                }
-                if (container != null) {
+                ConfirmationDialog.show("Shutdown '" + agentName + "'", "Are you sure?", () -> {
                     try {
-                        container.kill();
-                    } catch (StaleProxyException ex) {
-                        ex.printStackTrace();
-                    }
-                }
+                        if (agent != null) {
+                            agent.emit(BuyerGUI.CloseCommand());
+                        }
+                    } catch (Throwable ignored) {
 
+                    }
+                    if (container != null && container.isJoined()) {
+                        try {
+                            container.kill();
+                        } catch (StaleProxyException ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                });
             }
         });
 
@@ -102,6 +108,7 @@ public class BuyerViewJava extends BuyerView {
         auctionsView.setLayout(new BoxLayout(auctionsView, BoxLayout.Y_AXIS));
 
         JScrollPane scrollPane = new JScrollPane(auctionsView);
+        scrollPane.setMaximumSize(new Dimension(WIN_SIZE, Integer.MAX_VALUE));
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 

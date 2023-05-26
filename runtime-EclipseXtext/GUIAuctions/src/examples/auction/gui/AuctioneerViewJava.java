@@ -21,12 +21,14 @@ import java.util.Set;
 import java.util.logging.Level;
 
 public class AuctioneerViewJava extends AuctioneerView {
+    public static final int WIN_SIZE = 320;
+
     private static final Logger logger = Logger.getMyLogger(AuctioneerViewJava.class.getName());
     private JadescriptAgentController auctioneerAgent = null;
     private final Map<AID, ParticipantPanel> participants = new HashMap<>();
 
 
-    private final JFrame auctioneerFrame;
+    private JFrame auctioneerFrame = null;
     private final JPanel mainPanel;
 
     private final JLabel stateLabel;
@@ -52,28 +54,31 @@ public class AuctioneerViewJava extends AuctioneerView {
 
     private ContainerController container = null;
     private final Runnable closeAuctioneer = () -> {
-        try {
-            if (auctioneerAgent != null) {
-                try {
-                    auctioneerAgent.emit(AuctioneerGUI.CloseAuctioneer());
-                } catch (Throwable ignored) {
 
-                }
-                if (container != null) {
-                    container.kill();
-                }
+        if (auctioneerAgent != null) {
+            try {
+                auctioneerAgent.emit(AuctioneerGUI.CloseAuctioneer());
+            } catch (Throwable ignored) {
+
             }
-        } catch (StaleProxyException e) {
-            throw new RuntimeException(e);
         }
+
+        if (container != null && container.isJoined()) {
+            try {
+                container.kill();
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        }
+
     };
 
     public AuctioneerViewJava() {
         auctioneerFrame = new JFrame();
         mainPanel = new JPanel();
-        stateLabel = new JLabel("---");
-        messageLabel = new JLabel("---");
-        countdownLabel = new JLabel("...");
+        stateLabel = new JLabel("   ");
+        messageLabel = new JLabel("   ");
+        countdownLabel = new JLabel("   ");
         stopButton = new JButton("Stop");
         countdownTimer = new Timer(500, (__) -> {
             final AuctionState s = getState();
@@ -87,6 +92,8 @@ public class AuctioneerViewJava extends AuctioneerView {
     }
 
     public void start(
+            int x,
+            int y,
             ContainerController container,
             String name,
             Item item,
@@ -97,8 +104,11 @@ public class AuctioneerViewJava extends AuctioneerView {
     ) {
         this.container = container;
         this.auctioneerFrame.setTitle(name + " (Auctioneer)");
-        this.auctioneerFrame.setMinimumSize(new Dimension(500, 400));
+        this.auctioneerFrame.setMinimumSize(new Dimension(WIN_SIZE, WIN_SIZE));
+        this.auctioneerFrame.setSize(new Dimension(WIN_SIZE, WIN_SIZE));
         this.auctioneerFrame.setLayout(new BorderLayout());
+        this.auctioneerFrame.setLocation(x * WIN_SIZE, y * WIN_SIZE);
+
 
         JPanel northPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
@@ -135,8 +145,14 @@ public class AuctioneerViewJava extends AuctioneerView {
         this.auctioneerFrame.getContentPane().add(northPanel, BorderLayout.NORTH);
         this.auctioneerFrame.getContentPane().add(southPanel, BorderLayout.SOUTH);
 
-        this.auctioneerFrame.getContentPane().add(mainPanel, BorderLayout.CENTER);
-        this.mainPanel.setLayout(new BoxLayout(this.mainPanel, BoxLayout.X_AXIS));
+        this.mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+
+        JScrollPane scrollPane = new JScrollPane(mainPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+        this.auctioneerFrame.getContentPane().add(scrollPane, BorderLayout.CENTER);
+
 
         try {
             this.auctioneerAgent = Auctioneer.create(
@@ -156,9 +172,18 @@ public class AuctioneerViewJava extends AuctioneerView {
         this.auctioneerFrame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                closeAuctioneer.run();
+
+                ConfirmationDialog.show("Shutdown Auctioneer", "Are you sure?", () -> {
+                    closeAuctioneer.run();
+                    if (auctioneerFrame == null) {
+                        return;
+                    }
+                    auctioneerFrame.setVisible(false);
+                    auctioneerFrame.dispose();
+                });
             }
         });
+        this.auctioneerFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
         this.auctioneerFrame.pack();
         this.auctioneerFrame.setVisible(true);
@@ -225,8 +250,9 @@ public class AuctioneerViewJava extends AuctioneerView {
                         .forEach(e -> mainPanel.add(e.getValue()));
 
             }
+
             auctioneerFrame.revalidate();
-            SwingUtilities.invokeLater(auctioneerFrame::repaint);
+            auctioneerFrame.repaint();
         });
     }
 
@@ -284,7 +310,7 @@ public class AuctioneerViewJava extends AuctioneerView {
         updateParticipantMap(state, participants);
         countdownTimer.stop();
         countdownLabel.setText("");
-        messageLabel.setText("---");
+        messageLabel.setText("   ");
     }
 
     private void updateRunning(RunningAuctionState state, JadescriptSet<AID> participants) {
@@ -311,7 +337,7 @@ public class AuctioneerViewJava extends AuctioneerView {
         updateParticipantMap(state, participants);
         countdownTimer.stop();
         countdownLabel.setText("");
-        messageLabel.setText("---");
+        messageLabel.setText("   ");
     }
 
 
@@ -323,27 +349,30 @@ public class AuctioneerViewJava extends AuctioneerView {
         public ParticipantPanel(AID participant) {
             this.participant = participant;
             this.setLayout(new GridBagLayout());
-            this.setMinimumSize(new Dimension(240, 120));
-//            this.setMaximumSize(new Dimension(240, 120));
+            this.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
-            this.setBorder(BorderFactory.createLineBorder(idle, 3));
+            this.setBorder(BorderFactory.createLineBorder(Color.darkGray, 1));
 
             GridBagConstraints gbc = new GridBagConstraints();
             gbc.insets = new Insets(3, 3, 3, 3);
+            gbc.gridy = 0;
 
             gbc.gridx = 0;
-            gbc.gridy = 0;
-            JLabel nameLabel = new JLabel(participant.getLocalName());
-            this.add(nameLabel, gbc);
-            gbc.gridy = 1;
-
+            gbc.anchor = GridBagConstraints.WEST;
             this.statusLabel = new JLabel("(Idle)");
             this.statusLabel.setOpaque(true);
             this.statusLabel.setBackground(idle);
             this.add(statusLabel, gbc);
 
-            gbc.gridy = 2;
-            this.lastBidLabel = new JLabel("");
+            gbc.gridx = 1;
+            gbc.anchor = GridBagConstraints.CENTER;
+            gbc.weightx = 1.0;
+            JLabel nameLabel = new JLabel(participant.getLocalName());
+            this.add(nameLabel, gbc);
+
+            gbc.gridx = 2;
+            gbc.anchor = GridBagConstraints.EAST;
+            this.lastBidLabel = new JLabel("   ");
             this.add(lastBidLabel, gbc);
         }
 
@@ -353,7 +382,7 @@ public class AuctioneerViewJava extends AuctioneerView {
         }
 
         private void setStatus(String s, Color left) {
-            this.setBorder(BorderFactory.createLineBorder(left, 3));
+//            this.setBorder(BorderFactory.createLineBorder(left, 3));
             this.statusLabel.setOpaque(true);
             this.statusLabel.setBackground(left);
             this.statusLabel.setText(s);
@@ -362,15 +391,15 @@ public class AuctioneerViewJava extends AuctioneerView {
         public void setState(AuctionState state) {
             if (state instanceof AwaitingAuctionState) {
                 setStatus("(Idle)", idle);
-                this.lastBidLabel.setText("");
+                this.lastBidLabel.setText("   ");
             } else if (state instanceof RunningAuctionState) {
                 if ("".equals(((RunningAuctionState) state).getCurrentlyWinning())) {
                     setStatus("(Idle)", idle);
-                    this.lastBidLabel.setText("");
+                    this.lastBidLabel.setText("   ");
 
                 } else if (participant.getName().equals(((RunningAuctionState) state).getCurrentlyWinning())) {
                     setStatus("(Leading)", leading);
-                    this.lastBidLabel.setText("Last bid: " + state.getCurrentBid());
+                    this.lastBidLabel.setText("Bid: " + state.getCurrentBid());
                 } else {
                     setStatus("(Outbid)", outbid);
                 }
@@ -378,7 +407,7 @@ public class AuctioneerViewJava extends AuctioneerView {
                 if (((EndedAuctionState) state).getSold()) {
                     if (participant.equals(((EndedAuctionState) state).getWinner())) {
                         setStatus("(Won)", winner);
-                        this.lastBidLabel.setText("Winning bid:" + state.getCurrentBid());
+                        this.lastBidLabel.setText("Bid:" + state.getCurrentBid());
                     } else {
                         setStatus("(Lost)", left);
                     }
