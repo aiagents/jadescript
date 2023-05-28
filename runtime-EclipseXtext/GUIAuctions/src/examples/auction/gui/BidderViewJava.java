@@ -53,14 +53,14 @@ public class BidderViewJava extends BidderView {
         this.biddingPanel = new JPanel();
         this.singleAuctionViewPanel = new JPanel();
         this.labelTop = new JLabel();
-        this.labelStatus = new JLabel("     ");
+        this.labelStatus = new FixedLabel(60, "     ");
         this.labelCurrent = new JLabel("     ");
-        this.labelCountdown = new JLabel();
+        this.labelCountdown = new FixedLabel(50);
         String[] options = {"Auto", "Manual"};
         this.comboStategy = new JComboBox<>(options);
         this.fieldMoney = new JTextField("30");
         this.stratButton = new JButton("Submit");
-        this.labelMessage = new JLabel(" ");
+        this.labelMessage = new FixedLabel(170, " ");
         this.leaveButton = new JButton("Leave");
     }
 
@@ -131,6 +131,7 @@ public class BidderViewJava extends BidderView {
             gbc.gridwidth = 1;
             gbc.gridy = 1;
             gbc.gridx = 0;
+            gbc.weightx = 1.0;
             Color color = Color.gray;
             labelStatus.setOpaque(true);
             labelStatus.setBackground(color);
@@ -140,7 +141,7 @@ public class BidderViewJava extends BidderView {
 
             gbc.gridy = 1;
             gbc.gridx = 1;
-            gbc.weightx = 1.0;
+            gbc.weightx = 0;
             gbc.anchor = GridBagConstraints.CENTER;
             gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.gridwidth = 1;
@@ -157,10 +158,11 @@ public class BidderViewJava extends BidderView {
             timer500.stop();
             gbc.gridy = 1;
             gbc.gridx = 2;
-            gbc.weightx = 0.2;
+            gbc.weightx = 0;
             gbc.anchor = GridBagConstraints.EAST;
             gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.gridwidth = 1;
+            labelCountdown.setHorizontalAlignment(SwingConstants.RIGHT);
 //            fixLabelSize(labelCountdown, 60);
             biddingPanel.add(labelCountdown, gbc);
 
@@ -170,14 +172,13 @@ public class BidderViewJava extends BidderView {
             gbc.anchor = GridBagConstraints.WEST;
             gbc.fill = GridBagConstraints.NONE;
             gbc.gridwidth = 1;
-            gbc.weightx = 0.2;
-
+            gbc.weightx = 0;
             comboStategy.setMaximumSize(comboStategy.getPreferredSize());
             biddingPanel.add(comboStategy, gbc);
 
             gbc.gridy = 2;
             gbc.gridx = 1;
-            gbc.weightx = 0.8;
+            gbc.weightx = 1.0;
             gbc.anchor = GridBagConstraints.CENTER;
             gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.gridwidth = 1;
@@ -223,12 +224,13 @@ public class BidderViewJava extends BidderView {
             gbc.anchor = GridBagConstraints.EAST;
             gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.gridwidth = 1;
+            gbc.weightx = 1.0;
             biddingPanel.add(stratButton, gbc);
 
 
             gbc.gridy = 3;
             gbc.gridx = 0;
-            gbc.weightx = 1.0;
+            gbc.weightx = 0;
             gbc.anchor = GridBagConstraints.WEST;
             gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.gridwidth = 2;
@@ -245,6 +247,7 @@ public class BidderViewJava extends BidderView {
             });
             gbc.gridy = 3;
             gbc.gridx = 2;
+            gbc.weightx = 1.0;
             gbc.anchor = GridBagConstraints.EAST;
             gbc.fill = GridBagConstraints.HORIZONTAL;
             gbc.gridwidth = GridBagConstraints.REMAINDER;
@@ -258,6 +261,39 @@ public class BidderViewJava extends BidderView {
 
 
         SwingUtilities.invokeLater(this::updateBidderGUI);
+    }
+
+    public static class FixedLabel extends JLabel{
+        private final int width;
+
+        public FixedLabel(int width, String text, int horizontalAlignment) {
+            super(text, horizontalAlignment);
+            this.width = width;
+        }
+
+        public FixedLabel(int width, String text) {
+            super(text);
+            this.width = width;
+        }
+
+        public FixedLabel(int width) {
+            this.width = width;
+        }
+
+        @Override
+        public Dimension getMaximumSize() {
+            return new Dimension(width, super.getMaximumSize().height);
+        }
+
+        @Override
+        public Dimension getMinimumSize() {
+            return new Dimension(width, super.getMinimumSize().height);
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            return new Dimension(width, super.getPreferredSize().height);
+        }
     }
 
     private void fixLabelSize(Component c, int width){
