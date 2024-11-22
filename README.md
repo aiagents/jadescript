@@ -95,6 +95,34 @@ Note: when launching the runtime Eclipse instance, remember to re-import the exa
 ### Deploying the compiler as a stand-alone JAR
 Run the ANT script `it.unipr.ailab.jadescript/createStandaloneJar.ant`. In Eclipse, simply right-click the file and select _Run As_ > _Ant Build_. The resulting JAR file will be located in `[...clone dir...]/StandaloneCompilerJar/`.
 
+If you REALLY don't want to use eclipse, follow these steps to compile with the library from command line:
+
+- If you don't already have Jade, download it from official sources: https://jade.tilab.com/ and extract the bin archive
+
+- download the standalone jar for jadescript from above and place it in the lib/ directory inside the jade installation (you should now see both a jade.jar and a jadescriptc.jar inside the folder)
+
+- create a src directory in your project folder and wite all your .jade files inside it (or in subdirectories if your project is big enough)
+
+- compile the jade files into java by moving OUTSIDE of your src directory and running the command 
+
+```
+java -jar <path-to-jade-installation>/lib/jadescriptc.jar ./src/*.jade
+```
+
+This will create a new src-gen folder containing your agents and behaviors transalted into java
+
+- create a bin directory, to store your .class files, then, while remaining in your project root folder (it should contain the src,src-gen and bin folder) compile your newly produced java files with
+
+```
+javac -cp .:<path-to-jade-installation>/lib/jadescriptc.jar:<path-to-jade-installation>/lib/jade.jar -d ./bin src-gen/*.java
+```
+
+You can now finally run your jade agent simulation with
+
+```
+java -cp .:<path-to-jade-installation>lib/jade.jar:<path-to-jadescript-installation>lib/jadescriptc.jar jade.Boot -gui -agents myAgent:MyAgentClass
+```
+
 ### Exporting the Eclipse plug-in install file
 In Eclipse, right-click on the `it.unipr.ailab.jadescript.feature`, then click on _Export..._.
 In the dialog window, select _Plug-in Development_ > _Deployable features_.
